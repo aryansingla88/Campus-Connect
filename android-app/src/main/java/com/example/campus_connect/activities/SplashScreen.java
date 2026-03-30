@@ -1,0 +1,62 @@
+package com.example.campus_connect.activities;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
+import android.widget.TextView;
+
+import com.airbnb.lottie.LottieAnimationView;
+import com.example.campus_connect.R;
+
+public class SplashScreen extends AppCompatActivity {
+
+    private Handler handler = new Handler();
+    private Runnable runnable;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_splash_screen);
+
+        LottieAnimationView lottie = findViewById(R.id.lottieAnimation);
+        TextView appName = findViewById(R.id.appName);
+
+        lottie.addAnimatorListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+
+                appName.setTranslationY(40);
+                appName.setAlpha(0);
+
+                appName.animate()
+                        .translationY(0)
+                        .alpha(1)
+                        .setDuration(600)
+                        .start();
+
+                runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        Intent intent = new Intent(SplashScreen.this, MainActivity.class);
+                        startActivity(intent);
+                        finish();
+                    }
+                };
+
+                handler.postDelayed(runnable, 1200);
+            }
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (handler != null && runnable != null) {
+            handler.removeCallbacks(runnable);
+        }
+    }
+}
