@@ -63,11 +63,11 @@ CREATE TABLE events (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(100),
     description TEXT,
-    poi_id INT,
+    latitude DOUBLE,
+    longitude DOUBLE,
     event_time DATETIME,
     created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (poi_id) REFERENCES poi(id),
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
@@ -100,5 +100,6 @@ CREATE TABLE notifications (
     message TEXT,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id)
+        REFERENCES users (id)
 );
