@@ -12,13 +12,12 @@ import java.util.*;
 public class EventRepository {
 
     @Autowired
-    private DataSource dataSource; // ✅ Spring will inject DB connection
+    private DataSource dataSource;
 
     public int createEvent(Event event) {
         int eventId = 0;
 
-        try (Connection conn = dataSource.getConnection()) { // ✅ fixed
-
+        try (Connection conn = dataSource.getConnection()) {
             String query = "INSERT INTO events (title, description, latitude, longitude, event_time, created_by) VALUES (?, ?, ?, ?, ?, ?)";
             PreparedStatement ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 

@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
 
             getLocation();
-            fetchVisibleUsers();  //  get users
+            fetchVisibleUsers();
 
             refreshHandler.postDelayed(this, REFRESH_INTERVAL_MS);
         }
@@ -132,9 +132,9 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
 
-                    // 🔹 show locally (IMPORTANT FIX)
+                    // 🔹 show locally
                     List<UserPresence> users = new ArrayList<>();
-                    users.add(me);  // ✅ THIS WAS MISSING
+                    users.add(me);
 
                     campusMapView.updateUsers(users);
                 });

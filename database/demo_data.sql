@@ -1,4 +1,16 @@
 USE campus_connect;
+select * from users;
+
+CREATE TABLE users_new LIKE users;
+
+ALTER TABLE users_new MODIFY id INT AUTO_INCREMENT;
+
+INSERT INTO users_new (username, email, password_hash)
+SELECT username, email, password_hash FROM users;
+
+DROP TABLE users;
+
+RENAME TABLE users_new TO users;
 
 -- USERS
 INSERT INTO users (username, email, password_hash) VALUES

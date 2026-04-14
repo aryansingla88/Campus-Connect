@@ -1,5 +1,6 @@
 package com.campus.Campus_Connect.controller;
 
+import com.campus.Campus_Connect.model.CreatePostRequest;
 import com.campus.Campus_Connect.model.Post;
 import com.campus.Campus_Connect.service.PostService;
 
@@ -21,24 +22,18 @@ public class PostController {
     }
 
     @GetMapping("/posts")
-    public ResponseEntity<List<Post>> getPosts() {
-
-        int currentUserId = 29;
-
-        List<Post> posts = postService.getPosts(currentUserId);
-
+    public ResponseEntity<List<Post>> getPosts(@RequestParam int userId)
+    {
+        List<Post> posts = postService.getPosts(userId);
         return ResponseEntity.ok(posts);
     }
 
     @PostMapping("/posts")
-    public ResponseEntity<Post> createPost(
-            @RequestBody Map<String, String> body
-    ) {
-        String content = body.get("content");
-
-        int userId = 29; // TEMP
-
-        Post post = postService.createPost(userId, content);
+    public ResponseEntity<Post> createPost(@RequestBody CreatePostRequest request ) {
+        Post post = postService.createPost(
+                request.getUserId(),
+                request.getContent()
+        );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(post);
     }
@@ -57,7 +52,7 @@ public class PostController {
             return ResponseEntity.ok("Comment added successfully");
 
         } catch (Exception e) {
-            e.printStackTrace(); // 👈 ADD THIS
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Invalid request");
         }
     }

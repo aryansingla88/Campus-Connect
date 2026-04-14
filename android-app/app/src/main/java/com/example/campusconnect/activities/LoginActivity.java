@@ -103,6 +103,7 @@ public class LoginActivity extends AppCompatActivity {
                                 SharedPreferences.Editor editor = prefs.edit();
 
                                 editor.putInt("user_id", response.body().getUser_id());
+
                                 editor.apply();
 
                                 // Login successful → go to next activity
