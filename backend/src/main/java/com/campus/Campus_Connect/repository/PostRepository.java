@@ -23,28 +23,36 @@ public class PostRepository {
 
         try (Connection conn = dataSource.getConnection()) {
 
-            // 🔥 DEBUG: check data exists
-            System.out.println("=== DEBUG START ===");
-
-            String debugQuery = "SELECT COUNT(*) FROM posts";
-            PreparedStatement debugStmt = conn.prepareStatement(debugQuery);
-            ResultSet debugRs = debugStmt.executeQuery();
-
-            if (debugRs.next()) {
-                System.out.println("POST COUNT FROM SPRING: " + debugRs.getInt(1));
-            }
-
-            System.out.println("=== DEBUG END ===");
-
-            // ✅ MAIN QUERY (SAFE VERSION)
             String query = """
-            SELECT p.id, p.content, p.created_at, u.username
-            FROM posts p
-            LEFT JOIN users u ON p.user_id = u.id
-            ORDER BY p.created_at DESC
+                SELECT p.*, u.username,
+                MAX(c.created_at) AS last_comment_time,
+                COUNT(DISTINCT up.user_id) AS upvote_count,
+                
+                (
+                    (100000.0 / (TIMESTAMPDIFF(HOUR,\s
+                        COALESCE(MAX(c.created_at), p.created_at), NOW()) + 1))
+                    + (COUNT(DISTINCT up.user_id) * 10)
+                ) AS score
+                
+                FROM posts p
+                LEFT JOIN users u ON p.user_id = u.id
+                LEFT JOIN comments c ON p.id = c.post_id
+                LEFT JOIN upvote up ON p.id = up.post_id
+                
+                GROUP BY p.id
+                
+                ORDER BY\s
+                    (p.user_id = ?) DESC,
+                    CASE\s
+                        WHEN p.user_id = ? THEN COALESCE(MAX(c.created_at), p.created_at)
+                    END DESC,
+                    score DESC;
         """;
 
             PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, currentUserId);
+            stmt.setInt(2, currentUserId);
+
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {

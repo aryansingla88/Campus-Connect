@@ -31,3 +31,4 @@ public class EventController {
         return service.getAllEvents();
     }
 }
+

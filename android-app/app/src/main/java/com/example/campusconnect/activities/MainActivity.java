@@ -10,9 +10,8 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import android.widget.Button;
 import android.content.Intent;
-
+import android.widget.TextView;
 //aryan
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,6 +34,7 @@ import retrofit2.Response;
 // aryan
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 // aryan
 
 public class MainActivity extends AppCompatActivity {
@@ -64,15 +64,15 @@ public class MainActivity extends AppCompatActivity {
 
         campusMapView = findViewById(R.id.campusMapView);
 
-        Button btnMap = findViewById(R.id.btnMap);
-        Button btnChat = findViewById(R.id.btnChat);
+        FloatingActionButton fabMap = findViewById(R.id.fabMap);
+        FloatingActionButton fabChat = findViewById(R.id.fabChat);
 
-        btnMap.setOnClickListener(v -> {
+        fabMap.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, MapActivity.class);
             startActivity(intent);
         });
 
-        btnChat.setOnClickListener(v -> {
+        fabChat.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, ChatActivity.class);
             startActivity(intent);
         });
@@ -165,21 +165,6 @@ public class MainActivity extends AppCompatActivity {
         refreshHandler.removeCallbacks(refreshRunnable);
     }
 
-    private void loadTestData() {
-        List<UserPresence> users = new ArrayList<>();
-        users.add(new UserPresence(2,"Arpit", 29.9448, 76.8164));
-        users.add(new UserPresence(3,"Aryan", 29.9446, 76.8168));
-        users.add(new UserPresence(4,"Yatharth", 29.9451, 76.8162));
-
-        List<Poi> pois = new ArrayList<>();
-        pois.add(new Poi("Library", 29.9450, 76.8160));
-        pois.add(new Poi("Cafeteria", 29.9444, 76.8166));
-        pois.add(new Poi("Admin Block", 29.9453, 76.8169));
-        pois.add(new Poi("Hostel", 29.9442, 76.8158));
-
-        campusMapView.updateUsers(users);
-        campusMapView.updatePOIs(pois);
-    }
 
     private void fetchVisibleUsers() {
         mapService.getVisibleUsers().enqueue(new Callback<List<UserPresence>>() {

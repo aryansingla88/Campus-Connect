@@ -16,7 +16,7 @@ import retrofit2.http.Query;
 public interface PostService {
 
     @GET("api/posts")
-    Call<List<Post>> getPosts(@Query("user_id") int userId);
+    Call<List<Post>> getPosts(@Query("userId") int userId);
 
     @POST("api/posts")
     Call<Void> createPost(@Body CreatePostRequest request);
