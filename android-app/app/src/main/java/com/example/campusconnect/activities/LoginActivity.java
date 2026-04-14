@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     private Button button;
     private TextView warning;
     private TextView registerText;
-    private TextView clickableusername;
+    private ImageView appLogo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +40,7 @@ public class LoginActivity extends AppCompatActivity {
         registerText = findViewById(R.id.registerText);
         button = findViewById(R.id.button);
         warning = findViewById(R.id.warning);
-        clickableusername=findViewById(R.id.username);
+        appLogo=findViewById(R.id.appLogo);
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -49,7 +50,7 @@ public class LoginActivity extends AppCompatActivity {
                 String Pass = password.getText().toString().trim();
 
                 // -------------------------------
-                // 1️⃣ Username empty check
+                // 1️ Username empty check
                 // -------------------------------
 
                 if(Name.isEmpty()){
@@ -139,7 +140,7 @@ public class LoginActivity extends AppCompatActivity {
 
             }
         });
-        clickableusername.setOnClickListener(new View.OnClickListener() {
+        appLogo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 

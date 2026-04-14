@@ -106,9 +106,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         Context context = holder.itemView.getContext();
         Post post = postList.get(position);
         if (post.isHas_upvoted()) {
-            holder.upvoteButton.setColorFilter(ContextCompat.getColor(context, R.color.purple_500));
+            holder.upvoteButton.setColorFilter(ContextCompat.getColor(context, R.color.primary));
         } else {
-            holder.upvoteButton.setColorFilter(ContextCompat.getColor(context, R.color.gray));
+            holder.upvoteButton.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary));
         }
 
 
@@ -223,7 +223,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                     holder.upvoteButton.setColorFilter(
                                             ContextCompat.getColor(
                                                     context,
-                                                    R.color.gray
+                                                    R.color.text_secondary
                                             )
                                     );
 
@@ -235,7 +235,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                     holder.upvoteButton.setColorFilter(
                                             ContextCompat.getColor(
                                                     context,
-                                                    R.color.purple_500
+                                                    R.color.primary
                                             )
                                     );
                                 }

@@ -1,45 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Feed -->
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipeRefresh"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/postRecyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"/>
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    <!-- Main Screen Layout -->
 
-    <!-- Post input bar -->
     <LinearLayout
-        android:orientation="horizontal"
-        android:padding="8dp"
+        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent">
 
-        <EditText
-            android:id="@+id/postInput"
-            android:hint="Write something..."
+        <!-- Toolbar -->
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+
+            android:background="?attr/colorPrimary"
+            android:elevation="6dp"
+
+            app:title="Global Chat"
+            app:titleCentered="false"
+            app:titleTextColor="@android:color/white"
+            app:navigationIcon="@drawable/ic_arrow_back" />
+
+        <!-- Feed -->
+
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefresh"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"/>
+            android:background="#FFFFFF">
 
-        <Button
-            android:id="@+id/postButton"
-            android:text="POST"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/postRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <!-- Post input bar -->
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFFFFF">
+
+            <EditText
+                android:id="@+id/postInput"
+                android:hint="Write something..."
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/postButton"
+                android:text="POST"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
+    <!-- Refresh Overlay (appears on top of screen) -->
 
-</LinearLayout>
+    <LinearLayout
+        android:id="@+id/refreshOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+
+        android:gravity="center"
+        android:orientation="vertical"
+
+        android:visibility="gone"
+
+        android:background="#66000000">
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/refreshAnimation"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+
+            app:lottie_rawRes="@raw/refresh_anim"
+            app:lottie_autoPlay="false"
+            app:lottie_loop="true" />
+
+        <TextView
+            android:text="Refreshing..."
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+
+</FrameLayout>

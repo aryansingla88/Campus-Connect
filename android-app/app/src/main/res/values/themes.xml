@@ -1,9 +1,27 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.CampusConnect" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
+    <!-- Base theme (do not use directly in manifest) -->
+    <style name="Base.Theme.CampusConnect"
+        parent="Theme.Material3.DayNight.NoActionBar">
+
+        <item name="colorPrimary">@color/primary</item>
+
+        <item name="android:colorBackground">
+            @color/background
+        </item>
+
+        <item name="colorSurface">
+            @color/surface
+        </item>
+
+        <item name="colorOnSurface">
+            @color/on_surface
+        </item>
+
     </style>
 
-    <style name="Theme.CampusConnect" parent="Base.Theme.CampusConnect" />
+    <!-- This is the actual app theme -->
+    <style name="Theme.CampusConnect"
+        parent="Base.Theme.CampusConnect" />
+
 </resources>

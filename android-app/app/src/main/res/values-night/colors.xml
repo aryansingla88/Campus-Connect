@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Primary brand color -->
+
+    <color name="primary">#90CAF9</color>
+    <color name="on_primary">#000000</color>
+
+    <!-- Background -->
+
+    <color name="background">#121212</color>
+    <color name="on_background">#FFFFFF</color>
+
+    <!-- Surface (cards, toolbar, etc.) -->
+
+    <color name="surface">#1E1E1E</color>
+    <color name="on_surface">#FFFFFF</color>
+
+    <!-- Secondary text -->
+
+    <color name="text_secondary">#BBBBBB</color>
+
+</resources>

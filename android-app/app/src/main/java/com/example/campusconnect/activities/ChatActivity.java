@@ -4,8 +4,12 @@ package com.example.campusconnect.activities;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.airbnb.lottie.LottieAnimationView;
 import com.example.campusconnect.R;
 import com.example.campusconnect.adapter.PostAdapter;
 import com.example.campusconnect.model.CreatePostRequest;
@@ -26,6 +31,7 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import androidx.appcompat.widget.Toolbar;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -35,6 +41,80 @@ public class ChatActivity extends AppCompatActivity {
     private PostAdapter adapter;
     private List<Post> postList;
     SwipeRefreshLayout swipeRefresh;
+    private LinearLayout refreshOverlay;
+    private LottieAnimationView refreshAnimation;
+    private long animationStartTime = 0;
+    private static final long MIN_ANIMATION_DURATION = 600; // 4 seconds
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.chat_toolbar_menu, menu);
+        return true;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        if (item.getItemId() == R.id.action_refresh) {
+
+            showRefreshAnimation();
+
+            swipeRefresh.setRefreshing(true);
+
+            loadPosts();
+
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+    // WORKING OF REFRESH ANIMATION(animation plays 0.6 sec minimum):-
+//    Scenario 1 — Fast backend (0.5 sec)
+//
+//    Animation starts
+//    Response arrives at 0.5 sec
+//    System waits remaining 0.1 sec
+//    Animation disappears at 0.6 sec
+//
+//    Scenario 2 — Slow backend (6 sec)
+//
+//    Animation starts
+//    Response arrives at 6 sec
+//    Animation disappears immediately at response arrival
+
+    private void showRefreshAnimation() {
+
+        refreshOverlay.setVisibility(View.VISIBLE);
+
+        refreshAnimation.playAnimation();
+
+        animationStartTime = System.currentTimeMillis();
+
+    }
+
+    private void hideRefreshAnimation() {
+
+        long elapsed =
+                System.currentTimeMillis() - animationStartTime;
+
+        long remaining =
+                MIN_ANIMATION_DURATION - elapsed;
+
+        if (remaining > 0) {
+
+            refreshOverlay.postDelayed(() -> {
+
+                refreshAnimation.cancelAnimation();
+                refreshOverlay.setVisibility(View.GONE);
+
+            }, remaining);
+
+        } else {
+
+            refreshAnimation.cancelAnimation();
+            refreshOverlay.setVisibility(View.GONE);
+
+        }
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,14 +122,21 @@ public class ChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat);
 
 
+        refreshOverlay = findViewById(R.id.refreshOverlay);
+        refreshAnimation = findViewById(R.id.refreshAnimation);
         recyclerView = findViewById(R.id.postRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         postInput = findViewById(R.id.postInput);
         postButton = findViewById(R.id.postButton);
         swipeRefresh = findViewById(R.id.swipeRefresh);
         postList = new ArrayList<>();
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        toolbar.setNavigationOnClickListener(v -> finish());
         swipeRefresh.setOnRefreshListener(() -> {
 
+            showRefreshAnimation();
             loadPosts();
 
         });
@@ -166,6 +253,7 @@ public class ChatActivity extends AppCompatActivity {
                     );
                     recyclerView.setAdapter(adapter);
                 }
+                hideRefreshAnimation();
                 swipeRefresh.setRefreshing(false);
             }
 
@@ -173,6 +261,7 @@ public class ChatActivity extends AppCompatActivity {
             public void onFailure(Call<List<Post>> call, Throwable t) {
 
                 t.printStackTrace();
+                hideRefreshAnimation();
                 swipeRefresh.setRefreshing(false);
             }
         });
