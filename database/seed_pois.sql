@@ -35,7 +35,7 @@ INSERT INTO poi (name, latitude, longitude, category) VALUES
 ('MCA Department', 29.945039884284906, 76.81600864266589, 'academic'),
 ('BTech CSE Department', 29.947861358114945, 76.81515570019556, 'academic'),
 ('BTech Mechanical Department', 29.94640182481232, 76.81707616186749, 'academic'),
-('BTech Civil Department', 29.946518030475993, 76.8161856684624, 'academic'),
+('BTech Civil Department', 29.9463797447781, 76.8165678800403, 'academic'),
 ('BTech Electronics Department', 29.946875943068207, 76.81622321938956, 'academic'),
 
 ('Library', 29.94740450441878, 76.81523058760389, 'academic'),
