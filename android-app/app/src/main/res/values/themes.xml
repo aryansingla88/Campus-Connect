@@ -24,4 +24,8 @@
     <style name="Theme.CampusConnect"
         parent="Base.Theme.CampusConnect" />
 
+    <style name="MenuTextWhite">
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+
 </resources>

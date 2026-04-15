@@ -3,6 +3,7 @@ package com.example.campusconnect.activities;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -42,7 +43,32 @@ public class SplashScreen extends AppCompatActivity {
                 runnable = new Runnable() {
                     @Override
                     public void run() {
-                        Intent intent = new Intent(SplashScreen.this, LoginActivity.class);
+                        SharedPreferences prefs =
+                                getSharedPreferences("CampusApp", MODE_PRIVATE);
+
+                        int userId = prefs.getInt("user_id", -1);
+
+                        Intent intent;
+
+                        if (userId != -1) {
+
+                            // User already logged in
+
+                            intent = new Intent(
+                                    SplashScreen.this,
+                                    MainActivity.class
+                            );
+
+                        } else {
+
+                            // User not logged in
+
+                            intent = new Intent(
+                                    SplashScreen.this,
+                                    LoginActivity.class
+                            );
+                        }
+
                         startActivity(intent);
                         finish();
                     }

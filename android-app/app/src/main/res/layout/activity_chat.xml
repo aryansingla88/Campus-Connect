@@ -26,7 +26,8 @@
             app:title="Global Chat"
             app:titleCentered="false"
             app:titleTextColor="@android:color/white"
-            app:navigationIcon="@drawable/ic_arrow_back" />
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Dark"/>
 
         <!-- Feed -->
 

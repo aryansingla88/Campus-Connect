@@ -1,6 +1,7 @@
 /*Till now the chat activity is only loading the posts */
 package com.example.campusconnect.activities;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -34,6 +35,13 @@ import retrofit2.Response;
 import androidx.appcompat.widget.Toolbar;
 
 public class ChatActivity extends AppCompatActivity {
+    /*
+    LOGOUT Logic:
+
+    1) Clears saved login (SharedPreferences)
+    2) Opens LoginActivity
+    3) Prevents user from returning using Back button
+     */
 
     RecyclerView recyclerView;
     EditText postInput;
@@ -53,13 +61,22 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
-        if (item.getItemId() == R.id.action_refresh) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_refresh) {
 
             showRefreshAnimation();
 
             swipeRefresh.setRefreshing(true);
 
             loadPosts();
+
+            return true;
+        }
+
+        if (id == R.id.action_logout) {
+
+            logoutUser();
 
             return true;
         }
@@ -211,6 +228,32 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         loadPosts();
+    }
+    private void logoutUser() {
+
+        // 1) Clear saved login
+
+        SharedPreferences prefs =
+                getSharedPreferences("CampusApp", MODE_PRIVATE);
+
+        prefs.edit().clear().apply();
+
+        // 2) Go to Login screen
+
+        Intent intent =
+                new Intent(
+                        ChatActivity.this,
+                        LoginActivity.class
+                );
+
+        // 3) Prevent returning with back button
+
+        intent.setFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_CLEAR_TASK
+        );
+
+        startActivity(intent);
     }
 
     private void loadPosts() {
