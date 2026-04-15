@@ -11,6 +11,8 @@ import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.location.Location;
 import android.widget.TextView;
 //aryan
 
@@ -34,12 +36,17 @@ import retrofit2.Response;
 // aryan
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 // aryan
 
 public class MainActivity extends AppCompatActivity {
     private static final boolean USE_TEST_DATA = false;
     FusedLocationProviderClient fusedLocationProviderClient;   // aryan
+    LocationRequest locationRequest;     // aryan
+    LocationCallback locationCallback;   // aryan
     private CampusMapView campusMapView;
     private MapService mapService;
 
@@ -50,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
 
-            getLocation();
             fetchVisibleUsers();
 
             refreshHandler.postDelayed(this, REFRESH_INTERVAL_MS);
@@ -77,8 +83,33 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        //aryan
         mapService = RetrofitClient.getMapService();
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+        //  create location request
+        locationRequest = LocationRequest.create();
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(3000);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        //  create callback
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) return;
+
+                Location location = locationResult.getLastLocation();
+
+                if (location != null) {
+                    double lat = location.getLatitude();
+                    double lng = location.getLongitude();
+
+                    sendLocationToBackend(lat, lng);
+                }
+            }
+        };
+        //aryan
 
         campusMapView.clearAllMarkers();
         campusMapView.updatePOIs(new ArrayList<>());
@@ -88,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
         fetchEvents();
     }
 
-    //aryan
     private void getLocation() {
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -102,42 +132,49 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        fusedLocationProviderClient.getLastLocation()
-                .addOnSuccessListener(location -> {
+        fusedLocationProviderClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+        );
+    }
+    private void sendLocationToBackend(double lat, double lng) {
+
+        SharedPreferences prefs =
+                getSharedPreferences("CampusApp", MODE_PRIVATE);
+
+        int userId = prefs.getInt("user_id", -1);
+
+        if (userId == -1) {
+            Log.e("MAP", "User not logged in");
+            return;
+        }
+
+        // 🔹 STEP 1: show ME locally (instant)
+        UserPresence me = new UserPresence();
+        me.setUserId(userId);
+        me.setUsername("Me"); // temporary
+        me.setLatitude(lat);
+        me.setLongitude(lng);
+
+        List<UserPresence> tempList = new ArrayList<>();
+        tempList.add(me);
 
 
-                    if (location == null) {
-                        return;
-                    }
+        // 🔹 STEP 2: send to backend
+        mapService.updatePresence(me).enqueue(new Callback<String>() {
+            @Override
+            public void onResponse(Call<String> call, Response<String> response) {
 
+                // 🔹 STEP 3: fetch real users (replace UI)
+                fetchVisibleUsers();
+            }
 
-                    double lat = location.getLatitude();
-                    double lng = location.getLongitude();
-
-                    // 🔹 create user
-                    UserPresence me = new UserPresence();
-                    me.setUserId(1);
-                    me.setUsername("ME");
-                    me.setLatitude(lat);
-                    me.setLongitude(lng);
-
-                    // 🔹 send to backend
-                    mapService.updatePresence(me).enqueue(new Callback<String>() {
-                        @Override
-                        public void onResponse(Call<String> call, Response<String> response) {
-                        }
-
-                        @Override
-                        public void onFailure(Call<String> call, Throwable t) {
-                        }
-                    });
-
-                    // 🔹 show locally
-                    List<UserPresence> users = new ArrayList<>();
-                    users.add(me);
-
-                    campusMapView.updateUsers(users);
-                });
+            @Override
+            public void onFailure(Call<String> call, Throwable t) {
+                Log.e("API", "Update failed");
+            }
+        });
     }
 
     //aryan
@@ -171,7 +208,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<List<UserPresence>> call, Response<List<UserPresence>> response) {
                 if (response.isSuccessful() && response.body() != null) {
+
+                    Log.d("API", "Total users: " + response.body().size());
+
+                    for (UserPresence u : response.body()) {
+                        Log.d("API", "User: " + u.getUserId() + " -> " + u.getUsername());
+                    }
+
                     campusMapView.updateUsers(response.body());
+
                 } else {
                     Log.e("MainActivity", "Users response unsuccessful");
                 }
