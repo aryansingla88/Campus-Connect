@@ -102,9 +102,9 @@ public class CampusMapView extends View {
         markerRenderer = new MarkerRenderer(context);
 
         coordinateConverter = new CoordinateConverter(
-                29.946639, 76.817920, 558.0475f, 742.3594f,   // P1
-                29.947625, 76.816872, 799.96313f, 510.70312f, // P2
-                29.946102, 76.815308, 325.72125f, 182.39062f  // P3
+                29.947859, 76.818179, 898.53436f, 789.7031f,   // P1
+                29.944632, 76.819063, 120.95187f, 1170.5156f, // P2
+                29.946492, 76.815428, 443.80624f, 202.82812f // P3
         );
         bgPaint = new Paint();
         bgPaint.setColor(Color.BLACK);
@@ -154,6 +154,7 @@ public class CampusMapView extends View {
 
     public void clearTempEvents() {
         tempEvents.clear();
+        tempEventPixels.clear();
         rebuildMarkers();
     }
 
@@ -165,6 +166,7 @@ public class CampusMapView extends View {
         postInvalidateOnAnimation();
     }
     private void rebuildMarkers() {
+
         MapMarker oldSelected = selectedMarker;
         markers.clear();
         selectedMarker = null;
@@ -185,11 +187,15 @@ public class CampusMapView extends View {
                     userMarker.getLatitude(),
                     userMarker.getLongitude()
             );
+            userMarker.setPixelPosition(point.x, point.y);
 
+/*
             float clampedX = Math.max(0, Math.min(point.x, campusMap.getWidth()));
             float clampedY = Math.max(0, Math.min(point.y, campusMap.getHeight()));
 
             userMarker.setPixelPosition(clampedX, clampedY);
+old  */
+
             markers.add(userMarker);
         }
 
@@ -205,11 +211,13 @@ public class CampusMapView extends View {
                     poiMarker.getLatitude(),
                     poiMarker.getLongitude()
             );
+            poiMarker.setPixelPosition(point.x, point.y);
 
-            float clampedX = Math.max(0, Math.min(point.x, campusMap.getWidth()));
-            float clampedY = Math.max(0, Math.min(point.y, campusMap.getHeight()));
+ //           float clampedX = Math.max(0, Math.min(point.x, campusMap.getWidth()));
+ //           float clampedY = Math.max(0, Math.min(point.y, campusMap.getHeight()));
 
-            poiMarker.setPixelPosition(clampedX, clampedY);
+  //          poiMarker.setPixelPosition(clampedX, clampedY);
+
             markers.add(poiMarker);
         }
 
@@ -226,11 +234,14 @@ public class CampusMapView extends View {
                     event.latitude,
                     event.longitude
             );
-
+            eventMarker.setPixelPosition(point.x, point.y);
+/*old
             float clampedX = Math.max(0, Math.min(point.x, campusMap.getWidth()));
             float clampedY = Math.max(0, Math.min(point.y, campusMap.getHeight()));
 
             eventMarker.setPixelPosition(clampedX, clampedY);
+ */
+
             markers.add(eventMarker);
         }
 
@@ -326,6 +337,7 @@ public class CampusMapView extends View {
         canvas.scale(scaleFactor, scaleFactor);
 
         canvas.drawBitmap(campusMap, 0, 0, null);
+
         markerRenderer.drawMarkers(canvas, markers, selectedMarker);
 
         canvas.restore();
