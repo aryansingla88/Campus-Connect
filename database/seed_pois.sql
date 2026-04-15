@@ -1,15 +1,15 @@
 USE campus_connect;
 
 INSERT INTO poi (name, latitude, longitude, category) VALUES
-('Hostel-1', 29.94455889386729, 76.8203995311263, 'hostel'),
+('Hostel-1', 29.944775702351507, 76.82029825891033, 'hostel'),
 ('Hostel-2', 29.944746252423027, 76.81892101446383, 'hostel'),
 ('Hostel-3', 29.946172377222155, 76.81944520061576, 'hostel'),
 ('Hostel-4', 29.94764958325789, 76.81966962256365, 'hostel'),
-('Hostel-5', 29.947243609657765, 76.82127994841505, 'hostel'),
-('Hostel-6', 29.94610106716624, 76.82091349073112, 'hostel'),
+('Hostel-5', 29.94719368960503, 76.82079539096095, 'hostel'),
+('Hostel-6', 29.94601391529171, 76.82052377312077, 'hostel'),
 
 ('Girls Hostel-1', 29.945286495531164, 76.81487588460747, 'hostel'),
-('Girls Hostel-2', 29.946305849234374, 76.81495619577504, 'hostel'),
+('Girls Hostel-2', 29.946181068623073, 76.81497392781658, 'hostel'),
 
 ('Main Gate', 29.9477003096136, 76.82241273682573, 'landmark'),
 ('Parking', 29.948039479938604, 76.82201675217466, 'facility'),
@@ -23,13 +23,13 @@ INSERT INTO poi (name, latitude, longitude, category) VALUES
 ('Administrative Block', 29.949015347084664, 76.81735103991488, 'administration'),
 
 ('Flag Park', 29.948247907348495, 76.81707468222429, 'park'),
-('Fountain Park', 29.947341515325725, 76.81644168090791, 'park'),
+('Fountain Park', 29.947739693976303, 76.81614381468323, 'park'),
 
 ('Senate Hall', 29.947834221754132, 76.81806709956341, 'academic'),
-('Examination Hall', 29.947257095335257, 76.81807394362355, 'academic'),
+('Examination Hall', 29.947376026033172, 76.81788097636729, 'academic'),
 ('OAT', 29.94669001462331, 76.81800420618735, 'events'),
 
-('Students Activity Centre', 29.94544428494757, 76.81802029943854, 'facility'),
+('Students Activity Centre', 29.945248479861416, 76.81805171850165, 'facility'),
 ('Lecture Hall', 29.944951566677346, 76.81690986490483, 'academic'),
 
 ('MCA Department', 29.945039884284906, 76.81600864266589, 'academic'),
