@@ -7,8 +7,8 @@ public class CoordinateConverter {
 
     private double a, b, c;
     private double d, e, f;
-    private static final float OFFSET_X = 75f;
-    private static final float OFFSET_Y = 71f;
+ //   private static final float OFFSET_X = 75f;
+ //  private static final float OFFSET_Y = 71f;
     public CoordinateConverter(
             double lat1, double lng1, float x1, float y1,
             double lat2, double lng2, float x2, float y2,
@@ -45,9 +45,11 @@ public class CoordinateConverter {
         float y = (float) (d * lng + e * lat + f);
 
         // ✅ offset correction
-        x += OFFSET_X;
-        y += OFFSET_Y;
-
+  //      x += OFFSET_X;
+  //      y += OFFSET_Y;
+//new
+        Log.d("COORD_DEBUG", "toPixel lat=" + lat + ", lng=" + lng + " -> x=" + x + ", y=" + y);
+//new
         return new PointF(x, y);
     }
 
@@ -55,8 +57,8 @@ public class CoordinateConverter {
     public double[] toLatLng(float x, float y) {
 
         // remove offset
-        x -= OFFSET_X;
-        y -= OFFSET_Y;
+  //      x -= OFFSET_X;
+  //      y -= OFFSET_Y;
 
         double det = a * e - b * d;
 
