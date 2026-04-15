@@ -32,7 +32,7 @@ public class MarkerRenderer {
 
         textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(24f);
+        textPaint.setTextSize(20f);
         textPaint.setFakeBoldText(true);
 
         labelBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -41,7 +41,7 @@ public class MarkerRenderer {
 
         selectedRingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         selectedRingPaint.setStyle(Paint.Style.STROKE);
-        selectedRingPaint.setStrokeWidth(4f);
+        selectedRingPaint.setStrokeWidth(3f);
         selectedRingPaint.setColor(Color.rgb(255, 214, 102));
 
         // yatharth
@@ -71,27 +71,36 @@ public class MarkerRenderer {
 
             markerPaint.setColor(getColor(marker.getType()));
 
-            if (marker == selectedMarker) {
-                canvas.drawCircle(x, y, 14f, selectedRingPaint);
-            }
-
-            // yatharth
+            // 1. Pehle marker draw karo
             if (marker.getType() == MarkerType.EVENT && eventBitmap != null) {
-
                 canvas.drawBitmap(
                         eventBitmap,
                         x - eventBitmap.getWidth() / 2f,
                         y - eventBitmap.getHeight(),
                         null
                 );
-                // yatharth
-
             } else {
-                // default circle
                 canvas.drawCircle(x, y, 8.4f, markerPaint);
             }
 
-            if (marker == selectedMarker) {
+            // 2. Fir selected USER / EVENT ke around ring draw karo
+            if (marker == selectedMarker &&
+                    (marker.getType() == MarkerType.USER || marker.getType() == MarkerType.EVENT)) {
+
+                if (marker.getType() == MarkerType.EVENT && eventBitmap != null) {
+                    float ringCx = x;
+                    float ringCy = y - eventBitmap.getHeight() / 2f;
+                    float ringRadius = Math.max(eventBitmap.getWidth(), eventBitmap.getHeight()) / 2f + 6f;
+                    canvas.drawCircle(ringCx, ringCy, ringRadius, selectedRingPaint);
+                } else {
+                    canvas.drawCircle(x, y, 14f, selectedRingPaint);
+                }
+            }
+
+            // 3. POI ka label permanent, USER/EVENT ka click par
+            if (marker.getType() == MarkerType.POI) {
+                drawLabel(canvas, marker.getLabel(), x, y);
+            } else if (marker == selectedMarker) {
                 drawLabel(canvas, marker.getLabel(), x, y);
             }
         }
@@ -101,16 +110,16 @@ public class MarkerRenderer {
         if (text == null || text.trim().isEmpty()) return;
 
         float textWidth = getTextWidth(text);
-        float paddingX = 12f;
-        float paddingY = 8f;
+        float paddingX = 10f;
+        float paddingY = 6f;
 
-        float left = x + 16f;
-        float bottom = y - 14f;
-        float top = bottom - 36f;
+        float left = x + 14f;
+        float bottom = y - 10f;
+        float top = bottom - 30f;
         float right = left + textWidth + paddingX * 2;
 
         RectF rect = new RectF(left, top, right, bottom);
-        canvas.drawRoundRect(rect, 10f, 10f, labelBgPaint);
+        canvas.drawRoundRect(rect, 8f, 8f, labelBgPaint);
 
         float textX = left + paddingX;
         float textY = bottom - paddingY;
