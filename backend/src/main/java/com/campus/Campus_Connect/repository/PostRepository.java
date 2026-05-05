@@ -64,10 +64,10 @@ public class PostRepository {
                 String username = rs.getString("username");
                 if (username == null) username = "unknown";
 
-                // 🔥 DEBUG
+                //  DEBUG
                 System.out.println("FOUND POST: " + postId);
 
-                // ✅ FETCH EXTRA DATA
+                //  FETCH EXTRA DATA
                 int upvotes = getUpvoteCount(conn, postId);
                 boolean hasUpvoted = checkUpvote(conn, postId, currentUserId);
                 List<Comment> comments = getComments(conn, postId);
@@ -123,7 +123,7 @@ public class PostRepository {
 
         ResultSet rs = stmt.executeQuery();
 
-        return rs.next(); // if exists → true
+        return rs.next();
     }
 
 
@@ -201,7 +201,7 @@ public class PostRepository {
 
             PreparedStatement stmt = conn.prepareStatement(query);
 
-            // ✅ CORRECT ORDER
+
             stmt.setInt(1, postId);
             stmt.setInt(2, userId);
             stmt.setString(3, content);

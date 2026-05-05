@@ -45,7 +45,7 @@ public class EventRepository {
     public List<Event> getAllEvents() {
         List<Event> list = new ArrayList<>();
 
-        try (Connection conn = dataSource.getConnection()) { // ✅ fixed
+        try (Connection conn = dataSource.getConnection()) {
 
             String query = "SELECT * FROM events";
             PreparedStatement ps = conn.prepareStatement(query);

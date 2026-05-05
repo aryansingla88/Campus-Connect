@@ -10,7 +10,7 @@
 
     android:background="@drawable/login_background_gradient"
 
-    tools:context=".activities.LoginActivity">
+    tools:context=".phase1.activities.LoginActivity">
 
     <!-- Logo  -->
 

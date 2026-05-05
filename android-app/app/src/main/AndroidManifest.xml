@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.campusconnect">
+
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
@@ -13,38 +14,62 @@
         android:theme="@style/Theme.CampusConnect"
         android:usesCleartextTraffic="true">
 
-        <!-- Splash (ENTRY POINT) -->
+        <!--  NEW ENTRY (Compose) -->
         <activity
-            android:name=".activities.SplashScreen"
-            android:exported="true"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            android:name=".MainActivity"
+            android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
         </activity>
+
+        <!-- For testing old -->
+<!--        <activity-->
+<!--            android:name=".MainActivity"-->
+<!--            android:exported="true"/>-->
+
+<!--        <activity-->
+<!--            android:name=".phase1.activities.SplashScreen"-->
+<!--            android:exported="true"-->
+<!--            android:theme="@style/Theme.AppCompat.Light.NoActionBar">-->
+
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN"/>-->
+<!--                <category android:name="android.intent.category.LAUNCHER"/>-->
+<!--            </intent-filter>-->
+
+<!--        </activity>-->
+
+        <!-- Splash (NO LONGER LAUNCHER) -->
+        <activity
+            android:name=".phase1.activities.SplashScreen"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <!-- Auth -->
         <activity
-            android:name=".activities.LoginActivity"
+            android:name=".phase1.activities.LoginActivity"
             android:exported="true"/>
 
         <activity
-            android:name=".activities.User_Registration"
+            android:name=".phase1.activities.User_Registration"
             android:exported="false"/>
 
         <!-- Core -->
         <activity
-            android:name=".activities.MainActivity"
+            android:name=".phase1.activities.MainActivity"
             android:exported="true"/>
 
         <!-- Features -->
         <activity
-            android:name=".activities.MapActivity"
+            android:name=".phase1.activities.MapActivity"
             android:exported="true"/>
 
         <activity
-            android:name=".activities.ChatActivity"
+            android:name=".phase1.activities.ChatActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"/>
 

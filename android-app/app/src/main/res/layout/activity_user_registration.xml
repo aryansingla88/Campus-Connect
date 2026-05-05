@@ -9,7 +9,7 @@
     android:layout_height="match_parent"
     android:padding="24dp"
 
-    tools:context=".activities.User_Registration">
+    tools:context=".phase1.activities.User_Registration">
 
     <!-- EMAIL INPUT -->
 
