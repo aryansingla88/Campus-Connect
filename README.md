@@ -1,4 +1,4 @@
-# CampusConnect (Phase 2)
+# CampusConnect (Phase 2)  -- Working Guidelines
 
 ## Overview
 
