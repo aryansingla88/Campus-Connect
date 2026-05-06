@@ -8,7 +8,7 @@ import com.example.campusconnect.feature.splash.SplashDestination
 import com.example.campusconnect.feature.test.TestScreen
 import com.example.campusconnect.feature.auth.authNav
 //import com.example.campusconnect.feature.posts.postNav
-//import com.example.campusconnect.feature.events.eventNav
+import com.example.campusconnect.feature.events.eventNav
 //import com.example.campusconnect.feature.map.mapNav
 //import com.example.campusconnect.feature.profile.profileNav
 
@@ -46,7 +46,7 @@ fun AppNavHost() {
 
         authNav(navController)
 //        postNav(navController)
-//        eventNav(navController)
+        eventNav(navController)
 //        mapNav(navController)
 //        profileNav(navController)
     }
