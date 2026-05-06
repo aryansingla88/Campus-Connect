@@ -1,9 +1,13 @@
 package com.example.campusconnect.core.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.compose.*
-import com.example.campusconnect.feature.test.TestScreen
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.campusconnect.feature.auth.authNav
+import com.example.campusconnect.feature.test.TestScreen
+import com.example.campusconnect.feature.events.EventScreen
+
 //import com.example.campusconnect.feature.posts.postNav
 //import com.example.campusconnect.feature.events.eventNav
 //import com.example.campusconnect.feature.map.mapNav
@@ -26,6 +30,10 @@ fun AppNavHost() {
                 onMap = { navController.navigate("map") },
                 onProfile = { navController.navigate("profile") }
             )
+        }
+
+        composable("events") {
+            EventScreen()
         }
 
         authNav(navController)
