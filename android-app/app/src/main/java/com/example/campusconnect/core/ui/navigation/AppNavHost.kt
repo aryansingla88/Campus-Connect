@@ -6,10 +6,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.campusconnect.feature.auth.authNav
 import com.example.campusconnect.feature.test.TestScreen
-import com.example.campusconnect.feature.events.EventScreen
 
 //import com.example.campusconnect.feature.posts.postNav
-//import com.example.campusconnect.feature.events.eventNav
+import com.example.campusconnect.feature.events.eventNav
 //import com.example.campusconnect.feature.map.mapNav
 //import com.example.campusconnect.feature.profile.profileNav
 
@@ -19,7 +18,7 @@ fun AppNavHost() {
 
     NavHost(
         navController = navController,
-        startDestination = "test"   //  TEMP
+        startDestination = "test"
     ) {
 
         composable("test") {
@@ -32,13 +31,9 @@ fun AppNavHost() {
             )
         }
 
-        composable("events") {
-            EventScreen()
-        }
-
         authNav(navController)
 //        postNav(navController)
-//        eventNav(navController)
+        eventNav(navController)
 //        mapNav(navController)
 //        profileNav(navController)
     }
