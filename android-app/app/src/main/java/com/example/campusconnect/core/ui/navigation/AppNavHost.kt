@@ -6,6 +6,11 @@ import com.example.campusconnect.feature.auth.LoginScreen
 import com.example.campusconnect.feature.splash.SplashScreen
 import com.example.campusconnect.feature.splash.SplashDestination
 import com.example.campusconnect.feature.test.TestScreen
+import com.example.campusconnect.feature.auth.authNav
+//import com.example.campusconnect.feature.posts.postNav
+//import com.example.campusconnect.feature.events.eventNav
+//import com.example.campusconnect.feature.map.mapNav
+//import com.example.campusconnect.feature.profile.profileNav
 
 @Composable
 fun AppNavHost() {
@@ -13,38 +18,36 @@ fun AppNavHost() {
 
     NavHost(
         navController = navController,
-        startDestination = "splash"
+        startDestination = "test"
     ) {
 
         // Splash Screen
         composable("splash") {
             SplashScreen(
                 onNavigateToMain = {
-                    navController.navigate("test") {   // TEMP: using test as main
-                        popUpTo("splash") { inclusive = true }
-                    //popUpTo("splash") function removes splash screen from the backstack
-                    }
+                    navController.navigate("main")
                 },
                 onNavigateToLogin = {
-                    navController.navigate("test") {   // TEMP: same for now
-                        popUpTo("splash") { inclusive = true }
-                    }
+                    navController.navigate("login")
                 }
             )
         }
 
-        // Temporary main screen
-        composable("login") {
-            LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate("main") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                },
-                onNavigateToRegister = {
-                    navController.navigate("register") // later
-                }
+        composable("test") {
+            TestScreen(
+                onAuth = { navController.navigate("auth") },
+                onPosts = { navController.navigate("posts") },
+                onEvents = { navController.navigate("events") },
+                onMap = { navController.navigate("map") },
+                onProfile = { navController.navigate("profile")},
+                onSplash={navController.navigate("Splash")}
             )
         }
+
+        authNav(navController)
+//        postNav(navController)
+//        eventNav(navController)
+//        mapNav(navController)
+//        profileNav(navController)
     }
 }
