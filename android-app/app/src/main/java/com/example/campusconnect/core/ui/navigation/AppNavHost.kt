@@ -40,7 +40,7 @@ fun AppNavHost() {
                 onEvents = { navController.navigate("events") },
                 onMap = { navController.navigate("map") },
                 onProfile = { navController.navigate("profile")},
-                onSplash={navController.navigate("Splash")}
+                onSplash={navController.navigate("splash")}
             )
         }
 
