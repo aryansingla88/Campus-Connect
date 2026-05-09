@@ -18,11 +18,13 @@ import com.example.campusconnect.feature.events.components.ToolIcon
 import androidx.compose.runtime.*
 import com.example.campusconnect.feature.events.components.ModeToggle
 
+import com.example.campusconnect.feature.events.components.EventCreateDialog
 
 
 @Composable
 fun EventScreen() {
 
+    var showDialog by remember { mutableStateOf(true) } // TEMP for testing
     val fakeService = remember { FakeEventService() }
     val events = fakeService.getEvents()
 
@@ -123,6 +125,16 @@ fun EventScreen() {
                         y = (event.yRatio * 600).dp
                     )
                     .size(36.dp)
+            )
+        }
+
+        if (showDialog) {
+            EventCreateDialog(
+                onDismiss = { showDialog = false },
+                onCreate = {
+                    println("Event Created")
+                    showDialog = false
+                }
             )
         }
     }

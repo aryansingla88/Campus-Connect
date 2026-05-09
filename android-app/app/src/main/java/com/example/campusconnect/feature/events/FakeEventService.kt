@@ -7,7 +7,6 @@ class FakeEventService {
     private val events = mutableListOf<Event>()
 
     init {
-        // 👇 Default markers
         events.addAll(
             listOf(
                 Event(
@@ -16,8 +15,6 @@ class FakeEventService {
                     description = "Dummy",
                     latitude = 0.0,
                     longitude = 0.0,
-                    eventTime = "",
-                    createdBy = 1,
                     xRatio = 0.3f,
                     yRatio = 0.4f
                 ),
@@ -27,8 +24,6 @@ class FakeEventService {
                     description = "Dummy",
                     latitude = 0.0,
                     longitude = 0.0,
-                    eventTime = "",
-                    createdBy = 1,
                     xRatio = 0.6f,
                     yRatio = 0.5f
                 ),
@@ -38,8 +33,6 @@ class FakeEventService {
                     description = "Dummy",
                     latitude = 0.0,
                     longitude = 0.0,
-                    eventTime = "",
-                    createdBy = 1,
                     xRatio = 0.5f,
                     yRatio = 0.7f
                 )
