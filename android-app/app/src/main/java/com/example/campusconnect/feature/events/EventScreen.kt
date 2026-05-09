@@ -6,6 +6,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.offset
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
@@ -14,8 +18,13 @@ import com.example.campusconnect.feature.events.components.ToolIcon
 import androidx.compose.runtime.*
 import com.example.campusconnect.feature.events.components.ModeToggle
 
+
+
 @Composable
 fun EventScreen() {
+
+    val fakeService = remember { FakeEventService() }
+    val events = fakeService.getEvents()
 
     var selectedMode by remember { mutableStateOf<String?>(null) }
 
@@ -101,5 +110,20 @@ fun EventScreen() {
                 .align(Alignment.BottomStart)
                 .padding(16.dp)
         )
+
+        events.forEach { event ->
+
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                tint = Color(0xFFFF6F00), // your orange
+                modifier = Modifier
+                    .offset(
+                        x = (event.xRatio * 300).dp,
+                        y = (event.yRatio * 600).dp
+                    )
+                    .size(36.dp)
+            )
+        }
     }
 }

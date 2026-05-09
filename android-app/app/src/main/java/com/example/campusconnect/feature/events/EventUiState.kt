@@ -8,5 +8,6 @@ data class EventUiState(
 
     val isLoading: Boolean = false,
     val error: String? = null,
-    val success: Boolean = false
+    val success: Boolean = false,
+    val selectedRatio: Pair<Float, Float>? = null,
 )

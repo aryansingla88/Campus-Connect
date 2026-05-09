@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.example.campusconnect.model.Event
-import com.example.campusconnect.feature.events.FakeEventService
 
 class EventViewModel : ViewModel() {
 
@@ -51,7 +50,9 @@ class EventViewModel : ViewModel() {
             latitude = state.selectedLocation.first,
             longitude = state.selectedLocation.second,
             eventTime = state.time,
-            createdBy = createdBy
+            createdBy = createdBy,
+            xRatio = 0.5f,
+            yRatio = 0.5f
         )
 
         val success = fakeService.createEvent(event)

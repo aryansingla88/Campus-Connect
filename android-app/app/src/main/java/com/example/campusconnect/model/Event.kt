@@ -7,5 +7,7 @@ data class Event(
     val latitude: Double,
     val longitude: Double,
     val eventTime: String,
-    val createdBy: Int
+    val createdBy: Int,
+    val yRatio: Float,
+    val xRatio: Float
 )
