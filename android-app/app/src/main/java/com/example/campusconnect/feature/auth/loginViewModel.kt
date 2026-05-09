@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
-
+// mutable stateflow is a type of state flow
     private val _username = MutableStateFlow("")
     val username: StateFlow<String> = _username
 
@@ -21,7 +21,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _loginSuccess = MutableStateFlow(false)
     val loginSuccess: StateFlow<Boolean> = _loginSuccess
-
+// whenever user types something then onUsernameChange is called and updates _username with that thing
     fun onUsernameChange(value: String) {
         _username.value = value
     }
@@ -36,6 +36,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         val pass = _password.value.trim()
 
         // Validation
+        val savedUsername="pratham"
+        val savedPassword="1234"
 
         if (name.isEmpty()) {
             _warning.value = "Username cannot be empty"
@@ -47,30 +49,20 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // Fake request
-
-        val request = LoginRequest(
-            username = name,
-            password = pass
-        )
-
-        // Fake backend response
-
-        val response = AuthApi.loginUser(request)
-
-        if (response.success) {
-
-            val prefs = getApplication<Application>()
-                .getSharedPreferences("CampusApp", Context.MODE_PRIVATE)
+        if (
+            name==savedUsername &&
+            pass == savedPassword
+        ){
+            val prefs=getApplication<Application>()
+                .getSharedPreferences("CmpusApp",Context.MODE_PRIVATE)
 
             prefs.edit()
-                .putInt("user_id", response.user_id)
+                .putInt("user_id",1)
                 .apply()
 
             _loginSuccess.value = true
-
         } else {
-            _warning.value = response.message
+            _warning.value = "Invalid username or password"
         }
     }
 }

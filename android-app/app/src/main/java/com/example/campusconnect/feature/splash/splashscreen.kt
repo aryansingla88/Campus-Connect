@@ -25,8 +25,25 @@ fun SplashScreen(
     onNavigateToLogin: () -> Unit,
     viewModel: SplashViewModel = viewModel()
 ) {
-
+    /*
+    _destination.value = SplashDestination.Login
+↓
+destination updates
+↓
+collectAsState notices change
+↓
+Compose recomposes
+↓
+LaunchedEffect(destination) re-runs
+↓
+when(destination) matches Login
+↓
+onNavigateToLogin()
+↓
+navController.navigate(...)
+     */
     val destination by viewModel.destination.collectAsState()
+
 
     // Lottie animation composition
     val composition by rememberLottieComposition(
@@ -61,7 +78,7 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5)), // replace with your theme color
+            .background(Color(0xFFF5F5F5)),
         contentAlignment = Alignment.Center
     ) {
 
