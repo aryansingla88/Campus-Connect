@@ -1,98 +1,141 @@
 package com.example.campusconnect.feature.events
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.campusconnect.event.components.MapMode
-import com.example.campusconnect.event.components.MapView
-import androidx.lifecycle.viewmodel.compose.viewModel
+
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.offset
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+
+import com.example.campusconnect.feature.events.components.ToolIcon
+
+import androidx.compose.runtime.*
+import com.example.campusconnect.feature.events.components.ModeToggle
+
+import com.example.campusconnect.feature.events.components.EventCreateDialog
+
 
 @Composable
 fun EventScreen() {
 
-    val viewModel: EventViewModel = viewModel()
-    val state = viewModel.uiState.collectAsStateWithLifecycle()
+    var showDialog by remember { mutableStateOf(true) } // TEMP for testing
+    val fakeService = remember { FakeEventService() }
+    val events = fakeService.getEvents()
 
-    Column(
-        modifier = Modifier.padding(16.dp)
-    ) {
+    var selectedMode by remember { mutableStateOf<String?>(null) }
 
-        Text("Create Event", style = MaterialTheme.typography.titleLarge)
+    Box(modifier = Modifier.fillMaxSize()) {
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // 🔹 BACKGROUND
+        Box(modifier = Modifier.fillMaxSize())
 
-        TextField(
-            value = state.value.title,
-            onValueChange = { viewModel.updateTitle(it) },
-            label = { Text("Title") }
-        )
+        // 🔹 TOP CENTER → SELF / SHARED (keep simple for now)
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
 
-        TextField(
-            value = state.value.description,
-            onValueChange = { viewModel.updateDescription(it) },
-            label = { Text("Description") }
-        )
+            ModeToggle(
+                text = "Self",
+                icon = Icons.Default.Person,
+                selected = selectedMode == "self",
+                onClick = {
+                    selectedMode = if (selectedMode == "self") null else "self"
+                }
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        TextField(
-            value = state.value.time,
-            onValueChange = { viewModel.updateTime(it) },
-            label = { Text("Time") }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = {
-            viewModel.createEvent(createdBy = 1)
-        }) {
-            Text("Create Event")
+            ModeToggle(
+                text = "Shared",
+                icon = Icons.Default.Group,
+                selected = selectedMode == "shared",
+                onClick = {
+                    selectedMode = if (selectedMode == "shared") null else "shared"
+                }
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // 🔹 TOP RIGHT → SETTINGS + VIEW
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 80.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ToolIcon(Icons.Default.Settings)
+            ToolIcon(Icons.Default.Visibility)
+        }
 
-        Text("Select Location")
+        // 🔹 RIGHT SIDE → TOOL STACK ABOVE PLUS
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 90.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ToolIcon(Icons.Default.Notifications)
+            ToolIcon(Icons.Default.GroupAdd)   // manage
+            ToolIcon(Icons.Default.Delete)
+        }
 
-        MapView(
-            mode = MapMode.SELECT,
-            markers = emptyList(),
-            onMapClick = { latLng ->
-                viewModel.setLocation(latLng.latitude, latLng.longitude)
-            }
+        // 🔹 BOTTOM RIGHT → PLUS (MAIN ACTION)
+        ToolIcon(
+            icon = Icons.Default.AddLocation,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
         )
 
-        state.value.selectedLocation?.let {
-            Text("Selected: ${it.first}, ${it.second}")
+        // 🔹 LEFT MID → REGISTER + PARTICIPANTS
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 16.dp, bottom = 80.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ToolIcon(Icons.Default.PersonAdd)
+            ToolIcon(Icons.Default.Group)
         }
 
-        // Show error
-        state.value.error?.let {
-            Text(text = it, color = Color.Red)
+        // 🔹 BOTTOM LEFT → CHAT
+        ToolIcon(
+            icon = Icons.Default.Chat,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp)
+        )
+
+        events.forEach { event ->
+
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                tint = Color(0xFFFF6F00), // your orange
+                modifier = Modifier
+                    .offset(
+                        x = (event.xRatio * 300).dp,
+                        y = (event.yRatio * 600).dp
+                    )
+                    .size(36.dp)
+            )
         }
 
-        state.value.success.let { success ->
-            if (success) {
-                Text("Event Created Successfully!", color = Color.Green)
-            }
+        if (showDialog) {
+            EventCreateDialog(
+                onDismiss = { showDialog = false },
+                onCreate = {
+                    println("Event Created")
+                    showDialog = false
+                }
+            )
         }
     }
 }
-
-@Composable
-fun MapView(
-    mode: Any,
-    markers: List<Any>,
-    onMapClick: (Any) -> Unit
-) {}
