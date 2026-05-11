@@ -11,17 +11,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.example.campusconnect.feature.events.EventUiState
+
 @Composable
 fun EventCreateDialog(
+    state: EventUiState,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onDateChange: (String) -> Unit,
+    onVenueChange: (String) -> Unit,
+    onStartTimeChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onCreate: () -> Unit
 ) {
-
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
-    var venue by remember { mutableStateOf("") }
-    var startTime by remember { mutableStateOf("") }
 
     // 🔹 BACKGROUND OVERLAY
     Box(
@@ -51,19 +53,18 @@ fun EventCreateDialog(
 
             // 🔹 TITLE
             OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
+                value = state.title,
+                onValueChange = onTitleChange,
                 label = { Text("Title *") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             // 🔹 DESCRIPTION
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = state.description,
+                onValueChange = onDescriptionChange,
                 label = { Text("Description *") },
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 3
+                modifier = Modifier.fillMaxWidth()
             )
 
             // 🔹 DATE + VENUE (same row)
@@ -72,15 +73,15 @@ fun EventCreateDialog(
             ) {
 
                 OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it },
+                    value = state.date,
+                    onValueChange = onDateChange,
                     label = { Text("Date *") },
                     modifier = Modifier.weight(1f)
                 )
 
                 OutlinedTextField(
-                    value = venue,
-                    onValueChange = { venue = it },
+                    value = state.venue,
+                    onValueChange = onVenueChange,
                     label = { Text("Venue *") },
                     modifier = Modifier.weight(1f)
                 )
@@ -88,8 +89,8 @@ fun EventCreateDialog(
 
             // 🔹 START TIME
             OutlinedTextField(
-                value = startTime,
-                onValueChange = { startTime = it },
+                value = state.startTime,
+                onValueChange = onStartTimeChange,
                 label = { Text("Start Time *") },
                 modifier = Modifier.fillMaxWidth()
             )

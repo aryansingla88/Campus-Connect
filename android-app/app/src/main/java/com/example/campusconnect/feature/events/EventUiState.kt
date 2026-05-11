@@ -8,6 +8,7 @@ data class EventUiState(
     val posterUrl: String = "",
 
     val selectedLocation: Pair<Double, Double>? = null,
+    val selectedRatio: Pair<Float, Float>? = null,
 
     val date: String = "",
     val venue: String = "",

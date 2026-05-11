@@ -11,6 +11,13 @@ class EventViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(EventUiState())
     val uiState: StateFlow<EventUiState> = _uiState
 
+    private val _events = MutableStateFlow<List<Event>>(emptyList())
+    val events: StateFlow<List<Event>> = _events
+
+    init {
+        _events.value = fakeService.getEvents()
+    }
+
     fun updateTitle(value: String) {
         _uiState.value = _uiState.value.copy(title = value)
     }
@@ -26,6 +33,24 @@ class EventViewModel : ViewModel() {
         )
     }
 
+    fun updateDate(value: String) {
+        _uiState.value = _uiState.value.copy(date = value)
+    }
+
+    fun updateVenue(value: String) {
+        _uiState.value = _uiState.value.copy(venue = value)
+    }
+
+    fun updateStartTime(value: String) {
+        _uiState.value = _uiState.value.copy(startTime = value)
+    }
+
+    fun setScreenLocation(xRatio: Float, yRatio: Float) {
+        _uiState.value = _uiState.value.copy(
+            selectedRatio = Pair(xRatio, yRatio)
+        )
+    }
+
     fun createEvent(createdBy: Int) {
 
         val state = _uiState.value
@@ -33,11 +58,6 @@ class EventViewModel : ViewModel() {
         // 🔹 VALIDATION
         if (state.title.isBlank()) {
             _uiState.value = state.copy(error = "Title required")
-            return
-        }
-
-        if (state.selectedLocation == null) {
-            _uiState.value = state.copy(error = "Location required")
             return
         }
 
@@ -60,11 +80,11 @@ class EventViewModel : ViewModel() {
             description = state.description,
 
             // LOCATION
-            latitude = state.selectedLocation.first,
-            longitude = state.selectedLocation.second,
+            latitude = 0.0,
+            longitude = 0.0,
 
-            xRatio = 0.5f,
-            yRatio = 0.5f,
+            xRatio = state.selectedRatio?.first ?: 0.5f,
+            yRatio = state.selectedRatio?.second ?: 0.5f,
 
             // TIME
             date = state.date,
@@ -99,9 +119,10 @@ class EventViewModel : ViewModel() {
         val success = fakeService.createEvent(event)
 
         if (success) {
+            _events.value = fakeService.getEvents()
+
             _uiState.value = state.copy(
-                success = true,
-                error = null
+                success = true
             )
         }
 
