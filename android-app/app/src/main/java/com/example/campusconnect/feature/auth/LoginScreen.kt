@@ -1,9 +1,24 @@
+/*
+StateFlow is basically:
+“A variable whose changes can be watched by other parts of the program.”
+
+StateFlow is different
+val x = MutableStateFlow(5)
+
+Now when:
+
+x.value = 10
+
+anything watching x
+immediately gets notified.
+ */
 package com.example.campusconnect.feature.auth
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +39,7 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     viewModel: LoginViewModel = viewModel()
 ) {
-
+//collectAsState means that donot collect a static value, collect as state, i.e. update as state changes
     val username by viewModel.username.collectAsState()
     val password by viewModel.password.collectAsState()
     val warning by viewModel.warning.collectAsState()
@@ -43,8 +58,9 @@ fun LoginScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF00BCD4),  // match your gradient
-                        Color(0xFF2196F3)
+                        Color(0xFFFFFFFF),
+                        Color(0xFF4DA3FF),  // match your gradient
+                        Color(0xFF0A3A7A)
                     )
                 )
             )
@@ -69,26 +85,74 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(40.dp))
 
             // Username
+            // Username
             OutlinedTextField(
                 value = username,
                 onValueChange = viewModel::onUsernameChange,
-                placeholder = { Text("Username") },
+
+                placeholder = {
+                    Text(
+                        text = "Username",
+                        color = Color.Gray
+                    )
+                },
+
+                singleLine = true,
+
+                shape = RoundedCornerShape(12.dp),
+
+                colors = OutlinedTextFieldDefaults.colors(
+
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+
+                    focusedBorderColor = Color.Blue,
+                    unfocusedBorderColor = Color.Transparent,
+
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black
+                ),
+
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Password
+// Password
             OutlinedTextField(
                 value = password,
                 onValueChange = viewModel::onPasswordChange,
-                placeholder = { Text("Password") },
+
+                placeholder = {
+                    Text(
+                        text = "Password",
+                        color = Color.Gray
+                    )
+                },
+
+                singleLine = true,
+
                 visualTransformation = PasswordVisualTransformation(),
+
+                shape = RoundedCornerShape(12.dp),
+
+                colors = OutlinedTextFieldDefaults.colors(
+
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+
+                    focusedBorderColor = Color.Blue,
+                    unfocusedBorderColor = Color.Transparent,
+
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black
+                ),
+
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -99,6 +163,8 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
+                //Passing a value to the colors parameter of the Button composable.
+                // A "Buttoncolors" object is returned to the colors variable
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF00BCD4)
                 )
@@ -130,3 +196,4 @@ fun LoginScreen(
         }
     }
 }
+//NOTE: funloginscreen() -> box -> column

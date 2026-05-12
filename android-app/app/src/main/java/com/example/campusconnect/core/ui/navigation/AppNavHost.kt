@@ -37,10 +37,10 @@ fun AppNavHost() {
             TestScreen(
                 onAuth = { navController.navigate("auth") },
                 onPosts = { navController.navigate("posts") },
-                onEvents = { navController.navigate("events") },
+                onEvents = { navController.navigate("events_root") },
                 onMap = { navController.navigate("map") },
                 onProfile = { navController.navigate("profile")},
-                onSplash={navController.navigate("Splash")}
+                onSplash={navController.navigate("splash")}
             )
         }
 

@@ -14,8 +14,18 @@ sealed class SplashDestination {
     object Login : SplashDestination()
 }
 
-class SplashViewModel(application: Application) : AndroidViewModel(application) {
+/*
+Normal ViewModel:
 
+does NOT provide application context
+
+AndroidViewModel:
+
+does provide application context
+ Thats why we use AndroidViewModel in below line*/
+class SplashViewModel(application: Application) : AndroidViewModel(application) {
+    // MutableStateFlow is like an observable state container
+    //here MutableStateFlow<SplashDestination?> means the mutablestateflow here stores SplashDestination
     private val _destination = MutableStateFlow<SplashDestination?>(null)
     val destination: StateFlow<SplashDestination?> = _destination
 
@@ -25,10 +35,10 @@ class SplashViewModel(application: Application) : AndroidViewModel(application) 
             // total delay ≈ animation + text delay
             delay(2000)
 
-            val prefs = getApplication<Application>()
+            /*val prefs = getApplication<Application>()
                 .getSharedPreferences("CampusApp", Context.MODE_PRIVATE)
 
-            val userId = prefs.getInt("user_id", -1)
+            val userId = prefs.getInt("user_id", -1)*/
 
             _destination.value = SplashDestination.Login
         }

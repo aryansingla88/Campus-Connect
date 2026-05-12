@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.example.campusconnect.model.Event
-import com.example.campusconnect.feature.events.FakeEventService
 
 class EventViewModel : ViewModel() {
 
@@ -20,9 +19,6 @@ class EventViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(description = value)
     }
 
-    fun updateTime(value: String) {
-        _uiState.value = _uiState.value.copy(time = value)
-    }
 
     fun setLocation(lat: Double, lng: Double) {
         _uiState.value = _uiState.value.copy(
@@ -34,6 +30,7 @@ class EventViewModel : ViewModel() {
 
         val state = _uiState.value
 
+        // 🔹 VALIDATION
         if (state.title.isBlank()) {
             _uiState.value = state.copy(error = "Title required")
             return
@@ -44,16 +41,61 @@ class EventViewModel : ViewModel() {
             return
         }
 
+        if (state.date.isBlank()) {
+            _uiState.value = state.copy(error = "Date required")
+            return
+        }
+
+        if (state.startTime.isBlank()) {
+            _uiState.value = state.copy(error = "Start time required")
+            return
+        }
+
+        // 🔹 CREATE EVENT
         val event = Event(
             id = 0,
+
+            // BASIC
             title = state.title,
             description = state.description,
+
+            // LOCATION
             latitude = state.selectedLocation.first,
             longitude = state.selectedLocation.second,
-            eventTime = state.time,
-            createdBy = createdBy
+
+            xRatio = 0.5f,
+            yRatio = 0.5f,
+
+            // TIME
+            date = state.date,
+            startTime = state.startTime,
+            endTime = if (state.endTime.isBlank()) null else state.endTime,
+
+            // ORGANIZATION
+            createdBy = createdBy,
+            clubName = state.clubName,
+
+            // MEDIA
+            isPoster = state.isPoster,
+            posterUrl = if (state.posterUrl.isBlank()) null else state.posterUrl,
+
+            // CLASSIFICATION
+            category = state.category,
+
+            // VISIBILITY
+            visibilityType = state.visibilityType,
+            visibilityValue = state.visibilityValue,
+
+            // REGISTRATION
+            registrationRequired = state.registrationRequired,
+            registrationLink = state.registrationLink,
+            inAppRegistration = state.inAppRegistration,
+
+            // EXTRA
+            venue = state.venue
         )
 
+        // 🔹 SAVE
         val success = fakeService.createEvent(event)
 
         if (success) {
@@ -63,6 +105,6 @@ class EventViewModel : ViewModel() {
             )
         }
 
-        println("CreateEvent called")
+        println("CreateEvent called: $event")
     }
 }

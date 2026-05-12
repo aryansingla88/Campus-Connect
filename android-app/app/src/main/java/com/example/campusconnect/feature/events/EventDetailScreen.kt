@@ -13,7 +13,10 @@ fun EventDetailScreen(event: Event) {
 
     Column(modifier = Modifier.padding(16.dp)) {
 
-        Text(event.title, style = MaterialTheme.typography.titleLarge)
+        Text(
+            text = event.title,
+            style = MaterialTheme.typography.titleLarge
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -21,10 +24,22 @@ fun EventDetailScreen(event: Event) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text("Time: ${event.eventTime}")
+        // 🔹 DATE + TIME
+        Text("Date: ${event.date}")
+
+        Text(
+            "Time: ${event.startTime}" +
+                    (event.endTime?.let { " - $it" } ?: "")
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // 🔹 LOCATION
         Text("Location: ${event.latitude}, ${event.longitude}")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 🔹 VENUE
+        Text("Venue: ${event.venue}")
     }
 }
