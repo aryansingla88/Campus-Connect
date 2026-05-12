@@ -51,6 +51,80 @@ class EventViewModel : ViewModel() {
         )
     }
 
+    fun resetForm() {
+        _uiState.value = EventUiState(
+            success=false
+        )
+
+    }
+
+    fun updatePosterUrl(value: String) {
+        _uiState.value = _uiState.value.copy(
+            posterUrl = value
+        )
+    }
+
+    fun updateEndTime(value: String) {
+        _uiState.value = _uiState.value.copy(
+            endTime = value
+        )
+    }
+
+    fun updatePosterEnabled(value: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            isPoster = value
+        )
+    }
+
+    fun updateClubName(value: String) {
+        _uiState.value = _uiState.value.copy(
+            clubName = value
+        )
+    }
+
+    fun updateCategory(value: String) {
+        _uiState.value = _uiState.value.copy(
+            category = value
+        )
+    }
+
+    fun updateVisibilityType(value: String) {
+        _uiState.value = _uiState.value.copy(
+            visibilityType = value
+        )
+    }
+
+    fun updateVisibilityValue(value: String) {
+        _uiState.value = _uiState.value.copy(
+            visibilityValue = value
+        )
+    }
+
+    fun updateRegistrationRequired(value: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            registrationRequired = value
+        )
+    }
+
+    fun updateRegistrationLink(value: String) {
+        _uiState.value = _uiState.value.copy(
+            registrationLink = value
+        )
+    }
+
+    fun toggleInAppRegistration() {
+        _uiState.value = _uiState.value.copy(
+            inAppRegistration =
+                !_uiState.value.inAppRegistration
+        )
+    }
+
+    fun updateEnableChat(value: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            enableChat = value
+        )
+    }
+
     fun createEvent(createdBy: Int) {
 
         val state = _uiState.value
@@ -119,9 +193,10 @@ class EventViewModel : ViewModel() {
         val success = fakeService.createEvent(event)
 
         if (success) {
+
             _events.value = fakeService.getEvents()
 
-            _uiState.value = state.copy(
+            _uiState.value = EventUiState(
                 success = true
             )
         }

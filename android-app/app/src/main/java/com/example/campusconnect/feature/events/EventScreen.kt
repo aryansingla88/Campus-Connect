@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 
 @Composable
 fun EventScreen() {
@@ -204,20 +205,73 @@ fun EventScreen() {
             )
         }
 
+        if (state.success) {
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp)
+                    .background(
+                        Color(0xFFFFF3E0),
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = "Event Created Successfully",
+                    color = Color(0xFF2A2A2A),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
+                )
+            }
+
+            LaunchedEffect(Unit) {
+                delay(2000)
+                viewModel.resetForm()
+            }
+        }
+
         // 🔹 DIALOG
         if (showDialog) {
             key(dialogKey) {
                 EventCreateDialog(
+
                     state = state,
+
                     onTitleChange = viewModel::updateTitle,
                     onDescriptionChange = viewModel::updateDescription,
+
                     onDateChange = viewModel::updateDate,
                     onVenueChange = viewModel::updateVenue,
+
                     onStartTimeChange = viewModel::updateStartTime,
-                    onDismiss = { showDialog = false },
+                    onEndTimeChange = viewModel::updateEndTime,
+
+                    onPosterToggle = viewModel::updatePosterEnabled,
+                    onPosterUrlChange = viewModel::updatePosterUrl,
+
+                    onClubNameChange = viewModel::updateClubName,
+                    onCategoryChange = viewModel::updateCategory,
+
+                    onVisibilityTypeChange = viewModel::updateVisibilityType,
+                    onVisibilityValueChange = viewModel::updateVisibilityValue,
+
+                    onRegistrationToggle = viewModel::updateRegistrationRequired,
+                    onRegistrationLinkChange = viewModel::updateRegistrationLink,
+
+                    onInAppRegistrationToggle =
+                        viewModel::toggleInAppRegistration,
+
+                    onEnableChatToggle = viewModel::updateEnableChat,
+
+                    onDismiss = {
+                        viewModel.resetForm()
+                        showDialog = false
+                    },
+
                     onCreate = {
                         viewModel.createEvent(createdBy = 1)
-                        dialogKey++   // 🔥 important
+                        dialogKey++
                     }
                 )
             }
