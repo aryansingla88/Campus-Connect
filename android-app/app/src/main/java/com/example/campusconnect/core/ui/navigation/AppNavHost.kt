@@ -9,7 +9,7 @@ import com.example.campusconnect.feature.test.TestScreen
 import com.example.campusconnect.feature.auth.authNav
 //import com.example.campusconnect.feature.posts.postNav
 import com.example.campusconnect.feature.events.eventNav
-//import com.example.campusconnect.feature.map.mapNav
+import com.example.campusconnect.feature.map.mapNav
 //import com.example.campusconnect.feature.profile.profileNav
 
 @Composable
@@ -37,7 +37,7 @@ fun AppNavHost() {
             TestScreen(
                 onAuth = { navController.navigate("auth") },
                 onPosts = { navController.navigate("posts") },
-                onEvents = { navController.navigate("events") },
+                onEvents = { navController.navigate("events_root") },
                 onMap = { navController.navigate("map") },
                 onProfile = { navController.navigate("profile")},
                 onSplash={navController.navigate("splash")}
@@ -47,7 +47,7 @@ fun AppNavHost() {
         authNav(navController)
 //        postNav(navController)
         eventNav(navController)
-//        mapNav(navController)
+        mapNav(navController)
 //        profileNav(navController)
     }
 }
