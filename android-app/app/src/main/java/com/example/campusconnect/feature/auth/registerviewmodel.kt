@@ -194,6 +194,16 @@ class RegisterViewModel(application: Application)
             _warning.value = "Password cannot be empty"
             return
         }
+        val passwordRegex = Regex(
+            "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@#\$%^&+=!]).{8,16}$"
+        )
+        if (!passwordRegex.matches(password)) {
+
+            _warning.value =
+                "Username must be 6-20 chars with letters, numbers or underscore"
+
+            return
+        }
 
         if (password.length !in 8..16) {
             _warning.value =
