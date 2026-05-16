@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.auth
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,13 +23,39 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import android.app.DatePickerDialog
+import androidx.compose.ui.window.Popup
+import kotlinx.coroutines.delay
 import java.util.Calendar
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
 /*
-below thing is called a modifier chain-
+below structure is called a modifier chain-
 Modifier
 .background()
 .padding()
 .clickable()*/
+
+/*
+STATEFLOW
+
+Use for:
+
+username
+password
+loading
+current screen
+verified state
+
+SHAREDFLOW
+Use for:
+
+popups
+snackbars
+toasts
+navigation
+one-time messages */
 @Composable
 fun RegisterScreen(
 
@@ -40,7 +67,11 @@ fun RegisterScreen(
 ) {
 
     val username by viewModel.username.collectAsState()
+
     val rollNumber by viewModel.rollNumber.collectAsState()
+    val emailVerified by
+    viewModel.emailVerified
+        .collectAsState()
     val password by viewModel.password.collectAsState()
     val confirmPassword by viewModel.confirmPassword.collectAsState()
 
@@ -50,7 +81,7 @@ fun RegisterScreen(
     val gender by viewModel.gender.collectAsState()
     val dob by viewModel.dob.collectAsState()
 
-    val warning by viewModel.warning.collectAsState()
+
     val registerSuccess by viewModel.registerSuccess.collectAsState()
     var passwordVisible by remember {
         mutableStateOf(false)
@@ -59,11 +90,49 @@ fun RegisterScreen(
     var confirmPasswordVisible by remember {
         mutableStateOf(false)
     }
+    //OTP dialog box
+    var showOtpDialog by remember {
+
+        mutableStateOf(false)
+    }
+    val shakeOffset = remember {
+
+        Animatable(0f)
+    }
+
+    val scope = rememberCoroutineScope()
+    var showBanner by remember {
+
+        mutableStateOf(false)
+    }
+
+    var bannerMessage by remember {
+
+        mutableStateOf("")
+    }
+    var otperror by remember {
+
+        mutableStateOf("")
+    }
+
+    var otpExpired by remember {
+
+        mutableStateOf(false)
+    }
 
     LaunchedEffect(registerSuccess) {
 
         if (registerSuccess) {
             onRegisterSuccess()
+        }
+    }
+    LaunchedEffect(Unit) {
+
+        viewModel.messageEvent.collect {
+
+            bannerMessage = it
+
+            showBanner = true
         }
     }
 
@@ -74,6 +143,17 @@ fun RegisterScreen(
                 Color(0xFFD6EBFF)
             )
     ) {
+        FloatingMessageBanner(
+
+            visible = showBanner,
+
+            message = bannerMessage,
+
+            onDismiss = {
+
+                showBanner = false
+            }
+        )
 
         Column(
             modifier = Modifier
@@ -108,7 +188,69 @@ fun RegisterScreen(
                 onValueChange = viewModel::onRollNumberChange
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            if (!emailVerified) {
+
+                Text(
+
+                    text = "Verify Email",
+
+                    color = Color(0xFF2E7D32),
+
+                    fontSize = 12.sp,
+
+                    modifier = Modifier
+                        .graphicsLayer {
+
+                            translationX = shakeOffset.value
+                        }
+                        .clickable {
+                            if (rollNumber.isBlank()) {
+
+                                scope.launch {
+
+                                    repeat(4) {
+
+                                        shakeOffset.animateTo(
+                                            20f,
+                                            tween(40)
+                                        )
+
+                                        shakeOffset.animateTo(
+                                            -20f,
+                                            tween(40)
+                                        )
+                                    }
+
+                                    shakeOffset.animateTo(
+                                        0f,
+                                        tween(40)
+                                    )
+                                }
+
+                                return@clickable
+                            }
+
+                            viewModel.sendOtp()
+
+                            showOtpDialog = true
+                        }
+                        .padding(top = 6.dp)
+                )
+
+            }
+            if (emailVerified) {
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+
+                    text = "✓ Email Verified",
+
+                    color = Color(0xFF2E7D32)
+                )
+            }
+            Spacer(modifier=Modifier.height(10.dp))
             //RegisterPasswordField is a user defined function defined below
             RegisterPasswordField(
                 value = password,
@@ -225,32 +367,44 @@ fun RegisterScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (warning.isNotEmpty()) {
-               /* Because:
-
-                val warning by viewModel.warning.collectAsState()
-
-                made warning a Compose-observed state.
-
-                So when warning changes:
-
-                _warning.value = "Invalid password"
-
-                Compose automatically recomposes the composable.*/
-
-                Text(
-                    text = warning,
-                    color = Color(0xFFFFE6E6),
-                    fontSize = 14.sp
-                )
-            }
+            Spacer(modifier = Modifier.height(12.dp))}
 
             Spacer(modifier = Modifier.height(40.dp))
         }
-    }
+        if (showOtpDialog) {
+
+            OtpVerificationDialog(
+
+                onDismiss = {
+
+                    showOtpDialog = false
+                },
+
+                onVerify = { otp ->
+
+                    viewModel.verifyOtp(otp)
+
+
+                }
+            )
+            if (otperror.isNotEmpty()) {
+
+                Spacer(
+                    modifier = Modifier.height(6.dp)
+                )
+
+                Text(
+
+                    text = otperror,
+
+                    color = Color.Red,
+
+                    fontSize = 13.sp
+                )
+            }
+        }
 }
+
 
 @Composable
 fun RegisterTextField(
@@ -600,5 +754,218 @@ fun DobField(
             modifier = Modifier
                 .fillMaxWidth()
         )
+    }
+}
+@Composable
+fun OtpVerificationDialog(
+
+    onDismiss: () -> Unit,
+
+    onVerify: (String) -> VerifyOtpResult
+) {
+
+    var otp by remember {
+
+        mutableStateOf("")
+    }
+
+    var otpError by remember {
+
+        mutableStateOf("")
+    }
+
+    var otpExpired by remember {
+
+        mutableStateOf(false)
+    }
+
+    AlertDialog(
+
+        onDismissRequest = onDismiss,
+
+        title = {
+
+            Text("Verify Email")
+        },
+
+        text = {
+
+            Column {
+
+                Text(
+                    "Enter OTP sent to your email"
+                )
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+
+                OutlinedTextField(
+
+                    value = otp,
+
+                    onValueChange = {
+                        otp = it
+                    },
+
+                    placeholder = {
+                        Text("Enter OTP")
+                    },
+
+                    singleLine = true
+                )
+
+                if (otpError.isNotEmpty()) {
+
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    Text(
+
+                        text = otpError,
+
+                        color = Color.Red,
+
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        },
+
+        confirmButton = {
+
+            Button(
+
+                enabled = !otpExpired,
+
+                onClick = {
+
+                    val result = onVerify(otp)
+
+                    when (result) {
+
+                        is VerifyOtpResult.Success -> {
+
+                            onDismiss()
+                        }
+
+                        is VerifyOtpResult.Failure -> {
+
+                            otpError =
+
+                                "Invalid OTP. " +
+                                        "${result.attemptsLeft} attempts left"
+                        }
+
+                        is VerifyOtpResult.Expired -> {
+
+                            otpExpired = true
+
+                            otpError =
+                                "OTP expired. Request new OTP"
+                        }
+                    }
+                }
+
+            ) {
+
+                Text("Verify")
+            }
+        },
+
+        dismissButton = {
+
+            TextButton(
+
+                onClick = onDismiss
+            ) {
+
+                Text("Cancel")
+            }
+        }
+    )
+}
+@Composable
+fun FloatingMessageBanner(
+
+    visible: Boolean,
+
+    message: String,
+
+    onDismiss: () -> Unit
+) {
+
+    if (!visible) return
+
+    var progress by remember(message) {
+
+        mutableStateOf(1f)
+    }
+
+    LaunchedEffect(message) {
+
+        progress = 1f
+
+        for (i in 100 downTo 0) {
+
+            progress = i / 100f
+
+            delay(30)
+        }
+
+        onDismiss()
+    }
+    /*
+I am using Popup() here because normal composables still belong to the
+screen layout hierarchy, whereas Popup creates a separate overlay layer
+above the screen content. This makes the banner behave like a true
+floating notification instead of a normal stacked UI element.
+*/
+
+    Popup(
+
+        alignment = Alignment.TopCenter
+    ) {
+
+        Card(
+
+
+            modifier = Modifier
+                    .width(300.dp)
+                    .padding(top = 70.dp),
+
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 12.dp
+            )
+        ) {
+
+            Column {
+
+                Text(
+
+                    text = message,
+
+                    color = Color.Black,
+
+                    modifier = Modifier
+                        .padding(16.dp)
+                )
+
+                Box(
+
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .height(4.dp)
+                        .background(
+                            Color(0xFF2E7D32)
+                        )
+                )
+            }
+        }
     }
 }

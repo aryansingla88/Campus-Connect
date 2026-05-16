@@ -3,8 +3,13 @@ package com.example.campusconnect.feature.auth
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.example.campusconnect.feature.auth.FakeAuthRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 
 class RegisterViewModel(application: Application)
     : AndroidViewModel(application) {
@@ -22,6 +27,12 @@ class RegisterViewModel(application: Application)
 
     private val _rollNumber = MutableStateFlow("")
     val rollNumber: StateFlow<String> = _rollNumber
+    private val _emailVerified =
+        MutableStateFlow(false)
+
+    val emailVerified:
+            StateFlow<Boolean> =
+        _emailVerified
 
     // password
 
@@ -57,11 +68,12 @@ class RegisterViewModel(application: Application)
 
     private val _dob = MutableStateFlow("")
     val dob: StateFlow<String> = _dob
+    //warning
+    private val _messageEvent =
+        MutableSharedFlow<String>()
 
-    // warning message
-
-    private val _warning = MutableStateFlow("")
-    val warning: StateFlow<String> = _warning
+    val messageEvent =
+        _messageEvent.asSharedFlow()
 
     // registration status
 
@@ -91,8 +103,9 @@ class RegisterViewModel(application: Application)
         val filtered = value.filter {
             it.isDigit()
         }
-
+        if(filtered.length<=12){
         _rollNumber.value = filtered
+        }
     }
 
     fun onPasswordChange(value: String) {
@@ -176,74 +189,121 @@ class RegisterViewModel(application: Application)
 
         if (!usernameRegex.matches(username)) {
 
-            _warning.value =
-                "Username must be 6-20 chars with letters, numbers or underscore"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Username must be 6-20 chars with letters, numbers or underscore"
+                )
+            }
 
             return
         }
 
-        if (rollNumber.isEmpty()) {
+        if (rollNumber.length !in 6..12) {
 
-            _warning.value =
-                "Enter roll number"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Roll number must be 6-12 digits"
+                )
+            }
 
             return
         }
 
         if (password.isEmpty()) {
-            _warning.value = "Password cannot be empty"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Password cannot be empty"
+                )
+            }
             return
         }
         val passwordRegex = Regex(
             "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@#\$%^&+=!]).{8,16}$"
         )
         if (!passwordRegex.matches(password)) {
+            viewModelScope.launch {
 
-            _warning.value =
-                "Username must be 6-20 chars with letters, numbers or underscore"
+                _messageEvent.emit(
+                    "Password must contain uppercase, lowercase, number and special character. Should have 8-16 length."
+                )
+            }
 
             return
         }
 
         if (password.length !in 8..16) {
-            _warning.value =
-                "Password must be 8-16 characters"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Password must be 8-16 characters"
+                )
+            }
             return
         }
 
         if (password != confirmPassword) {
-            _warning.value = "Passwords do not match"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Passwords do not match"
+                )
+            }
             return
         }
 
         if (realName.isEmpty()) {
-            _warning.value = "Enter your real name"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Enter your real name"
+                )
+            }
             return
         }
 
         if (course.isEmpty()) {
-            _warning.value = "Enter course"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Enter course"
+                )
+            }
             return
         }
 
         if (year.isEmpty()) {
-            _warning.value = "Enter year"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Enter year"
+                )
+            }
             return
         }
 
         if (gender.isEmpty()) {
-            _warning.value = "Enter gender"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Enter gender"
+                )
+            }
             return
         }
 
         if (dob.isEmpty()) {
-            _warning.value = "Enter DOB"
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Enter DOB"
+                )
+            }
             return
         }
 
-        // clear warning
-
-        _warning.value = ""
 
         // temporary local storage
 
@@ -276,5 +336,81 @@ class RegisterViewModel(application: Application)
         // registration success
 
         _registerSuccess.value = true
+    }
+    fun sendOtp() {
+
+        val rollNumber =
+            _rollNumber.value.trim()
+
+        if (rollNumber.isEmpty()) {
+            // clear warning
+
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Enter roll number"
+                )
+            }
+
+            return
+        }
+        if (rollNumber.length !in 6..12) {
+
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Roll number must be 6-12 digits"
+                )
+            }
+
+
+            return
+        }
+
+        val email =
+            "$rollNumber@nitkkr.ac.in"
+
+        val success =
+            FakeAuthRepository.sendOtp(email)
+
+        if (success) {
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "OTP sent successfully"
+                )
+            }
+        }
+    }
+    fun verifyOtp(
+
+        otp: String
+
+    ): VerifyOtpResult {
+
+        val email =
+
+            "${_rollNumber.value}@nitkkr.ac.in"
+
+        val result =
+
+            FakeAuthRepository.verifyOtp(
+                email,
+                otp
+            )
+
+        if (result is VerifyOtpResult.Success) {
+
+            _emailVerified.value = true
+
+            viewModelScope.launch {
+
+                _messageEvent.emit(
+                    "Email verified successfully"
+                )
+            }
+        }
+
+        return result
     }
 }
