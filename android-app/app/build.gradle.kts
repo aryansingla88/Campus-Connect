@@ -73,5 +73,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
     implementation("androidx.compose.material:material-icons-extended")
+
+    implementation("androidx.compose.foundation:foundation:1.6.x")
 }
 
