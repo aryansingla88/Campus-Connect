@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -34,42 +36,52 @@ import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.events.EventUiState
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
-private val OrangePrimary = Color(0xFFFF6F00)
-private val OrangeLight   = Color(0xFFFFF3E0)
-private val OrangeBorder  = Color(0xFFFFD6B0)
-private val OrangeBg      = Color(0xFFFFF8F2)
-private val ErrorRed      = Color(0xFFD32F2F)
-private val ErrorBg       = Color(0xFFFFF0F0)
-private val ErrorBorder   = Color(0xFFFFCDD2)
-private val LabelColor    = Color(0xFF2A2A2A)
-private val HintColor     = Color(0xFFAAAAAA)
+private val OrangePrimary  = Color(0xFFFF6F00)
+private val OrangeLight    = Color(0xFFFFF3E0)
+private val OrangeBorder   = Color(0xFFFFD6B0)
+private val OrangeBg       = Color(0xFFFFF8F2)
+private val ErrorRed       = Color(0xFFD32F2F)
+private val ErrorBg        = Color(0xFFFFF0F0)
+private val ErrorBorder    = Color(0xFFFFCDD2)
+private val LabelColor     = Color(0xFF2A2A2A)
+private val HintColor      = Color(0xFFAAAAAA)
+private val LockedBg       = Color(0xFFF8F8F8)   // locked field background
+private val LockedBorder   = Color(0xFFE8E8E8)   // locked field border
+private val LockedText     = Color(0xFFBBBBBB)   // locked label/text colour
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 @Composable
 private fun FieldLabel(
     text: String,
     required: Boolean = false,
-    hasError: Boolean = false
+    hasError: Boolean = false,
+    locked: Boolean   = false
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
-            color = if (hasError) ErrorRed else LabelColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            fontSize   = 14.sp,
+            color      = when {
+                locked   -> LockedText
+                hasError -> ErrorRed
+                else     -> LabelColor
+            },
+            maxLines  = 1,
+            overflow  = TextOverflow.Ellipsis
         )
-        if (required) {
-            Text(
-                " *",
-                color = if (hasError) ErrorRed else OrangePrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
+        if (required && !locked) {
+            Text(" *", color = if (hasError) ErrorRed else OrangePrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        }
+        if (locked) {
+            Spacer(Modifier.width(4.dp))
+            Icon(Icons.Default.Lock, contentDescription = "Read-only", tint = LockedText, modifier = Modifier.size(12.dp))
         }
     }
 }
 
+/** Colors for a normal editable field. */
 @Composable
 private fun fieldColors(hasError: Boolean = false) = OutlinedTextFieldDefaults.colors(
     focusedBorderColor        = if (hasError) ErrorRed else OrangePrimary,
@@ -87,7 +99,23 @@ private fun fieldColors(hasError: Boolean = false) = OutlinedTextFieldDefaults.c
     disabledContainerColor    = if (hasError) ErrorBg else Color.Transparent
 )
 
-/** Single-line labeled text field. */
+/** Colors for a locked (non-editable in edit mode) field. */
+@Composable
+private fun lockedFieldColors() = OutlinedTextFieldDefaults.colors(
+    disabledBorderColor       = LockedBorder,
+    disabledTextColor         = LockedText,
+    disabledLeadingIconColor  = LockedText,
+    disabledTrailingIconColor = LockedText,
+    disabledPlaceholderColor  = LockedText,
+    disabledLabelColor        = LockedText,
+    disabledContainerColor    = LockedBg,
+    unfocusedBorderColor      = LockedBorder,
+    unfocusedContainerColor   = LockedBg,
+    focusedBorderColor        = LockedBorder,
+    focusedContainerColor     = LockedBg,
+    cursorColor               = Color.Transparent
+)
+
 @Composable
 private fun LabeledField(
     label: String,
@@ -97,110 +125,85 @@ private fun LabeledField(
     placeholder: String,
     leadingIcon: ImageVector,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    hasError: Boolean = false,
+    enabled: Boolean   = true,
+    hasError: Boolean  = false,
+    locked: Boolean    = false,           // ← locked = greyed, not interactive
     trailingIcon: @Composable (() -> Unit)? = null,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FieldLabel(label, required, hasError)
+        FieldLabel(label, required, hasError, locked)
         OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            enabled = enabled,
-            placeholder = {
-                Text(
-                    placeholder,
-                    color = HintColor,
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            value         = value,
+            onValueChange = if (locked) { _ -> } else onValueChange,
+            enabled       = !locked && enabled,
+            placeholder   = {
+                Text(placeholder, color = if (locked) LockedText else HintColor, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             },
             leadingIcon = {
-                Icon(
-                    leadingIcon,
-                    contentDescription = null,
-                    tint = if (hasError) ErrorRed else HintColor,
-                    modifier = Modifier.size(20.dp)
-                )
+                Icon(leadingIcon, null, tint = if (locked) LockedText else if (hasError) ErrorRed else HintColor, modifier = Modifier.size(20.dp))
             },
             trailingIcon = trailingIcon,
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = fieldColors(hasError),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp)
+            singleLine   = true,
+            shape        = RoundedCornerShape(12.dp),
+            colors       = if (locked) lockedFieldColors() else fieldColors(hasError),
+            modifier     = Modifier.fillMaxWidth().height(54.dp)
         )
         if (hasError) {
-            Text(
-                "This field is required",
-                color = ErrorRed,
-                fontSize = 11.sp,
-                modifier = Modifier.padding(start = 4.dp)
-            )
+            Text("This field is required", color = ErrorRed, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
         }
     }
 }
 
-/** Yes / No two-segment toggle. Default-No means pass value = false from state. */
+/** Yes / No toggle — optionally locked (greyed, not clickable). */
 @Composable
 private fun YesNoToggle(
     value: Boolean,
     onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    locked: Boolean    = false
 ) {
+    val activeBg   = if (locked) LockedText   else OrangePrimary
+    val inactiveBg = if (locked) LockedBg     else Color.White
+    val activeText = if (locked) Color.White  else Color.White
+    val inactiveText = if (locked) LockedText else Color(0xFF777777)
+
     Row(
         modifier = modifier
             .height(46.dp)
-            .border(1.dp, OrangeBorder, RoundedCornerShape(12.dp))
+            .border(1.dp, if (locked) LockedBorder else OrangeBorder, RoundedCornerShape(12.dp))
     ) {
         Button(
-            onClick = { onToggle(true) },
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-            shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (value) OrangePrimary else Color.White
-            ),
+            onClick = { if (!locked) onToggle(true) },
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            shape    = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+            colors   = ButtonDefaults.buttonColors(containerColor = if (value) activeBg else inactiveBg),
             contentPadding = PaddingValues(0.dp),
             elevation = ButtonDefaults.buttonElevation(0.dp)
-        ) {
-            Text("Yes", color = if (value) Color.White else Color(0xFF777777), fontSize = 14.sp)
-        }
+        ) { Text("Yes", color = if (value) activeText else inactiveText, fontSize = 14.sp) }
         Button(
-            onClick = { onToggle(false) },
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-            shape = RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (!value) OrangePrimary else Color.White
-            ),
+            onClick = { if (!locked) onToggle(false) },
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            shape    = RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp),
+            colors   = ButtonDefaults.buttonColors(containerColor = if (!value) activeBg else inactiveBg),
             contentPadding = PaddingValues(0.dp),
             elevation = ButtonDefaults.buttonElevation(0.dp)
-        ) {
-            Text("No", color = if (!value) Color.White else Color(0xFF777777), fontSize = 14.sp)
-        }
+        ) { Text("No", color = if (!value) activeText else inactiveText, fontSize = 14.sp) }
     }
 }
 
-/**
- * Three-segment toggle used for Registration: In-App | Link | No
- * [selected] should be one of the strings in [options].
- */
+/** Three-segment toggle — optionally locked. */
 @Composable
 private fun ThreeSegmentToggle(
     selected: String,
     options: List<String>,
     onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    locked: Boolean    = false
 ) {
     Row(
         modifier = modifier
             .height(46.dp)
-            .border(1.dp, OrangeBorder, RoundedCornerShape(12.dp))
+            .border(1.dp, if (locked) LockedBorder else OrangeBorder, RoundedCornerShape(12.dp))
     ) {
         options.forEachIndexed { index, option ->
             val isSelected = selected == option
@@ -210,30 +213,34 @@ private fun ThreeSegmentToggle(
                 else              -> RoundedCornerShape(0.dp)
             }
             Button(
-                onClick = { onSelect(option) },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                shape = shape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSelected) OrangePrimary else Color.White
+                onClick = { if (!locked) onSelect(option) },
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                shape    = shape,
+                colors   = ButtonDefaults.buttonColors(
+                    containerColor = when {
+                        isSelected && locked -> LockedText
+                        isSelected           -> OrangePrimary
+                        locked               -> LockedBg
+                        else                 -> Color.White
+                    }
                 ),
                 contentPadding = PaddingValues(horizontal = 4.dp),
                 elevation = ButtonDefaults.buttonElevation(0.dp)
             ) {
                 Text(
                     option,
-                    color = if (isSelected) Color.White else Color(0xFF777777),
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = when {
+                        isSelected -> Color.White
+                        locked     -> LockedText
+                        else       -> Color(0xFF777777)
+                    },
+                    fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
         }
     }
 }
 
-/** Dropdown with label above. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LabeledDropdown(
@@ -245,70 +252,51 @@ private fun LabeledDropdown(
     onSelect: (String) -> Unit,
     leadingIcon: ImageVector,
     modifier: Modifier = Modifier,
-    hasError: Boolean = false
+    hasError: Boolean  = false,
+    locked: Boolean    = false
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FieldLabel(label, required, hasError)
+        FieldLabel(label, required, hasError, locked)
         ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
+            expanded = if (locked) false else expanded,
+            onExpandedChange = { if (!locked) expanded = !expanded }
         ) {
             OutlinedTextField(
-                value = value,
+                value        = value,
                 onValueChange = {},
-                readOnly = true,
-                placeholder = {
-                    Text(
-                        placeholder,
-                        color = HintColor,
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                readOnly     = true,
+                placeholder  = {
+                    Text(placeholder, color = if (locked) LockedText else HintColor, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 },
                 leadingIcon = {
-                    Icon(
-                        leadingIcon,
-                        contentDescription = null,
-                        tint = if (hasError) ErrorRed else HintColor,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(leadingIcon, null, tint = if (locked) LockedText else if (hasError) ErrorRed else HintColor, modifier = Modifier.size(20.dp))
                 },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = fieldColors(hasError),
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-                    .height(54.dp)
+                trailingIcon = { if (!locked) ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                singleLine   = true,
+                shape        = RoundedCornerShape(12.dp),
+                colors       = if (locked) lockedFieldColors() else fieldColors(hasError),
+                enabled      = !locked,
+                modifier     = Modifier.menuAnchor().fillMaxWidth().height(54.dp)
             )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                options.forEach { opt ->
-                    DropdownMenuItem(
-                        text = { Text(opt, fontSize = 14.sp) },
-                        onClick = { onSelect(opt); expanded = false }
-                    )
+            if (!locked) {
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    options.forEach { opt ->
+                        DropdownMenuItem(
+                            text    = { Text(opt, fontSize = 14.sp) },
+                            onClick = { onSelect(opt); expanded = false }
+                        )
+                    }
                 }
             }
         }
         if (hasError) {
-            Text(
-                "This field is required",
-                color = ErrorRed,
-                fontSize = 11.sp,
-                modifier = Modifier.padding(start = 4.dp)
-            )
+            Text("This field is required", color = ErrorRed, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
         }
     }
 }
 
-/** Material3 has no built-in TimePickerDialog wrapper — this fills that gap. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialog(
@@ -318,15 +306,11 @@ private fun TimePickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel", color = OrangePrimary) }
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text("OK", color = OrangePrimary) }
-        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = OrangePrimary) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("OK", color = OrangePrimary) } },
         text = {
             TimePicker(
-                state = timePickerState,
+                state  = timePickerState,
                 colors = TimePickerDefaults.colors(
                     clockDialColor                         = OrangeLight,
                     clockDialSelectedContentColor          = Color.White,
@@ -344,78 +328,86 @@ private fun TimePickerDialog(
                 )
             )
         },
-        shape = RoundedCornerShape(20.dp),
+        shape          = RoundedCornerShape(20.dp),
         containerColor = Color.White
     )
 }
 
 // ─── Main Composable ──────────────────────────────────────────────────────────
 
+/**
+ * Unified create / edit dialog.
+ *
+ * @param isEditMode   When true the dialog shows "Update Event" / "Save Changes"
+ *                     and locks the fields that cannot be changed after creation.
+ * @param onCreate     Called in create mode when validation passes.
+ * @param onUpdate     Called in edit mode when validation passes.
+ */
 @Composable
 fun EventCreateDialog(
     state: EventUiState,
+    isEditMode: Boolean = false,
 
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-
     onDateChange: (String) -> Unit,
     onVenueChange: (String) -> Unit,
-
     onStartTimeChange: (String) -> Unit,
     onEndTimeChange: (String) -> Unit,
-
     onPosterToggle: (Boolean) -> Unit,
     onPosterUrlChange: (String) -> Unit,
-
-    onDismiss: () -> Unit,
-    onCreate: () -> Unit,
-
     onClubNameChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
-
     onVisibilityTypeChange: (String) -> Unit,
     onVisibilityValueChange: (String) -> Unit,
-
-    // Registration: "In-App" | "Link" | "No"  (replaces old Boolean toggle + inApp toggle)
     onRegistrationTypeChange: (String) -> Unit,
     onRegistrationLinkChange: (String) -> Unit,
-
     onEnableChatToggle: (Boolean) -> Unit,
-
     onEditLocation: () -> Unit = {},
+    onDismiss: () -> Unit,
+    onCreate: () -> Unit,
+    onUpdate: () -> Unit = {},
 
-    clubOptions: List<String> = listOf("Tech Club", "Art Club", "Drama Club"),
-    visibilityTypeOptions: List<String> = listOf("Public", "Private", "Club"),
+    clubOptions: List<String>        = listOf("Tech Club", "Art Club", "Drama Club"),
+    visibilityTypeOptions: List<String>  = listOf("Public", "Private", "Club"),
     visibilityValueOptions: List<String> = listOf("All", "Members Only")
 ) {
-    // ── Validation state — errors only visible after first submit attempt ─────
+    // Fields locked in edit mode — shown greyed, non-interactive
+    val titleLocked        = isEditMode
+    val clubNameLocked     = isEditMode
+    val categoryLocked     = isEditMode
+    val registrationLocked = isEditMode
+    val chatLocked         = isEditMode
+
+    // ── Validation ────────────────────────────────────────────────────────────
     var submitted by remember { mutableStateOf(false) }
 
-    val titleError       = submitted && state.title.isBlank()
     val descriptionError = submitted && state.description.isBlank()
     val dateError        = submitted && state.date.isBlank()
     val venueError       = submitted && state.venue.isBlank()
     val startTimeError   = submitted && state.startTime.isBlank()
-    val clubNameError    = submitted && state.clubName.isBlank()
-    val categoryError    = submitted && state.category.isBlank()
     val visibilityError  = submitted && state.visibilityType.isBlank()
     val visValueError    = submitted && state.visibilityValue.isBlank()
-    // Link field is mandatory only when registrationType == "Link"
     val linkError        = submitted && state.registrationType == "Link" && state.registrationLink.isBlank()
 
-    fun validate(): Boolean =
-        state.title.isNotBlank() &&
-                state.description.isNotBlank() &&
+    // Title / club / category only validated in create mode
+    val titleError    = submitted && !isEditMode && state.title.isBlank()
+    val clubNameError = submitted && !isEditMode && state.clubName.isBlank()
+    val categoryError = submitted && !isEditMode && state.category.isBlank()
+
+    fun validate(): Boolean {
+        val baseOk = state.description.isNotBlank() &&
                 state.date.isNotBlank() &&
                 state.venue.isNotBlank() &&
                 state.startTime.isNotBlank() &&
-                state.clubName.isNotBlank() &&
-                state.category.isNotBlank() &&
                 state.visibilityType.isNotBlank() &&
                 state.visibilityValue.isNotBlank() &&
                 (state.registrationType != "Link" || state.registrationLink.isNotBlank())
+        return if (isEditMode) baseOk
+        else baseOk && state.title.isNotBlank() && state.clubName.isNotBlank() && state.category.isNotBlank()
+    }
 
-    // ── Root overlay ──────────────────────────────────────────────────────────
+    // ── UI ────────────────────────────────────────────────────────────────────
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -423,12 +415,12 @@ fun EventCreateDialog(
         contentAlignment = Alignment.Center
     ) {
         Card(
-            modifier = Modifier
+            modifier  = Modifier
                 .widthIn(max = 900.dp)
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.93f),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape     = RoundedCornerShape(24.dp),
+            colors    = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(8.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -438,7 +430,7 @@ fun EventCreateDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Box(
@@ -448,18 +440,18 @@ fun EventCreateDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            Icons.Default.LocationOn,
+                            if (isEditMode) Icons.Default.Edit else Icons.Default.LocationOn,
                             contentDescription = null,
-                            tint = OrangePrimary,
+                            tint     = OrangePrimary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "Create Event",
-                        fontSize = 22.sp,
+                        if (isEditMode) "Update Event" else "Create Event",
+                        fontSize   = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = LabelColor
+                        color      = LabelColor
                     )
                 }
 
@@ -476,11 +468,15 @@ fun EventCreateDialog(
 
                     // ── TITLE ─────────────────────────────────────────────────
                     LabeledField(
-                        label = "Title", required = true, hasError = titleError,
-                        value = state.title, onValueChange = onTitleChange,
-                        placeholder = "Enter event title",
-                        leadingIcon = Icons.Default.Edit,
-                        modifier = Modifier.fillMaxWidth()
+                        label         = "Title",
+                        required      = !isEditMode,
+                        hasError      = titleError,
+                        locked        = titleLocked,
+                        value         = state.title,
+                        onValueChange = onTitleChange,
+                        placeholder   = "Enter event title",
+                        leadingIcon   = Icons.Default.Edit,
+                        modifier      = Modifier.fillMaxWidth()
                     )
 
                     // ── DESCRIPTION ───────────────────────────────────────────
@@ -488,127 +484,72 @@ fun EventCreateDialog(
                         FieldLabel("Description", required = true, hasError = descriptionError)
                         Box {
                             OutlinedTextField(
-                                value = state.description,
+                                value         = state.description,
                                 onValueChange = { if (it.length <= 200) onDescriptionChange(it) },
-                                placeholder = {
+                                placeholder   = {
                                     Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(100.dp),
+                                        modifier         = Modifier.fillMaxWidth().height(100.dp),
                                         contentAlignment = Alignment.TopStart
                                     ) {
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                            verticalAlignment     = Alignment.CenterVertically
                                         ) {
-                                            Icon(
-                                                Icons.Default.MailOutline,
-                                                contentDescription = null,
-                                                tint = HintColor,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Text(
-                                                "Enter event description",
-                                                color = HintColor,
-                                                fontSize = 13.sp
-                                            )
+                                            Icon(Icons.Default.MailOutline, null, tint = HintColor, modifier = Modifier.size(18.dp))
+                                            Text("Enter event description", color = HintColor, fontSize = 13.sp)
                                         }
                                     }
                                 },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = fieldColors(descriptionError),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(120.dp),
+                                shape    = RoundedCornerShape(12.dp),
+                                colors   = fieldColors(descriptionError),
+                                modifier = Modifier.fillMaxWidth().height(120.dp),
                                 textStyle = TextStyle(fontSize = 13.sp)
                             )
                             Text(
-                                text = "${state.description.length} / 200",
-                                fontSize = 11.sp,
-                                color = HintColor,
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(end = 12.dp, bottom = 8.dp)
+                                "${state.description.length} / 200",
+                                fontSize = 11.sp, color = HintColor,
+                                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 8.dp)
                             )
                         }
                         if (descriptionError) {
-                            Text(
-                                "This field is required",
-                                color = ErrorRed,
-                                fontSize = 11.sp,
-                                modifier = Modifier.padding(start = 4.dp)
-                            )
+                            Text("This field is required", color = ErrorRed, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
                         }
                     }
 
-                    // ── IS POSTER? (left) + POSTER SOURCE (right) ─────────────
+                    // ── IS POSTER? + POSTER SOURCE ────────────────────────────
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.Bottom
+                        verticalAlignment     = Alignment.Bottom
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             FieldLabel("Is Poster?")
-                            YesNoToggle(
-                                value = state.isPoster,
-                                onToggle = onPosterToggle,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            YesNoToggle(value = state.isPoster, onToggle = onPosterToggle, modifier = Modifier.fillMaxWidth())
                         }
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             FieldLabel("Poster Source")
                             OutlinedTextField(
-                                value = state.posterUrl,
+                                value         = state.posterUrl,
                                 onValueChange = onPosterUrlChange,
-                                enabled = state.isPoster,
-                                placeholder = {
-                                    Text(
-                                        "Add image URL or upload",
-                                        color = HintColor,
-                                        fontSize = 11.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
+                                enabled       = state.isPoster,
+                                placeholder   = {
+                                    Text("Add image URL or upload", color = HintColor, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Image,
-                                        contentDescription = null,
-                                        tint = HintColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                },
+                                leadingIcon = { Icon(Icons.Default.Image, null, tint = HintColor, modifier = Modifier.size(20.dp)) },
                                 trailingIcon = {
                                     Box(
                                         modifier = Modifier
                                             .size(28.dp)
-                                            .background(
-                                                if (state.isPoster) OrangePrimary else HintColor,
-                                                CircleShape
-                                            ),
+                                            .background(if (state.isPoster) OrangePrimary else HintColor, CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            "+",
-                                            color = Color.White,
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        Text("+", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = fieldColors(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(54.dp)
+                                shape      = RoundedCornerShape(12.dp),
+                                colors     = fieldColors(),
+                                modifier   = Modifier.fillMaxWidth().height(54.dp)
                             )
                         }
                     }
@@ -622,41 +563,18 @@ fun EventCreateDialog(
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = OrangePrimary,
-                            modifier = Modifier.size(26.dp)
-                        )
+                        Icon(Icons.Default.LocationOn, null, tint = OrangePrimary, modifier = Modifier.size(26.dp))
                         Spacer(Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Location (From Tap)",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                                color = LabelColor
-                            )
+                            Text("Location (From Tap)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = LabelColor)
                             val lat  = state.selectedRatio?.first  ?: 0.0
                             val long = state.selectedRatio?.second ?: 0.0
                             Text("Lat: $lat, Long: $long", fontSize = 12.sp, color = HintColor)
                         }
-                        TextButton(
-                            onClick = onEditLocation,
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "Edit",
-                                tint = OrangePrimary,
-                                modifier = Modifier.size(15.dp)
-                            )
+                        TextButton(onClick = onEditLocation, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                            Icon(Icons.Default.Edit, "Edit", tint = OrangePrimary, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(
-                                "Edit",
-                                color = OrangePrimary,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp
-                            )
+                            Text("Edit", color = OrangePrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
                     }
 
@@ -670,23 +588,18 @@ fun EventCreateDialog(
                             confirmButton = {
                                 TextButton(onClick = {
                                     datePickerState.selectedDateMillis?.let { millis ->
-                                        val cal = java.util.Calendar.getInstance().apply {
-                                            timeInMillis = millis
-                                        }
-                                        val formatted = "%02d/%02d/%04d".format(
+                                        val cal = java.util.Calendar.getInstance().apply { timeInMillis = millis }
+                                        onDateChange("%02d/%02d/%04d".format(
                                             cal.get(java.util.Calendar.DAY_OF_MONTH),
                                             cal.get(java.util.Calendar.MONTH) + 1,
                                             cal.get(java.util.Calendar.YEAR)
-                                        )
-                                        onDateChange(formatted)
+                                        ))
                                     }
                                     showDatePicker = false
                                 }) { Text("OK", color = OrangePrimary) }
                             },
                             dismissButton = {
-                                TextButton(onClick = { showDatePicker = false }) {
-                                    Text("Cancel", color = OrangePrimary)
-                                }
+                                TextButton(onClick = { showDatePicker = false }) { Text("Cancel", color = OrangePrimary) }
                             },
                             colors = DatePickerDefaults.colors(
                                 containerColor                    = Color.White,
@@ -702,7 +615,7 @@ fun EventCreateDialog(
                             )
                         ) {
                             DatePicker(
-                                state = datePickerState,
+                                state  = datePickerState,
                                 colors = DatePickerDefaults.colors(
                                     containerColor             = Color.White,
                                     todayDateBorderColor       = OrangePrimary,
@@ -717,54 +630,26 @@ fun EventCreateDialog(
                         }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Clickable date field (disabled so the whole field is tappable)
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             FieldLabel("Date", required = true, hasError = dateError)
                             OutlinedTextField(
-                                value = state.date,
+                                value         = state.date,
                                 onValueChange = {},
-                                readOnly = true,
-                                placeholder = {
-                                    Text("Select date", color = HintColor, fontSize = 13.sp)
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.DateRange,
-                                        contentDescription = null,
-                                        tint = if (dateError) ErrorRed else HintColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = fieldColors(dateError),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(54.dp)
-                                    .clickable { showDatePicker = true },
-                                enabled = false
+                                readOnly      = true,
+                                placeholder   = { Text("Select date", color = HintColor, fontSize = 13.sp) },
+                                leadingIcon   = { Icon(Icons.Default.DateRange, null, tint = if (dateError) ErrorRed else HintColor, modifier = Modifier.size(20.dp)) },
+                                shape         = RoundedCornerShape(12.dp),
+                                colors        = fieldColors(dateError),
+                                modifier      = Modifier.fillMaxWidth().height(54.dp).clickable { showDatePicker = true },
+                                enabled       = false
                             )
-                            if (dateError) {
-                                Text(
-                                    "This field is required",
-                                    color = ErrorRed,
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.padding(start = 4.dp)
-                                )
-                            }
+                            if (dateError) Text("This field is required", color = ErrorRed, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
                         }
-
                         LabeledField(
                             label = "Venue", required = true, hasError = venueError,
                             value = state.venue, onValueChange = onVenueChange,
-                            placeholder = "Enter venue",
-                            leadingIcon = Icons.Default.LocationOn,
+                            placeholder = "Enter venue", leadingIcon = Icons.Default.LocationOn,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -779,221 +664,158 @@ fun EventCreateDialog(
                         TimePickerDialog(
                             onDismiss = { showStartTimePicker = false },
                             onConfirm = {
-                                val hour   = startTimeState.hour
-                                val minute = startTimeState.minute
-                                val amPm   = if (hour < 12) "AM" else "PM"
-                                val h      = if (hour % 12 == 0) 12 else hour % 12
-                                onStartTimeChange("%02d:%02d %s".format(h, minute, amPm))
+                                val h = startTimeState.hour; val m = startTimeState.minute
+                                val amPm = if (h < 12) "AM" else "PM"
+                                val hr   = if (h % 12 == 0) 12 else h % 12
+                                onStartTimeChange("%02d:%02d %s".format(hr, m, amPm))
                                 showStartTimePicker = false
                             },
                             timePickerState = startTimeState
                         )
                     }
-
                     if (showEndTimePicker) {
                         TimePickerDialog(
                             onDismiss = { showEndTimePicker = false },
                             onConfirm = {
-                                val hour   = endTimeState.hour
-                                val minute = endTimeState.minute
-                                val amPm   = if (hour < 12) "AM" else "PM"
-                                val h      = if (hour % 12 == 0) 12 else hour % 12
-                                onEndTimeChange("%02d:%02d %s".format(h, minute, amPm))
+                                val h = endTimeState.hour; val m = endTimeState.minute
+                                val amPm = if (h < 12) "AM" else "PM"
+                                val hr   = if (h % 12 == 0) 12 else h % 12
+                                onEndTimeChange("%02d:%02d %s".format(hr, m, amPm))
                                 showEndTimePicker = false
                             },
                             timePickerState = endTimeState
                         )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Start time
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             FieldLabel("Start Time", required = true, hasError = startTimeError)
                             OutlinedTextField(
-                                value = state.startTime,
+                                value         = state.startTime,
                                 onValueChange = {},
-                                readOnly = true,
-                                placeholder = {
-                                    Text(
-                                        "Select start time",
-                                        color = HintColor,
-                                        fontSize = 13.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.DateRange,
-                                        contentDescription = null,
-                                        tint = if (startTimeError) ErrorRed else HintColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = fieldColors(startTimeError),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(54.dp)
-                                    .clickable { showStartTimePicker = true },
-                                enabled = false
+                                readOnly      = true,
+                                placeholder   = { Text("Select start time", color = HintColor, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                leadingIcon   = { Icon(Icons.Default.DateRange, null, tint = if (startTimeError) ErrorRed else HintColor, modifier = Modifier.size(20.dp)) },
+                                shape         = RoundedCornerShape(12.dp),
+                                colors        = fieldColors(startTimeError),
+                                modifier      = Modifier.fillMaxWidth().height(54.dp).clickable { showStartTimePicker = true },
+                                enabled       = false
                             )
-                            if (startTimeError) {
-                                Text(
-                                    "This field is required",
-                                    color = ErrorRed,
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.padding(start = 4.dp)
-                                )
-                            }
+                            if (startTimeError) Text("This field is required", color = ErrorRed, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
                         }
-
-                        // End time (optional)
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             FieldLabel("End Time (Optional)")
                             OutlinedTextField(
-                                value = state.endTime,
+                                value         = state.endTime,
                                 onValueChange = {},
-                                readOnly = true,
-                                placeholder = {
-                                    Text(
-                                        "Select end time",
-                                        color = HintColor,
-                                        fontSize = 13.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.DateRange,
-                                        contentDescription = null,
-                                        tint = HintColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = fieldColors(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(54.dp)
-                                    .clickable { showEndTimePicker = true },
-                                enabled = false
+                                readOnly      = true,
+                                placeholder   = { Text("Select end time", color = HintColor, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                leadingIcon   = { Icon(Icons.Default.DateRange, null, tint = HintColor, modifier = Modifier.size(20.dp)) },
+                                shape         = RoundedCornerShape(12.dp),
+                                colors        = fieldColors(),
+                                modifier      = Modifier.fillMaxWidth().height(54.dp).clickable { showEndTimePicker = true },
+                                enabled       = false
                             )
                         }
                     }
 
-                    // ── CLUB NAME (dropdown) + CATEGORY ──────────────────────
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    // ── CLUB NAME + CATEGORY ──────────────────────────────────
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         LabeledDropdown(
-                            label = "Club Name", required = true, hasError = clubNameError,
-                            value = state.clubName,
-                            placeholder = "Select Club",
-                            options = clubOptions,
-                            onSelect = onClubNameChange,
-                            leadingIcon = Icons.Default.Image,
-                            modifier = Modifier.weight(1f)
+                            label = "Club Name", required = !isEditMode, hasError = clubNameError,
+                            locked = clubNameLocked,
+                            value = state.clubName, placeholder = "Select Club",
+                            options = clubOptions, onSelect = onClubNameChange,
+                            leadingIcon = Icons.Default.Image, modifier = Modifier.weight(1f)
                         )
                         LabeledField(
-                            label = "Category", required = true, hasError = categoryError,
+                            label = "Category", required = !isEditMode, hasError = categoryError,
+                            locked = categoryLocked,
                             value = state.category, onValueChange = onCategoryChange,
-                            placeholder = "Enter category",
-                            leadingIcon = Icons.Default.List,
+                            placeholder = "Enter category", leadingIcon = Icons.Default.List,
                             modifier = Modifier.weight(1f)
                         )
                     }
 
                     // ── VISIBILITY TYPE + VISIBILITY VALUE ────────────────────
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         LabeledDropdown(
                             label = "Visibility", required = true, hasError = visibilityError,
-                            value = state.visibilityType,
-                            placeholder = "Select Type",
-                            options = visibilityTypeOptions,
-                            onSelect = onVisibilityTypeChange,
-                            leadingIcon = Icons.Default.Group,
-                            modifier = Modifier.weight(1f)
+                            value = state.visibilityType, placeholder = "Select Type",
+                            options = visibilityTypeOptions, onSelect = onVisibilityTypeChange,
+                            leadingIcon = Icons.Default.Group, modifier = Modifier.weight(1f)
                         )
                         LabeledDropdown(
                             label = "Visibility Value", required = true, hasError = visValueError,
-                            value = state.visibilityValue,
-                            placeholder = "Select Value",
-                            options = visibilityValueOptions,
-                            onSelect = onVisibilityValueChange,
-                            leadingIcon = Icons.Default.Group,
-                            modifier = Modifier.weight(1f)
+                            value = state.visibilityValue, placeholder = "Select Value",
+                            options = visibilityValueOptions, onSelect = onVisibilityValueChange,
+                            leadingIcon = Icons.Default.Group, modifier = Modifier.weight(1f)
                         )
                     }
 
-                    // ── REGISTRATION (3-segment) LEFT + ENABLE CHAT (Yes/No) RIGHT ──
-                    // Both always visible. Registration defaults to "No", Chat defaults to false.
+                    // ── REGISTRATION + ENABLE CHAT ────────────────────────────
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.Bottom
+                        verticalAlignment     = Alignment.Bottom
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            FieldLabel("Registration")
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FieldLabel("Registration", locked = registrationLocked)
                             ThreeSegmentToggle(
-                                selected = state.registrationType,   // default "No"
+                                selected = state.registrationType,
                                 options  = listOf("In-App", "Link", "No"),
                                 onSelect = onRegistrationTypeChange,
+                                locked   = registrationLocked,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            FieldLabel("Enable Chat?")
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FieldLabel("Enable Chat?", locked = chatLocked)
                             YesNoToggle(
-                                value    = state.enableChat,   // default false → "No" highlighted
+                                value    = state.enableChat,
                                 onToggle = onEnableChatToggle,
+                                locked   = chatLocked,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
 
-                    // ── REGISTRATION LINK — appears only when "Link" selected ──
-                    // Treated as mandatory: validated and highlighted on submit.
+                    // ── REGISTRATION LINK ─────────────────────────────────────
                     if (state.registrationType == "Link") {
                         LabeledField(
-                            label = "Registration Link",
-                            required = true,
-                            hasError = linkError,
-                            value = state.registrationLink,
+                            label         = "Registration Link",
+                            required      = true,
+                            hasError      = linkError,
+                            locked        = registrationLocked,
+                            value         = state.registrationLink,
                             onValueChange = onRegistrationLinkChange,
-                            placeholder = "Enter registration link",
-                            leadingIcon = Icons.Default.Share,
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder   = "Enter registration link",
+                            leadingIcon   = Icons.Default.Share,
+                            modifier      = Modifier.fillMaxWidth()
                         )
                     }
 
+                    // Hint row in edit mode
+                    if (isEditMode) {
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Lock, null, tint = LockedText, modifier = Modifier.size(13.dp))
+                            Text(
+                                "Greyed fields cannot be changed after creation",
+                                fontSize = 11.sp,
+                                color    = LockedText
+                            )
+                        }
+                    }
+
                     Spacer(Modifier.height(4.dp))
-                } // end scrollable body
+                }
 
                 // ── BOTTOM BUTTONS ────────────────────────────────────────────
                 HorizontalDivider(color = Color(0xFFF0F0F0))
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1001,46 +823,47 @@ fun EventCreateDialog(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary)
+                        onClick         = onDismiss,
+                        modifier        = Modifier.weight(1f).height(50.dp),
+                        shape           = RoundedCornerShape(14.dp),
+                        border          = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp),
+                        colors          = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary),
+                        contentPadding  = PaddingValues(horizontal = 10.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                        Icon(Icons.Default.Close, null, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Cancel",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize   = 14.sp,
+                            maxLines   = 1
                         )
-                        Spacer(Modifier.width(6.dp))
-                        Text("Cancel", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                     }
-
                     Button(
                         onClick = {
-                            submitted = true          // arm all error flags
-                            if (validate()) onCreate() // only proceed when valid
+                            submitted = true
+                            if (validate()) {
+                                if (isEditMode) onUpdate() else onCreate()
+                            }
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                        modifier        = Modifier.weight(1f).height(50.dp),
+                        shape           = RoundedCornerShape(14.dp),
+                        colors          = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                        contentPadding  = PaddingValues(horizontal = 10.dp)
                     ) {
                         Icon(
-                            Icons.Default.DateRange,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
+                            if (isEditMode) Icons.Default.Check else Icons.Default.DateRange,
+                            null,
+                            tint     = Color.White,
+                            modifier = Modifier.size(15.dp)
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text(
-                            "Create Event",
-                            color = Color.White,
+                            if (isEditMode) "Save Changes" else "Create Event",
+                            color      = Color.White,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp
+                            fontSize   = 14.sp,
+                            maxLines   = 1
                         )
                     }
                 }

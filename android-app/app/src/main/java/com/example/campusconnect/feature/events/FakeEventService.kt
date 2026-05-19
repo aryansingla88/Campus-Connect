@@ -1,5 +1,7 @@
 package com.example.campusconnect.feature.events
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.example.campusconnect.model.Event
 
 class FakeEventService {
@@ -45,7 +47,19 @@ class FakeEventService {
         return true
     }
 
-    fun getEvents(): List<Event> {
-        return events
+    /** Replace the event with the same id. Returns true if found and updated. */
+    fun updateEvent(event: Event): Boolean {
+        val index = events.indexOfFirst { it.id == event.id }
+        if (index == -1) return false
+        events[index] = event
+        return true
     }
+
+    /** Remove event by id. Returns true if found and removed. */
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun deleteEvent(id: Int): Boolean {
+        return events.removeIf { it.id == id }
+    }
+
+    fun getEvents(): List<Event> = events.toList()
 }
