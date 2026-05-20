@@ -1,6 +1,5 @@
 package com.example.campusconnect.model
 
-// Placeholder – fill in when the real API contract is known.
 data class PublicUserProfile(
     val userId: String = "",
     val displayName: String = "",

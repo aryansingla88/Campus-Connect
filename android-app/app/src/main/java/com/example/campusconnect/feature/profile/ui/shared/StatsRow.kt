@@ -103,7 +103,7 @@ fun StatsRow(
                         )
                     }
 
-                    // Right divider (except last)
+                    // Right divider
                     if (index < stats.lastIndex) {
                         Box(
                             modifier = Modifier

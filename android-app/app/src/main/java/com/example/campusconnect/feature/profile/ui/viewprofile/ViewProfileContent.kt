@@ -23,10 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.example.campusconnect.model.PublicUserProfile
 import com.example.campusconnect.feature.profile.ui.shared.*
 
-/**
- * Read-only profile content shown when viewing another user's profile.
- * Pass the hydrated [PublicUserProfile]; stub fields appear blank until real API.
- */
+
 @Composable
 fun ViewProfileContent(profile: PublicUserProfile) {
     Column(

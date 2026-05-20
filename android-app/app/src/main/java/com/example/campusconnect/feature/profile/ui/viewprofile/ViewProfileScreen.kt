@@ -19,11 +19,7 @@ import com.example.campusconnect.feature.profile.ui.shared.panels.honor.HonorPan
 import com.example.campusconnect.feature.profile.ui.shared.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.ViewProfileViewModel
 
-/**
- * Screen for viewing another user's profile.
- *
- * @param userId  The id of the user to display. Passed to [FakePublicProfileService] for now.
- */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewProfileScreen(
@@ -49,7 +45,7 @@ fun ViewProfileScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         }
-        // No bottom bar on ViewProfile (no edit actions)
+        // No bottom bar on ViewProfile
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -64,7 +60,7 @@ fun ViewProfileScreen(
                 badgeColors = FakePublicProfileService.badges.map { it.color },
                 medalColors = FakePublicProfileService.medals.map { it.color },
                 headerAction = {
-                    // Connect / Message button can be placed here when designed
+                    // Connect / Message button
                 }
             )
 

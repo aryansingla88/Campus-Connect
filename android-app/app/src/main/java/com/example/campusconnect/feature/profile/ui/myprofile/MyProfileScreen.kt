@@ -111,6 +111,7 @@ fun MyProfileScreen(
                 when {
                     managePanel == StatPanel.CONNECTIONS -> ManageConnectionsPanel()
                     managePanel == StatPanel.HONOR       -> ManageCollectionPanel()
+                    managePanel == StatPanel.INTERESTS   -> ManageInterestsPanel()
                     panel == StatPanel.CONNECTIONS -> ConnectionsPanel(
                         connections = connections,
                         isOwner = true,
@@ -133,7 +134,7 @@ fun MyProfileScreen(
                         onRemove = { interests.remove(it) },
                         onAddClick = { vm.openManagePanel(StatPanel.INTERESTS) }
                     )
-                    managePanel == StatPanel.INTERESTS   -> ManageInterestsPanel()
+
                     else                           -> MyProfileContent()
                 }
             }

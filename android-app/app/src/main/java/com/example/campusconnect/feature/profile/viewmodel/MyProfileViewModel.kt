@@ -15,7 +15,6 @@ class MyProfileViewModel : ViewModel() {
     }
 
     // ── Manage panel (swaps in below StatsRow via bottom-bar CTA) ─────────────
-    // Null means no manage view is active; a non-null value mirrors activePanel.
     var activeManagePanel by mutableStateOf<StatPanel?>(null)
         private set
 
