@@ -11,6 +11,7 @@ import com.example.campusconnect.feature.auth.authNav
 import com.example.campusconnect.feature.events.eventNav
 import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.profile.ProfileNav
+import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
 
 @Composable
 fun AppNavHost() {
@@ -32,11 +33,14 @@ fun AppNavHost() {
                 }
             )
         }
+        composable("general_feed") {
+            GeneralFeedScreen()
+        }
 
         composable("test") {
             TestScreen(
                 onAuth = { navController.navigate("auth") },
-                onPosts = { navController.navigate("posts") },
+                onPosts = { navController.navigate("general_feed") },
                 onEvents = { navController.navigate("events_root") },
                 onMap = { navController.navigate("map") },
                 onProfile = { navController.navigate("profile")},
