@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.ui.shared
+package com.example.campusconnect.feature.profile.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

@@ -10,27 +10,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.campusconnect.feature.profile.data.FakePublicProfileService
-import com.example.campusconnect.model.StatPanel
-import com.example.campusconnect.feature.profile.ui.shared.*
-import com.example.campusconnect.feature.profile.ui.shared.panels.clubs.ClubsPanel
-import com.example.campusconnect.feature.profile.ui.shared.panels.connections.ConnectionsPanel
-import com.example.campusconnect.feature.profile.ui.shared.panels.honor.HonorPanel
-import com.example.campusconnect.feature.profile.ui.shared.panels.interests.InterestsPanel
+import com.example.campusconnect.feature.profile.model.ProfileMode
+import com.example.campusconnect.feature.profile.model.StatPanel
+import com.example.campusconnect.feature.profile.ui.components.*
+import com.example.campusconnect.feature.profile.ui.panels.clubs.ClubsPanel
+import com.example.campusconnect.feature.profile.ui.panels.connections.ConnectionsPanel
+import com.example.campusconnect.feature.profile.ui.panels.honor.HonorPanel
+import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.ViewProfileViewModel
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewProfileScreen(
     userId: String = "demo",
     onBack: () -> Unit = {},
-    vm: ViewProfileViewModel = viewModel()
+    vm: ViewProfileViewModel = viewModel(factory = ViewProfileViewModel.factory(userId))
 ) {
-    val profile     = remember(userId) { FakePublicProfileService.getProfile(userId) }
-    val connections = remember { FakePublicProfileService.connections.toMutableStateList() }
-    val clubs       = remember { FakePublicProfileService.clubs.toMutableStateList() }
-
     Scaffold(
         containerColor = PageBg,
         topBar = {
@@ -45,7 +40,6 @@ fun ViewProfileScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         }
-        // No bottom bar on ViewProfile
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -53,22 +47,22 @@ fun ViewProfileScreen(
                 .padding(innerPadding)
         ) {
             ProfileHeader(
-                initials    = profile.initials,
-                displayName = profile.displayName,
-                username    = profile.username,
-                bio         = profile.bio,
-                badgeColors = FakePublicProfileService.badges.map { it.color },
-                medalColors = FakePublicProfileService.medals.map { it.color },
+                initials     = vm.profile.initials,
+                displayName  = vm.profile.fullName,
+                username     = vm.profile.username,
+                bio          = vm.profile.bio,
+                badgeColors  = vm.badges.map { it.color },
+                medalColors  = vm.medals.map { it.color },
                 headerAction = {
                     // Connect / Message button
                 }
             )
 
             StatsRow(
-                connectionCount = profile.connectionCount,
-                honorCount      = FakePublicProfileService.badges.size + FakePublicProfileService.medals.size,
-                clubCount       = profile.clubCount,
-                interestCount   = profile.interestCount,
+                connectionCount = vm.profile.connectionCount,
+                honorCount      = vm.badges.size + vm.medals.size,
+                clubCount       = vm.profile.clubCount,
+                interestCount   = vm.profile.interestCount,
                 activePanel     = vm.activePanel,
                 onStatClick     = { vm.togglePanel(it) }
             )
@@ -80,29 +74,37 @@ fun ViewProfileScreen(
                             fadeOut() + slideOutVertically { -it / 10 }
                 },
                 label = "view_profile_panel"
-            ) { panel: StatPanel ->
+            ) { panel: StatPanel? ->
                 when (panel) {
                     StatPanel.CONNECTIONS -> ConnectionsPanel(
-                        connections = connections,
-                        isOwner = false,
-                        onStatusChange = { idx, status -> connections[idx] = connections[idx].copy(status = status) }
+                        connections    = vm.connections,
+                        mode           = ProfileMode.VIEW,
+                        onStatusChange = { idx, status ->
+                            vm.connections[idx] = vm.connections[idx].copy(status = status)
+                        }
                     )
-                    StatPanel.HONOR      -> HonorPanel(
-                        honorRank = profile.honorRank,
-                        badges    = FakePublicProfileService.badges,
-                        medals    = FakePublicProfileService.medals,
-                        isOwner   = false
+                    StatPanel.HONOR -> HonorPanel(
+                        honorRank    = vm.profile.honorRank,
+                        badges       = vm.badges,
+                        medals       = vm.medals,
+                        honorEntries = vm.honorEntries,
+                        mode         = ProfileMode.VIEW
                     )
-                    StatPanel.CLUBS      -> ClubsPanel(
-                        clubs   = clubs,
-                        isOwner = false,
-                        onStatusChange = { idx, status -> clubs[idx] = clubs[idx].copy(status = status) }
+                    StatPanel.CLUBS -> ClubsPanel(
+                        clubs          = vm.clubs,
+                        mode           = ProfileMode.VIEW,
+                        onStatusChange = { idx, status ->
+                            vm.clubs[idx] = vm.clubs[idx].copy(status = status)
+                        }
                     )
-                    StatPanel.INTERESTS  -> InterestsPanel(
-                        interests = FakePublicProfileService.interests,
-                        isOwner   = false
+                    StatPanel.INTERESTS -> InterestsPanel(
+                        interests = vm.interests,
+                        mode      = ProfileMode.VIEW
                     )
-                    StatPanel.NONE       -> ViewProfileContent(profile = profile)
+                    null -> ProfileContent(
+                        profile = vm.profile,
+                        mode    = ProfileMode.VIEW
+                    )
                 }
             }
         }

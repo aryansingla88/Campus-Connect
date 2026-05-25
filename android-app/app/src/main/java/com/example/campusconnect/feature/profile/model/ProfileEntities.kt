@@ -1,14 +1,13 @@
-package com.example.campusconnect.model
+package com.example.campusconnect.feature.profile.model
 
 import androidx.compose.ui.graphics.Color
 
-// ── Panel enum ────────────────────────────────────────────────────────────────
-enum class StatPanel { NONE, CONNECTIONS, HONOR, CLUBS, INTERESTS }
 
 // ── Connection ────────────────────────────────────────────────────────────────
 enum class ConnectionStatus { ADD, PENDING, CONNECTED }
 
 data class Connection(
+    val userId: String,
     val initials: String,
     val name: String,
     val sub: String,

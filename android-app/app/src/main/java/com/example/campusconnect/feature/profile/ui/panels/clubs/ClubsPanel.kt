@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.ui.shared.panels.clubs
+package com.example.campusconnect.feature.profile.ui.panels.clubs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,20 +16,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.model.Club
-import com.example.campusconnect.model.ClubStatus
-import com.example.campusconnect.feature.profile.ui.shared.*
+import com.example.campusconnect.core.components.PanelSearchBar
+import com.example.campusconnect.feature.profile.model.Club
+import com.example.campusconnect.feature.profile.model.ClubStatus
+import com.example.campusconnect.feature.profile.model.ProfileMode
+import com.example.campusconnect.feature.profile.ui.components.*
 
-/**
- * Clubs panel used by both MyProfile (isOwner = true) and ViewProfile (isOwner = false).
- *
- * When isOwner = true  → search bar with embedded plus, Joined / Leave flow.
- * When isOwner = false → search bar without plus, Join / Pending flow.
- */
 @Composable
 fun ClubsPanel(
     clubs: List<Club>,
-    isOwner: Boolean,
+    mode: ProfileMode,
     onStatusChange: (index: Int, newStatus: ClubStatus) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
@@ -42,17 +38,17 @@ fun ClubsPanel(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         PanelSearchBar(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = if (isOwner) "Search clubs to join…" else "Search clubs…",
-            showEmbeddedPlus = isOwner
+            value            = query,
+            onValueChange    = { query = it },
+            placeholder      = if (mode == ProfileMode.OWN) "Search clubs to join…" else "Search clubs…",
+            showEmbeddedPlus = mode == ProfileMode.OWN
         )
 
         clubs
             .filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
             .forEachIndexed { index, c ->
                 ProfileListCard(
-                    title = c.name,
+                    title    = c.name,
                     subtitle = c.members,
                     leadingContent = {
                         Box(
@@ -65,19 +61,19 @@ fun ClubsPanel(
                             Icon(
                                 Icons.Outlined.Groups,
                                 contentDescription = null,
-                                tint = c.iconTint,
+                                tint     = c.iconTint,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                     },
                     trailingContent = {
                         ClubButton(
-                            status = c.status,
+                            status  = c.status,
                             onClick = {
                                 when (c.status) {
                                     ClubStatus.JOIN    -> onStatusChange(index, ClubStatus.PENDING)
-                                    ClubStatus.PENDING -> Unit // no action
-                                    ClubStatus.JOINED  -> Unit // leave popup later
+                                    ClubStatus.PENDING -> Unit
+                                    ClubStatus.JOINED  -> Unit
                                 }
                             }
                         )
@@ -106,13 +102,13 @@ private fun ClubButton(status: ClubStatus, onClick: () -> Unit) {
     }
 
     Button(
-        onClick = onClick,
-        modifier = Modifier.height(28.dp),
-        shape = RoundedCornerShape(8.dp),
+        onClick        = onClick,
+        modifier       = Modifier.height(28.dp),
+        shape          = RoundedCornerShape(8.dp),
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-        colors = ButtonDefaults.buttonColors(
+        colors         = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = contentColor
+            contentColor   = contentColor
         )
     ) {
         Text(label, fontSize = 10.sp, fontWeight = FontWeight.Medium)

@@ -1,13 +1,14 @@
-package com.example.campusconnect.feature.profile.ui.shared
+package com.example.campusconnect.feature.profile.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,7 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.model.StatPanel
+import com.example.campusconnect.feature.profile.model.StatPanel
 
 @Composable
 fun StatsRow(
@@ -23,7 +24,7 @@ fun StatsRow(
     honorCount: Int,
     clubCount: Int,
     interestCount: Int,
-    activePanel: StatPanel,
+    activePanel: StatPanel?,
     onStatClick: (StatPanel) -> Unit
 ) {
     data class StatItem(
@@ -46,8 +47,8 @@ fun StatsRow(
             .wrapContentHeight()
             .padding(horizontal = 16.dp)
             .offset(y = (-3).dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        shape     = RoundedCornerShape(20.dp),
+        colors    = CardDefaults.cardColors(containerColor = CardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -65,33 +66,35 @@ fun StatsRow(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onStatClick(stat.panel) }
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication        = null
+                            ) { onStatClick(stat.panel) }
                             .background(if (isActive) OrangeLight else CardBg)
                             .padding(vertical = 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = stat.icon,
+                            imageVector        = stat.icon,
                             contentDescription = stat.label,
-                            tint = if (isActive) Orange else TextMuted,
-                            modifier = Modifier.size(20.dp)
+                            tint               = if (isActive) Orange else TextMuted,
+                            modifier           = Modifier.size(20.dp)
                         )
                         Text(
                             stat.value,
-                            fontSize = 18.sp,
+                            fontSize   = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isActive) Orange else TextPrimary
+                            color      = if (isActive) Orange else TextPrimary
                         )
                         Text(
                             stat.label,
-                            fontSize = 9.sp,
-                            color = if (isActive) Orange else TextMuted,
+                            fontSize      = 9.sp,
+                            color         = if (isActive) Orange else TextMuted,
                             letterSpacing = 0.4.sp
                         )
                     }
 
-                    // Bottom indicator bar
                     if (isActive) {
                         Box(
                             modifier = Modifier
@@ -103,7 +106,6 @@ fun StatsRow(
                         )
                     }
 
-                    // Right divider
                     if (index < stats.lastIndex) {
                         Box(
                             modifier = Modifier

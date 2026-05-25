@@ -1,6 +1,5 @@
 package com.example.campusconnect.feature.profile.ui.myprofile
 
-import kotlin.Pair
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,15 +14,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.campusconnect.feature.profile.data.FakeProfileService
-import com.example.campusconnect.model.*
-import com.example.campusconnect.feature.profile.ui.shared.*
-import com.example.campusconnect.feature.profile.ui.shared.panels.connections.*
-import com.example.campusconnect.feature.profile.ui.shared.panels.clubs.*
-import com.example.campusconnect.feature.profile.ui.shared.panels.honor.*
-import com.example.campusconnect.feature.profile.ui.shared.panels.interests.*
+import com.example.campusconnect.feature.profile.model.ClubStatus
+import com.example.campusconnect.feature.profile.model.ProfileMode
+import com.example.campusconnect.feature.profile.model.StatPanel
+import com.example.campusconnect.feature.profile.ui.components.*
+import com.example.campusconnect.feature.profile.ui.panels.clubs.ClubsPanel
+import com.example.campusconnect.feature.profile.ui.panels.connections.ConnectionsPanel
+import com.example.campusconnect.feature.profile.ui.panels.connections.ManageConnectionsPanel
+import com.example.campusconnect.feature.profile.ui.panels.honor.HonorPanel
+import com.example.campusconnect.feature.profile.ui.panels.honor.ManageCollectionPanel
+import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
+import com.example.campusconnect.feature.profile.ui.panels.interests.ManageInterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.MyProfileViewModel
-import com.example.campusconnect.model.StatPanel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,13 +33,9 @@ fun MyProfileScreen(
     onBack: () -> Unit = {},
     onSettings: () -> Unit = {},
     onEditProfile: () -> Unit = {},
+    onNavigateToProfile: (String) -> Unit = {},
     vm: MyProfileViewModel = viewModel()
 ) {
-    // ── Mutable local state wired to FakeProfileService ───────────────────────
-    val connections = remember { FakeProfileService.connections.toMutableStateList() }
-    val clubs       = remember { FakeProfileService.clubs.toMutableStateList() }
-    val interests   = remember { FakeProfileService.interests.toMutableStateList() }
-
     Scaffold(
         containerColor = PageBg,
         topBar = {
@@ -58,10 +56,10 @@ fun MyProfileScreen(
             )
         },
         bottomBar = {
-            MyProfileBottomBar(
-                activePanel = vm.activePanel,
-                onEditProfile = onEditProfile,
-                onRequestsClick = { vm.openManagePanel(StatPanel.CONNECTIONS) },
+            ProfileBottomBar(
+                activePanel             = vm.activePanel,
+                onEditProfile           = onEditProfile,
+                onRequestsClick         = { vm.openManagePanel(StatPanel.CONNECTIONS) },
                 onManageCollectionClick = { vm.openManagePanel(StatPanel.HONOR) }
             )
         }
@@ -72,112 +70,69 @@ fun MyProfileScreen(
                 .padding(innerPadding)
         ) {
             ProfileHeader(
-                initials    = "AS",
-                displayName = "Aryan Sharma",
-                username    = "@aryan.sharma",
-                bio         = "Tech enthusiast, problem solver and always up for new ideas.",
-                badgeColors = listOf(BadgeBlue, BadgePurple, BadgeGreen),
-                medalColors = listOf(MedalGold, MedalSilver, MedalOrange),
+                initials    = vm.profile.initials,
+                displayName = vm.profile.fullName,
+                username    = vm.profile.username,
+                bio         = vm.profile.bio,
+                badgeColors = vm.badges.map { it.color },
+                medalColors = vm.medals.map { it.color },
             )
 
             StatsRow(
-                connectionCount = connections.size,
-                honorCount      = FakeProfileService.badges.size + FakeProfileService.medals.size,
-                clubCount       = clubs.count { it.status == ClubStatus.JOINED },
-                interestCount   = interests.size,
+                connectionCount = vm.connections.size,
+                honorCount      = vm.badges.size + vm.medals.size,
+                clubCount       = vm.clubs.count { it.status == ClubStatus.JOINED },
+                interestCount   = vm.interests.size,
                 activePanel     = vm.activePanel,
                 onStatClick     = { vm.togglePanel(it) }
             )
 
-            // If a manage panel is open, show it; otherwise show the stat panel or default content
-            AnimatedContent<
-                    Pair<StatPanel, StatPanel?>
-                    >(
-                targetState = Pair(
-                    vm.activePanel,
-                    vm.activeManagePanel
-                ),
+            AnimatedContent(
+                targetState = Pair(vm.activePanel, vm.activeManagePanel),
                 transitionSpec = {
                     (fadeIn() + slideInVertically { it / 10 })
-                        .togetherWith(
-                            fadeOut() + slideOutVertically { -it / 10 }
-                        )
+                        .togetherWith(fadeOut() + slideOutVertically { -it / 10 })
                 },
                 label = "my_profile_panel"
-            ) { state: Pair<StatPanel, StatPanel?> ->
-
-                val panel = state.first
-                val managePanel = state.second
+            ) { (panel, managePanel) ->
                 when {
                     managePanel == StatPanel.CONNECTIONS -> ManageConnectionsPanel()
                     managePanel == StatPanel.HONOR       -> ManageCollectionPanel()
                     managePanel == StatPanel.INTERESTS   -> ManageInterestsPanel()
+
                     panel == StatPanel.CONNECTIONS -> ConnectionsPanel(
-                        connections = connections,
-                        isOwner = true,
-                        onStatusChange = { idx, status -> connections[idx] = connections[idx].copy(status = status) }
+                        connections    = vm.connections,
+                        mode           = ProfileMode.OWN,
+                        onStatusChange = { idx, status -> vm.connections[idx] = vm.connections[idx].copy(status = status) },
+                        onConnectionClick = { userId -> onNavigateToProfile(userId) }
                     )
-                    panel == StatPanel.HONOR       -> HonorPanel(
-                        honorRank = 2,
-                        badges    = FakeProfileService.badges,
-                        medals    = FakeProfileService.medals,
-                        isOwner   = true
+                    panel == StatPanel.HONOR -> HonorPanel(
+                        honorRank    = vm.profile.honorRank,
+                        badges       = vm.badges,
+                        medals       = vm.medals,
+                        honorEntries = vm.honorEntries,
+                        mode         = ProfileMode.OWN
                     )
-                    panel == StatPanel.CLUBS       -> ClubsPanel(
-                        clubs = clubs,
-                        isOwner = true,
-                        onStatusChange = { idx, status -> clubs[idx] = clubs[idx].copy(status = status) }
+                    panel == StatPanel.CLUBS -> ClubsPanel(
+                        clubs          = vm.clubs,
+                        mode           = ProfileMode.OWN,
+                        onStatusChange = { idx, status ->
+                            vm.clubs[idx] = vm.clubs[idx].copy(status = status)
+                        }
                     )
-                    panel == StatPanel.INTERESTS   -> InterestsPanel(
-                        interests = interests,
-                        isOwner = true,
-                        onRemove = { interests.remove(it) },
+                    panel == StatPanel.INTERESTS -> InterestsPanel(
+                        interests  = vm.interests,
+                        mode       = ProfileMode.OWN,
+                        onRemove   = { vm.interests.remove(it) },
                         onAddClick = { vm.openManagePanel(StatPanel.INTERESTS) }
                     )
-
-                    else                           -> MyProfileContent()
+                    else -> ProfileContent(
+                        profile = vm.profile,
+                        mode    = ProfileMode.OWN
+                    )
                 }
             }
         }
     }
 }
 
-// ── Bottom bar ────────────────────────────────────────────────────────────────
-@Composable
-private fun MyProfileBottomBar(
-    activePanel: StatPanel,
-    onEditProfile: () -> Unit,
-    onRequestsClick: () -> Unit,
-    onManageCollectionClick: () -> Unit
-) {
-    val config: Triple<String, ImageVector, () -> Unit>? = when (activePanel) {
-        StatPanel.NONE        -> Triple("Edit Profile",       Icons.Outlined.Edit,             onEditProfile)
-        StatPanel.CONNECTIONS -> Triple("Requests",           Icons.Outlined.PersonAdd,        onRequestsClick)
-        StatPanel.HONOR       -> Triple("Manage Collection",  Icons.Outlined.WorkspacePremium, onManageCollectionClick)
-        StatPanel.CLUBS,
-        StatPanel.INTERESTS   -> null
-    }
-
-    AnimatedVisibility(
-        visible = config != null,
-        enter   = slideInVertically { it } + fadeIn(),
-        exit    = slideOutVertically { it } + fadeOut()
-    ) {
-        config?.let { (text, icon, click) ->
-            Surface(color = PageBg, shadowElevation = 8.dp, tonalElevation = 0.dp) {
-                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    Button(
-                        onClick = click,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Orange)
-                    ) {
-                        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-        }
-    }
-}

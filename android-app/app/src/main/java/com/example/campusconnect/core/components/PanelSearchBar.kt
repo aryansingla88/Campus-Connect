@@ -1,9 +1,10 @@
-package com.example.campusconnect.feature.profile.ui.shared
+package com.example.campusconnect.core.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -19,6 +20,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.campusconnect.feature.profile.ui.components.CardBg
+import com.example.campusconnect.feature.profile.ui.components.Orange
+import com.example.campusconnect.feature.profile.ui.components.TextMuted
+import com.example.campusconnect.feature.profile.ui.components.TextPrimary
 
 @Composable
 fun PanelSearchBar(
@@ -50,7 +55,7 @@ fun PanelSearchBar(
             )
 
             Box(modifier = Modifier.weight(1f)) {
-                androidx.compose.foundation.text.BasicTextField(
+                BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
                     modifier = Modifier

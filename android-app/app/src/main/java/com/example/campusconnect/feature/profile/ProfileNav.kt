@@ -32,7 +32,8 @@ fun NavGraphBuilder.ProfileNav(
             MyProfileScreen(
                 onBack        = { navController.popBackStack() },
                 onSettings    = { navController.navigate("settings") },
-                onEditProfile = { navController.navigate("edit_profile") }
+                onEditProfile = { navController.navigate("edit_profile") },
+                onNavigateToProfile = { userId -> navController.navigate(ProfileRoutes.viewProfile(userId)) }
             )
         }
 

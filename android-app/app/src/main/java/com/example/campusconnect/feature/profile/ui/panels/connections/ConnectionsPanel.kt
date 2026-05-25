@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.ui.shared.panels.connections
+package com.example.campusconnect.feature.profile.ui.panels.connections
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,21 +15,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.model.Connection
-import com.example.campusconnect.model.ConnectionStatus
-import com.example.campusconnect.feature.profile.ui.shared.*
+import com.example.campusconnect.core.components.PanelSearchBar
+import com.example.campusconnect.feature.profile.model.Connection
+import com.example.campusconnect.feature.profile.model.ConnectionStatus
+import com.example.campusconnect.feature.profile.model.ProfileMode
+import com.example.campusconnect.feature.profile.ui.components.*
 
-/**
- * Connections panel used by both MyProfile (isOwner = true) and ViewProfile (isOwner = false).
- *
- * When isOwner = true  → search bar with embedded plus, Remove button for CONNECTED.
- * When isOwner = false → search bar without plus, Add/Pending button for each person.
- */
 @Composable
 fun ConnectionsPanel(
     connections: List<Connection>,
-    isOwner: Boolean,
-    onStatusChange: (index: Int, newStatus: ConnectionStatus) -> Unit
+    mode: ProfileMode,
+    onStatusChange: (index: Int, newStatus: ConnectionStatus) -> Unit,
+    onConnectionClick: (userId: String) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
 
@@ -41,18 +38,19 @@ fun ConnectionsPanel(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         PanelSearchBar(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = if (isOwner) "Search people to connect…" else "Search connections…",
-            showEmbeddedPlus = isOwner
+            value            = query,
+            onValueChange    = { query = it },
+            placeholder      = if (mode == ProfileMode.OWN) "Search people to connect…" else "Search connections…",
+            showEmbeddedPlus = mode == ProfileMode.OWN
         )
 
         connections
             .filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
             .forEachIndexed { index, c ->
                 ProfileListCard(
-                    title = c.name,
+                    title    = c.name,
                     subtitle = c.sub,
+                    onClick  = { onConnectionClick(c.userId) },
                     leadingContent = {
                         Box(
                             modifier = Modifier
@@ -63,21 +61,21 @@ fun ConnectionsPanel(
                         ) {
                             Text(
                                 c.initials,
-                                fontSize = 12.sp,
+                                fontSize   = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = c.avatarText
+                                color      = c.avatarText
                             )
                         }
                     },
                     trailingContent = {
                         ConnectionButton(
-                            status = c.status,
-                            isOwner = isOwner,
+                            status  = c.status,
+                            mode    = mode,
                             onClick = {
                                 when (c.status) {
                                     ConnectionStatus.ADD       -> onStatusChange(index, ConnectionStatus.PENDING)
-                                    ConnectionStatus.PENDING   -> Unit // no action
-                                    ConnectionStatus.CONNECTED -> Unit // remove popup later
+                                    ConnectionStatus.PENDING   -> Unit
+                                    ConnectionStatus.CONNECTED -> Unit
                                 }
                             }
                         )
@@ -90,7 +88,7 @@ fun ConnectionsPanel(
 @Composable
 private fun ConnectionButton(
     status: ConnectionStatus,
-    isOwner: Boolean,
+    mode: ProfileMode,
     onClick: () -> Unit
 ) {
     val containerColor = when (status) {
@@ -104,20 +102,20 @@ private fun ConnectionButton(
         ConnectionStatus.CONNECTED -> TextMuted
     }
     val label = when {
-        status == ConnectionStatus.ADD       -> "Add"
-        status == ConnectionStatus.PENDING   -> "Pending"
-        isOwner                              -> "Remove"
-        else                                 -> "Connected"
+        status == ConnectionStatus.ADD     -> "Add"
+        status == ConnectionStatus.PENDING -> "Pending"
+        mode   == ProfileMode.OWN         -> "Remove"
+        else                               -> "Connected"
     }
 
     Button(
-        onClick = onClick,
-        modifier = Modifier.height(28.dp),
-        shape = RoundedCornerShape(8.dp),
+        onClick        = onClick,
+        modifier       = Modifier.height(28.dp),
+        shape          = RoundedCornerShape(8.dp),
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-        colors = ButtonDefaults.buttonColors(
+        colors         = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = contentColor
+            contentColor   = contentColor
         ),
         border = if (status == ConnectionStatus.CONNECTED) ButtonDefaults.outlinedButtonBorder else null
     ) {

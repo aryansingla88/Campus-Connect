@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.ui.shared.panels.honor
+package com.example.campusconnect.feature.profile.ui.panels.honor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,24 +18,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.model.Honor
-import com.example.campusconnect.feature.profile.ui.shared.*
+import com.example.campusconnect.feature.profile.model.Honor
+import com.example.campusconnect.feature.profile.model.HonorEntry
+import com.example.campusconnect.feature.profile.model.ProfileMode
+import com.example.campusconnect.feature.profile.ui.components.*
 
-/**
- * Honor panel for both MyProfile (isOwner = true) and ViewProfile (isOwner = false).
- *
- * @param honorRank    The displayed rank number (e.g. 2 → "#2").
- * @param badges       List of badge [Honor] items.
- * @param medals       List of medal [Honor] items.
- * @param isOwner      When true a "Manage Collection" CTA is shown in the bottom bar
- *                     (handled by the parent screen); the panel itself is identical.
- */
 @Composable
 fun HonorPanel(
     honorRank: Int,
     badges: List<Honor>,
     medals: List<Honor>,
-    isOwner: Boolean = false,
+    honorEntries: List<HonorEntry>,
+    mode: ProfileMode,
     onHonorBoardClick: () -> Unit = {}
 ) {
     var showAllBadges by remember { mutableStateOf(false) }
@@ -48,7 +42,6 @@ fun HonorPanel(
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // ── Rank + Honor Board button ──────────────────────────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -67,15 +60,14 @@ fun HonorPanel(
 
         HorizontalDivider(color = DividerColor, thickness = 1.dp)
 
-        // ── Badges ─────────────────────────────────────────────────────────────
         HonorSection(
-            title = "BADGES",
-            items = badges,
-            showAll = showAllBadges,
+            title    = "BADGES",
+            items    = badges,
+            showAll  = showAllBadges,
             onToggle = { showAllBadges = !showAllBadges }
         ) { badge ->
             ProfileListCard(
-                title = badge.title,
+                title    = badge.title,
                 subtitle = badge.subtitle,
                 leadingContent = {
                     Box(
@@ -96,15 +88,14 @@ fun HonorPanel(
             )
         }
 
-        // ── Medals ─────────────────────────────────────────────────────────────
         HonorSection(
-            title = "MEDALS",
-            items = medals,
-            showAll = showAllMedals,
+            title    = "MEDALS",
+            items    = medals,
+            showAll  = showAllMedals,
             onToggle = { showAllMedals = !showAllMedals }
         ) { medal ->
             ProfileListCard(
-                title = medal.title,
+                title    = medal.title,
                 subtitle = medal.subtitle,
                 leadingContent = {
                     Box(
@@ -117,7 +108,7 @@ fun HonorPanel(
                         Icon(
                             Icons.Outlined.WorkspacePremium,
                             contentDescription = null,
-                            tint = medal.color,
+                            tint     = medal.color,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -149,7 +140,6 @@ private fun HonorSection(
             )
         }
     }
-
     items.take(if (showAll) items.size else 3).forEach { item ->
         itemContent(item)
     }

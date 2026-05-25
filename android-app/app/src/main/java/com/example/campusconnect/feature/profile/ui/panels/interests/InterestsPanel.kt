@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.ui.shared.panels.interests
+package com.example.campusconnect.feature.profile.ui.panels.interests
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,23 +18,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.profile.ui.shared.*
+import com.example.campusconnect.feature.profile.model.ProfileMode
+import com.example.campusconnect.feature.profile.ui.components.*
 
-/**
- * Interests panel for both MyProfile (isOwner = true → editable) and
- * ViewProfile (isOwner = false → read-only).
- *
- * @param interests      Current list of interest tags.
- * @param isOwner        When true the remove button and the add-interest
- *                       button are shown.
- * @param onRemove       Called with the tag string when remove is tapped.
- * @param onAddClick     Called when the add-interest "+" button is tapped
- *                       (triggers ManageInterestsPanel in the parent).
- */
 @Composable
 fun InterestsPanel(
     interests: List<String>,
-    isOwner: Boolean = false,
+    mode: ProfileMode,
     onRemove: (String) -> Unit = {},
     onAddClick: () -> Unit = {}
 ) {
@@ -51,15 +41,9 @@ fun InterestsPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "Interests",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
+            Text("Interests", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
 
-            // Add button – only for owner; triggers ManageInterestsPanel
-            if (isOwner) {
+            if (mode == ProfileMode.OWN) {
                 Box(
                     modifier = Modifier
                         .size(34.dp)
@@ -71,7 +55,7 @@ fun InterestsPanel(
                     Icon(
                         Icons.Default.Add,
                         contentDescription = "Add Interest",
-                        tint = Color.White,
+                        tint     = Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -81,15 +65,15 @@ fun InterestsPanel(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             interests.forEach { tag ->
                 ProfileListCard(
-                    title = tag,
+                    title    = tag,
                     subtitle = interestCategory(tag),
-                    trailingContent = if (isOwner) {
+                    trailingContent = if (mode == ProfileMode.OWN) {
                         {
                             IconButton(onClick = { onRemove(tag) }) {
                                 Icon(
                                     Icons.Default.Close,
                                     contentDescription = "Remove",
-                                    tint = TextMuted,
+                                    tint     = TextMuted,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -102,10 +86,10 @@ fun InterestsPanel(
 }
 
 private fun interestCategory(tag: String) = when (tag) {
-    "AI/ML"            -> "Technology"
-    "Web Development"  -> "Development"
-    "UI/UX Design"     -> "Design"
-    "Photography"      -> "Creative"
-    "Gaming"           -> "Entertainment"
-    else               -> "Interest"
+    "AI/ML"           -> "Technology"
+    "Web Development" -> "Development"
+    "UI/UX Design"    -> "Design"
+    "Photography"     -> "Creative"
+    "Gaming"          -> "Entertainment"
+    else              -> "Interest"
 }

@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.ui.shared.panels.honor
+package com.example.campusconnect.feature.profile.ui.panels.honor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
@@ -7,7 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.profile.ui.shared.TextMuted
+import com.example.campusconnect.feature.profile.ui.components.TextMuted
 
 // Swaps in below StatsRow when the "Manage Collection" bottom-bar CTA is tapped.
 // Placeholder – build out badge/medal management UI here.
