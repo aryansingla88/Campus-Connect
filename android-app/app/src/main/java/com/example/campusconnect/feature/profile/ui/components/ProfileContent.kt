@@ -79,15 +79,46 @@ fun ProfileContent(
         DatePickerDialog(
             onDismissRequest = { showDobPicker = false },
             confirmButton = {
-                TextButton(onClick = {
-                    showDobPicker = false
-                    datePickerState.selectedDateMillis?.let { onValueChange(profile.copy(dob = millisToDob(it))) }
-                }) { Text("OK") }
+                TextButton(
+                    onClick = {
+                        showDobPicker = false
+                        datePickerState.selectedDateMillis?.let {
+                            onValueChange(
+                                profile.copy(
+                                    dob = millisToDob(it)
+                                )
+                            )
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Done",
+                        color = Orange,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             },
-            dismissButton = { TextButton(onClick = { showDobPicker = false }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDobPicker = false
+                    }
+                ) {
+                    Text(
+                        text = "Cancel",
+                        color = TextMuted
+                    )
+                }
+            }
         ) {
             DatePicker(
                 state          = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    selectedDayContainerColor = Orange,
+                    selectedDayContentColor = Color.White,
+                    todayDateBorderColor = Orange,
+                    todayContentColor = Orange
+                ),
                 showModeToggle = false,
                 headline       = null,
                 title          = { Text("Date of birth", modifier = Modifier.padding(start = 24.dp, top = 16.dp)) }
@@ -533,7 +564,9 @@ private fun IntInput(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DropdownInput(value: String, options: List<String>, hint: String, onValueChange: (String) -> Unit) {
+
     var expanded by remember { mutableStateOf(false) }
+
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
         EditUnderline(modifier = Modifier.menuAnchor()) {
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
@@ -546,10 +579,27 @@ private fun DropdownInput(value: String, options: List<String>, hint: String, on
                 Icon(Icons.Default.KeyboardArrowDown, null, tint = OrangeDark, modifier = Modifier.size(16.dp))
             }
         }
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .background(
+                    color = Color.White,
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
             options.forEach { opt ->
                 DropdownMenuItem(
-                    text           = { Text(opt, fontSize = 13.5.sp) },
+                    text = {
+                        Text(text = opt, fontSize = 14.sp,
+                            fontWeight =
+                                if (opt == value)
+                                    FontWeight.SemiBold
+                                else FontWeight.Medium,
+                            color =
+                                if (opt == value)
+                                    Orange
+                                else TextPrimary
+                        )
+                    },
                     onClick        = { onValueChange(opt); expanded = false },
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
                 )

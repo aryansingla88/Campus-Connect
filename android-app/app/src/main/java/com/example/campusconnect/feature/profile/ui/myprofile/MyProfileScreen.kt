@@ -22,6 +22,7 @@ import com.example.campusconnect.feature.profile.ui.panels.honor.ManageCollectio
 import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.ui.panels.interests.ManageInterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.MyProfileViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +34,8 @@ fun MyProfileScreen(
     vm: MyProfileViewModel = viewModel()
 ) {
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope             = rememberCoroutineScope()
     val currentProfile =
         if (vm.isEditMode)
             vm.editableProfile
@@ -41,6 +44,7 @@ fun MyProfileScreen(
 
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PageBg,
         topBar = {
             TopAppBar(
@@ -132,12 +136,21 @@ fun MyProfileScreen(
                 .padding(innerPadding)
         ) {
             ProfileHeader(
-                initials    = currentProfile.initials,
-                displayName = currentProfile.fullName,
-                username    = currentProfile.username,
-                bio         = currentProfile.bio,
-                badgeColors = vm.badges.map { it.color },
-                medalColors = vm.medals.map { it.color }
+                initials      = currentProfile.initials,
+                displayName   = currentProfile.fullName,
+                username      = currentProfile.username,
+                bio           = currentProfile.bio,
+                badgeColors   = vm.badges.map  { it.color },
+                medalColors   = vm.medals.map  { it.color },
+                isEditMode    = vm.isEditMode,
+                onEditAvatar  = {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Image picker after backend and firebase")
+                    }
+                },
+                onBioChange   = { newBio ->
+                    vm.updateEditableProfile(currentProfile.copy(bio = newBio))
+                }
             )
 
             StatsRow(
