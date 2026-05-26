@@ -103,7 +103,8 @@ fun ViewProfileScreen(
                     )
                     null -> ProfileContent(
                         profile = vm.profile,
-                        mode    = ProfileMode.VIEW
+                        mode    = ProfileMode.VIEW,
+                        isEditMode = false
                     )
                 }
             }

@@ -2,17 +2,13 @@ package com.example.campusconnect.feature.profile.ui.myprofile
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.feature.profile.model.ClubStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
@@ -36,6 +32,14 @@ fun MyProfileScreen(
     onNavigateToProfile: (String) -> Unit = {},
     vm: MyProfileViewModel = viewModel()
 ) {
+
+    val currentProfile =
+        if (vm.isEditMode)
+            vm.editableProfile
+        else
+            vm.profile
+
+
     Scaffold(
         containerColor = PageBg,
         topBar = {
@@ -56,12 +60,70 @@ fun MyProfileScreen(
             )
         },
         bottomBar = {
-            ProfileBottomBar(
-                activePanel             = vm.activePanel,
-                onEditProfile           = onEditProfile,
-                onRequestsClick         = { vm.openManagePanel(StatPanel.CONNECTIONS) },
-                onManageCollectionClick = { vm.openManagePanel(StatPanel.HONOR) }
-            )
+
+            when {
+
+                vm.isEditMode -> {
+                    ProfileBottomBar(
+                        buttons = listOf(
+                            BottomBarButton(
+                                text = "Cancel",
+                                icon = Icons.Outlined.Close,
+                                onClick = vm::cancelEditing
+                            ),
+                            BottomBarButton(
+                                text = "Save Changes",
+                                icon = Icons.Outlined.Check,
+                                onClick = vm::saveProfileChanges
+                            )
+                        )
+                    )
+                }
+
+                vm.activePanel == null -> {
+                    ProfileBottomBar(
+                        buttons = listOf(
+                            BottomBarButton(
+                                text = "Edit Profile",
+                                icon = Icons.Outlined.Edit,
+                                onClick = vm::startEditing
+                            )
+                        )
+                    )
+                }
+
+                vm.activePanel == StatPanel.CONNECTIONS -> {
+                    ProfileBottomBar(
+                        buttons = listOf(
+                            BottomBarButton(
+                                text = "Requests",
+                                icon = Icons.Outlined.PersonAdd,
+                                onClick = {
+                                    vm.openManagePanel(
+                                        StatPanel.CONNECTIONS
+                                    )
+                                }
+                            )
+                        )
+                    )
+                }
+
+                vm.activePanel == StatPanel.HONOR -> {
+                    ProfileBottomBar(
+                        buttons = listOf(
+                            BottomBarButton(
+                                text = "Manage Collection",
+                                icon = Icons.Outlined.WorkspacePremium,
+                                onClick = {
+                                    vm.openManagePanel(
+                                        StatPanel.HONOR
+                                    )
+                                }
+                            )
+                        )
+                    )
+                }
+            }
         }
     ) { innerPadding ->
         Column(
@@ -70,12 +132,12 @@ fun MyProfileScreen(
                 .padding(innerPadding)
         ) {
             ProfileHeader(
-                initials    = vm.profile.initials,
-                displayName = vm.profile.fullName,
-                username    = vm.profile.username,
-                bio         = vm.profile.bio,
+                initials    = currentProfile.initials,
+                displayName = currentProfile.fullName,
+                username    = currentProfile.username,
+                bio         = currentProfile.bio,
                 badgeColors = vm.badges.map { it.color },
-                medalColors = vm.medals.map { it.color },
+                medalColors = vm.medals.map { it.color }
             )
 
             StatsRow(
@@ -127,8 +189,10 @@ fun MyProfileScreen(
                         onAddClick = { vm.openManagePanel(StatPanel.INTERESTS) }
                     )
                     else -> ProfileContent(
-                        profile = vm.profile,
-                        mode    = ProfileMode.OWN
+                        profile       = currentProfile,
+                        mode          = ProfileMode.OWN,
+                        isEditMode    = vm.isEditMode,
+                        onValueChange = vm::updateEditableProfile
                     )
                 }
             }

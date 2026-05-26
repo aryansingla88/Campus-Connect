@@ -9,7 +9,7 @@ import androidx.navigation.navigation
 import com.example.campusconnect.feature.profile.ui.myprofile.MyProfileScreen
 import com.example.campusconnect.feature.profile.ui.viewprofile.ViewProfileScreen
 
-// ── Route constants ────────────────────────────────────────────────────────────
+// --- Route constants -----------------------------------------------------------------
 object ProfileRoutes {
     const val GRAPH        = "profile"
     const val MY_PROFILE   = "profile/me"
@@ -18,7 +18,7 @@ object ProfileRoutes {
     fun viewProfile(userId: String) = "profile/$userId"
 }
 
-// ── Nav graph ──────────────────────────────────────────────────────────────────
+// - Nav graph -----------------------------------------------------------------
 fun NavGraphBuilder.ProfileNav(
     navController: NavController
 ) {
@@ -27,7 +27,7 @@ fun NavGraphBuilder.ProfileNav(
         route            = ProfileRoutes.GRAPH
     ) {
 
-        // ── My Profile ─────────────────────────────────────────────────────────
+        // -- My Profile -----------------------------------------------------------------
         composable(ProfileRoutes.MY_PROFILE) {
             MyProfileScreen(
                 onBack        = { navController.popBackStack() },
@@ -37,7 +37,7 @@ fun NavGraphBuilder.ProfileNav(
             )
         }
 
-        // ── View Another User's Profile ────────────────────────────────────────
+        // -- View Another User's Profile -------------------------------------------
         composable(
             route     = ProfileRoutes.VIEW_PROFILE,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })

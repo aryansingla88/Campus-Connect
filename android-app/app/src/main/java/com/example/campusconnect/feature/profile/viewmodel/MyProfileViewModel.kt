@@ -8,27 +8,40 @@ import com.example.campusconnect.feature.profile.data.FakeConnectionsService
 import com.example.campusconnect.feature.profile.data.FakeHonorService
 import com.example.campusconnect.feature.profile.data.FakeInterestsService
 import com.example.campusconnect.feature.profile.model.StatPanel
+import com.example.campusconnect.feature.profile.model.PublicUserProfile
+
 
 class MyProfileViewModel : ViewModel() {
 
-    // ── Data ──────────────────────────────────────────────────────────────────
-    val profile     = FakeProfileService.getMyProfile()
+    // -- Data -----------------------------------------------------------------
+    var profile by mutableStateOf(FakeProfileService.getMyProfile())
+        private set
+
+    var editableProfile by mutableStateOf(profile.copy())
+        private set
     val connections = FakeConnectionsService.getConnections().toMutableStateList()
     val clubs       = FakeClubsService.getClubs().toMutableStateList()
     val badges      = FakeHonorService.getBadges()
     val medals      = FakeHonorService.getMedals()
     val honorEntries = FakeHonorService.getHonorEntries()
     val interests   = FakeInterestsService.getInterests().toMutableStateList()
+    var isEditMode by mutableStateOf(false)
+        private set
 
-    // ── UI state ──────────────────────────────────────────────────────────────
+    // --- UI state -----------------------------------------------------------------
     var activePanel by mutableStateOf<StatPanel?>(null)
         private set
 
     var activeManagePanel by mutableStateOf<StatPanel?>(null)
         private set
 
+
+    // -- Panel Logic -----------------------------------------------------------------
     fun togglePanel(panel: StatPanel) {
-        activePanel = if (activePanel == panel) null else panel
+        activePanel =
+            if (activePanel == panel)
+                null
+            else panel
     }
 
     fun openManagePanel(panel: StatPanel) {
@@ -37,5 +50,28 @@ class MyProfileViewModel : ViewModel() {
 
     fun closeManagePanel() {
         activeManagePanel = null
+    }
+
+
+    // -- Edit Profile -----------------------------------------------------------------
+    fun startEditing() {
+        editableProfile = profile.copy()
+        isEditMode = true
+    }
+
+    fun updateEditableProfile(
+        updated: PublicUserProfile
+    ) {
+        editableProfile = updated
+    }
+
+    fun cancelEditing() {
+        editableProfile = profile.copy()
+        isEditMode = false
+    }
+
+    fun saveProfileChanges() {
+        profile = editableProfile
+        isEditMode = false
     }
 }

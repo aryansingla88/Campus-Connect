@@ -1,14 +1,14 @@
 package com.example.campusconnect.feature.profile.model
 
 
-// ── Profile mode ──────────────────────────────────────────────────────────────────────
+// -- Profile mode -----------------------------------------------------------------
 enum class ProfileMode {
     OWN,
     VIEW
 }
 
 
-// ── Active panel ─────────────────────────────────────────────────────────────────────
+// -- Active panel -----------------------------------------------------------------
 enum class StatPanel {
     CONNECTIONS,
     HONOR,
@@ -16,7 +16,7 @@ enum class StatPanel {
     INTERESTS
 }
 
-// ── Shared UI state ──────────────────────────────────────────────────────────────────────
+// -- Shared UI state -----------------------------------------------------------------
 
 data class ProfileUiState(
     val profile: PublicUserProfile = PublicUserProfile(),

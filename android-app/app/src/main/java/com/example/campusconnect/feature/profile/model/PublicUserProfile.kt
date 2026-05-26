@@ -17,7 +17,7 @@ data class PublicUserProfile(
 
     // Personal
     val gender: String = "",
-    val age: Int = 0,
+    val dob: String = "",
 
     // Contact
     val phone: String = "",

@@ -3,7 +3,7 @@ package com.example.campusconnect.feature.profile.model
 import androidx.compose.ui.graphics.Color
 
 
-// ── Connection ────────────────────────────────────────────────────────────────
+// --- Connection -----------------------------------------------------------------
 enum class ConnectionStatus { ADD, PENDING, CONNECTED }
 
 data class Connection(
@@ -16,7 +16,7 @@ data class Connection(
     val status: ConnectionStatus
 )
 
-// ── Club ──────────────────────────────────────────────────────────────────────
+// -- Club -----------------------------------------------------------------
 enum class ClubStatus { JOIN, PENDING, JOINED }
 
 data class Club(
@@ -27,7 +27,7 @@ data class Club(
     val status: ClubStatus
 )
 
-// ── Honor ─────────────────────────────────────────────────────────────────────
+// -- Honor -----------------------------------------------------------------
 data class HonorEntry(
     val rank: Int,
     val initials: String,

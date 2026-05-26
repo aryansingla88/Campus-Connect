@@ -12,7 +12,7 @@ import com.example.campusconnect.feature.profile.model.StatPanel
 
 class ViewProfileViewModel(userId: String) : ViewModel() {
 
-    // ── Data ──────────────────────────────────────────────────────────────────
+    // -- Data -----------------------------------------------------------------
     var profile      by mutableStateOf(FakeProfileService.getProfile(userId))
         private set
     val connections  = FakeConnectionsService.getConnections().toMutableStateList()
@@ -22,7 +22,7 @@ class ViewProfileViewModel(userId: String) : ViewModel() {
     val honorEntries = FakeHonorService.getHonorEntries()
     val interests    = FakeInterestsService.getInterests()
 
-    // ── UI state ──────────────────────────────────────────────────────────────
+    // -- UI state -----------------------------------------------------------------
     var activePanel by mutableStateOf<StatPanel?>(null)
         private set
 
@@ -30,7 +30,7 @@ class ViewProfileViewModel(userId: String) : ViewModel() {
         activePanel = if (activePanel == panel) null else panel
     }
 
-    // ── Factory ───────────────────────────────────────────────────────────────
+    // -- Factory -----------------------------------------------------------------
     companion object {
         fun factory(userId: String) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
