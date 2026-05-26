@@ -49,9 +49,33 @@ fun ProfilePanelSection(
             when {
 
                 // -- Manage panels (OWN only) --------------------------------
-                managePanel == StatPanel.CONNECTIONS -> ManageConnectionsPanel()
-                managePanel == StatPanel.HONOR       -> ManageCollectionPanel()
-                managePanel == StatPanel.INTERESTS   -> ManageInterestsPanel()
+                managePanel == StatPanel.CONNECTIONS ->
+                    myVm?.let {
+                        ManageConnectionsPanel(
+                            incomingRequests = it.incomingRequests,
+                            sentInvites = it.sentInvites,
+                            onAccept = it::acceptRequest,
+                            onDecline = it::declineRequest,
+                            onCancelInvite = it::cancelInvite
+                        )
+                    }
+                managePanel == StatPanel.HONOR ->
+                    ManageCollectionPanel(
+                        badges = vm.badges,
+                        medals = vm.medals,
+                        onBadgeMoveUp = vm::moveBadgeUp,
+                        onBadgeMoveDown = vm::moveBadgeDown,
+                        onMedalMoveUp = vm::moveMedalUp,
+                        onMedalMoveDown = vm::moveMedalDown,
+                        onBadgeMoveTo = vm::moveBadgeTo,
+                        onMedalMoveTo = vm::moveMedalTo
+                    )
+                managePanel == StatPanel.INTERESTS ->
+                    ManageInterestsPanel(
+                        interests = vm.interests,
+                        allInterests = vm.allInterests,
+                        onAddInterest = vm::addInterest
+                    )
 
                 // -- Stat panels --------------------------------
                 panel == StatPanel.CONNECTIONS -> ConnectionsPanel(

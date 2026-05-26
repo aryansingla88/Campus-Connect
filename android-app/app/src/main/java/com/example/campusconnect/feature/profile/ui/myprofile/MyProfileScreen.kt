@@ -84,6 +84,18 @@ fun MyProfileScreen(
                     )
                 }
 
+                vm.activeManagePanel != null -> {
+                    ProfileBottomBar(
+                        buttons = listOf(
+                            BottomBarButton(
+                                text = "Done",
+                                icon = Icons.Outlined.Check,
+                                onClick = vm::closeManagePanel
+                            )
+                        )
+                    )
+                }
+
                 vm.activePanel == null -> {
                     ProfileBottomBar(
                         buttons = listOf(
@@ -162,6 +174,8 @@ fun MyProfileScreen(
                 onStatClick     = { vm.togglePanel(it) }
             )
 
+
+                // temp before refraction
             AnimatedContent(
                 targetState = Pair(vm.activePanel, vm.activeManagePanel),
                 transitionSpec = {
@@ -171,9 +185,31 @@ fun MyProfileScreen(
                 label = "my_profile_panel"
             ) { (panel, managePanel) ->
                 when {
-                    managePanel == StatPanel.CONNECTIONS -> ManageConnectionsPanel()
-                    managePanel == StatPanel.HONOR       -> ManageCollectionPanel()
-                    managePanel == StatPanel.INTERESTS   -> ManageInterestsPanel()
+                    managePanel == StatPanel.CONNECTIONS ->
+                        ManageConnectionsPanel(
+                            incomingRequests = vm.incomingRequests,
+                            sentInvites = vm.sentInvites,
+                            onAccept = vm::acceptRequest,
+                            onDecline = vm::declineRequest,
+                            onCancelInvite = vm::cancelInvite
+                        )
+                    managePanel == StatPanel.HONOR ->
+                        ManageCollectionPanel(
+                            badges = vm.badges,
+                            medals = vm.medals,
+                            onBadgeMoveUp = vm::moveBadgeUp,
+                            onBadgeMoveDown = vm::moveBadgeDown,
+                            onMedalMoveUp = vm::moveMedalUp,
+                            onMedalMoveDown = vm::moveMedalDown,
+                            onBadgeMoveTo = vm::moveBadgeTo,
+                            onMedalMoveTo = vm::moveMedalTo
+                        )
+                    managePanel == StatPanel.INTERESTS ->
+                        ManageInterestsPanel(
+                            interests = vm.interests,
+                            allInterests = vm.allInterests,
+                            onAddInterest = vm::addInterest
+                        )
 
                     panel == StatPanel.CONNECTIONS -> ConnectionsPanel(
                         connections    = vm.connections,

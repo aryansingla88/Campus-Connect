@@ -11,4 +11,30 @@ object FakeInterestsService {
             "Photography"
         )
     }
+
+    fun getAllInterests(): List<String> {
+
+        return listOf(
+            "AI/ML",
+            "Web Development",
+            "UI/UX Design",
+            "Photography",
+            "Gaming",
+            "Open Source",
+            "Hackathons",
+            "App Development",
+            "Cyber Security",
+            "Data Science",
+            "Public Speaking",
+            "Content Creation",
+            "Competitive Coding",
+            "Football",
+            "Basketball",
+            "Music",
+            "Dance",
+            "Entrepreneurship",
+            "Startups",
+            "Graphic Design"
+        )
+    }
 }
