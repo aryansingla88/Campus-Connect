@@ -42,5 +42,6 @@ data class Event(
     val inAppRegistration: Boolean = false,
 
     // 🔹 EXTRA
-    val venue: String = ""
+    val venue: String = "",
+    val enableChat: Boolean=false
 )

@@ -10,7 +10,7 @@ import com.example.campusconnect.feature.auth.authNav
 //import com.example.campusconnect.feature.posts.postNav
 import com.example.campusconnect.feature.events.eventNav
 import com.example.campusconnect.feature.map.mapNav
-//import com.example.campusconnect.feature.profile.profileNav
+import com.example.campusconnect.feature.profile.ProfileNav
 
 @Composable
 fun AppNavHost() {
@@ -48,6 +48,6 @@ fun AppNavHost() {
 //        postNav(navController)
         eventNav(navController)
         mapNav(navController)
-//        profileNav(navController)
+        ProfileNav(navController)
     }
 }

@@ -29,7 +29,7 @@ fun NavGraphBuilder.authNav(
             onNavigateToRegister = {
 
                 // future register screen
-                navController.navigate("test") {
+                navController.navigate("register") {
                 }
             }
         )
@@ -38,13 +38,15 @@ fun NavGraphBuilder.authNav(
     // Temporary Register Route
     composable("register") {
 
-        TestScreen(
-            onAuth = {},
-            onPosts = {},
-            onEvents = {},
-            onMap = {},
-            onProfile = {},
-            onSplash = {}
+        RegisterScreen(
+
+            onRegisterSuccess = {
+                navController.navigate("login")
+            },
+
+            onNavigateToLogin = {
+                navController.navigate("login")
+            }
         )
     }
 }

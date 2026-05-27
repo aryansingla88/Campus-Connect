@@ -8,6 +8,7 @@ data class EventUiState(
     val posterUrl: String = "",
 
     val selectedLocation: Pair<Double, Double>? = null,
+    val selectedRatio: Pair<Float, Float>? = null,
 
     val date: String = "",
     val venue: String = "",
@@ -21,10 +22,12 @@ data class EventUiState(
     val visibilityType: String = "",
     val visibilityValue: String = "",
 
-    val registrationRequired: Boolean = false,
+    val registrationType: String = "No",
     val registrationLink: String = "",
     val inAppRegistration: Boolean = false,
 
     val error: String? = null,
-    val success: Boolean = false
+    val success: Boolean = false,
+
+    val enableChat: Boolean = false
 )
