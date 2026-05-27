@@ -37,6 +37,14 @@ class EventViewModel : ViewModel() {
     private val _pendingDeleteEvent = MutableStateFlow<Event?>(null)
     val pendingDeleteEvent: StateFlow<Event?> = _pendingDeleteEvent
 
+    /** Pulses true after a successful delete so EventScreen can show a toast. */
+    private val _deleteSuccess = MutableStateFlow(false)
+    val deleteSuccess: StateFlow<Boolean> = _deleteSuccess
+
+    fun clearDeleteSuccess() {
+        _deleteSuccess.value = false
+    }
+
     init {
         _events.value = fakeService.getEvents()
     }
@@ -159,7 +167,7 @@ class EventViewModel : ViewModel() {
         fakeService.deleteEvent(event.id)
         _events.value = fakeService.getEvents()
         _pendingDeleteEvent.value = null
-        // Close the preview sheet; the event no longer exists
+        _deleteSuccess.value = true   // trigger toast in EventScreen
         closePreview()
     }
 

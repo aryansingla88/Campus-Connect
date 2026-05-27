@@ -17,9 +17,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.feature.events.components.*
 import kotlinx.coroutines.delay
+
+// ─── Toast message type ───────────────────────────────────────────────────────
+private enum class ToastType { CREATED, UPDATED, DELETED }
 
 @Composable
 fun EventScreen() {
@@ -38,22 +42,48 @@ fun EventScreen() {
     var selectedMode        by remember { mutableStateOf<String?>(null) }
     var isSelectingLocation by remember { mutableStateOf(false) }
 
-    // Separate flag: was the last successful operation an edit?
-    // Captured before resetForm() wipes isEditMode.
-    var lastOperationWasEdit by remember { mutableStateOf(false) }
+    // Tracks whether the dialog was last opened in edit mode.
+    // Set at the CALL SITE (onEdit button / new-event button) so it is never
+    // corrupted by recomposition timing — unlike reading isEditMode inside a coroutine.
+    var wasEditMode by remember { mutableStateOf(false) }
+
+    // ── Access dialog state ───────────────────────────────────────────────────
+    var showAccessDialog by remember { mutableStateOf(false) }
+    var accessEvent      by remember { mutableStateOf<com.example.campusconnect.model.Event?>(null) }
+
+    // ── Toast state ───────────────────────────────────────────────────────────
+    var toastMessage by remember { mutableStateOf<String?>(null) }
 
     val boxWidth  = remember { mutableStateOf(0) }
     val boxHeight = remember { mutableStateOf(0) }
 
-    // ── Success handler ───────────────────────────────────────────────────────
-    // Snapshot isEditMode NOW (before resetForm clears it), close the dialog,
-    // wait 2 s for the toast, then reset.
+    // ── Show toast for 2 s then clear ─────────────────────────────────────────
+    LaunchedEffect(toastMessage) {
+        if (toastMessage != null) {
+            delay(2000)
+            toastMessage = null
+        }
+    }
+
+    // ── Handle create / update success ────────────────────────────────────────
+    // Uses wasEditMode (set at the call site before any ViewModel calls) so
+    // the correct message is shown regardless of recomposition timing.
     LaunchedEffect(state.success) {
         if (state.success) {
-            lastOperationWasEdit = isEditMode   // capture before reset
-            showDialog = false                  // close dialog, preview stays visible
-            delay(2000)
+            showDialog = false
             viewModel.resetForm()
+            toastMessage = if (wasEditMode) "Event Updated Successfully"
+            else             "Event Created Successfully"
+        }
+    }
+
+    // ── Handle delete success from ViewModel ──────────────────────────────────
+    // We expose a new deleteSuccess flag — see ViewModel changes below.
+    val deleteSuccess by viewModel.deleteSuccess.collectAsState()
+    LaunchedEffect(deleteSuccess) {
+        if (deleteSuccess) {
+            toastMessage = "Event Deleted Successfully"
+            viewModel.clearDeleteSuccess()
         }
     }
 
@@ -183,36 +213,15 @@ fun EventScreen() {
             )
         }
 
-        // ── SUCCESS TOAST ─────────────────────────────────────────────────────
-        // Uses lastOperationWasEdit (snapshotted before resetForm) so the message
-        // is always correct even after isEditMode is cleared.
-        if (state.success) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp)
-                    .background(Color(0xFFFFF3E0), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 20.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    if (lastOperationWasEdit) "Event Updated Successfully"
-                    else                      "Event Created Successfully",
-                    color      = Color(0xFF2A2A2A),
-                    fontWeight = FontWeight.Medium,
-                    fontSize   = 16.sp
-                )
-            }
-        }
-
         // ── PREVIEW SHEET ─────────────────────────────────────────────────────
-        // Rendered whenever showPreview is true — INCLUDING when showDialog is
-        // true (edit dialog sits on top). This means preview stays visible
-        // behind the edit dialog and reappears when dialog is dismissed.
+        // Always rendered when showPreview is true — including while the edit
+        // dialog is open (dialog sits on top via zIndex / composition order).
         if (showPreview && events.isNotEmpty() && !isSelectingLocation) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .zIndex(1f)
             ) {
                 EventPreviewSheet(
                     events        = events,
@@ -221,16 +230,42 @@ fun EventScreen() {
                     onClose       = viewModel::closePreview,
                     onEdit        = { event ->
                         viewModel.loadEventForEdit(event)
-                        // Do NOT closePreview() — keep preview rendered behind dialog
-                        dialogKey++
+                        wasEditMode = true   // mark before opening dialog
+                        dialogKey++          // fresh dialog with pre-filled state
                         showDialog = true
                     },
                     onRegistration = { /* navigate */ },
                     onChat         = { /* navigate */ },
-                    onAccess       = { /* navigate */ },
+                    onAccess       = { event ->
+                        accessEvent      = event
+                        showAccessDialog = true
+                    },
                     onDelete       = { event ->
                         viewModel.requestDelete(event)
                     }
+                )
+            }
+        }
+
+        // ── TOAST — rendered above preview sheet, orange theme ────────────────
+        // zIndex(2f) floats above preview sheet (zIndex 1f).
+        toastMessage?.let { msg ->
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .zIndex(2f)
+                    .padding(bottom = 320.dp)   // sits above the preview card
+                    .background(
+                        Color(0xFFFFF3E0),       // same orange-light as "tap anywhere" hint
+                        RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text       = msg,
+                    color      = Color(0xFF2A2A2A),
+                    fontWeight = FontWeight.Medium,
+                    fontSize   = 16.sp
                 )
             }
         }
@@ -279,52 +314,66 @@ fun EventScreen() {
             )
         }
 
-        // ── CREATE / EDIT DIALOG ──────────────────────────────────────────────
-        // Rendered on top of everything including the preview sheet.
+        // ── ACCESS DIALOG ─────────────────────────────────────────────────────
+        if (showAccessDialog && accessEvent != null) {
+            com.example.campusconnect.feature.events.components.EventAccessDialog(
+                event   = accessEvent!!,
+                onDismiss = {
+                    showAccessDialog = false
+                    accessEvent      = null
+                }
+            )
+        }
+
+        // ── CREATE / EDIT DIALOG — highest zIndex, on top of everything ───────
         if (showDialog) {
-            key(dialogKey) {
-                EventCreateDialog(
-                    state      = state,
-                    isEditMode = isEditMode,
+            Box(modifier = Modifier.zIndex(3f)) {
+                key(dialogKey) {
+                    EventCreateDialog(
+                        state      = state,
+                        isEditMode = isEditMode,
 
-                    onTitleChange            = viewModel::updateTitle,
-                    onDescriptionChange      = viewModel::updateDescription,
-                    onDateChange             = viewModel::updateDate,
-                    onVenueChange            = viewModel::updateVenue,
-                    onStartTimeChange        = viewModel::updateStartTime,
-                    onEndTimeChange          = viewModel::updateEndTime,
-                    onPosterToggle           = viewModel::updatePosterEnabled,
-                    onPosterUrlChange        = viewModel::updatePosterUrl,
-                    onClubNameChange         = viewModel::updateClubName,
-                    onCategoryChange         = viewModel::updateCategory,
-                    onVisibilityTypeChange   = viewModel::updateVisibilityType,
-                    onVisibilityValueChange  = viewModel::updateVisibilityValue,
-                    onRegistrationTypeChange = viewModel::updateRegistrationType,
-                    onRegistrationLinkChange = viewModel::updateRegistrationLink,
-                    onEnableChatToggle       = viewModel::updateEnableChat,
+                        onTitleChange            = viewModel::updateTitle,
+                        onDescriptionChange      = viewModel::updateDescription,
+                        onDateChange             = viewModel::updateDate,
+                        onVenueChange            = viewModel::updateVenue,
+                        onStartTimeChange        = viewModel::updateStartTime,
+                        onEndTimeChange          = viewModel::updateEndTime,
+                        onPosterToggle           = viewModel::updatePosterEnabled,
+                        onPosterUrlChange        = viewModel::updatePosterUrl,
+                        onClubNameChange         = viewModel::updateClubName,
+                        onCategoryChange         = viewModel::updateCategory,
+                        onVisibilityTypeChange   = viewModel::updateVisibilityType,
+                        onVisibilityValueChange  = viewModel::updateVisibilityValue,
+                        onRegistrationTypeChange = viewModel::updateRegistrationType,
+                        onRegistrationLinkChange = viewModel::updateRegistrationLink,
+                        onEnableChatToggle       = viewModel::updateEnableChat,
 
-                    onEditLocation = {
-                        showDialog = false
-                        isSelectingLocation = true
-                    },
+                        onEditLocation = {
+                            showDialog = false
+                            isSelectingLocation = true
+                        },
 
-                    onDismiss = {
-                        // Cancel: close dialog, reset form but keep preview open
-                        viewModel.resetForm()
-                        showDialog = false
-                        // showPreview stays true → preview reappears automatically
-                    },
+                        onDismiss = {
+                            // Cancel — close dialog only, preview stays
+                            wasEditMode = false
+                            viewModel.resetForm()
+                            showDialog = false
+                        },
 
-                    onCreate = {
-                        viewModel.createEvent(createdBy = 1)
-                        dialogKey++
-                    },
+                        onCreate = {
+                            wasEditMode = false  // mark before submitting
+                            viewModel.createEvent(createdBy = 1)
+                            // No dialogKey++ — avoids the empty-dialog flash on success
+                        },
 
-                    onUpdate = {
-                        viewModel.updateEvent()
-                        // No dialogKey++ here — LaunchedEffect(state.success) closes it cleanly
-                    }
-                )
+                        onUpdate = {
+                            wasEditMode = true   // ensure correct toast on success
+                            viewModel.updateEvent()
+                            // LaunchedEffect(state.success) closes dialog cleanly
+                        }
+                    )
+                }
             }
         }
     }
