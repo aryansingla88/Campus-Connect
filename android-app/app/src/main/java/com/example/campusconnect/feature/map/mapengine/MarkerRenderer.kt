@@ -12,6 +12,7 @@ class MarkerRenderer {
             val isSelected = marker.id == selectedMarkerId
 
             MarkerRenderData(
+                id = marker.id,
                 x = marker.x,
                 y = marker.y,
                 radius = getRadius(marker, isSelected),
