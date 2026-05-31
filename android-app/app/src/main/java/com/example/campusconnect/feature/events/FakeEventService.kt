@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.events
 import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.campusconnect.model.Event
+import com.example.campusconnect.model.EventStatus
 
 class FakeEventService {
 
@@ -11,43 +12,136 @@ class FakeEventService {
     init {
         events.addAll(
             listOf(
+
+                // ── LIVE events ───────────────────────────────────────────────
                 Event(
-                    id = 1,
-                    title = "Event A",
-                    description = "Dummy",
-                    latitude = 0.0,
-                    longitude = 0.0,
-                    xRatio = 0.3f,
-                    yRatio = 0.4f
+                    id                   = 1,
+                    title                = "Tech Fest 2025",
+                    description          = "Annual technology festival with competitions, workshops and exhibitions.",
+                    latitude             = 0.0,
+                    longitude            = 0.0,
+                    xRatio               = 0.3f,
+                    yRatio               = 0.35f,
+                    date                 = "20 May 2025",
+                    startTime            = "10:00 AM",
+                    endTime              = "04:00 PM",
+                    createdBy            = 1,
+                    clubName             = "CS Club",
+                    isPoster             = false,
+                    category             = "Technology",
+                    visibilityType       = "Public",
+                    visibilityValue      = "All",
+                    registrationRequired = true,
+                    inAppRegistration    = true,
+                    venue                = "Main Auditorium",
+                    enableChat           = true,
+                    status               = EventStatus.LIVE
                 ),
+
                 Event(
-                    id = 2,
-                    title = "Event B",
-                    description = "Dummy",
-                    latitude = 0.0,
-                    longitude = 0.0,
-                    xRatio = 0.6f,
-                    yRatio = 0.5f
+                    id                   = 2,
+                    title                = "Music Night Live",
+                    description          = "An evening of live performances by campus bands and solo artists.",
+                    latitude             = 0.0,
+                    longitude            = 0.0,
+                    xRatio               = 0.65f,
+                    yRatio               = 0.45f,
+                    date                 = "22 May 2025",
+                    startTime            = "07:00 PM",
+                    endTime              = "10:00 PM",
+                    createdBy            = 1,
+                    clubName             = "Beats Club",
+                    isPoster             = false,
+                    category             = "Cultural",
+                    visibilityType       = "Public",
+                    visibilityValue      = "All",
+                    registrationRequired = false,
+                    venue                = "Open Air Stage",
+                    enableChat           = false,
+                    status               = EventStatus.LIVE
                 ),
+
+                // ── PAST events — markers shown grey on map ───────────────────
                 Event(
-                    id = 3,
-                    title = "Event C",
-                    description = "Dummy",
-                    latitude = 0.0,
-                    longitude = 0.0,
-                    xRatio = 0.5f,
-                    yRatio = 0.7f
+                    id                   = 3,
+                    title                = "Hackathon 2024",
+                    description          = "24-hour coding competition. Teams built solutions for real-world problems.",
+                    latitude             = 0.0,
+                    longitude            = 0.0,
+                    xRatio               = 0.5f,
+                    yRatio               = 0.6f,
+                    date                 = "10 Jan 2025",
+                    startTime            = "09:00 AM",
+                    endTime              = "09:00 AM",  // next day
+                    createdBy            = 1,
+                    clubName             = "CS Club",
+                    isPoster             = false,
+                    category             = "Technology",
+                    visibilityType       = "Public",
+                    visibilityValue      = "All",
+                    registrationRequired = true,
+                    inAppRegistration    = true,
+                    venue                = "Lab Block A",
+                    enableChat           = true,
+                    status               = EventStatus.PAST
+                ),
+
+                Event(
+                    id                   = 4,
+                    title                = "Art Exhibition",
+                    description          = "Showcase of student artwork spanning painting, sculpture, and digital art.",
+                    latitude             = 0.0,
+                    longitude            = 0.0,
+                    xRatio               = 0.2f,
+                    yRatio               = 0.7f,
+                    date                 = "15 Feb 2025",
+                    startTime            = "11:00 AM",
+                    endTime              = "05:00 PM",
+                    createdBy            = 1,
+                    clubName             = "Fine Arts Society",
+                    isPoster             = false,
+                    category             = "Cultural",
+                    visibilityType       = "Public",
+                    visibilityValue      = "All",
+                    registrationRequired = false,
+                    venue                = "Gallery Block B",
+                    enableChat           = false,
+                    status               = EventStatus.PAST
+                ),
+
+                Event(
+                    id                   = 5,
+                    title                = "Debate Championship",
+                    description          = "Inter-college debate on technology, society, and the future.",
+                    latitude             = 0.0,
+                    longitude            = 0.0,
+                    xRatio               = 0.75f,
+                    yRatio               = 0.25f,
+                    date                 = "05 Mar 2025",
+                    startTime            = "10:00 AM",
+                    endTime              = "03:00 PM",
+                    createdBy            = 1,
+                    clubName             = "Literary Club",
+                    isPoster             = false,
+                    category             = "Academic",
+                    visibilityType       = "Public",
+                    visibilityValue      = "All",
+                    registrationRequired = true,
+                    inAppRegistration    = false,
+                    registrationLink     = "https://forms.example.com/debate",
+                    venue                = "Seminar Hall B",
+                    enableChat           = false,
+                    status               = EventStatus.PAST
                 )
             )
         )
     }
 
     fun createEvent(event: Event): Boolean {
-        events.add(event.copy(id = events.size + 1))
+        events.add(event.copy(id = (events.maxOfOrNull { it.id } ?: 0) + 1))
         return true
     }
 
-    /** Replace the event with the same id. Returns true if found and updated. */
     fun updateEvent(event: Event): Boolean {
         val index = events.indexOfFirst { it.id == event.id }
         if (index == -1) return false
@@ -55,11 +149,12 @@ class FakeEventService {
         return true
     }
 
-    /** Remove event by id. Returns true if found and removed. */
     @RequiresApi(Build.VERSION_CODES.N)
-    fun deleteEvent(id: Int): Boolean {
-        return events.removeIf { it.id == id }
-    }
+    fun deleteEvent(id: Int): Boolean = events.removeIf { it.id == id }
 
     fun getEvents(): List<Event> = events.toList()
+
+    fun getLiveEvents(): List<Event> = events.filter { it.status == EventStatus.LIVE }
+
+    fun getPastEvents(): List<Event> = events.filter { it.status == EventStatus.PAST }
 }

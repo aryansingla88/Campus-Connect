@@ -19,7 +19,15 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.campusconnect.feature.events.components.*
+import com.example.campusconnect.feature.events.components.EventAccessDialog
+import com.example.campusconnect.feature.events.components.EventCreateDialog
+import com.example.campusconnect.feature.events.components.EventHistoryDrawer
+import com.example.campusconnect.feature.events.components.EventMarker
+import com.example.campusconnect.feature.events.components.EventParticipantsDrawer
+import com.example.campusconnect.feature.events.components.EventPreviewSheet
+import com.example.campusconnect.feature.events.components.ModeToggle
+import com.example.campusconnect.feature.events.components.ToolIcon
+import com.example.campusconnect.model.EventStatus
 import kotlinx.coroutines.delay
 
 // ─── Toast message type ───────────────────────────────────────────────────────
@@ -43,21 +51,38 @@ fun EventScreen() {
     var isSelectingLocation by remember { mutableStateOf(false) }
 
     // Tracks whether the dialog was last opened in edit mode.
-    // Set at the CALL SITE (onEdit button / new-event button) so it is never
-    // corrupted by recomposition timing — unlike reading isEditMode inside a coroutine.
+    // Set at the CALL SITE so it is never corrupted by recomposition timing.
     var wasEditMode by remember { mutableStateOf(false) }
 
     // ── Access dialog state ───────────────────────────────────────────────────
     var showAccessDialog by remember { mutableStateOf(false) }
     var accessEvent      by remember { mutableStateOf<com.example.campusconnect.model.Event?>(null) }
 
+    // ── Participants drawer state ─────────────────────────────────────────────
+    var showParticipants by remember { mutableStateOf(false) }
+
+    // ── History drawer state ──────────────────────────────────────────────────
+    var showHistoryDrawer by remember { mutableStateOf(false) }
+
     // ── Toast state ───────────────────────────────────────────────────────────
     var toastMessage by remember { mutableStateOf<String?>(null) }
+
+    // ── Preview always shows only LIVE events ─────────────────────────────────
+    val filteredEvents = remember(events) {
+        events.filter { it.status != EventStatus.PAST }
+    }
+
+    // Remap activeIndex into the filtered list
+    val filteredActiveIndex = remember(activeIndex, filteredEvents, events) {
+        val activeEvent = events.getOrNull(activeIndex)
+        if (activeEvent != null) filteredEvents.indexOf(activeEvent).coerceAtLeast(0)
+        else 0
+    }
 
     val boxWidth  = remember { mutableStateOf(0) }
     val boxHeight = remember { mutableStateOf(0) }
 
-    // ── Show toast for 2 s then clear ─────────────────────────────────────────
+    // ── Show toast for 2 s then clear ────────────────────────────────────────
     LaunchedEffect(toastMessage) {
         if (toastMessage != null) {
             delay(2000)
@@ -65,9 +90,7 @@ fun EventScreen() {
         }
     }
 
-    // ── Handle create / update success ────────────────────────────────────────
-    // Uses wasEditMode (set at the call site before any ViewModel calls) so
-    // the correct message is shown regardless of recomposition timing.
+    // ── Handle create / update success ───────────────────────────────────────
     LaunchedEffect(state.success) {
         if (state.success) {
             showDialog = false
@@ -77,8 +100,7 @@ fun EventScreen() {
         }
     }
 
-    // ── Handle delete success from ViewModel ──────────────────────────────────
-    // We expose a new deleteSuccess flag — see ViewModel changes below.
+    // ── Handle delete success ─────────────────────────────────────────────────
     val deleteSuccess by viewModel.deleteSuccess.collectAsState()
     LaunchedEffect(deleteSuccess) {
         if (deleteSuccess) {
@@ -110,13 +132,14 @@ fun EventScreen() {
         // ── BACKGROUND ────────────────────────────────────────────────────────
         Box(modifier = Modifier.fillMaxSize())
 
-        // ── MARKERS ───────────────────────────────────────────────────────────
+        // ── MARKERS — past events grey + unclickable ──────────────────────────
         events.forEachIndexed { index, event ->
+            val isPast = event.status == EventStatus.PAST
             EventMarker(
                 event    = event,
-                isActive = index == activeIndex,
+                isActive = index == activeIndex && !isPast,
                 onClick  = {
-                    if (!isSelectingLocation) viewModel.onMarkerTapped(index)
+                    if (!isSelectingLocation && !isPast) viewModel.onMarkerTapped(index)
                 },
                 modifier = Modifier.offset {
                     IntOffset(
@@ -214,9 +237,7 @@ fun EventScreen() {
         }
 
         // ── PREVIEW SHEET ─────────────────────────────────────────────────────
-        // Always rendered when showPreview is true — including while the edit
-        // dialog is open (dialog sits on top via zIndex / composition order).
-        if (showPreview && events.isNotEmpty() && !isSelectingLocation) {
+        if (showPreview && filteredEvents.isNotEmpty() && !isSelectingLocation) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -224,14 +245,23 @@ fun EventScreen() {
                     .zIndex(1f)
             ) {
                 EventPreviewSheet(
-                    events        = events,
-                    activeIndex   = activeIndex,
-                    onPageChanged = viewModel::onPreviewPageChanged,
-                    onClose       = viewModel::closePreview,
+                    events        = filteredEvents,
+                    activeIndex   = filteredActiveIndex,
+                    onPageChanged = { index ->
+                        // Map filtered index back to global index
+                        val globalEvent = filteredEvents.getOrNull(index)
+                        val globalIndex = if (globalEvent != null) events.indexOf(globalEvent) else index
+                        viewModel.onPreviewPageChanged(globalIndex)
+                        showParticipants = false
+                    },
+                    onClose       = {
+                        showParticipants = false
+                        viewModel.closePreview()
+                    },
                     onEdit        = { event ->
                         viewModel.loadEventForEdit(event)
-                        wasEditMode = true   // mark before opening dialog
-                        dialogKey++          // fresh dialog with pre-filled state
+                        wasEditMode = true
+                        dialogKey++
                         showDialog = true
                     },
                     onRegistration = { /* navigate */ },
@@ -247,18 +277,54 @@ fun EventScreen() {
             }
         }
 
-        // ── TOAST — rendered above preview sheet, orange theme ────────────────
-        // zIndex(2f) floats above preview sheet (zIndex 1f).
+        // ── PARTICIPANTS DRAWER ───────────────────────────────────────────────
+        if (showPreview && filteredEvents.isNotEmpty() && !isSelectingLocation && !showDialog) {
+            val currentEvent = filteredEvents.getOrNull(filteredActiveIndex)
+            if (currentEvent != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(2f)
+                ) {
+                    EventParticipantsDrawer(
+                        event    = currentEvent,
+                        isOpen   = showParticipants,
+                        onToggle = { showParticipants = !showParticipants }
+                    )
+                }
+            }
+        }
+
+        // ── HISTORY DRAWER ────────────────────────────────────────────────────
+        // Hidden when preview is open, selecting location, or dialog is open.
+        // Nib disappears when drawer is open (close only via X button inside).
+        if (!isSelectingLocation && !showDialog && !showPreview) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(2f)
+            ) {
+                EventHistoryDrawer(
+                    isOpen   = showHistoryDrawer,
+                    onToggle = { showHistoryDrawer = !showHistoryDrawer }
+                )
+            }
+        }
+
+        // Force-close history drawer when preview opens
+        LaunchedEffect(showPreview) {
+            if (showPreview) showHistoryDrawer = false
+        }
+
+        // ── TOAST ─────────────────────────────────────────────────────────────
+        // zIndex(3f) — floats above both drawers and preview sheet.
         toastMessage?.let { msg ->
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .zIndex(2f)
-                    .padding(bottom = 320.dp)   // sits above the preview card
-                    .background(
-                        Color(0xFFFFF3E0),       // same orange-light as "tap anywhere" hint
-                        RoundedCornerShape(20.dp)
-                    )
+                    .zIndex(3f)
+                    .padding(bottom = 320.dp)
+                    .background(Color(0xFFFFF3E0), RoundedCornerShape(20.dp))
                     .padding(horizontal = 20.dp, vertical = 10.dp)
             ) {
                 Text(
@@ -316,8 +382,8 @@ fun EventScreen() {
 
         // ── ACCESS DIALOG ─────────────────────────────────────────────────────
         if (showAccessDialog && accessEvent != null) {
-            com.example.campusconnect.feature.events.components.EventAccessDialog(
-                event   = accessEvent!!,
+            EventAccessDialog(
+                event     = accessEvent!!,
                 onDismiss = {
                     showAccessDialog = false
                     accessEvent      = null
@@ -327,7 +393,7 @@ fun EventScreen() {
 
         // ── CREATE / EDIT DIALOG — highest zIndex, on top of everything ───────
         if (showDialog) {
-            Box(modifier = Modifier.zIndex(3f)) {
+            Box(modifier = Modifier.zIndex(4f)) {
                 key(dialogKey) {
                     EventCreateDialog(
                         state      = state,
@@ -355,22 +421,19 @@ fun EventScreen() {
                         },
 
                         onDismiss = {
-                            // Cancel — close dialog only, preview stays
                             wasEditMode = false
                             viewModel.resetForm()
                             showDialog = false
                         },
 
                         onCreate = {
-                            wasEditMode = false  // mark before submitting
+                            wasEditMode = false
                             viewModel.createEvent(createdBy = 1)
-                            // No dialogKey++ — avoids the empty-dialog flash on success
                         },
 
                         onUpdate = {
-                            wasEditMode = true   // ensure correct toast on success
+                            wasEditMode = true
                             viewModel.updateEvent()
-                            // LaunchedEffect(state.success) closes dialog cleanly
                         }
                     )
                 }
