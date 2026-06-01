@@ -6,6 +6,7 @@ data class MapMarker(
     val type: MarkerType,
     val latitude: Double,
     val longitude: Double,
+    val gender: String? = null,
     val label: String,
     var x: Float = 0f,
     var y: Float = 0f,

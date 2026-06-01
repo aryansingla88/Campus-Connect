@@ -7,5 +7,7 @@ data class MarkerRenderData(
     val radius: Float,
     val color: Long,
     val label: String,
+    val type: MarkerType,
+    val gender: String? = null,
     val isSelected: Boolean
 )
