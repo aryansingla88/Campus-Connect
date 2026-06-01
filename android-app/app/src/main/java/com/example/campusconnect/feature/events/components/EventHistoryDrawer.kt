@@ -30,7 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.events.FakeEventService
 import com.example.campusconnect.model.Event
 import com.example.campusconnect.model.EventStatus
 
@@ -59,16 +58,17 @@ private val BronzeColor = Color(0xFFBF8651)
 @Composable
 fun EventHistoryDrawer(
     isOpen   : Boolean,
-    onToggle : () -> Unit
+    onToggle : () -> Unit,
+    events   : List<com.example.campusconnect.model.Event> = emptyList()
 ) {
-    val eventService = remember { FakeEventService() }
     val medalService = remember { FakeMedalService() }
 
     // Force recompose when medals change
     var medalVersion by remember { mutableStateOf(0) }
 
-    val liveEvents = remember { eventService.getLiveEvents() }
-    val pastEvents = remember { eventService.getPastEvents() }
+    // Derived directly from the passed-in list so create/delete updates are instant
+    val liveEvents = remember(events) { events.filter { it.status == com.example.campusconnect.model.EventStatus.LIVE } }
+    val pastEvents = remember(events) { events.filter { it.status == com.example.campusconnect.model.EventStatus.PAST } }
 
     var selectedTab by remember { mutableStateOf(0) }  // 0=Live, 1=Past
 
@@ -223,33 +223,7 @@ fun EventHistoryDrawer(
                 }
             }
 
-            // ── NIB — only visible when drawer is CLOSED ──────────────────────
-            if (!isOpen) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset(x = (-36).dp, y = 60.dp)
-                        .size(width = 36.dp, height = 42.dp)
-                        .clip(RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp))
-                        .background(Orange)
-                        .clickable { onToggle() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        repeat(3) {
-                            Box(
-                                modifier = Modifier
-                                    .width(16.dp)
-                                    .height(2.dp)
-                                    .background(Color.White, RoundedCornerShape(1.dp))
-                            )
-                        }
-                    }
-                }
-            }
+            // ── NIB removed — button lives in EventScreen top bar ─────────────
         }
     }
 

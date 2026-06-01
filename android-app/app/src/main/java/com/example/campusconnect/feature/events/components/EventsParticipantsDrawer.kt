@@ -52,12 +52,14 @@ fun EventParticipantsDrawer(
     val solo    = remember(event.id) { service.getSoloParticipants(event.id) }
     val total   = remember(event.id) { service.getTotalCount(event.id) }
 
+
     val expanded = remember(event.id) {
         mutableStateMapOf<Int, Boolean>().apply { teams.forEach { put(it.id, false) } }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
+        // Dim overlay when open
         if (isOpen) {
             Box(
                 modifier = Modifier
@@ -67,119 +69,134 @@ fun EventParticipantsDrawer(
             )
         }
 
+        // ── Nib + Drawer as one unit anchored to right edge ───────────────────
+        // They live in a Row so the nib always sits left of the drawer panel.
+        // When the drawer is closed, only the nib is visible (drawer is gone).
+        // When open, both slide in together — nib stays attached to drawer edge.
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .align(Alignment.CenterEnd)
         ) {
-            AnimatedVisibility(
-                visible = isOpen,
-                enter   = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(280)),
-                exit    = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(240))
+            Row(
+                modifier          = Modifier.align(Alignment.Center),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
+                // Nib — always rendered, sticks to left side of drawer
+                Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .width(280.dp)
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures { _, dragAmount ->
-                                if (dragAmount > 10f) onToggle()
-                            }
-                        },
-                    shape           = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
-                    color           = Color.White,
-                    tonalElevation  = 0.dp,
-                    shadowElevation = 8.dp
+                        .size(width = 36.dp, height = 52.dp)
+                        .clip(RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp))
+                        .background(OrangePrimary)
+                        .clickable { onToggle() },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        imageVector        = if (isOpen) Icons.Default.ChevronRight
+                        else        Icons.Default.Group,
+                        contentDescription = if (isOpen) "Close participants"
+                        else        "Open participants",
+                        tint               = Color.White,
+                        modifier           = Modifier.size(18.dp)
+                    )
+                }
 
-                        // ── Header ────────────────────────────────────────────
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 12.dp),
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Participants",
-                                    fontSize   = 16.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color      = TextPrimary
-                                )
-                                Text(
-                                    "${event.title}  ·  $total registered",
-                                    fontSize = 11.sp,
-                                    color    = TextMuted,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            IconButton(onClick = onToggle) {
-                                Icon(Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
-                            }
-                        }
+                // Drawer panel — slides in/out, nib moves with it
+                AnimatedVisibility(
+                    visible = isOpen,
+                    enter   = slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec  = tween(280)
+                    ),
+                    exit    = slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(240)
+                    )
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(280.dp)
+                            .pointerInput(Unit) {
+                                detectHorizontalDragGestures { _, dragAmount ->
+                                    if (dragAmount > 10f) onToggle()
+                                }
+                            },
+                        shape           = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
+                        color           = Color.White,
+                        tonalElevation  = 0.dp,
+                        shadowElevation = 8.dp
+                    ) {
+                        Column(modifier = Modifier.fillMaxSize()) {
 
-                        HorizontalDivider(color = DividerColor)
-
-                        LazyColumn(
-                            modifier            = Modifier.fillMaxSize(),
-                            contentPadding      = PaddingValues(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (teams.isNotEmpty()) {
-                                item(key = "section_teams") { SectionLabel("Teams") }
-
-                                items(teams, key = { "team_${it.id}" }) { team ->
-                                    TeamCard(
-                                        team       = team,
-                                        isExpanded = expanded[team.id] ?: false,
-                                        onToggle   = {
-                                            expanded[team.id] = !(expanded[team.id] ?: false)
-                                        }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 12.dp),
+                                verticalAlignment     = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Participants",
+                                        fontSize   = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color      = TextPrimary
+                                    )
+                                    Text(
+                                        "${event.title}  ·  $total registered",
+                                        fontSize = 11.sp,
+                                        color    = TextMuted,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                IconButton(onClick = onToggle) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint               = TextMuted
                                     )
                                 }
                             }
 
-                            if (solo.isNotEmpty()) {
-                                item(key = "section_solo") {
-                                    SectionLabel(
-                                        label    = "Individual participants",
-                                        modifier = Modifier.padding(
-                                            top = if (teams.isNotEmpty()) 6.dp else 0.dp
+                            HorizontalDivider(color = DividerColor)
+
+                            LazyColumn(
+                                modifier            = Modifier.fillMaxSize(),
+                                contentPadding      = PaddingValues(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (teams.isNotEmpty()) {
+                                    item(key = "section_teams") { SectionLabel("Teams") }
+                                    items(teams, key = { "team_${it.id}" }) { team ->
+                                        TeamCard(
+                                            team       = team,
+                                            isExpanded = expanded[team.id] ?: false,
+                                            onToggle   = {
+                                                expanded[team.id] = !(expanded[team.id] ?: false)
+                                            }
                                         )
-                                    )
+                                    }
                                 }
-
-                                items(solo, key = { "solo_${it.id}" }) { participant ->
-                                    SoloCard(participant)
+                                if (solo.isNotEmpty()) {
+                                    item(key = "section_solo") {
+                                        SectionLabel(
+                                            label    = "Individual participants",
+                                            modifier = Modifier.padding(
+                                                top = if (teams.isNotEmpty()) 6.dp else 0.dp
+                                            )
+                                        )
+                                    }
+                                    items(solo, key = { "solo_${it.id}" }) { participant ->
+                                        SoloCard(participant)
+                                    }
                                 }
+                                item(key = "bottom_spacer") { Spacer(Modifier.height(16.dp)) }
                             }
-
-                            item(key = "bottom_spacer") { Spacer(Modifier.height(16.dp)) }
                         }
                     }
                 }
-            }
-
-            // Nib
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .offset(x = (-18).dp)
-                    .size(width = 18.dp, height = 56.dp)
-                    .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp))
-                    .background(OrangePrimary)
-                    .clickable { onToggle() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector        = if (isOpen) Icons.Default.ChevronRight else Icons.Default.Group,
-                    contentDescription = if (isOpen) "Close participants" else "Open participants",
-                    tint               = Color.White,
-                    modifier           = Modifier.size(12.dp)
-                )
             }
         }
     }
