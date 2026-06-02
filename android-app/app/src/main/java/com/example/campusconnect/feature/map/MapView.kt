@@ -57,26 +57,22 @@ fun MapView(
         )
 
         Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    transformOrigin = TransformOrigin(0f, 0f)
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
-                }
+            modifier = Modifier.fillMaxSize()
         ) {
             val bounds = calculateImageBounds(size.width, size.height)
 
             markers.forEach { marker ->
-                val drawX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
-                val drawY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
+                val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
+                val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
+
+                val screenX = mapX * scale + offset.x
+                val screenY = mapY * scale + offset.y
 
                 drawMarker(
                     marker = marker,
-                    x = drawX,
-                    y = drawY
+                    x = screenX,
+                    y = screenY,
+                    zoom = scale
                 )
             }
         }
@@ -99,17 +95,17 @@ fun MapView(
                         )
 
                         val tappedMarker = markers.firstOrNull { marker ->
-                            val drawX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
-                            val drawY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
+                            val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
+                            val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
 
-                            val markerScreenX = drawX * scale + offset.x
-                            val markerScreenY = drawY * scale + offset.y
+                            val markerScreenX = mapX * scale + offset.x
+                            val markerScreenY = mapY * scale + offset.y
 
                             val dx = markerScreenX - tap.x
                             val dy = markerScreenY - tap.y
 
                             val distanceSq = dx.pow(2) + dy.pow(2)
-                            val hitRadius = marker.radius * scale + 50f
+                            val hitRadius = marker.radius + 45f
 
                             distanceSq <= hitRadius.pow(2)
                         }
@@ -170,24 +166,30 @@ private fun calculateImageBounds(
 private fun DrawScope.drawMarker(
     marker: MarkerRenderData,
     x: Float,
-    y: Float
+    y: Float,
+    zoom: Float
 ) {
+    val zoomBoost = (zoom - 1f).coerceIn(0f, 2f) * 2.5f
+    val visualRadius = (marker.radius + zoomBoost).coerceIn(10f, 26f)
+    val selectedRadius = visualRadius + 7f
+    val labelTextSize = (24f + zoomBoost).coerceIn(24f, 30f)
+
     when (marker.type) {
 
         MarkerType.POI -> {
             drawCircle(
                 color = Color(marker.color),
-                radius = marker.radius,
+                radius = visualRadius,
                 center = Offset(x, y)
             )
 
             drawContext.canvas.nativeCanvas.drawText(
                 marker.label,
-                x + 12f,
+                x + visualRadius + 6f,
                 y + 6f,
                 android.graphics.Paint().apply {
                     color = android.graphics.Color.WHITE
-                    textSize = 28f
+                    textSize = labelTextSize
                     isFakeBoldText = true
                 }
             )
@@ -198,34 +200,34 @@ private fun DrawScope.drawMarker(
 
             drawCircle(
                 color = Color(marker.color),
-                radius = marker.radius,
+                radius = visualRadius,
                 center = Offset(x, y)
             )
 
             drawCircle(
                 color = Color.White,
-                radius = 5f,
+                radius = 4f,
                 center = Offset(x - 5f, y - 3f)
             )
 
             drawCircle(
                 color = Color.White,
-                radius = 5f,
+                radius = 4f,
                 center = Offset(x + 5f, y - 3f)
             )
 
             if (isFemale) {
                 drawCircle(
                     color = Color(0xFFFFC1E3),
-                    radius = marker.radius + 5f,
+                    radius = visualRadius + 4f,
                     center = Offset(x, y),
-                    style = Stroke(width = 4f)
+                    style = Stroke(width = 3f)
                 )
             } else {
                 drawLine(
                     color = Color.White,
-                    start = Offset(x - 8f, y + 8f),
-                    end = Offset(x + 8f, y + 8f),
+                    start = Offset(x - 7f, y + 7f),
+                    end = Offset(x + 7f, y + 7f),
                     strokeWidth = 3f
                 )
             }
@@ -233,22 +235,22 @@ private fun DrawScope.drawMarker(
 
         MarkerType.EVENT -> {
             val eventPath = Path().apply {
-                moveTo(x, y - marker.radius)
+                moveTo(x, y - visualRadius)
                 cubicTo(
-                    x + marker.radius,
-                    y - marker.radius,
-                    x + marker.radius,
-                    y + marker.radius / 2f,
+                    x + visualRadius,
+                    y - visualRadius,
+                    x + visualRadius,
+                    y + visualRadius / 2f,
                     x,
-                    y + marker.radius * 1.5f
+                    y + visualRadius * 1.5f
                 )
                 cubicTo(
-                    x - marker.radius,
-                    y + marker.radius / 2f,
-                    x - marker.radius,
-                    y - marker.radius,
+                    x - visualRadius,
+                    y + visualRadius / 2f,
+                    x - visualRadius,
+                    y - visualRadius,
                     x,
-                    y - marker.radius
+                    y - visualRadius
                 )
                 close()
             }
@@ -260,18 +262,18 @@ private fun DrawScope.drawMarker(
 
             drawCircle(
                 color = Color.White,
-                radius = marker.radius / 3f,
+                radius = visualRadius / 3f,
                 center = Offset(x, y)
             )
         }
 
         MarkerType.SHOP -> {
             val hutPath = Path().apply {
-                moveTo(x, y - marker.radius)
-                lineTo(x - marker.radius, y)
-                lineTo(x - marker.radius, y + marker.radius)
-                lineTo(x + marker.radius, y + marker.radius)
-                lineTo(x + marker.radius, y)
+                moveTo(x, y - visualRadius)
+                lineTo(x - visualRadius, y)
+                lineTo(x - visualRadius, y + visualRadius)
+                lineTo(x + visualRadius, y + visualRadius)
+                lineTo(x + visualRadius, y)
                 close()
             }
 
@@ -282,8 +284,8 @@ private fun DrawScope.drawMarker(
 
             drawRect(
                 color = Color(0xFFFFF3E0),
-                topLeft = Offset(x - 5f, y + 4f),
-                size = Size(10f, 12f)
+                topLeft = Offset(x - 4f, y + 4f),
+                size = Size(8f, 10f)
             )
         }
     }
@@ -291,7 +293,7 @@ private fun DrawScope.drawMarker(
     if (marker.isSelected) {
         drawCircle(
             color = Color.White,
-            radius = marker.radius + 8f,
+            radius = selectedRadius,
             center = Offset(x, y),
             style = Stroke(width = 3f)
         )
