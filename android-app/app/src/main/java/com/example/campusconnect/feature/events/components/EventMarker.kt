@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
@@ -18,16 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.model.Event
+import com.example.campusconnect.model.EventStatus
 
 // ─── Colour helpers ───────────────────────────────────────────────────────────
 
-/** Maps an event category to a marker tint colour. Extend as needed. */
 fun categoryColor(category: String): Color = when (category.lowercase()) {
     "art", "arts"        -> Color(0xFF7B3FC4)
     "music"              -> Color(0xFF1D9E75)
@@ -37,39 +35,37 @@ fun categoryColor(category: String): Color = when (category.lowercase()) {
     else                 -> Color(0xFFFF6F00)
 }
 
+private val PastMarkerColor = Color(0xFFBDBDBD)   // grey for past events
+
 // ─── EventMarker ─────────────────────────────────────────────────────────────
 
-/**
- * A map marker for a single event.
- *
- * When [isActive] is true the marker scales up ~1.45× with an orange drop-shadow
- * ring underneath, matching the design reference.
- *
- * Place this inside a [Box] using [Modifier.offset] to position it at the correct
- * (xRatio * containerWidth, yRatio * containerHeight) pixel coordinates.
- */
 @Composable
 fun EventMarker(
-    event: Event,
-    isActive: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    event    : Event,
+    isActive : Boolean,
+    onClick  : () -> Unit,
+    modifier : Modifier = Modifier
 ) {
-    // Smooth scale animation
+    val isPast = event.status == EventStatus.PAST
+
+    // Past markers are smaller (0.72f base) and don't scale up on tap
+    val baseScale  = if (isPast) 0.72f else 1f
+    val activeScale = if (isPast) 0.72f else 1.45f
+
     val scale by animateFloatAsState(
-        targetValue = if (isActive) 1.45f else 1f,
+        targetValue   = if (isActive) activeScale else baseScale,
         animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-        label = "markerScale"
+        label         = "markerScale"
     )
 
-    // Pulse ring alpha
     val pulseAlpha by animateFloatAsState(
-        targetValue = if (isActive) 0.4f else 0.2f,
+        targetValue   = if (isActive) 0.4f else 0.2f,
         animationSpec = tween(durationMillis = 250),
-        label = "pulseAlpha"
+        label         = "pulseAlpha"
     )
 
-    val markerColor = categoryColor(event.category)
+    // Past events always grey, live/upcoming use category color
+    val markerColor = if (isPast) PastMarkerColor else categoryColor(event.category)
 
     Column(
         modifier = modifier
@@ -81,39 +77,44 @@ fun EventMarker(
         // ── Pin icon ──────────────────────────────────────────────────────────
         Box(contentAlignment = Alignment.Center) {
             Icon(
-                imageVector = Icons.Default.LocationOn,
+                imageVector        = Icons.Default.LocationOn,
                 contentDescription = event.title,
-                tint = markerColor,
-                modifier = Modifier.size(40.dp)
+                tint               = markerColor,
+                modifier           = Modifier.size(40.dp)
             )
         }
 
         // ── Label chip ────────────────────────────────────────────────────────
         Box(
             modifier = Modifier
-                .background(Color.White, RoundedCornerShape(10.dp))
+                .background(
+                    if (isPast) Color(0xFFF0F0F0) else Color.White,
+                    RoundedCornerShape(10.dp)
+                )
                 .padding(horizontal = 7.dp, vertical = 3.dp)
         ) {
             Text(
-                text = event.title,
-                fontSize = 10.sp,
+                text       = event.title,
+                fontSize   = 10.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF2A2A2A),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                color      = Color(0xFF2A2A2A),
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
             )
         }
 
-        // ── Pulse ring (active glow) ───────────────────────────────────────
-        Spacer(Modifier.height(2.dp))
-        Box(
-            modifier = Modifier
-                .width(if (isActive) 34.dp else 22.dp)
-                .height(if (isActive) 13.dp else 9.dp)
-                .background(
-                    markerColor.copy(alpha = pulseAlpha),
-                    RoundedCornerShape(50)
-                )
-        )
+        // ── Pulse ring — hidden for past events ───────────────────────────────
+        if (!isPast) {
+            Spacer(Modifier.height(2.dp))
+            Box(
+                modifier = Modifier
+                    .width(if (isActive) 34.dp else 22.dp)
+                    .height(if (isActive) 13.dp else 9.dp)
+                    .background(
+                        markerColor.copy(alpha = pulseAlpha),
+                        RoundedCornerShape(50)
+                    )
+            )
+        }
     }
 }

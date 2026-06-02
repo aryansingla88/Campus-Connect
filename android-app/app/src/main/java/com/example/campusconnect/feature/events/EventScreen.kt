@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.events
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,10 +20,17 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.campusconnect.feature.events.components.*
+import com.example.campusconnect.feature.events.components.EventAccessDialog
+import com.example.campusconnect.feature.events.components.EventCreateDialog
+import com.example.campusconnect.feature.events.components.EventHistoryDrawer
+import com.example.campusconnect.feature.events.components.EventMarker
+import com.example.campusconnect.feature.events.components.EventParticipantsDrawer
+import com.example.campusconnect.feature.events.components.EventPreviewSheet
+import com.example.campusconnect.feature.events.components.ModeToggle
+import com.example.campusconnect.feature.events.components.ToolIcon
+import com.example.campusconnect.model.EventStatus
 import kotlinx.coroutines.delay
 
-// ─── Toast message type ───────────────────────────────────────────────────────
 private enum class ToastType { CREATED, UPDATED, DELETED }
 
 @Composable
@@ -41,33 +49,34 @@ fun EventScreen() {
     var showDialog          by remember { mutableStateOf(false) }
     var selectedMode        by remember { mutableStateOf<String?>(null) }
     var isSelectingLocation by remember { mutableStateOf(false) }
+    var wasEditMode         by remember { mutableStateOf(false) }
 
-    // Tracks whether the dialog was last opened in edit mode.
-    // Set at the CALL SITE (onEdit button / new-event button) so it is never
-    // corrupted by recomposition timing — unlike reading isEditMode inside a coroutine.
-    var wasEditMode by remember { mutableStateOf(false) }
+    var showAccessDialog    by remember { mutableStateOf(false) }
+    var accessEvent         by remember { mutableStateOf<com.example.campusconnect.model.Event?>(null) }
 
-    // ── Access dialog state ───────────────────────────────────────────────────
-    var showAccessDialog by remember { mutableStateOf(false) }
-    var accessEvent      by remember { mutableStateOf<com.example.campusconnect.model.Event?>(null) }
+    var showParticipants    by remember { mutableStateOf(false) }
+    var showHistoryDrawer   by remember { mutableStateOf(false) }
 
-    // ── Toast state ───────────────────────────────────────────────────────────
-    var toastMessage by remember { mutableStateOf<String?>(null) }
+    var toastMessage        by remember { mutableStateOf<String?>(null) }
 
     val boxWidth  = remember { mutableStateOf(0) }
     val boxHeight = remember { mutableStateOf(0) }
 
-    // ── Show toast for 2 s then clear ─────────────────────────────────────────
-    LaunchedEffect(toastMessage) {
-        if (toastMessage != null) {
-            delay(2000)
-            toastMessage = null
-        }
+    // Only non-past events appear in the preview pager
+    val filteredEvents = remember(events) {
+        events.filter { it.status != EventStatus.PAST }
     }
 
-    // ── Handle create / update success ────────────────────────────────────────
-    // Uses wasEditMode (set at the call site before any ViewModel calls) so
-    // the correct message is shown regardless of recomposition timing.
+    val filteredActiveIndex = remember(activeIndex, filteredEvents, events) {
+        val activeEvent = events.getOrNull(activeIndex)
+        if (activeEvent != null) filteredEvents.indexOf(activeEvent).coerceAtLeast(0)
+        else 0
+    }
+
+    LaunchedEffect(toastMessage) {
+        if (toastMessage != null) { delay(2000); toastMessage = null }
+    }
+
     LaunchedEffect(state.success) {
         if (state.success) {
             showDialog = false
@@ -77,8 +86,6 @@ fun EventScreen() {
         }
     }
 
-    // ── Handle delete success from ViewModel ──────────────────────────────────
-    // We expose a new deleteSuccess flag — see ViewModel changes below.
     val deleteSuccess by viewModel.deleteSuccess.collectAsState()
     LaunchedEffect(deleteSuccess) {
         if (deleteSuccess) {
@@ -87,19 +94,22 @@ fun EventScreen() {
         }
     }
 
+    // Force-close history drawer when preview opens
+    LaunchedEffect(showPreview) {
+        if (showPreview) showHistoryDrawer = false
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .onSizeChanged {
-                boxWidth.value  = it.width
-                boxHeight.value = it.height
-            }
+            .onSizeChanged { boxWidth.value = it.width; boxHeight.value = it.height }
             .pointerInput(isSelectingLocation) {
                 if (isSelectingLocation) {
                     detectTapGestures { offset ->
-                        val xRatio = offset.x / size.width
-                        val yRatio = offset.y / size.height
-                        viewModel.setScreenLocation(xRatio, yRatio)
+                        viewModel.setScreenLocation(
+                            offset.x / size.width,
+                            offset.y / size.height
+                        )
                         isSelectingLocation = false
                         showDialog = true
                     }
@@ -112,11 +122,12 @@ fun EventScreen() {
 
         // ── MARKERS ───────────────────────────────────────────────────────────
         events.forEachIndexed { index, event ->
+            val isPast = event.status == EventStatus.PAST
             EventMarker(
                 event    = event,
-                isActive = index == activeIndex,
+                isActive = index == activeIndex && !isPast,
                 onClick  = {
-                    if (!isSelectingLocation) viewModel.onMarkerTapped(index)
+                    if (!isSelectingLocation && !isPast) viewModel.onMarkerTapped(index)
                 },
                 modifier = Modifier.offset {
                     IntOffset(
@@ -145,9 +156,9 @@ fun EventScreen() {
             }
         }
 
-        // ── NORMAL UI ─────────────────────────────────────────────────────────
+        // ── TOP BAR ───────────────────────────────────────────────────────────
         if (!isSelectingLocation) {
-
+            // Self / Shared toggles — centered
             Row(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -168,55 +179,65 @@ fun EventScreen() {
                 )
             }
 
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 80.dp, end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                ToolIcon(Icons.Default.Settings)
-                ToolIcon(Icons.Default.Visibility)
+            // History nib — top-right corner, only when drawer closed AND preview not open
+            if (!showHistoryDrawer && !showPreview) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 16.dp, end = 16.dp)
+                        .size(46.dp)
+                        .background(
+                            color = Color(0xFFFF6F00),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        .clickable(
+                            indication        = null,
+                            interactionSource = remember {
+                                androidx.compose.foundation.interaction.MutableInteractionSource()
+                            }
+                        ) { showHistoryDrawer = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        repeat(3) {
+                            Box(
+                                modifier = Modifier
+                                    .width(18.dp)
+                                    .height(2.dp)
+                                    .background(Color.White, RoundedCornerShape(1.dp))
+                            )
+                        }
+                    }
+                }
             }
+        }
 
-            Column(
+        // ── BOTTOM LEFT — View mode button ────────────────────────────────────
+        if (!isSelectingLocation) {
+            ToolIcon(
+                icon     = Icons.Default.Visibility,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 90.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ToolIcon(Icons.Default.Notifications)
-                ToolIcon(Icons.Default.GroupAdd)
-                ToolIcon(Icons.Default.Delete)
-            }
+                    .align(Alignment.BottomStart)
+                    .padding(start = 16.dp, bottom = 16.dp)
+            )
+        }
 
+        // ── BOTTOM RIGHT — Create event button ────────────────────────────────
+        if (!isSelectingLocation) {
             ToolIcon(
                 icon     = Icons.Default.AddLocation,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+                    .padding(end = 16.dp, bottom = 16.dp),
                 onClick  = { isSelectingLocation = true }
-            )
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 16.dp, bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ToolIcon(Icons.Default.PersonAdd)
-                ToolIcon(Icons.Default.Group)
-            }
-
-            ToolIcon(
-                icon     = Icons.Default.Chat,
-                modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
             )
         }
 
         // ── PREVIEW SHEET ─────────────────────────────────────────────────────
-        // Always rendered when showPreview is true — including while the edit
-        // dialog is open (dialog sits on top via zIndex / composition order).
-        if (showPreview && events.isNotEmpty() && !isSelectingLocation) {
+        if (showPreview && filteredEvents.isNotEmpty() && !isSelectingLocation) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -224,49 +245,67 @@ fun EventScreen() {
                     .zIndex(1f)
             ) {
                 EventPreviewSheet(
-                    events        = events,
-                    activeIndex   = activeIndex,
-                    onPageChanged = viewModel::onPreviewPageChanged,
-                    onClose       = viewModel::closePreview,
+                    events        = filteredEvents,
+                    activeIndex   = filteredActiveIndex,
+                    onPageChanged = { index ->
+                        val globalIndex = events.indexOf(filteredEvents.getOrNull(index))
+                        if (globalIndex >= 0) viewModel.onPreviewPageChanged(globalIndex)
+                        showParticipants = false
+                    },
+                    onClose       = {
+                        showParticipants = false
+                        viewModel.closePreview()
+                    },
                     onEdit        = { event ->
                         viewModel.loadEventForEdit(event)
-                        wasEditMode = true   // mark before opening dialog
-                        dialogKey++          // fresh dialog with pre-filled state
+                        wasEditMode = true
+                        dialogKey++
                         showDialog = true
                     },
-                    onRegistration = { /* navigate */ },
-                    onChat         = { /* navigate */ },
-                    onAccess       = { event ->
-                        accessEvent      = event
-                        showAccessDialog = true
-                    },
-                    onDelete       = { event ->
-                        viewModel.requestDelete(event)
-                    }
+                    onRegistration = { },
+                    onChat         = { },
+                    onAccess       = { event -> accessEvent = event; showAccessDialog = true },
+                    onDelete       = { event -> viewModel.requestDelete(event) }
                 )
             }
         }
 
-        // ── TOAST — rendered above preview sheet, orange theme ────────────────
-        // zIndex(2f) floats above preview sheet (zIndex 1f).
+        // ── PARTICIPANTS DRAWER — flush against right edge ────────────────────
+        if (showPreview && filteredEvents.isNotEmpty() && !isSelectingLocation && !showDialog) {
+            val currentEvent = filteredEvents.getOrNull(filteredActiveIndex)
+            if (currentEvent != null) {
+                Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
+                    EventParticipantsDrawer(
+                        event    = currentEvent,
+                        isOpen   = showParticipants,
+                        onToggle = { showParticipants = !showParticipants }
+                    )
+                }
+            }
+        }
+
+        // ── HISTORY DRAWER ────────────────────────────────────────────────────
+        if (!isSelectingLocation && !showDialog && !showPreview) {
+            Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
+                EventHistoryDrawer(
+                    isOpen   = showHistoryDrawer,
+                    onToggle = { showHistoryDrawer = !showHistoryDrawer },
+                    events   = events
+                )
+            }
+        }
+
+        // ── TOAST ─────────────────────────────────────────────────────────────
         toastMessage?.let { msg ->
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .zIndex(2f)
-                    .padding(bottom = 320.dp)   // sits above the preview card
-                    .background(
-                        Color(0xFFFFF3E0),       // same orange-light as "tap anywhere" hint
-                        RoundedCornerShape(20.dp)
-                    )
+                    .zIndex(3f)
+                    .padding(bottom = 320.dp)
+                    .background(Color(0xFFFFF3E0), RoundedCornerShape(20.dp))
                     .padding(horizontal = 20.dp, vertical = 10.dp)
             ) {
-                Text(
-                    text       = msg,
-                    color      = Color(0xFF2A2A2A),
-                    fontWeight = FontWeight.Medium,
-                    fontSize   = 16.sp
-                )
+                Text(msg, color = Color(0xFF2A2A2A), fontWeight = FontWeight.Medium, fontSize = 16.sp)
             }
         }
 
@@ -276,38 +315,15 @@ fun EventScreen() {
                 onDismissRequest = viewModel::cancelDelete,
                 shape            = RoundedCornerShape(20.dp),
                 containerColor   = Color.White,
-                title = {
-                    Text(
-                        "Delete Event?",
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = 18.sp,
-                        color      = Color(0xFF2A2A2A)
-                    )
-                },
-                text = {
-                    Text(
-                        "Are you sure you want to delete \"${event.title}\"? This cannot be undone.",
-                        fontSize   = 14.sp,
-                        color      = Color(0xFF555555),
-                        lineHeight = 20.sp
-                    )
-                },
+                title = { Text("Delete Event?", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF2A2A2A)) },
+                text  = { Text("Are you sure you want to delete \"${event.title}\"? This cannot be undone.", fontSize = 14.sp, color = Color(0xFF555555), lineHeight = 20.sp) },
                 dismissButton = {
-                    OutlinedButton(
-                        onClick = viewModel::cancelDelete,
-                        shape   = RoundedCornerShape(12.dp),
-                        border  = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp),
-                        colors  = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6F00))
-                    ) {
+                    OutlinedButton(onClick = viewModel::cancelDelete, shape = RoundedCornerShape(12.dp), border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6F00))) {
                         Text("Cancel", fontWeight = FontWeight.SemiBold)
                     }
                 },
                 confirmButton = {
-                    Button(
-                        onClick = viewModel::confirmDelete,
-                        shape   = RoundedCornerShape(12.dp),
-                        colors  = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
-                    ) {
+                    Button(onClick = viewModel::confirmDelete, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))) {
                         Text("Delete", color = Color.White, fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -316,23 +332,19 @@ fun EventScreen() {
 
         // ── ACCESS DIALOG ─────────────────────────────────────────────────────
         if (showAccessDialog && accessEvent != null) {
-            com.example.campusconnect.feature.events.components.EventAccessDialog(
-                event   = accessEvent!!,
-                onDismiss = {
-                    showAccessDialog = false
-                    accessEvent      = null
-                }
+            EventAccessDialog(
+                event     = accessEvent!!,
+                onDismiss = { showAccessDialog = false; accessEvent = null }
             )
         }
 
-        // ── CREATE / EDIT DIALOG — highest zIndex, on top of everything ───────
+        // ── CREATE / EDIT DIALOG ──────────────────────────────────────────────
         if (showDialog) {
-            Box(modifier = Modifier.zIndex(3f)) {
+            Box(modifier = Modifier.zIndex(4f)) {
                 key(dialogKey) {
                     EventCreateDialog(
                         state      = state,
                         isEditMode = isEditMode,
-
                         onTitleChange            = viewModel::updateTitle,
                         onDescriptionChange      = viewModel::updateDescription,
                         onDateChange             = viewModel::updateDate,
@@ -348,30 +360,10 @@ fun EventScreen() {
                         onRegistrationTypeChange = viewModel::updateRegistrationType,
                         onRegistrationLinkChange = viewModel::updateRegistrationLink,
                         onEnableChatToggle       = viewModel::updateEnableChat,
-
-                        onEditLocation = {
-                            showDialog = false
-                            isSelectingLocation = true
-                        },
-
-                        onDismiss = {
-                            // Cancel — close dialog only, preview stays
-                            wasEditMode = false
-                            viewModel.resetForm()
-                            showDialog = false
-                        },
-
-                        onCreate = {
-                            wasEditMode = false  // mark before submitting
-                            viewModel.createEvent(createdBy = 1)
-                            // No dialogKey++ — avoids the empty-dialog flash on success
-                        },
-
-                        onUpdate = {
-                            wasEditMode = true   // ensure correct toast on success
-                            viewModel.updateEvent()
-                            // LaunchedEffect(state.success) closes dialog cleanly
-                        }
+                        onEditLocation = { showDialog = false; isSelectingLocation = true },
+                        onDismiss = { wasEditMode = false; viewModel.resetForm(); showDialog = false },
+                        onCreate  = { wasEditMode = false; viewModel.createEvent(createdBy = 1) },
+                        onUpdate  = { wasEditMode = true; viewModel.updateEvent() }
                     )
                 }
             }
