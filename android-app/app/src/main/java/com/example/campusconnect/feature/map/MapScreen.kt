@@ -32,6 +32,9 @@ fun MapScreen(
             markers = uiState.renderData,
             onMarkerClick = { markerId ->
                 viewModel.selectMarker(markerId)
+            },
+            onMapTap = { x, y ->
+                android.util.Log.d("MAP_PIXEL", "MapScreen received pixel: x=$x, y=$y")
             }
         )
 

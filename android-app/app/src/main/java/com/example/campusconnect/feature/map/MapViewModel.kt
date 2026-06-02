@@ -7,20 +7,13 @@ import com.example.campusconnect.feature.map.mapengine.MarkerType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
+import com.example.campusconnect.feature.map.mapengine.MapCalibration
 class MapViewModel : ViewModel() {
 
     private val fakeMapService = FakeMapService()
     private val markerRenderer = MarkerRenderer()
 
-    private val coordinateConverter = CoordinateConverter(
-        mapWidth = 3000f,
-        mapHeight = 3000f,
-        minLat = 29.944000,
-        maxLat = 29.948500,
-        minLng = 76.814000,
-        maxLng = 76.820000
-    )
+    private val coordinateConverter = MapCalibration.converter
 
     private val _uiState = MutableStateFlow(MapUiState())
     val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
@@ -37,8 +30,8 @@ class MapViewModel : ViewModel() {
             )
 
             marker.copy(
-                x = point.first,
-                y = point.second
+                x = point.x,
+                y = point.y
             )
         }
 

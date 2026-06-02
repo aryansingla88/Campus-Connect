@@ -17,12 +17,12 @@ object FakePoiMapData {
         ),
 
         MapMarker(
-            id = "poi_2",
-            sourceId = "p2",
+            id = "test_p1",
+            sourceId = "test_p1",
             type = MarkerType.POI,
-            latitude = 29.946700,
-            longitude = 76.816600,
-            label = "Lab"
+            latitude = 29.943455,
+            longitude = 76.818978,
+            label = "Test P1"
         )
     )
 }
