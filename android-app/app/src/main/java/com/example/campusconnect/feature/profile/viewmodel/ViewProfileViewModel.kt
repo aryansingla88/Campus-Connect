@@ -3,8 +3,7 @@ package com.example.campusconnect.feature.profile.viewmodel
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.campusconnect.feature.profile.data.FakeProfileService
-import com.example.campusconnect.feature.profile.model.PublicUserProfile
+import com.example.campusconnect.feature.profile.data.fake.FakeProfileService
 
 class ViewProfileViewModel(userId: String) : BaseProfileViewModel() {
 

@@ -74,6 +74,9 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
     implementation("androidx.compose.material:material-icons-extended")
 
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
     implementation("androidx.compose.foundation:foundation:1.6.x")
 }
 

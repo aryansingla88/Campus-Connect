@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.data
+package com.example.campusconnect.feature.profile.data.fake
 
 import com.example.campusconnect.feature.profile.model.PublicUserProfile
 

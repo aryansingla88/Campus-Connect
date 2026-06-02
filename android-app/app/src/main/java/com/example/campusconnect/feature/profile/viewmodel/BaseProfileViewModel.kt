@@ -2,10 +2,10 @@ package com.example.campusconnect.feature.profile.viewmodel
 
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
-import com.example.campusconnect.feature.profile.data.FakeClubsService
-import com.example.campusconnect.feature.profile.data.FakeConnectionsService
-import com.example.campusconnect.feature.profile.data.FakeHonorService
-import com.example.campusconnect.feature.profile.data.FakeInterestsService
+import com.example.campusconnect.feature.profile.data.fake.FakeClubsService
+import com.example.campusconnect.feature.profile.data.fake.FakeConnectionsService
+import com.example.campusconnect.feature.profile.data.fake.FakeHonorService
+import com.example.campusconnect.feature.profile.data.fake.FakeInterestsService
 import com.example.campusconnect.feature.profile.model.PublicUserProfile
 import com.example.campusconnect.feature.profile.model.StatPanel
 

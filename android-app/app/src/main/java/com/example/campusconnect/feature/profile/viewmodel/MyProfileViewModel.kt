@@ -1,11 +1,10 @@
 package com.example.campusconnect.feature.profile.viewmodel
 
 import androidx.compose.runtime.*
-import com.example.campusconnect.feature.profile.data.FakeProfileService
+import com.example.campusconnect.feature.profile.data.fake.FakeProfileService
 import com.example.campusconnect.feature.profile.model.PublicUserProfile
 import com.example.campusconnect.feature.profile.model.StatPanel
-import androidx.compose.runtime.mutableStateListOf
-import com.example.campusconnect.feature.profile.data.FakeRequestsService
+import com.example.campusconnect.feature.profile.data.fake.FakeRequestsService
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
 class MyProfileViewModel : BaseProfileViewModel() {
 
