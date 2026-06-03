@@ -25,7 +25,8 @@ import com.example.campusconnect.R
 import com.example.campusconnect.feature.map.mapengine.MarkerRenderData
 import com.example.campusconnect.feature.map.mapengine.MarkerType
 import kotlin.math.pow
-
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 private const val MAP_IMAGE_WIDTH = 3000f
 private const val MAP_IMAGE_HEIGHT = 3000f
 
@@ -34,12 +35,60 @@ fun MapView(
     modifier: Modifier = Modifier,
     markers: List<MarkerRenderData> = emptyList(),
     onMarkerClick: (String) -> Unit = {},
-    onMapTap: (Float, Float) -> Unit = { _, _ -> }
+    onMapTap: (Float, Float) -> Unit = { _, _ -> },
+    initialFocusMarkerId: String? = null,
+    initialZoom: Float = 2.2f
 ) {
     var scale by remember { mutableStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
+    var initialFocusApplied by remember { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .onSizeChanged { containerSize = it }
+    ) {
+        LaunchedEffect(containerSize, markers, initialFocusMarkerId) {
+            if (
+                !initialFocusApplied &&
+                containerSize.width > 0 &&
+                containerSize.height > 0 &&
+                markers.isNotEmpty()
+            ) {
+                val focusMarker = markers.firstOrNull { it.id == initialFocusMarkerId }
+                    ?: markers.firstOrNull()
+
+                focusMarker?.let { marker ->
+
+                    val bounds = calculateImageBounds(
+                        width = containerSize.width.toFloat(),
+                        height = containerSize.height.toFloat()
+                    )
+
+                    val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
+                    val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
+
+                    val targetScale = initialZoom.coerceIn(1f, 5f)
+
+                    val targetOffset = Offset(
+                        x = containerSize.width / 2f - mapX * targetScale,
+                        y = containerSize.height / 2f - mapY * targetScale
+                    )
+
+                    scale = targetScale
+                    offset = clampOffsetSmooth(
+                        offset = targetOffset,
+                        scale = targetScale,
+                        containerWidth = containerSize.width.toFloat(),
+                        containerHeight = containerSize.height.toFloat(),
+                        bounds = bounds
+                    )
+
+                    initialFocusApplied = true
+                }
+            }
+        }
 
         Image(
             painter = painterResource(id = R.drawable.campus_map),
