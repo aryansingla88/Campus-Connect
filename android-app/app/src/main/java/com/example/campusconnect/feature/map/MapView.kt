@@ -56,22 +56,17 @@ fun MapView(
             contentScale = ContentScale.Fit
         )
 
-        Canvas(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val bounds = calculateImageBounds(size.width, size.height)
 
             markers.forEach { marker ->
                 val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
                 val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
 
-                val screenX = mapX * scale + offset.x
-                val screenY = mapY * scale + offset.y
-
                 drawMarker(
                     marker = marker,
-                    x = screenX,
-                    y = screenY,
+                    x = mapX * scale + offset.x,
+                    y = mapY * scale + offset.y,
                     zoom = scale
                 )
             }
@@ -81,14 +76,34 @@ fun MapView(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(1f, 5f)
-                        offset += pan
+                    detectTransformGestures { centroid, pan, zoom, _ ->
+                        val bounds = calculateImageBounds(
+                            width = size.width.toFloat(),
+                            height = size.height.toFloat()
+                        )
+
+                        val oldScale = scale
+                        val newScale = (oldScale * zoom).coerceIn(1f, 5f)
+                        val zoomChange = newScale / oldScale
+
+                        val newOffset = if (newScale <= 1.01f) {
+                            Offset.Zero
+                        } else {
+                            centroid - (centroid - offset) * zoomChange + pan
+                        }
+
+                        scale = newScale
+                        offset = clampOffsetSmooth(
+                            offset = newOffset,
+                            scale = newScale,
+                            containerWidth = size.width.toFloat(),
+                            containerHeight = size.height.toFloat(),
+                            bounds = bounds
+                        )
                     }
                 }
                 .pointerInput(markers, scale, offset) {
                     detectTapGestures { tap ->
-
                         val bounds = calculateImageBounds(
                             width = size.width.toFloat(),
                             height = size.height.toFloat()
@@ -161,6 +176,39 @@ private fun calculateImageBounds(
             height = imageHeight
         )
     }
+}
+
+private fun clampOffsetSmooth(
+    offset: Offset,
+    scale: Float,
+    containerWidth: Float,
+    containerHeight: Float,
+    bounds: ImageBounds
+): Offset {
+    if (scale <= 1.01f) return Offset.Zero
+
+    val mapWidth = bounds.width * scale
+    val mapHeight = bounds.height * scale
+
+    val minX = containerWidth - ((bounds.left + bounds.width) * scale)
+    val maxX = -(bounds.left * scale)
+
+    val minY = containerHeight - ((bounds.top + bounds.height) * scale)
+    val maxY = -(bounds.top * scale)
+
+    val finalX = if (mapWidth <= containerWidth) {
+        (containerWidth - mapWidth) / 2f - bounds.left * scale
+    } else {
+        offset.x.coerceIn(minX, maxX)
+    }
+
+    val finalY = if (mapHeight <= containerHeight) {
+        (containerHeight - mapHeight) / 2f - bounds.top * scale
+    } else {
+        offset.y.coerceIn(minY, maxY)
+    }
+
+    return Offset(finalX, finalY)
 }
 
 private fun DrawScope.drawMarker(
