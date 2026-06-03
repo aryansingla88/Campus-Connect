@@ -29,7 +29,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 private const val MAP_IMAGE_WIDTH = 3000f
 private const val MAP_IMAGE_HEIGHT = 3000f
-
+private const val MIN_ZOOM = 2.1f
+private const val MAX_ZOOM = 5f
 @Composable
 fun MapView(
     modifier: Modifier = Modifier,
@@ -69,8 +70,7 @@ fun MapView(
                     val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
                     val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
 
-                    val targetScale = initialZoom.coerceIn(1f, 5f)
-
+                    val targetScale = initialZoom.coerceIn(MIN_ZOOM, MAX_ZOOM)
                     val targetOffset = Offset(
                         x = containerSize.width / 2f - mapX * targetScale,
                         y = containerSize.height / 2f - mapY * targetScale
@@ -132,7 +132,7 @@ fun MapView(
                         )
 
                         val oldScale = scale
-                        val newScale = (oldScale * zoom).coerceIn(1f, 5f)
+                        val newScale = (oldScale * zoom).coerceIn(MIN_ZOOM, MAX_ZOOM)
                         val zoomChange = newScale / oldScale
 
                         val newOffset = if (newScale <= 1.01f) {
@@ -234,25 +234,26 @@ private fun clampOffsetSmooth(
     containerHeight: Float,
     bounds: ImageBounds
 ): Offset {
-    if (scale <= 1.01f) return Offset.Zero
-
     val mapWidth = bounds.width * scale
     val mapHeight = bounds.height * scale
 
-    val minX = containerWidth - ((bounds.left + bounds.width) * scale)
-    val maxX = -(bounds.left * scale)
+    val mapLeft = bounds.left * scale
+    val mapTop = bounds.top * scale
 
-    val minY = containerHeight - ((bounds.top + bounds.height) * scale)
-    val maxY = -(bounds.top * scale)
+    val minX = containerWidth - mapLeft - mapWidth
+    val maxX = -mapLeft
+
+    val minY = containerHeight - mapTop - mapHeight
+    val maxY = -mapTop
 
     val finalX = if (mapWidth <= containerWidth) {
-        (containerWidth - mapWidth) / 2f - bounds.left * scale
+        (containerWidth - mapWidth) / 2f - mapLeft
     } else {
         offset.x.coerceIn(minX, maxX)
     }
 
     val finalY = if (mapHeight <= containerHeight) {
-        (containerHeight - mapHeight) / 2f - bounds.top * scale
+        (containerHeight - mapHeight) / 2f - mapTop
     } else {
         offset.y.coerceIn(minY, maxY)
     }
