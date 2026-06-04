@@ -21,7 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.core.components.PanelSearchBar
 import com.example.campusconnect.feature.map.mapengine.MarkerType
-
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.ui.graphics.vector.ImageVector
 private val OrangePrimary = Color(0xFFFF6F00)
 private val OrangeTop = Color(0xFFFFA726)
 private val OrangeLight = Color(0xFFFFF3E0)
@@ -69,6 +72,8 @@ fun MapScreen(
 
         SideTab(
             text = "PROFILE",
+            icon = Icons.Default.Person,
+            isLeftSide = true,
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .padding(start = 0.dp)
@@ -76,6 +81,8 @@ fun MapScreen(
 
         SideTab(
             text = "CHAT",
+            icon = Icons.Default.Chat,
+            isLeftSide = false,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = 0.dp)
@@ -149,16 +156,19 @@ private fun TopMapControls(
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        IconButton(
-            onClick = onSettingsClick,
+        Box(
             modifier = Modifier
-                .size(50.dp)
-                .background(OrangeGradient, CircleShape)
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(OrangeLight.copy(alpha = 0.95f))
+                .clickable { onSettingsClick() },
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Settings,
                 contentDescription = "Settings",
-                tint = Color.White
+                tint = OrangePrimary,
+                modifier = Modifier.size(18.dp)
             )
         }
     }
@@ -171,7 +181,7 @@ private fun DiamondButton(
 ) {
     Box(
         modifier = modifier
-            .size(34.dp)
+            .size(30.dp)
             .graphicsLayer { rotationZ = 45f }
             .clip(RoundedCornerShape(8.dp))
             .background(OrangeGradient)
@@ -242,34 +252,64 @@ private fun FilterButton(
 @Composable
 private fun SideTab(
     text: String,
+    icon: ImageVector,
+    isLeftSide: Boolean,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier
-            .width(30.dp)
-            .height(260.dp),
-        shape = RoundedCornerShape(20.dp),
+            .width(28.dp)
+            .height(96.dp),
+        shape = if (isLeftSide) {
+            RoundedCornerShape(
+                topStart = 0.dp,
+                bottomStart = 0.dp,
+                topEnd = 14.dp,
+                bottomEnd = 14.dp
+            )
+        } else {
+            RoundedCornerShape(
+                topStart = 14.dp,
+                bottomStart = 14.dp,
+                topEnd = 0.dp,
+                bottomEnd = 0.dp
+            )
+        },
         color = OrangeLight.copy(alpha = 0.92f),
-        tonalElevation = 5.dp,
-        shadowElevation = 5.dp
+        tonalElevation = 4.dp,
+        shadowElevation = 4.dp
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = text,
-                color = TextDark,
-                maxLines = 1,
-                softWrap = false,
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Medium,
+            Row(
                 modifier = Modifier
-                    .requiredWidth(260.dp)
+                    .requiredWidth(96.dp)
                     .graphicsLayer {
                         rotationZ = -90f
-                    }
-            )
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = text,
+                    tint = TextDark,
+                    modifier = Modifier.size(12.dp)
+                )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Text(
+                    text = text,
+                    color = TextDark,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
         }
     }
 }
