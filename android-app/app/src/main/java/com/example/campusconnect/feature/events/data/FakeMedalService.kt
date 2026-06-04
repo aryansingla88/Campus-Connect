@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.events.components
+package com.example.campusconnect.feature.events.data
 
 // ─── Medal models ─────────────────────────────────────────────────────────────
 

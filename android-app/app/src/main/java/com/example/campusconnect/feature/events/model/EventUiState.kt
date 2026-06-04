@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.events
+package com.example.campusconnect.feature.events.model
 
 data class EventUiState(
     val title: String = "",

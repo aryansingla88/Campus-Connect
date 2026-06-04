@@ -1,5 +1,7 @@
-package com.example.campusconnect.feature.events
+package com.example.campusconnect.feature.events.ui.screen
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,22 +19,26 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.campusconnect.feature.events.components.EventAccessDialog
-import com.example.campusconnect.feature.events.components.EventCreateDialog
-import com.example.campusconnect.feature.events.components.EventHistoryDrawer
-import com.example.campusconnect.feature.events.components.EventMarker
-import com.example.campusconnect.feature.events.components.EventParticipantsDrawer
-import com.example.campusconnect.feature.events.components.EventPreviewSheet
-import com.example.campusconnect.feature.events.components.ModeToggle
-import com.example.campusconnect.feature.events.components.ToolIcon
+import com.example.campusconnect.feature.events.viewmodel.EventViewModel
+import com.example.campusconnect.feature.events.ui.dialog.EventAccessDialog
+import com.example.campusconnect.feature.events.ui.dialog.EventCreateDialog
+import com.example.campusconnect.feature.events.ui.drawer.EventHistoryDrawer
+import com.example.campusconnect.feature.events.ui.components.EventMarker
+import com.example.campusconnect.feature.events.ui.drawer.EventParticipantsDrawer
+import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
+import com.example.campusconnect.feature.events.ui.components.ModeToggle
+import com.example.campusconnect.feature.events.ui.components.ToolIcon
+import com.example.campusconnect.model.Event
 import com.example.campusconnect.model.EventStatus
 import kotlinx.coroutines.delay
 
 private enum class ToastType { CREATED, UPDATED, DELETED }
 
+@RequiresApi(Build.VERSION_CODES.N)
 @Composable
 fun EventScreen() {
 
@@ -52,7 +58,7 @@ fun EventScreen() {
     var wasEditMode         by remember { mutableStateOf(false) }
 
     var showAccessDialog    by remember { mutableStateOf(false) }
-    var accessEvent         by remember { mutableStateOf<com.example.campusconnect.model.Event?>(null) }
+    var accessEvent         by remember { mutableStateOf<Event?>(null) }
 
     var showParticipants    by remember { mutableStateOf(false) }
     var showHistoryDrawer   by remember { mutableStateOf(false) }
@@ -193,7 +199,7 @@ fun EventScreen() {
                         .clickable(
                             indication        = null,
                             interactionSource = remember {
-                                androidx.compose.foundation.interaction.MutableInteractionSource()
+                                MutableInteractionSource()
                             }
                         ) { showHistoryDrawer = true },
                     contentAlignment = Alignment.Center

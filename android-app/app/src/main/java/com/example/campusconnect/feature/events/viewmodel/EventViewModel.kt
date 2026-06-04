@@ -1,9 +1,14 @@
-package com.example.campusconnect.feature.events
+package com.example.campusconnect.feature.events.viewmodel
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
+import com.example.campusconnect.feature.events.data.FakeEventService
+import com.example.campusconnect.feature.events.model.EventUiState
+import com.example.campusconnect.model.Event
+import com.example.campusconnect.model.EventStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import com.example.campusconnect.model.Event
 
 class EventViewModel : ViewModel() {
 
@@ -75,26 +80,26 @@ class EventViewModel : ViewModel() {
         _editingEventId.value = event.id
         _isEditMode.value = true
         _uiState.value = EventUiState(
-            title           = event.title,
-            description     = event.description ?: "",
-            isPoster        = event.isPoster,
-            posterUrl       = event.posterUrl ?: "",
-            selectedRatio   = Pair(event.xRatio, event.yRatio),
-            date            = event.date,
-            venue           = event.venue,
-            startTime       = event.startTime,
-            endTime         = event.endTime ?: "",
-            clubName        = event.clubName,
-            category        = event.category,
-            visibilityType  = event.visibilityType,
+            title = event.title,
+            description = event.description ?: "",
+            isPoster = event.isPoster,
+            posterUrl = event.posterUrl ?: "",
+            selectedRatio = Pair(event.xRatio, event.yRatio),
+            date = event.date,
+            venue = event.venue,
+            startTime = event.startTime,
+            endTime = event.endTime ?: "",
+            clubName = event.clubName,
+            category = event.category,
+            visibilityType = event.visibilityType,
             visibilityValue = event.visibilityValue,
             registrationType = when {
-                event.inAppRegistration    -> "In-App"
+                event.inAppRegistration -> "In-App"
                 event.registrationRequired -> "Link"
-                else                       -> "No"
+                else -> "No"
             },
             registrationLink = event.registrationLink,
-            enableChat       = event.enableChat
+            enableChat = event.enableChat
         )
     }
 
@@ -121,28 +126,29 @@ class EventViewModel : ViewModel() {
         val inAppRegistration    = state.registrationType == "In-App"
 
         val updated = Event(
-            id                   = id,
-            title                = state.title,
-            description          = state.description,
-            latitude             = 0.0,
-            longitude            = 0.0,
-            xRatio               = state.selectedRatio?.first  ?: 0.5f,
-            yRatio               = state.selectedRatio?.second ?: 0.5f,
-            date                 = state.date,
-            startTime            = state.startTime,
-            endTime              = if (state.endTime.isBlank()) null else state.endTime,
-            createdBy            = 1,
-            clubName             = state.clubName,
-            isPoster             = state.isPoster,
-            posterUrl            = if (state.posterUrl.isBlank()) null else state.posterUrl,
-            category             = state.category,
-            visibilityType       = state.visibilityType,
-            visibilityValue      = state.visibilityValue,
+            id = id,
+            title = state.title,
+            description = state.description,
+            latitude = 0.0,
+            longitude = 0.0,
+            xRatio = state.selectedRatio?.first ?: 0.5f,
+            yRatio = state.selectedRatio?.second ?: 0.5f,
+            date = state.date,
+            startTime = state.startTime,
+            endTime = if (state.endTime.isBlank()) null else state.endTime,
+            createdBy = 1,
+            clubName = state.clubName,
+            isPoster = state.isPoster,
+            posterUrl = if (state.posterUrl.isBlank()) null else state.posterUrl,
+            category = state.category,
+            visibilityType = state.visibilityType,
+            visibilityValue = state.visibilityValue,
             registrationRequired = registrationRequired,
-            registrationLink     = state.registrationLink,
-            inAppRegistration    = inAppRegistration,
-            venue                = state.venue,
-            enableChat           = state.enableChat
+            registrationLink = state.registrationLink,
+            inAppRegistration = inAppRegistration,
+            venue = state.venue,
+            enableChat = state.enableChat,
+            status = EventStatus.LIVE
         )
 
         val success = fakeService.updateEvent(updated)
@@ -162,6 +168,7 @@ class EventViewModel : ViewModel() {
     }
 
     /** User confirmed deletion. */
+    @RequiresApi(Build.VERSION_CODES.N)
     fun confirmDelete() {
         val event = _pendingDeleteEvent.value ?: return
         fakeService.deleteEvent(event.id)
@@ -235,28 +242,29 @@ class EventViewModel : ViewModel() {
         val inAppRegistration    = state.registrationType == "In-App"
 
         val event = Event(
-            id                   = 0,
-            title                = state.title,
-            description          = state.description,
-            latitude             = 0.0,
-            longitude            = 0.0,
-            xRatio               = state.selectedRatio?.first  ?: 0.5f,
-            yRatio               = state.selectedRatio?.second ?: 0.5f,
-            date                 = state.date,
-            startTime            = state.startTime,
-            endTime              = if (state.endTime.isBlank()) null else state.endTime,
-            createdBy            = createdBy,
-            clubName             = state.clubName,
-            isPoster             = state.isPoster,
-            posterUrl            = if (state.posterUrl.isBlank()) null else state.posterUrl,
-            category             = state.category,
-            visibilityType       = state.visibilityType,
-            visibilityValue      = state.visibilityValue,
+            id = 0,
+            title = state.title,
+            description = state.description,
+            latitude = 0.0,
+            longitude = 0.0,
+            xRatio = state.selectedRatio?.first ?: 0.5f,
+            yRatio = state.selectedRatio?.second ?: 0.5f,
+            date = state.date,
+            startTime = state.startTime,
+            endTime = if (state.endTime.isBlank()) null else state.endTime,
+            createdBy = createdBy,
+            clubName = state.clubName,
+            isPoster = state.isPoster,
+            posterUrl = if (state.posterUrl.isBlank()) null else state.posterUrl,
+            category = state.category,
+            visibilityType = state.visibilityType,
+            visibilityValue = state.visibilityValue,
             registrationRequired = registrationRequired,
-            registrationLink     = state.registrationLink,
-            inAppRegistration    = inAppRegistration,
-            venue                = state.venue,
-            enableChat           = state.enableChat
+            registrationLink = state.registrationLink,
+            inAppRegistration = inAppRegistration,
+            venue = state.venue,
+            enableChat = state.enableChat,
+            status = EventStatus.LIVE
         )
 
         val success = fakeService.createEvent(event)

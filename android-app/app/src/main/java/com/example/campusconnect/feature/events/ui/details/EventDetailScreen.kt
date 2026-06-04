@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.events
+package com.example.campusconnect.feature.events.ui.details
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
