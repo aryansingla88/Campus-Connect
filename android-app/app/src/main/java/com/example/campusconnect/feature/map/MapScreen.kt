@@ -25,6 +25,17 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.Event
+private enum class MapMode {
+    NONE,
+    VIEW,
+    SELECT,
+    EVENT
+}
 private val OrangePrimary = Color(0xFFFF6F00)
 private val OrangeTop = Color(0xFFFFA726)
 private val OrangeLight = Color(0xFFFFF3E0)
@@ -44,7 +55,7 @@ fun MapScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showFilters by remember { mutableStateOf(false) }
     var showModes by remember { mutableStateOf(false) }
-
+    var selectedMode by remember { mutableStateOf(MapMode.NONE) }
     Box(modifier = Modifier.fillMaxSize()) {
 
         MapView(
@@ -91,8 +102,15 @@ fun MapScreen(
         ModeButton(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 35.dp),
-            onClick = { showModes = !showModes }
+                .padding(bottom = 40.dp),
+            onClick = {
+                val nextShowModes = !showModes
+                showModes = nextShowModes
+
+                if (!nextShowModes) {
+                    selectedMode = MapMode.NONE
+                }
+            }
         )
 
         if (showFilters) {
@@ -109,6 +127,10 @@ fun MapScreen(
 
         if (showModes) {
             ModePanel(
+                selectedMode = selectedMode,
+                onModeSelected = { mode ->
+                    selectedMode = mode
+                },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 90.dp)
@@ -321,21 +343,37 @@ private fun ModeButton(
 ) {
     Box(
         modifier = modifier
-            .size(60.dp)
-            .background(OrangeGradient, CircleShape)
+            .size(66.dp)
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFFFA726),
+                        Color(0xFFFF6F00)
+                    )
+                ),
+                shape = CircleShape
+            )
+            .border(
+                width = 2.dp,
+                color = Color.White.copy(alpha = 0.35f),
+                shape = CircleShape
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Mode",
-            color = Color.White,
-            fontWeight = FontWeight.Medium
+        Icon(
+            imageVector = Icons.Default.GridView,
+            contentDescription = "Map Modes",
+            tint = Color.White,
+            modifier = Modifier.size(27.dp)
         )
     }
 }
 
 @Composable
 private fun ModePanel(
+    selectedMode: MapMode,
+    onModeSelected: (MapMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -346,6 +384,9 @@ private fun ModePanel(
     ) {
         SmallMode(
             text = "View",
+            icon = Icons.Default.Visibility,
+            selected = selectedMode == MapMode.VIEW,
+            onClick = { onModeSelected(MapMode.VIEW) },
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = 1.dp, top = 20.dp)
@@ -353,11 +394,17 @@ private fun ModePanel(
 
         SmallMode(
             text = "Select",
+            icon = Icons.Default.NearMe,
+            selected = selectedMode == MapMode.SELECT,
+            onClick = { onModeSelected(MapMode.SELECT) },
             modifier = Modifier.align(Alignment.TopCenter)
         )
 
         SmallMode(
             text = "Event",
+            icon = Icons.Default.Event,
+            selected = selectedMode == MapMode.EVENT,
+            onClick = { onModeSelected(MapMode.EVENT) },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(end = 1.dp, top = 20.dp)
@@ -368,21 +415,75 @@ private fun ModePanel(
 @Composable
 private fun SmallMode(
     text: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.size(60.dp),
-        shape = CircleShape,
-        color = OrangeLight.copy(alpha = 0.96f),
-        tonalElevation = 5.dp,
-        shadowElevation = 5.dp
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = text,
-                color = TextDark,
-                fontWeight = FontWeight.Medium
+    val bgColor = if (selected) {
+        OrangeLight.copy(alpha = 0.96f)
+    } else {
+        Color.White.copy(alpha = 0.94f)
+    }
+
+    val borderColor = if (selected) {
+        OrangePrimary
+    } else {
+        Color.Transparent
+    }
+
+    val contentColor = if (selected) {
+        OrangePrimary
+    } else {
+        Color(0xFF6F7682)
+    }
+
+    Box(
+        modifier = modifier
+            .size(64.dp)
+            .background(
+                color = if (selected) OrangePrimary.copy(alpha = 0.18f) else Color.Transparent,
+                shape = CircleShape
             )
+            .padding(if (selected) 3.dp else 0.dp)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(
+                    width = if (selected) 3.dp else 0.dp,
+                    color = borderColor,
+                    shape = CircleShape
+                ),
+            shape = CircleShape,
+            color = bgColor,
+            tonalElevation = if (selected) 8.dp else 5.dp,
+            shadowElevation = if (selected) 10.dp else 5.dp
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = text,
+                    tint = contentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                Text(
+                    text = text,
+                    color = if (selected) OrangePrimary else TextDark,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
