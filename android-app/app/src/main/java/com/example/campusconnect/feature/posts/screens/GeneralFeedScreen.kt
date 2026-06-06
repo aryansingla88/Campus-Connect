@@ -32,7 +32,7 @@ import com.example.campusconnect.feature.posts.models.dummyTopics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GeneralFeedScreen() {
+fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
 
     var selectedTab by remember {
         mutableIntStateOf(0)
@@ -179,7 +179,10 @@ fun GeneralFeedScreen() {
 
                             com.example.campusconnect.feature.posts.components.PostCard(
                                 post = post,
-                                onClick = {}
+                                onClick = {
+
+                                    onPostClick(post.id)
+                                }
                             )
                         }
                     }

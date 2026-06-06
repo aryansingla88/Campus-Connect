@@ -4,11 +4,13 @@ data class Comment(
 
     val id: Int,
 
+    val postId: Int,
+
+    val parentCommentId: Int?,
+
     val username: String,
 
     val text: String,
 
-    val createdAt: String,
-
-    val replies: List<Comment> = emptyList()
+    val createdAt: String
 )
