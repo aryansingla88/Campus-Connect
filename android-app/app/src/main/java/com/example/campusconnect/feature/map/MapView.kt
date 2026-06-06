@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.map
 
+import androidx.compose.ui.geometry.CornerRadius
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -267,124 +268,54 @@ private fun DrawScope.drawMarker(
     y: Float,
     zoom: Float
 ) {
-    val zoomBoost = (zoom - 1f).coerceIn(0f, 2f) * 2.5f
-    val visualRadius = (marker.radius + zoomBoost).coerceIn(10f, 26f)
-    val selectedRadius = visualRadius + 7f
-    val labelTextSize = (24f + zoomBoost).coerceIn(24f, 30f)
+    val zoomBoost = (zoom - 1f).coerceIn(0f, 2f) * 2.2f
+    val visualRadius = (marker.radius + zoomBoost).coerceIn(8f, 30f)
+    val selectedRadius = visualRadius + 8f
+    val labelTextSize = if (marker.isHighlighted) 27f else 23f
 
     when (marker.type) {
 
         MarkerType.POI -> {
-            drawCircle(
-                color = Color(marker.color),
+            drawPoiMarker(
+                marker = marker,
+                x = x,
+                y = y,
                 radius = visualRadius,
-                center = Offset(x, y)
-            )
-
-            drawContext.canvas.nativeCanvas.drawText(
-                marker.label,
-                x + visualRadius + 6f,
-                y + 6f,
-                android.graphics.Paint().apply {
-                    color = android.graphics.Color.WHITE
-                    textSize = labelTextSize
-                    isFakeBoldText = true
-                }
+                labelTextSize = labelTextSize
             )
         }
 
         MarkerType.USER -> {
-            val isFemale = marker.gender == "female"
-
-            drawCircle(
-                color = Color(marker.color),
-                radius = visualRadius,
-                center = Offset(x, y)
-            )
-
-            drawCircle(
-                color = Color.White,
-                radius = 4f,
-                center = Offset(x - 5f, y - 3f)
-            )
-
-            drawCircle(
-                color = Color.White,
-                radius = 4f,
-                center = Offset(x + 5f, y - 3f)
-            )
-
-            if (isFemale) {
-                drawCircle(
-                    color = Color(0xFFFFC1E3),
-                    radius = visualRadius + 4f,
-                    center = Offset(x, y),
-                    style = Stroke(width = 3f)
-                )
-            } else {
-                drawLine(
-                    color = Color.White,
-                    start = Offset(x - 7f, y + 7f),
-                    end = Offset(x + 7f, y + 7f),
-                    strokeWidth = 3f
-                )
-            }
-        }
-
-        MarkerType.EVENT -> {
-            val eventPath = Path().apply {
-                moveTo(x, y - visualRadius)
-                cubicTo(
-                    x + visualRadius,
-                    y - visualRadius,
-                    x + visualRadius,
-                    y + visualRadius / 2f,
-                    x,
-                    y + visualRadius * 1.5f
-                )
-                cubicTo(
-                    x - visualRadius,
-                    y + visualRadius / 2f,
-                    x - visualRadius,
-                    y - visualRadius,
-                    x,
-                    y - visualRadius
-                )
-                close()
-            }
-
-            drawPath(
-                path = eventPath,
-                color = Color(0xFFFF9800)
-            )
-
-            drawCircle(
-                color = Color.White,
-                radius = visualRadius / 3f,
-                center = Offset(x, y)
+            drawUserAvatarMarker(
+                marker = marker,
+                x = x,
+                y = y,
+                radius = visualRadius
             )
         }
 
         MarkerType.SHOP -> {
-            val hutPath = Path().apply {
-                moveTo(x, y - visualRadius)
-                lineTo(x - visualRadius, y)
-                lineTo(x - visualRadius, y + visualRadius)
-                lineTo(x + visualRadius, y + visualRadius)
-                lineTo(x + visualRadius, y)
-                close()
+            drawShopMarker(
+                x = x,
+                y = y,
+                radius = visualRadius
+            )
+        }
+
+        MarkerType.EVENT -> {
+            if (marker.priority >= 2) {
+                drawHighPriorityEventPin(
+                    x = x,
+                    y = y,
+                    radius = visualRadius
+                )
+            } else {
+                drawLowPriorityEventDiamond(
+                    x = x,
+                    y = y,
+                    radius = visualRadius
+                )
             }
-
-            drawPath(
-                path = hutPath,
-                color = Color(marker.color)
-            )
-
-            drawRect(
-                color = Color(0xFFFFF3E0),
-                topLeft = Offset(x - 4f, y + 4f),
-                size = Size(8f, 10f)
-            )
         }
     }
 
@@ -395,5 +326,312 @@ private fun DrawScope.drawMarker(
             center = Offset(x, y),
             style = Stroke(width = 3f)
         )
+
+        drawCircle(
+            color = Color(0xFFFFA726).copy(alpha = 0.35f),
+            radius = selectedRadius + 5f,
+            center = Offset(x, y),
+            style = Stroke(width = 5f)
+        )
     }
+}
+private fun DrawScope.drawPoiMarker(
+    marker: MarkerRenderData,
+    x: Float,
+    y: Float,
+    radius: Float,
+    labelTextSize: Float
+) {
+    val dotColor = if (marker.isHighlighted) {
+        Color(0xFF00C853)
+    } else {
+        Color(0xFF66BB6A)
+    }
+
+    val ringColor = if (marker.isHighlighted) {
+        Color(0xFFB9F6CA)
+    } else {
+        Color.White.copy(alpha = 0.75f)
+    }
+
+    if (marker.isHighlighted) {
+        drawCircle(
+            color = dotColor.copy(alpha = 0.28f),
+            radius = radius + 8f,
+            center = Offset(x, y)
+        )
+    }
+
+    drawCircle(
+        color = ringColor,
+        radius = radius + 3f,
+        center = Offset(x, y)
+    )
+
+    drawCircle(
+        color = dotColor,
+        radius = radius,
+        center = Offset(x, y)
+    )
+
+    val paint = android.graphics.Paint().apply {
+        color = android.graphics.Color.WHITE
+        textSize = labelTextSize
+        isFakeBoldText = marker.isHighlighted
+    }
+
+    val textWidth = paint.measureText(marker.label)
+    val labelWidth = textWidth + 22f
+    val labelHeight = if (marker.isHighlighted) 30f else 26f
+
+    val labelLeft = x + radius + 8f
+    val labelTop = y - labelHeight / 2f
+
+    drawRoundRect(
+        color = Color.Black.copy(alpha = if (marker.isHighlighted) 0.58f else 0.42f),
+        topLeft = Offset(labelLeft, labelTop),
+        size = Size(labelWidth, labelHeight),
+        cornerRadius = CornerRadius(13f, 13f)
+    )
+
+    drawContext.canvas.nativeCanvas.drawText(
+        marker.label,
+        labelLeft + 11f,
+        y + labelTextSize / 3f,
+        paint
+    )
+}
+
+private fun DrawScope.drawUserAvatarMarker(
+    marker: MarkerRenderData,
+    x: Float,
+    y: Float,
+    radius: Float
+) {
+    val isFemale = marker.gender == "female"
+
+    val bgColor = if (isFemale) {
+        Color(0xFFE91E63)
+    } else {
+        Color(0xFF2196F3)
+    }
+
+    val borderColor = if (isFemale) {
+        Color(0xFFFFC1E3)
+    } else {
+        Color(0xFFBBDEFB)
+    }
+
+    drawCircle(
+        color = borderColor,
+        radius = radius + 4f,
+        center = Offset(x, y)
+    )
+
+    drawCircle(
+        color = bgColor,
+        radius = radius,
+        center = Offset(x, y)
+    )
+
+    // head
+    drawCircle(
+        color = Color.White,
+        radius = radius * 0.28f,
+        center = Offset(x, y - radius * 0.25f)
+    )
+
+    // body
+    drawRoundRect(
+        color = Color.White,
+        topLeft = Offset(
+            x - radius * 0.45f,
+            y + radius * 0.1f
+        ),
+        size = Size(
+            radius * 0.9f,
+            radius * 0.52f
+        ),
+        cornerRadius = CornerRadius(radius * 0.28f, radius * 0.28f)
+    )
+
+    if (isFemale) {
+        // small hair/bow accent
+        drawCircle(
+            color = Color(0xFFFFC1E3),
+            radius = radius * 0.18f,
+            center = Offset(x - radius * 0.38f, y - radius * 0.48f)
+        )
+
+        drawCircle(
+            color = Color(0xFFFFC1E3),
+            radius = radius * 0.18f,
+            center = Offset(x + radius * 0.38f, y - radius * 0.48f)
+        )
+    } else {
+        // small shoulder line
+        drawLine(
+            color = Color(0xFFBBDEFB),
+            start = Offset(x - radius * 0.42f, y + radius * 0.42f),
+            end = Offset(x + radius * 0.42f, y + radius * 0.42f),
+            strokeWidth = 2.5f
+        )
+    }
+}
+
+private fun DrawScope.drawShopMarker(
+    x: Float,
+    y: Float,
+    radius: Float
+) {
+    val roofColor = Color(0xFFD84315)
+    val bodyColor = Color(0xFFFFCCBC)
+    val doorColor = Color(0xFF6D4C41)
+
+    // roof
+    val roofPath = Path().apply {
+        moveTo(x, y - radius)
+        lineTo(x - radius * 1.1f, y - radius * 0.15f)
+        lineTo(x + radius * 1.1f, y - radius * 0.15f)
+        close()
+    }
+
+    drawPath(
+        path = roofPath,
+        color = roofColor
+    )
+
+    // body
+    drawRoundRect(
+        color = bodyColor,
+        topLeft = Offset(
+            x - radius * 0.85f,
+            y - radius * 0.12f
+        ),
+        size = Size(
+            radius * 1.7f,
+            radius * 1.25f
+        ),
+        cornerRadius = CornerRadius(5f, 5f)
+    )
+
+    // shop base border
+    drawRoundRect(
+        color = roofColor.copy(alpha = 0.18f),
+        topLeft = Offset(
+            x - radius * 0.85f,
+            y - radius * 0.12f
+        ),
+        size = Size(
+            radius * 1.7f,
+            radius * 1.25f
+        ),
+        cornerRadius = CornerRadius(5f, 5f),
+        style = Stroke(width = 2f)
+    )
+
+    // door
+    drawRoundRect(
+        color = doorColor,
+        topLeft = Offset(
+            x - radius * 0.18f,
+            y + radius * 0.35f
+        ),
+        size = Size(
+            radius * 0.36f,
+            radius * 0.55f
+        ),
+        cornerRadius = CornerRadius(3f, 3f)
+    )
+
+    // window
+    drawCircle(
+        color = Color.White.copy(alpha = 0.95f),
+        radius = radius * 0.14f,
+        center = Offset(x - radius * 0.5f, y + radius * 0.32f)
+    )
+
+    drawCircle(
+        color = Color.White.copy(alpha = 0.95f),
+        radius = radius * 0.14f,
+        center = Offset(x + radius * 0.5f, y + radius * 0.32f)
+    )
+}
+
+private fun DrawScope.drawLowPriorityEventDiamond(
+    x: Float,
+    y: Float,
+    radius: Float
+) {
+    val diamondPath = Path().apply {
+        moveTo(x, y - radius)
+        lineTo(x + radius, y)
+        lineTo(x, y + radius)
+        lineTo(x - radius, y)
+        close()
+    }
+
+    drawPath(
+        path = diamondPath,
+        color = Color(0xFFFFA726)
+    )
+
+    drawPath(
+        path = diamondPath,
+        color = Color.White.copy(alpha = 0.45f),
+        style = Stroke(width = 2.2f)
+    )
+
+    drawCircle(
+        color = Color.White,
+        radius = radius * 0.25f,
+        center = Offset(x, y)
+    )
+}
+
+private fun DrawScope.drawHighPriorityEventPin(
+    x: Float,
+    y: Float,
+    radius: Float
+) {
+    val pinPath = Path().apply {
+        moveTo(x, y - radius)
+
+        cubicTo(
+            x + radius,
+            y - radius,
+            x + radius * 1.05f,
+            y + radius * 0.35f,
+            x,
+            y + radius * 1.55f
+        )
+
+        cubicTo(
+            x - radius * 1.05f,
+            y + radius * 0.35f,
+            x - radius,
+            y - radius,
+            x,
+            y - radius
+        )
+
+        close()
+    }
+
+    drawPath(
+        path = pinPath,
+        color = Color(0xFFFF6F00)
+    )
+
+    drawPath(
+        path = pinPath,
+        color = Color.White.copy(alpha = 0.35f),
+        style = Stroke(width = 2.2f)
+    )
+
+    drawCircle(
+        color = Color.White,
+        radius = radius * 0.34f,
+        center = Offset(x, y - radius * 0.05f)
+    )
 }

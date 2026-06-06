@@ -6,8 +6,10 @@ data class MapMarker(
     val type: MarkerType,
     val latitude: Double,
     val longitude: Double,
-    val gender: String? = null,
     val label: String,
+    val gender: String? = null,
+    val size: MarkerSize = MarkerSize.MEDIUM,
+    val isHighlighted: Boolean = false,
     var x: Float = 0f,
     var y: Float = 0f,
     val state: MarkerState = MarkerState.DEFAULT,
@@ -20,4 +22,10 @@ enum class MarkerState {
     SELECTED,
     ACTIVE,
     DISABLED
+}
+
+enum class MarkerSize {
+    SMALL,
+    MEDIUM,
+    LARGE
 }
