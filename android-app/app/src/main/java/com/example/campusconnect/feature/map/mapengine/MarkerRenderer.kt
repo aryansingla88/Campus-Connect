@@ -36,7 +36,7 @@ class MarkerRenderer {
         val baseRadius = when (marker.size) {
             MarkerSize.SMALL -> 9f
             MarkerSize.MEDIUM -> 13f
-            MarkerSize.LARGE -> 18f
+            MarkerSize.LARGE -> 15f
         }
 
         val typeRadius = when (marker.type) {

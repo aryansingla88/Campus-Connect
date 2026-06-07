@@ -308,17 +308,27 @@ private fun DrawScope.drawMarker(
         }
 
         MarkerType.EVENT -> {
+            val eventRadius = if (marker.isSelected) {
+                visualRadius * 1.08f
+            } else {
+                visualRadius
+            }
+
             if (marker.priority >= 2) {
                 drawHighPriorityEventPin(
                     x = x,
                     y = y,
-                    radius = visualRadius
+                    radius = eventRadius,
+                    isSelected = marker.isSelected,
+                    priority = marker.priority
                 )
             } else {
-                drawLowPriorityEventDiamond(
+                drawLowPriorityEventPin(
                     x = x,
                     y = y,
-                    radius = visualRadius
+                    radius = eventRadius,
+                    isSelected = marker.isSelected,
+                    priority = marker.priority
                 )
             }
         }
@@ -327,7 +337,8 @@ private fun DrawScope.drawMarker(
     if (
         marker.isSelected &&
         marker.type != MarkerType.SHOP &&
-        marker.type != MarkerType.USER
+        marker.type != MarkerType.USER &&
+        marker.type != MarkerType.EVENT
     ) {
         drawCircle(
             color = Color.White,
@@ -421,17 +432,15 @@ private fun DrawScope.drawUserAvatarMarker(
     val isFemale = marker.gender == "female"
 
     val markerColor = if (isFemale) {
-        Color(0xFFE83E8C) // female pink
+        Color(0xFFE83E8C)
     } else {
-        Color(0xFF4285F4) // male blue
+        Color(0xFF4285F4)
     }
 
     val pinRadius = radius * 1.30f
-
-    // Reference style: compact circular pin
     val circleCenter = Offset(x, y - pinRadius * 0.15f)
     val circleRadius = pinRadius
-    val tipY = y + pinRadius * 1.70f
+    val tipY = y + pinRadius * 1.60f
 
     fun createPinPath(
         centerX: Float,
@@ -440,10 +449,8 @@ private fun DrawScope.drawUserAvatarMarker(
         tip: Float
     ): Path {
         return Path().apply {
-            // start at bottom tip
             moveTo(centerX, tip)
 
-            // left lower curve into circular body
             cubicTo(
                 centerX - r * 0.45f,
                 centerY + r * 0.65f,
@@ -453,7 +460,6 @@ private fun DrawScope.drawUserAvatarMarker(
                 centerY
             )
 
-            // left upper curve
             cubicTo(
                 centerX - r,
                 centerY - r * 0.62f,
@@ -463,7 +469,6 @@ private fun DrawScope.drawUserAvatarMarker(
                 centerY - r
             )
 
-            // right upper curve
             cubicTo(
                 centerX + r * 0.55f,
                 centerY - r,
@@ -473,7 +478,6 @@ private fun DrawScope.drawUserAvatarMarker(
                 centerY
             )
 
-            // right lower curve into tip
             cubicTo(
                 centerX + r,
                 centerY + r * 0.45f,
@@ -500,6 +504,7 @@ private fun DrawScope.drawUserAvatarMarker(
         r = circleRadius,
         tip = tipY
     )
+
     if (marker.isSelected) {
         drawPath(
             path = borderPath,
@@ -514,26 +519,22 @@ private fun DrawScope.drawUserAvatarMarker(
         )
     }
 
-    // soft shadow below marker
     drawCircle(
         color = Color.Black.copy(alpha = 0.18f),
         radius = pinRadius * 0.55f,
         center = Offset(x + 1.5f, tipY + 2f)
     )
 
-    // white border
     drawPath(
         path = borderPath,
         color = Color.White
     )
 
-    // main marker fill
     drawPath(
         path = pinPath,
         color = markerColor
     )
 
-    // white user head
     drawCircle(
         color = Color.White,
         radius = pinRadius * 0.25f,
@@ -543,7 +544,6 @@ private fun DrawScope.drawUserAvatarMarker(
         )
     )
 
-    // white user body
     drawRoundRect(
         color = Color.White,
         topLeft = Offset(
@@ -626,7 +626,6 @@ private fun DrawScope.drawShopMarker(
         close()
     }
 
-    // white glow following hut silhouette
     drawPath(
         path = roofPath,
         color = Color.White.copy(alpha = 0.45f),
@@ -646,7 +645,6 @@ private fun DrawScope.drawShopMarker(
         cornerRadius = CornerRadius(radius * 0.3f, radius * 0.3f)
     )
 
-    // subtle shadow
     drawPath(
         path = roofPath,
         color = Color.Black.copy(alpha = 0.16f),
@@ -659,20 +657,17 @@ private fun DrawScope.drawShopMarker(
         size = Size(bodyWidth, bodyHeight)
     )
 
-    // actual hut roof
     drawPath(
         path = roofPath,
         color = shopColor
     )
 
-    // actual hut body
     drawRect(
         color = shopColor,
         topLeft = Offset(bodyLeft, bodyTop),
         size = Size(bodyWidth, bodyHeight)
     )
 
-    // window
     drawRect(
         color = windowColor,
         topLeft = Offset(
@@ -685,7 +680,6 @@ private fun DrawScope.drawShopMarker(
         )
     )
 
-    // dynamic label background below shop only
     drawShopLabel(
         label = marker.label,
         centerX = x,
@@ -734,80 +728,223 @@ private fun DrawScope.drawShopLabel(
     )
 }
 
-private fun DrawScope.drawLowPriorityEventDiamond(
+private fun DrawScope.drawLowPriorityEventPin(
     x: Float,
     y: Float,
-    radius: Float
+    radius: Float,
+    isSelected: Boolean,
+    priority: Int
 ) {
-    val diamondPath = Path().apply {
-        moveTo(x, y - radius)
-        lineTo(x + radius, y)
-        lineTo(x, y + radius)
-        lineTo(x - radius, y)
-        close()
+    val eventColor = Color(0xFFFF6F00)
+
+    val pinRadius = radius * 1.05f
+    val circleCenterY = y - pinRadius * 0.18f
+    val tipY = y + pinRadius * 1.32f
+
+    val pinPath = createEventPinPath(
+        centerX = x,
+        centerY = circleCenterY,
+        radius = pinRadius,
+        tipY = tipY
+    )
+
+    if (isSelected) {
+        drawEventAreaHalo(
+            x = x,
+            y = circleCenterY,
+            radius = pinRadius,
+            priority = priority
+        )
     }
 
-    drawPath(
-        path = diamondPath,
-        color = Color(0xFFFFA726)
+    drawCircle(
+        color = Color.Black.copy(alpha = 0.18f),
+        radius = pinRadius * 0.75f,
+        center = Offset(x + 2f, tipY - pinRadius * 0.05f)
     )
 
     drawPath(
-        path = diamondPath,
-        color = Color.White.copy(alpha = 0.45f),
-        style = Stroke(width = 2.2f)
+        path = createEventPinPath(
+            centerX = x,
+            centerY = circleCenterY,
+            radius = pinRadius + 3.2f,
+            tipY = tipY + 3f
+        ),
+        color = Color.White
+    )
+
+    drawPath(
+        path = pinPath,
+        color = eventColor
     )
 
     drawCircle(
         color = Color.White,
-        radius = radius * 0.25f,
-        center = Offset(x, y)
+        radius = pinRadius * 0.36f,
+        center = Offset(x, circleCenterY)
     )
 }
 
 private fun DrawScope.drawHighPriorityEventPin(
     x: Float,
     y: Float,
-    radius: Float
+    radius: Float,
+    isSelected: Boolean,
+    priority: Int
 ) {
-    val pinPath = Path().apply {
-        moveTo(x, y - radius)
+    val eventColor = Color(0xFFFF6F00)
+    val heartColor = Color(0xFFFFF176)
+
+    val pinRadius = radius * 1.12f
+    val circleCenterY = y - pinRadius * 0.18f
+    val tipY = y + pinRadius * 1.35f
+
+    val pinPath = createEventPinPath(
+        centerX = x,
+        centerY = circleCenterY,
+        radius = pinRadius,
+        tipY = tipY
+    )
+
+    if (isSelected) {
+        drawEventAreaHalo(
+            x = x,
+            y = circleCenterY,
+            radius = pinRadius,
+            priority = priority
+        )
+    }
+
+    drawCircle(
+        color = Color.Black.copy(alpha = 0.20f),
+        radius = pinRadius * 0.85f,
+        center = Offset(x + 2f, tipY - pinRadius * 0.03f)
+    )
+
+    drawPath(
+        path = createEventPinPath(
+            centerX = x,
+            centerY = circleCenterY,
+            radius = pinRadius + 3.5f,
+            tipY = tipY + 3f
+        ),
+        color = Color.White
+    )
+
+    drawPath(
+        path = pinPath,
+        color = eventColor
+    )
+
+    drawPath(
+        path = createHeartPath(
+            centerX = x,
+            centerY = circleCenterY - pinRadius * 0.02f,
+            size = pinRadius * 0.90f
+        ),
+        color = heartColor
+    )
+}
+
+private fun createEventPinPath(
+    centerX: Float,
+    centerY: Float,
+    radius: Float,
+    tipY: Float
+): Path {
+    return Path().apply {
+        moveTo(centerX, tipY)
 
         cubicTo(
-            x + radius,
-            y - radius,
-            x + radius * 1.05f,
-            y + radius * 0.35f,
-            x,
-            y + radius * 1.55f
+            centerX - radius * 0.45f,
+            centerY + radius * 0.72f,
+            centerX - radius,
+            centerY + radius * 0.45f,
+            centerX - radius,
+            centerY
         )
 
         cubicTo(
-            x - radius * 1.05f,
-            y + radius * 0.35f,
-            x - radius,
-            y - radius,
-            x,
-            y - radius
+            centerX - radius,
+            centerY - radius * 0.62f,
+            centerX - radius * 0.55f,
+            centerY - radius,
+            centerX,
+            centerY - radius
+        )
+
+        cubicTo(
+            centerX + radius * 0.55f,
+            centerY - radius,
+            centerX + radius,
+            centerY - radius * 0.62f,
+            centerX + radius,
+            centerY
+        )
+
+        cubicTo(
+            centerX + radius,
+            centerY + radius * 0.45f,
+            centerX + radius * 0.45f,
+            centerY + radius * 0.72f,
+            centerX,
+            tipY
         )
 
         close()
     }
+}
 
-    drawPath(
-        path = pinPath,
-        color = Color(0xFFFF6F00)
-    )
+private fun DrawScope.drawEventAreaHalo(
+    x: Float,
+    y: Float,
+    radius: Float,
+    priority: Int
+) {
+    val priorityScale = when {
+        priority >= 3 -> 2.65f
+        priority == 2 -> 2.25f
+        else -> 1.90f
+    }
 
-    drawPath(
-        path = pinPath,
-        color = Color.White.copy(alpha = 0.35f),
-        style = Stroke(width = 2.2f)
-    )
+    val ringRadius = radius * priorityScale
 
     drawCircle(
-        color = Color.White,
-        radius = radius * 0.34f,
-        center = Offset(x, y - radius * 0.05f)
+        color = Color.White.copy(alpha = 0.88f),
+        radius = ringRadius,
+        center = Offset(x, y),
+        style = Stroke(width = 4.5f)
     )
+}
+
+private fun createHeartPath(
+    centerX: Float,
+    centerY: Float,
+    size: Float
+): Path {
+    val top = centerY - size * 0.25f
+
+    return Path().apply {
+        moveTo(centerX, centerY + size * 0.55f)
+
+        cubicTo(
+            centerX - size * 1.05f,
+            centerY - size * 0.05f,
+            centerX - size * 0.75f,
+            top - size * 0.55f,
+            centerX,
+            top
+        )
+
+        cubicTo(
+            centerX + size * 0.75f,
+            top - size * 0.55f,
+            centerX + size * 1.05f,
+            centerY - size * 0.05f,
+            centerX,
+            centerY + size * 0.55f
+        )
+
+        close()
+    }
 }

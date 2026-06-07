@@ -67,7 +67,7 @@ fun MapScreen(
             onMapTap = { x, y ->
                 android.util.Log.d("MAP_PIXEL", "MapScreen received pixel: x=$x, y=$y")
             },
-            initialFocusMarkerId = "test_p1",
+            initialFocusMarkerId = "shop_1",
             initialZoom = 4.2f
         )
 
