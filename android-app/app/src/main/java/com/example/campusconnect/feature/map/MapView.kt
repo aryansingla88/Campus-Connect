@@ -1,6 +1,5 @@
 package com.example.campusconnect.feature.map
 
-import androidx.compose.ui.geometry.CornerRadius
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -21,17 +21,19 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.IntSize
 import com.example.campusconnect.R
 import com.example.campusconnect.feature.map.mapengine.MarkerRenderData
 import com.example.campusconnect.feature.map.mapengine.MarkerType
 import kotlin.math.pow
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntSize
+
 private const val MAP_IMAGE_WIDTH = 3000f
 private const val MAP_IMAGE_HEIGHT = 3000f
 private const val MIN_ZOOM = 2.1f
 private const val MAX_ZOOM = 5f
+
 @Composable
 fun MapView(
     modifier: Modifier = Modifier,
@@ -46,6 +48,7 @@ fun MapView(
 
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     var initialFocusApplied by remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -62,7 +65,6 @@ fun MapView(
                     ?: markers.firstOrNull()
 
                 focusMarker?.let { marker ->
-
                     val bounds = calculateImageBounds(
                         width = containerSize.width.toFloat(),
                         height = containerSize.height.toFloat()
@@ -72,6 +74,7 @@ fun MapView(
                     val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
 
                     val targetScale = initialZoom.coerceIn(MIN_ZOOM, MAX_ZOOM)
+
                     val targetOffset = Offset(
                         x = containerSize.width / 2f - mapX * targetScale,
                         y = containerSize.height / 2f - mapY * targetScale
@@ -136,11 +139,7 @@ fun MapView(
                         val newScale = (oldScale * zoom).coerceIn(MIN_ZOOM, MAX_ZOOM)
                         val zoomChange = newScale / oldScale
 
-                        val newOffset = if (newScale <= 1.01f) {
-                            Offset.Zero
-                        } else {
-                            centroid - (centroid - offset) * zoomChange + pan
-                        }
+                        val newOffset = centroid - (centroid - offset) * zoomChange + pan
 
                         scale = newScale
                         offset = clampOffsetSmooth(
@@ -274,7 +273,6 @@ private fun DrawScope.drawMarker(
     val labelTextSize = if (marker.isHighlighted) 27f else 23f
 
     when (marker.type) {
-
         MarkerType.POI -> {
             drawPoiMarker(
                 marker = marker,
@@ -296,6 +294,7 @@ private fun DrawScope.drawMarker(
 
         MarkerType.SHOP -> {
             drawShopMarker(
+                marker = marker,
                 x = x,
                 y = y,
                 radius = visualRadius
@@ -319,7 +318,7 @@ private fun DrawScope.drawMarker(
         }
     }
 
-    if (marker.isSelected) {
+    if (marker.isSelected && marker.type != MarkerType.SHOP) {
         drawCircle(
             color = Color.White,
             radius = selectedRadius,
@@ -335,6 +334,7 @@ private fun DrawScope.drawMarker(
         )
     }
 }
+
 private fun DrawScope.drawPoiMarker(
     marker: MarkerRenderData,
     x: Float,
@@ -434,14 +434,12 @@ private fun DrawScope.drawUserAvatarMarker(
         center = Offset(x, y)
     )
 
-    // head
     drawCircle(
         color = Color.White,
         radius = radius * 0.28f,
         center = Offset(x, y - radius * 0.25f)
     )
 
-    // body
     drawRoundRect(
         color = Color.White,
         topLeft = Offset(
@@ -456,7 +454,6 @@ private fun DrawScope.drawUserAvatarMarker(
     )
 
     if (isFemale) {
-        // small hair/bow accent
         drawCircle(
             color = Color(0xFFFFC1E3),
             radius = radius * 0.18f,
@@ -469,7 +466,6 @@ private fun DrawScope.drawUserAvatarMarker(
             center = Offset(x + radius * 0.38f, y - radius * 0.48f)
         )
     } else {
-        // small shoulder line
         drawLine(
             color = Color(0xFFBBDEFB),
             start = Offset(x - radius * 0.42f, y + radius * 0.42f),
@@ -480,81 +476,175 @@ private fun DrawScope.drawUserAvatarMarker(
 }
 
 private fun DrawScope.drawShopMarker(
+    marker: MarkerRenderData,
     x: Float,
     y: Float,
     radius: Float
 ) {
-    val roofColor = Color(0xFFD84315)
-    val bodyColor = Color(0xFFFFCCBC)
-    val doorColor = Color(0xFF6D4C41)
+    val shopColor = Color(0xFFC9992466)
+    val windowColor = Color(0xFFFFEFE6)
 
-    // roof
+    val iconWidth = radius * 3.3f
+    val iconHeight = radius * 2.9f
+
+    val left = x - iconWidth / 2f
+    val top = y - iconHeight / 2f
+
+    val roofPeakY = top
+    val roofShoulderY = top + iconHeight * 0.26f
+    val roofBaseY = top + iconHeight * 0.43f
+    val scallopDepth = iconHeight * 0.16f
+
+    val bodyTop = roofBaseY + scallopDepth * 0.75f
+    val bodyLeft = left + iconWidth * 0.18f
+    val bodyWidth = iconWidth * 0.64f
+    val bodyHeight = iconHeight * 0.50f
+    val bodyBottom = bodyTop + bodyHeight
+
     val roofPath = Path().apply {
-        moveTo(x, y - radius)
-        lineTo(x - radius * 1.1f, y - radius * 0.15f)
-        lineTo(x + radius * 1.1f, y - radius * 0.15f)
+        moveTo(x, roofPeakY)
+
+        lineTo(left + iconWidth * 0.18f, roofShoulderY)
+
+        quadraticBezierTo(
+            left + iconWidth * 0.06f,
+            roofShoulderY + iconHeight * 0.04f,
+            left + iconWidth * 0.08f,
+            roofBaseY
+        )
+
+        val startX = left + iconWidth * 0.08f
+        val scallopWidth = iconWidth * 0.21f
+
+        repeat(4) { index ->
+            val sx = startX + index * scallopWidth
+            val ex = sx + scallopWidth
+            val cx = sx + scallopWidth / 2f
+
+            quadraticBezierTo(
+                cx,
+                roofBaseY + scallopDepth,
+                ex,
+                roofBaseY
+            )
+        }
+
+        quadraticBezierTo(
+            left + iconWidth * 0.94f,
+            roofShoulderY + iconHeight * 0.04f,
+            left + iconWidth * 0.82f,
+            roofShoulderY
+        )
+
+        lineTo(x, roofPeakY)
         close()
     }
 
+    // white glow following hut silhouette
     drawPath(
         path = roofPath,
-        color = roofColor
+        color = Color.White.copy(alpha = 0.45f),
+        style = Stroke(width = radius * 1.25f)
     )
 
-    // body
     drawRoundRect(
-        color = bodyColor,
+        color = Color.White.copy(alpha = 0.28f),
         topLeft = Offset(
-            x - radius * 0.85f,
-            y - radius * 0.12f
+            bodyLeft - radius * 0.45f,
+            bodyTop - radius * 0.2f
         ),
         size = Size(
-            radius * 1.7f,
-            radius * 1.25f
+            bodyWidth + radius * 0.9f,
+            bodyHeight + radius * 0.55f
         ),
-        cornerRadius = CornerRadius(5f, 5f)
+        cornerRadius = CornerRadius(radius * 0.3f, radius * 0.3f)
     )
 
-    // shop base border
-    drawRoundRect(
-        color = roofColor.copy(alpha = 0.18f),
-        topLeft = Offset(
-            x - radius * 0.85f,
-            y - radius * 0.12f
-        ),
-        size = Size(
-            radius * 1.7f,
-            radius * 1.25f
-        ),
-        cornerRadius = CornerRadius(5f, 5f),
-        style = Stroke(width = 2f)
+    // subtle shadow
+    drawPath(
+        path = roofPath,
+        color = Color.Black.copy(alpha = 0.16f),
+        style = Stroke(width = radius * 0.35f)
     )
 
-    // door
-    drawRoundRect(
-        color = doorColor,
-        topLeft = Offset(
-            x - radius * 0.18f,
-            y + radius * 0.35f
-        ),
-        size = Size(
-            radius * 0.36f,
-            radius * 0.55f
-        ),
-        cornerRadius = CornerRadius(3f, 3f)
+    drawRect(
+        color = Color.Black.copy(alpha = 0.14f),
+        topLeft = Offset(bodyLeft + 2f, bodyTop + 3f),
+        size = Size(bodyWidth, bodyHeight)
+    )
+
+    // actual hut roof
+    drawPath(
+        path = roofPath,
+        color = shopColor
+    )
+
+    // actual hut body
+    drawRect(
+        color = shopColor,
+        topLeft = Offset(bodyLeft, bodyTop),
+        size = Size(bodyWidth, bodyHeight)
     )
 
     // window
-    drawCircle(
-        color = Color.White.copy(alpha = 0.95f),
-        radius = radius * 0.14f,
-        center = Offset(x - radius * 0.5f, y + radius * 0.32f)
+    drawRect(
+        color = windowColor,
+        topLeft = Offset(
+            bodyLeft + bodyWidth * 0.58f,
+            bodyTop + bodyHeight * 0.28f
+        ),
+        size = Size(
+            bodyWidth * 0.24f,
+            bodyHeight * 0.27f
+        )
     )
 
-    drawCircle(
-        color = Color.White.copy(alpha = 0.95f),
-        radius = radius * 0.14f,
-        center = Offset(x + radius * 0.5f, y + radius * 0.32f)
+    // dynamic label background below shop only
+    drawShopLabel(
+        label = marker.label,
+        centerX = x,
+        topY = bodyBottom + 10f
+    )
+}
+
+private fun DrawScope.drawShopLabel(
+    label: String,
+    centerX: Float,
+    topY: Float
+) {
+    val textPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.WHITE
+        textSize = 22f
+        textAlign = android.graphics.Paint.Align.LEFT
+        isFakeBoldText = true
+    }
+
+    val textWidth = textPaint.measureText(label)
+
+    val horizontalPadding = 10f
+    val bgHeight = 28f
+    val bgWidth = textWidth + horizontalPadding * 2f
+
+    val bgLeft = centerX - bgWidth / 2f
+    val bgTop = topY
+    val bgCorner = 10f
+
+    drawRoundRect(
+        color = Color.Black.copy(alpha = 0.48f),
+        topLeft = Offset(bgLeft, bgTop),
+        size = Size(bgWidth, bgHeight),
+        cornerRadius = CornerRadius(bgCorner, bgCorner)
+    )
+
+    val textX = centerX - textWidth / 2f
+    val textY = bgTop + bgHeight / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
+
+    drawContext.canvas.nativeCanvas.drawText(
+        label,
+        textX,
+        textY,
+        textPaint
     )
 }
 
