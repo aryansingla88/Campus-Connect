@@ -284,11 +284,17 @@ private fun DrawScope.drawMarker(
         }
 
         MarkerType.USER -> {
+            val userRadius = if (marker.isSelected) {
+                visualRadius * 1.18f
+            } else {
+                visualRadius
+            }
+
             drawUserAvatarMarker(
                 marker = marker,
                 x = x,
                 y = y,
-                radius = visualRadius
+                radius = userRadius
             )
         }
 
@@ -318,7 +324,11 @@ private fun DrawScope.drawMarker(
         }
     }
 
-    if (marker.isSelected && marker.type != MarkerType.SHOP) {
+    if (
+        marker.isSelected &&
+        marker.type != MarkerType.SHOP &&
+        marker.type != MarkerType.USER
+    ) {
         drawCircle(
             color = Color.White,
             radius = selectedRadius,
@@ -410,69 +420,145 @@ private fun DrawScope.drawUserAvatarMarker(
 ) {
     val isFemale = marker.gender == "female"
 
-    val bgColor = if (isFemale) {
-        Color(0xFFE91E63)
+    val markerColor = if (isFemale) {
+        Color(0xFFE83E8C) // female pink
     } else {
-        Color(0xFF2196F3)
+        Color(0xFF4285F4) // male blue
     }
 
-    val borderColor = if (isFemale) {
-        Color(0xFFFFC1E3)
-    } else {
-        Color(0xFFBBDEFB)
+    val pinRadius = radius * 1.30f
+
+    // Reference style: compact circular pin
+    val circleCenter = Offset(x, y - pinRadius * 0.15f)
+    val circleRadius = pinRadius
+    val tipY = y + pinRadius * 1.70f
+
+    fun createPinPath(
+        centerX: Float,
+        centerY: Float,
+        r: Float,
+        tip: Float
+    ): Path {
+        return Path().apply {
+            // start at bottom tip
+            moveTo(centerX, tip)
+
+            // left lower curve into circular body
+            cubicTo(
+                centerX - r * 0.45f,
+                centerY + r * 0.65f,
+                centerX - r,
+                centerY + r * 0.45f,
+                centerX - r,
+                centerY
+            )
+
+            // left upper curve
+            cubicTo(
+                centerX - r,
+                centerY - r * 0.62f,
+                centerX - r * 0.55f,
+                centerY - r,
+                centerX,
+                centerY - r
+            )
+
+            // right upper curve
+            cubicTo(
+                centerX + r * 0.55f,
+                centerY - r,
+                centerX + r,
+                centerY - r * 0.62f,
+                centerX + r,
+                centerY
+            )
+
+            // right lower curve into tip
+            cubicTo(
+                centerX + r,
+                centerY + r * 0.45f,
+                centerX + r * 0.45f,
+                centerY + r * 0.65f,
+                centerX,
+                tip
+            )
+
+            close()
+        }
     }
 
-    drawCircle(
-        color = borderColor,
-        radius = radius + 4f,
-        center = Offset(x, y)
+    val borderPath = createPinPath(
+        centerX = circleCenter.x,
+        centerY = circleCenter.y,
+        r = circleRadius + 3.5f,
+        tip = tipY + 3f
     )
 
+    val pinPath = createPinPath(
+        centerX = circleCenter.x,
+        centerY = circleCenter.y,
+        r = circleRadius,
+        tip = tipY
+    )
+    if (marker.isSelected) {
+        drawPath(
+            path = borderPath,
+            color = Color.White.copy(alpha = 0.42f),
+            style = Stroke(width = radius * 0.65f)
+        )
+
+        drawCircle(
+            color = Color.White.copy(alpha = 0.22f),
+            radius = radius * 1.45f,
+            center = Offset(x, y)
+        )
+    }
+
+    // soft shadow below marker
     drawCircle(
-        color = bgColor,
-        radius = radius,
-        center = Offset(x, y)
+        color = Color.Black.copy(alpha = 0.18f),
+        radius = pinRadius * 0.55f,
+        center = Offset(x + 1.5f, tipY + 2f)
     )
 
+    // white border
+    drawPath(
+        path = borderPath,
+        color = Color.White
+    )
+
+    // main marker fill
+    drawPath(
+        path = pinPath,
+        color = markerColor
+    )
+
+    // white user head
     drawCircle(
         color = Color.White,
-        radius = radius * 0.28f,
-        center = Offset(x, y - radius * 0.25f)
+        radius = pinRadius * 0.25f,
+        center = Offset(
+            x,
+            circleCenter.y - pinRadius * 0.18f
+        )
     )
 
+    // white user body
     drawRoundRect(
         color = Color.White,
         topLeft = Offset(
-            x - radius * 0.45f,
-            y + radius * 0.1f
+            x - pinRadius * 0.45f,
+            circleCenter.y + pinRadius * 0.18f
         ),
         size = Size(
-            radius * 0.9f,
-            radius * 0.52f
+            pinRadius * 0.9f,
+            pinRadius * 0.38f
         ),
-        cornerRadius = CornerRadius(radius * 0.28f, radius * 0.28f)
+        cornerRadius = CornerRadius(
+            pinRadius * 0.18f,
+            pinRadius * 0.18f
+        )
     )
-
-    if (isFemale) {
-        drawCircle(
-            color = Color(0xFFFFC1E3),
-            radius = radius * 0.18f,
-            center = Offset(x - radius * 0.38f, y - radius * 0.48f)
-        )
-
-        drawCircle(
-            color = Color(0xFFFFC1E3),
-            radius = radius * 0.18f,
-            center = Offset(x + radius * 0.38f, y - radius * 0.48f)
-        )
-    } else {
-        drawLine(
-            color = Color(0xFFBBDEFB),
-            start = Offset(x - radius * 0.42f, y + radius * 0.42f),
-            end = Offset(x + radius * 0.42f, y + radius * 0.42f),
-            strokeWidth = 2.5f
-        )
-    }
 }
 
 private fun DrawScope.drawShopMarker(
