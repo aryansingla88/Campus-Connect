@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.example.campusconnect.feature.events.components
+package com.example.campusconnect.feature.events.ui.dialog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,7 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.events.EventUiState
+import com.example.campusconnect.feature.events.model.EventUiState
+import java.util.Calendar
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
 private val OrangePrimary  = Color(0xFFFF6F00)
@@ -588,11 +589,11 @@ fun EventCreateDialog(
                             confirmButton = {
                                 TextButton(onClick = {
                                     datePickerState.selectedDateMillis?.let { millis ->
-                                        val cal = java.util.Calendar.getInstance().apply { timeInMillis = millis }
+                                        val cal = Calendar.getInstance().apply { timeInMillis = millis }
                                         onDateChange("%02d/%02d/%04d".format(
-                                            cal.get(java.util.Calendar.DAY_OF_MONTH),
-                                            cal.get(java.util.Calendar.MONTH) + 1,
-                                            cal.get(java.util.Calendar.YEAR)
+                                            cal.get(Calendar.DAY_OF_MONTH),
+                                            cal.get(Calendar.MONTH) + 1,
+                                            cal.get(Calendar.YEAR)
                                         ))
                                     }
                                     showDatePicker = false

@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.events.components
+package com.example.campusconnect.feature.events.ui.drawer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -32,6 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.campusconnect.feature.events.data.FakeParticipantsService
+import com.example.campusconnect.feature.events.data.ParticipantTeam
+import com.example.campusconnect.feature.events.data.SoloParticipant
+import com.example.campusconnect.feature.events.data.TeamMember
 import com.example.campusconnect.model.Event
 
 private val OrangePrimary = Color(0xFFFF6F00)

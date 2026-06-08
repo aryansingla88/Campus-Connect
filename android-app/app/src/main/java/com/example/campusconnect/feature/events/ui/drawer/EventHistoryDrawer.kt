@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.events.components
+package com.example.campusconnect.feature.events.ui.drawer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -30,6 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.example.campusconnect.feature.events.data.FakeMedalService
+import com.example.campusconnect.feature.events.data.FakeParticipantsService
+import com.example.campusconnect.feature.events.data.MedalAward
+import com.example.campusconnect.feature.events.data.MedalType
+import com.example.campusconnect.feature.events.data.ParticipantTeam
+import com.example.campusconnect.feature.events.data.SoloParticipant
 import com.example.campusconnect.model.Event
 import com.example.campusconnect.model.EventStatus
 
@@ -59,7 +67,7 @@ private val BronzeColor = Color(0xFFBF8651)
 fun EventHistoryDrawer(
     isOpen   : Boolean,
     onToggle : () -> Unit,
-    events   : List<com.example.campusconnect.model.Event> = emptyList()
+    events   : List<Event> = emptyList()
 ) {
     val medalService = remember { FakeMedalService() }
 
@@ -67,8 +75,8 @@ fun EventHistoryDrawer(
     var medalVersion by remember { mutableStateOf(0) }
 
     // Derived directly from the passed-in list so create/delete updates are instant
-    val liveEvents = remember(events) { events.filter { it.status == com.example.campusconnect.model.EventStatus.LIVE } }
-    val pastEvents = remember(events) { events.filter { it.status == com.example.campusconnect.model.EventStatus.PAST } }
+    val liveEvents = remember(events) { events.filter { it.status == EventStatus.LIVE } }
+    val pastEvents = remember(events) { events.filter { it.status == EventStatus.PAST } }
 
     var selectedTab by remember { mutableStateOf(0) }  // 0=Live, 1=Past
 
@@ -235,12 +243,12 @@ fun EventHistoryDrawer(
             onConfirm  = { recipient ->
                 medalService.awardMedal(
                     MedalAward(
-                        eventId           = eventId,
-                        medalType         = medalType,
-                        recipientId       = recipient.id,
-                        recipientName     = recipient.name,
+                        eventId = eventId,
+                        medalType = medalType,
+                        recipientId = recipient.id,
+                        recipientName = recipient.name,
                         recipientSubtitle = recipient.subtitle,
-                        isTeam            = recipient.isTeam
+                        isTeam = recipient.isTeam
                     )
                 )
                 medalVersion++
@@ -509,9 +517,9 @@ private fun MedalAwardDialog(
         MedalType.BRONZE -> BronzeColor to "🥉"
     }
 
-    androidx.compose.ui.window.Dialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
             modifier         = Modifier

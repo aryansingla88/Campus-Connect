@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.events.components
+package com.example.campusconnect.feature.events.ui.components
 
 
 import androidx.compose.foundation.background
