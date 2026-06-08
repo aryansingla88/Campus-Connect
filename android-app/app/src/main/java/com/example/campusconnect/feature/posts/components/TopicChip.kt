@@ -21,25 +21,51 @@ import androidx.compose.ui.unit.dp
 import com.example.campusconnect.core.ui.theme.*
 
 import com.example.campusconnect.feature.posts.models.Topic
+import androidx.compose.foundation.clickable
 
 @Composable
 fun TopicChip(
 
-    topic: Topic
-) {
+    topic: Topic,
 
+    postCount: Int,
+
+    isSelected: Boolean,
+
+    onClick: () -> Unit
+
+    /*
+    isSelected: Boolean,
+
+    onClick: () -> Unit
+     */
+)
+
+{
     Row(
 
         modifier = Modifier
+
             .background(
 
-                color = Color.White,
+                color =
+                    if (isSelected)
+                        OrangePrimary
+                    else
+                        Color.White,
 
                 shape = RoundedCornerShape(50)
             )
+
+            .clickable {
+
+                onClick()
+            }
             .padding(
-                horizontal = 14.dp,
-                vertical = 8.dp
+
+                horizontal = 18.dp,
+
+                vertical = 10.dp
             ),
 
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -55,7 +81,11 @@ fun TopicChip(
 
             text = topic.name,
 
-            color = LabelColor,
+            color =
+                if (isSelected)
+                    Color.White
+                else
+                    LabelColor,
 
             style = MaterialTheme.typography.labelMedium
         )
@@ -66,9 +96,13 @@ fun TopicChip(
 
         Text(
 
-            text = topic.postCount.toString(),
+            text = postCount.toString(),
 
-            color = OrangePrimary,
+            color =
+                if (isSelected)
+                    Color.White
+                else
+                    OrangePrimary,
 
             style = MaterialTheme.typography.labelMedium
         )

@@ -52,7 +52,8 @@ fun PostDetailScreen(
          */
 
         PostDetailCard(
-            post = post
+            post = post,
+            commentCount = commentsForPost.size
         )
 
         /*

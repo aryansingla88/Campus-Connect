@@ -25,12 +25,17 @@ import androidx.compose.ui.unit.dp
 import com.example.campusconnect.core.ui.theme.*
 
 import com.example.campusconnect.feature.posts.models.Topic
+import com.example.campusconnect.feature.posts.models.dummyPosts
 
 @Composable
 fun TopicChipsRow(
 
-    topics: List<Topic>
-) {
+    topics: List<Topic>,
+
+    selectedTopic: String?,
+
+    onTopicSelected: (String?) -> Unit
+){
     Row(
         verticalAlignment=Alignment.CenterVertically
     ) {
@@ -42,10 +47,9 @@ fun TopicChipsRow(
                     color = OrangeLight,
                     shape = CircleShape
                 )
-                .clickable{
-                    /*
-                    load trending posts
-                     */
+                .clickable {
+
+                    onTopicSelected(null)
                 },
 
             contentAlignment = Alignment.Center
@@ -66,8 +70,25 @@ fun TopicChipsRow(
 
             items(topics) { topic ->
 
+                val postCount =
+
+                    dummyPosts.count {
+
+                        it.tag == topic.name
+                    }
+
                 TopicChip(
-                    topic = topic
+
+                    topic = topic,
+
+                    postCount = postCount,
+
+                    isSelected = selectedTopic == topic.name,
+
+                    onClick = {
+
+                        onTopicSelected(topic.name)
+                    }
                 )
             }
         }

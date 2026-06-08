@@ -36,7 +36,11 @@ import com.example.campusconnect.feature.posts.models.Post
 
 @Composable
 fun PostCard(
+
     post: Post,
+
+    commentCount: Int,
+
     onClick: () -> Unit
 ) {
 
@@ -265,14 +269,25 @@ fun PostCard(
             ) {
 
                 VoteSection(
+
                     upvotes = post.upvotes,
-                    downvotes = post.downvotes
+
+                    downvotes = post.downvotes,
+
+                    userVote = post.userVote,
+
+                    onUpvoteClick = {
+
+                    },
+
+                    onDownvoteClick = {
+
+                    }
                 )
 
                 Text(
 
-                    text = "💬 ${post.commentCount}",
-
+                    text = "💬 $commentCount",
                     color = HintColor
                 )
             }
