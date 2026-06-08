@@ -9,6 +9,8 @@ interface ProfileRepository {
 
     suspend fun getProfile(userId: String): Result<PublicUserProfile>
 
+    suspend fun updateProfile(profile: PublicUserProfile): Result<PublicUserProfile>
+
     suspend fun getMyStats(): Result<ProfileStats>
 
     suspend fun getUserStats(userId: String): Result<ProfileStats>

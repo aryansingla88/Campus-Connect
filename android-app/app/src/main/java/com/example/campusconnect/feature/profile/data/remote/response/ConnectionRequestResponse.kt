@@ -2,7 +2,7 @@ package com.example.campusconnect.feature.profile.data.remote.response
 
 import com.google.gson.annotations.SerializedName
 
-data class ConnectionResponse(
+data class ConnectionRequestResponse(
 
     // User -------------------------------------------------------------
 
@@ -27,8 +27,11 @@ data class ConnectionResponse(
     @SerializedName("admission_year")
     val admissionYear: Int,
 
-    // Relationship -----------------------------------------------------
+    // Request ----------------------------------------------------------
 
-    @SerializedName("status")
-    val status: String,         // not_connected | pending | connected
+    @SerializedName("direction")
+    val direction: String,      // incoming | outgoing
+
+    @SerializedName("created_at")
+    val createdAt: String,
 )

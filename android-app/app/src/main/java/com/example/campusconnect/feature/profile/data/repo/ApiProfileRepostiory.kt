@@ -2,184 +2,137 @@ package com.example.campusconnect.feature.profile.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
-import com.example.campusconnect.feature.profile.data.remote.request.*
-import com.example.campusconnect.feature.profile.data.remote.response.*
 import com.example.campusconnect.feature.profile.model.*
 
 class ApiProfileRepository(
     private val api: ProfileApi = RetrofitClient.profileApi
-) {
+) : ProfileRepository {
 
-    // -------------------------------------------------------------------------
-    // Profile
-    // -------------------------------------------------------------------------
 
-    suspend fun getMyProfile(): Result<PublicUserProfile> = runCatching {
-        api.getMyProfile().body()?.data?.toDomain() ?: error("Empty response")
+
+    // Profile-------------------------------------------------------------
+
+    override suspend fun getMyProfile(): Result<PublicUserProfile> {
+        TODO()
     }
 
-    suspend fun getProfile(userId: Int): Result<PublicUserProfile> = runCatching {
-        api.getProfile(userId).body()?.data?.toDomain() ?: error("Empty response")
+    override suspend fun getProfile(
+        userId: String
+    ): Result<PublicUserProfile> {
+        TODO()
     }
 
-    suspend fun updateProfile(profile: PublicUserProfile): Result<PublicUserProfile> = runCatching {
-        api.updateProfile(profile.toUpdateRequest()).body()?.data?.toDomain() ?: error("Empty response")
+    override suspend fun updateProfile(
+        profile: PublicUserProfile
+    ): Result<PublicUserProfile> {
+        TODO()
     }
 
-    suspend fun getMyStats(): Result<ProfileStats> = runCatching {
-        api.getMyStats().body()?.data?.toDomain() ?: error("Empty response")
+
+    // Stats -------------------------------------------------------------
+
+    override suspend fun getMyStats(): Result<ProfileStats> {
+        TODO()
     }
 
-    suspend fun getUserStats(userId: Int): Result<ProfileStats> = runCatching {
-        api.getUserStats(userId).body()?.data?.toDomain() ?: error("Empty response")
+    override suspend fun getUserStats(
+        userId: String
+    ): Result<ProfileStats> {
+        TODO()
     }
 
-    // -------------------------------------------------------------------------
-    // Connections
-    // -------------------------------------------------------------------------
 
-    suspend fun getMyConnections(): Result<List<Connection>> = runCatching {
-        api.getMyConnections().body()?.data?.map { it.toDomain() } ?: emptyList()
+    // Connections -------------------------------------------------------------
+
+    override suspend fun getMyConnections(): Result<List<Connection>> {
+        TODO()
     }
 
-    suspend fun getUserConnections(userId: Int): Result<List<Connection>> = runCatching {
-        api.getUserConnections(userId).body()?.data?.map { it.toDomain() } ?: emptyList()
+    override suspend fun getUserConnections(
+        userId: String
+    ): Result<List<Connection>> {
+        TODO()
     }
 
-    suspend fun getConnectionRequests(): Result<List<ConnectionRequest>> = runCatching {
-        api.getConnectionRequests().body()?.data?.map { it.toDomain() } ?: emptyList()
+    override suspend fun getConnectionRequests(): Result<List<ConnectionRequest>> {
+        TODO()
     }
 
-    suspend fun sendConnectionRequest(userId: Int): Result<Unit> = runCatching {
-        api.sendConnectionRequest(userId)
+    override suspend fun sendConnectionRequest(
+        userId: String
+    ): Result<Unit> {
+        TODO()
     }
 
-    suspend fun acceptConnectionRequest(userId: Int): Result<Unit> = runCatching {
-        api.acceptConnectionRequest(userId)
+    override suspend fun acceptConnectionRequest(
+        userId: String
+    ): Result<Unit> {
+        TODO()
     }
 
-    suspend fun removeConnection(userId: Int): Result<Unit> = runCatching {
-        api.removeConnection(userId)
+    override suspend fun removeConnection(
+        userId: String
+    ): Result<Unit> {
+        TODO()
     }
 
-    // -------------------------------------------------------------------------
-    // Clubs
-    // -------------------------------------------------------------------------
 
-    suspend fun getMyClubs(): Result<List<Club>> = runCatching {
-        api.getMyClubs().body()?.data?.map { it.toDomain() } ?: emptyList()
+    // Clubs -------------------------------------------------------------
+
+    override suspend fun getMyClubs(): Result<List<Club>> {
+        TODO()
     }
 
-    suspend fun getUserClubs(userId: Int): Result<List<Club>> = runCatching {
-        api.getUserClubs(userId).body()?.data?.map { it.toDomain() } ?: emptyList()
+    override suspend fun getUserClubs(
+        userId: String
+    ): Result<List<Club>> {
+        TODO()
     }
 
-    suspend fun joinClub(clubId: Int): Result<Unit> = runCatching {
-        api.joinClub(clubId)
+    override suspend fun joinClub(
+        clubId: String
+    ): Result<Unit> {
+        TODO()
     }
 
-    suspend fun leaveClub(clubId: Int): Result<Unit> = runCatching {
-        api.leaveClub(clubId)
+    override suspend fun leaveClub(
+        clubId: String
+    ): Result<Unit> {
+        TODO()
     }
 
-    // -------------------------------------------------------------------------
-    // Honor
-    // -------------------------------------------------------------------------
 
-//    suspend fun getMyHonor(): Result<List<Honor>> = runCatching {
-//        api.getMyHonor().body()?.data?.map { it.toDomain() } ?: emptyList()
-//    }
-//
-//    suspend fun getUserHonor(userId: Int): Result<List<Honor>> = runCatching {
-//        api.getUserHonor(userId).body()?.data?.map { it.toDomain() } ?: emptyList()
-//    }
-//
-//    suspend fun getLeaderboard(): Result<List<HonorEntry>> = runCatching {
-//        api.getLeaderboard().body()?.data?.map { it.toDomain() } ?: emptyList()
-//    }
-//
-//    suspend fun updateHonorPriority(honorId: Int, priority: Int): Result<Unit> = runCatching {
-//        api.updateHonorPriority(UpdateHonorPriorityRequest(honorId, priority))
-//    }
+    // Honors-------------------------------------------------------------
 
-    // -------------------------------------------------------------------------
-    // Interests
-    // -------------------------------------------------------------------------
-
-    suspend fun getAllInterests(): Result<List<Interest>> = runCatching {
-        api.getAllInterests().body()?.data?.map { it.toDomain() } ?: emptyList()
+    override suspend fun getProfileHonors(): Result<ProfileHonors> {
+        TODO()
     }
 
-    suspend fun getMyInterests(): Result<List<Interest>> = runCatching {
-        api.getMyInterests().body()?.data?.map { it.toDomain() } ?: emptyList()
+
+    // Interests-------------------------------------------------------------
+    override suspend fun getSelectedInterests(): Result<List<Interest>> {
+        TODO()
     }
 
-    suspend fun getUserInterests(userId: Int): Result<List<Interest>> = runCatching {
-        api.getUserInterests(userId).body()?.data?.map { it.toDomain() } ?: emptyList()
+    override suspend fun getAllInterests(): Result<List<Interest>> {
+        TODO()
     }
 
-    suspend fun addInterest(interestId: Int): Result<Unit> = runCatching {
-        api.addInterest(interestId)
+    override suspend fun addInterest(
+        interestId: String
+    ): Result<Unit> {
+        TODO()
     }
 
-    suspend fun removeInterest(interestId: Int): Result<Unit> = runCatching {
-        api.removeInterest(interestId)
+    override suspend fun removeInterest(
+        interestId: String
+    ): Result<Unit> {
+        TODO()
     }
 
-    // -------------------------------------------------------------------------
-    // Courses
-    // -------------------------------------------------------------------------
+    // Courses-------------------------------------------------------------
 
-    suspend fun getCourses(): Result<List<Course>> = runCatching {
-        api.getCourses().body()?.data?.map { it.toDomain() } ?: emptyList()
+    override suspend fun getCourses(): Result<List<Course>> {
+        TODO()
     }
-
-    // -------------------------------------------------------------------------
-    // Mappers — response → domain
-    // -------------------------------------------------------------------------
-
-    private fun ProfileResponse.toDomain(): PublicUserProfile {
-        TODO("implement when wiring to real backend")
-    }
-
-    private fun ProfileStatsResponse.toDomain(): ProfileStats {
-        TODO("implement when wiring to real backend")
-    }
-
-    private fun ConnectionResponse.toDomain(): Connection {
-        TODO("implement when wiring to real backend")
-    }
-
-    private fun ConnectionRequestResponse.toDomain(): ConnectionRequest {
-        TODO("implement when wiring to real backend")
-    }
-
-    private fun ClubResponse.toDomain(): Club {
-        TODO("implement when wiring to real backend")
-    }
-
-//    private fun HonorResponse.toDomain(): Honor {
-//        TODO("implement when wiring to real backend")
-//    }
-
-//    private fun HonorLeaderboardEntryResponse.toDomain(): HonorEntry {
-//        TODO("implement when wiring to real backend")
-//    }
-
-    private fun InterestResponse.toDomain(): Interest {
-        TODO("implement when wiring to real backend")
-    }
-
-    private fun CourseResponse.toDomain(): Course {
-        TODO("implement when wiring to real backend")
-    }
-
-    // -------------------------------------------------------------------------
-    // Mappers — domain → request
-    // -------------------------------------------------------------------------
-
-    private fun PublicUserProfile.toUpdateRequest(): UpdateProfileRequest {
-        TODO("implement when wiring to real backend")
-    }
-
 }

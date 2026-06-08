@@ -87,8 +87,14 @@ class MyProfileViewModel : BaseProfileViewModel() {
     }
 
     fun saveProfileChanges() {
-        profile = editableProfile
-        isEditMode = false
+        viewModelScope.launch {
+            repository
+                .updateProfile(editableProfile)
+                .onSuccess {
+                    profile = it
+                    isEditMode = false
+                }
+        }
     }
 
     fun acceptRequest(userId: String) {

@@ -5,9 +5,9 @@ import com.example.campusconnect.feature.profile.model.*
 
 class FakeProfileRepository : ProfileRepository {
 
-    // -------------------------------------------------------------------------
-    // Profile
-    // -------------------------------------------------------------------------
+    // Profile-------------------------------------------------------------
+
+    private var myProfile = FakeProfileService.getMyProfile()
 
     override suspend fun getMyProfile() =
         Result.success(FakeProfileService.getMyProfile())
@@ -15,6 +15,11 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun getProfile(userId: String) =
         Result.success(FakeProfileService.getProfile(userId))
 
+    override suspend fun updateProfile(
+        profile: PublicUserProfile
+    ) = Result.success(
+        profile.also { myProfile = it }
+    )
     private val honors = FakeHonorService.getProfileHonors()
     override suspend fun getMyStats() =
         Result.success(
@@ -29,9 +34,7 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun getUserStats(userId: String) =
         getMyStats()
 
-    // -------------------------------------------------------------------------
-    // Connections
-    // -------------------------------------------------------------------------
+    // Connections-------------------------------------------------------------
 
     override suspend fun getMyConnections() =
         Result.success(FakeConnectionsService.getConnections())
@@ -54,9 +57,7 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun removeConnection(userId: String) =
         Result.success(Unit)
 
-    // -------------------------------------------------------------------------
-    // Clubs
-    // -------------------------------------------------------------------------
+    // Clubs-------------------------------------------------------------
 
     override suspend fun getMyClubs() =
         Result.success(FakeClubsService.getClubs())
@@ -70,16 +71,12 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun leaveClub(clubId: String) =
         Result.success(Unit)
 
-    // -------------------------------------------------------------------------
-    // Honors
-    // -------------------------------------------------------------------------
+    // Honors-------------------------------------------------------------
 
     override suspend fun getProfileHonors() =
         Result.success(FakeHonorService.getProfileHonors())
 
-    // -------------------------------------------------------------------------
-    // Interests
-    // -------------------------------------------------------------------------
+    // Interests-------------------------------------------------------------
 
     override suspend fun getSelectedInterests() =
         Result.success(FakeInterestsService.getSelectedInterests())
@@ -93,9 +90,7 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun removeInterest(interestId: String) =
         Result.success(Unit)
 
-    // -------------------------------------------------------------------------
-    // Courses
-    // -------------------------------------------------------------------------
+    // Courses-------------------------------------------------------------
 
     override suspend fun getCourses() =
         Result.success(emptyList<Course>())
