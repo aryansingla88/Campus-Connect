@@ -7,10 +7,11 @@ import com.example.campusconnect.feature.splash.SplashScreen
 import com.example.campusconnect.feature.splash.SplashDestination
 import com.example.campusconnect.feature.test.TestScreen
 import com.example.campusconnect.feature.auth.authNav
-//import com.example.campusconnect.feature.posts.postNav
 import com.example.campusconnect.feature.events.eventNav
 import com.example.campusconnect.feature.map.mapNav
+import com.example.campusconnect.feature.posts.navigation.postNav
 import com.example.campusconnect.feature.profile.ProfileNav
+import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
 
 @Composable
 fun AppNavHost() {
@@ -32,11 +33,20 @@ fun AppNavHost() {
                 }
             )
         }
+        composable("general_feed") {
+            GeneralFeedScreen(
+
+                onPostClick = { postId ->
+
+                    navController.navigate("post_detail/$postId")
+                }
+            )
+        }
 
         composable("test") {
             TestScreen(
                 onAuth = { navController.navigate("auth") },
-                onPosts = { navController.navigate("posts") },
+                onPosts = { navController.navigate("general_feed") },
                 onEvents = { navController.navigate("events_root") },
                 onMap = { navController.navigate("map") },
                 onProfile = { navController.navigate("profile")},
@@ -45,7 +55,7 @@ fun AppNavHost() {
         }
 
         authNav(navController)
-//        postNav(navController)
+        postNav(navController)
         eventNav(navController)
         mapNav(navController)
         ProfileNav(navController)
