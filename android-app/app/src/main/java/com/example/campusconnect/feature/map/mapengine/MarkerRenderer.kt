@@ -18,6 +18,8 @@ class MarkerRenderer {
                 radius = getRadius(marker, isSelected),
                 color = getColor(marker),
                 label = marker.label,
+                type = marker.type,
+                gender = marker.gender,
                 isSelected = isSelected
             )
         }

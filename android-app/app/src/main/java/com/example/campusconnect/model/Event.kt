@@ -1,5 +1,7 @@
 package com.example.campusconnect.model
 
+enum class EventStatus { LIVE, PAST, UPCOMING }
+
 data class Event(
 
     val id: Int,
@@ -17,7 +19,7 @@ data class Event(
     val yRatio: Float = 0.5f,
 
     // 🔹 TIME
-    val date: String = "",              // added separately
+    val date: String = "",
     val startTime: String = "",
     val endTime: String? = null,
 
@@ -43,5 +45,8 @@ data class Event(
 
     // 🔹 EXTRA
     val venue: String = "",
-    val enableChat: Boolean=false
+    val enableChat: Boolean = false,
+
+    // 🔹 STATUS — LIVE events show on map in orange, PAST events show in grey
+    val status: EventStatus = EventStatus.UPCOMING
 )
