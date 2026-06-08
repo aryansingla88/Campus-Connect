@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Event
+import com.example.campusconnect.feature.map.components.markerdialogs.UserMarkerDialog
 private enum class MapMode {
     NONE,
     VIEW,
@@ -138,14 +139,24 @@ fun MapScreen(
         }
 
         uiState.selectedMarker?.let { marker ->
-            MarkerPreviewCard(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                title = marker.label,
-                type = marker.type.name,
-                onClose = { viewModel.clearSelection() }
-            )
+            if (marker.type == MarkerType.USER) {
+                UserMarkerDialog(
+                    userId = marker.id,
+                    onDismiss = { viewModel.clearSelection() },
+                    onAddFriend = { userId ->
+                        android.util.Log.d("MAP_USER", "Add friend clicked: $userId")
+                    }
+                )
+            } else {
+                MarkerPreviewCard(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    title = marker.label,
+                    type = marker.type.name,
+                    onClose = { viewModel.clearSelection() }
+                )
+            }
         }
     }
 }
