@@ -9,52 +9,64 @@ object FakeProfileService {
         return PublicUserProfile(
             userId = "4",
             fullName = "Aryan Singla",
-            username = "@aryan.singla",
+            username = "aryan.singla",
             bio = "Tech enthusiast, problem solver and always up for new ideas.",
-            initials = "AS",
-            course = "Masters of Computer Application",
-            year = "2nd Year (2024 – 2028)",
+            avatarUrl = null,
+
+            course = "MCA",
+            branch = "Computer Applications",
+            academicYear = "2nd Year",
+            batch = "2024-2026",
             hostel = "H6",
             hometown = "Karnal",
+
             gender = "Male",
             dob = "2004-08-17",
+
             phone = "+91 91234 56789",
             email = "525110036@nitkkr.ac.in",
-            memberSince = "August 2024",
+
             github = "github.com/aryan",
             linkedin = "linkedin.com/in/aryan",
             instagram = "@aryan.singla",
-            connectionCount = 24,
-            honorRank = 12,
-            clubCount = 6,
-            interestCount = 4,
+
+            memberSince = "August 2024",
+
+            showPhone = true,
+            showSocials = true
         )
     }
 
     fun getProfile(userId: String): PublicUserProfile {
 
         return PublicUserProfile(
-            userId = "1",
+            userId = userId,
             fullName = "Rahul Kumar",
-            username = "@rahul.kumar",
+            username = "rahul.kumar",
             bio = "Tech enthusiast, problem solver and always up for new ideas.",
-            initials = "RK",
-            course = "Masters of Computer Application",
-            year = "2nd Year (2024 – 2028)",
+            avatarUrl = null,
+
+            course = "MCA",
+            branch = "Computer Applications",
+            academicYear = "2nd Year",
+            batch = "2024-2026",
             hostel = "H4",
             hometown = "Delhi",
+
             gender = "Male",
             dob = "2005-08-17",
+
             phone = "+91 91234 56789",
-            email = "525110036@nitkkr.ac.in",
-            memberSince = "August 2024",
+            email = "rahul@nitkkr.ac.in",
+
             github = "github.com/rahul",
             linkedin = "linkedin.com/in/rahul",
             instagram = "@rahul.kumar",
-            connectionCount = 18,
-            honorRank = 3,
-            clubCount = 2,
-            interestCount = 3,
+
+            memberSince = "August 2024",
+
+            showPhone = false,
+            showSocials = true
         )
     }
 }

@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit
 import android.R.attr.level
 
 
+
 object RetrofitClient {
 
     // Set by SessionManager after login
@@ -23,10 +24,8 @@ object RetrofitClient {
         authToken = ""
     }
 
-    // ---------------------------------------------------------------------------
-    // Interceptors
-    // ---------------------------------------------------------------------------
 
+    // Interceptors ---------------------------------------------
     private val authInterceptor = okhttp3.Interceptor { chain ->
         val request = chain.request().newBuilder()
             .addHeader(ApiConfig.HEADER_AUTH,         "Bearer $authToken")
@@ -37,14 +36,11 @@ object RetrofitClient {
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        // TODO: set to NONE in release builds via BuildConfig.DEBUG
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    // ---------------------------------------------------------------------------
-    // OkHttp client
-    // ---------------------------------------------------------------------------
 
+    // OkHttp client ---------------------------------------------
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
         .addInterceptor(loggingInterceptor)
@@ -53,24 +49,20 @@ object RetrofitClient {
         .writeTimeout(ApiConfig.TIMEOUT_SEC,   TimeUnit.SECONDS)
         .build()
 
-    // ---------------------------------------------------------------------------
-    // Retrofit instance
-    // ---------------------------------------------------------------------------
 
+    // Retrofit instance ---------------------------------------------
     private val retrofit = Retrofit.Builder()
         .baseUrl(ApiConfig.BASE_URL)
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    // ---------------------------------------------------------------------------
-    // API instances — register new ones here as features are added
-    // ---------------------------------------------------------------------------
+
+    // API instances ---------------------------------------------
 
     val profileApi: ProfileApi = retrofit.create(ProfileApi::class.java)
-
-    // TODO: val authApi    : AuthApi    = retrofit.create(AuthApi::class.java)
-    // TODO: val eventsApi  : EventsApi  = retrofit.create(EventsApi::class.java)
-    // TODO: val postsApi   : PostsApi   = retrofit.create(PostsApi::class.java)
-    // TODO: val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
+    // val authApi    : AuthApi    = retrofit.create(AuthApi::class.java)
+    // val eventsApi  : EventsApi  = retrofit.create(EventsApi::class.java)
+    // val postsApi   : PostsApi   = retrofit.create(PostsApi::class.java)
+    // val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
 }

@@ -1,58 +1,54 @@
 package com.example.campusconnect.feature.profile.data.fake
 
-import androidx.compose.ui.graphics.Color
-import com.example.campusconnect.feature.profile.model.Connection
-import com.example.campusconnect.feature.profile.model.ConnectionStatus
-import com.example.campusconnect.feature.profile.ui.components.OrangeDark
+import com.example.campusconnect.feature.profile.model.ConnectionRequest
+import com.example.campusconnect.feature.profile.model.RequestType
 
 object FakeRequestsService {
 
-    fun getIncomingRequests(): List<Connection> {
+    fun getIncomingRequests(): List<ConnectionRequest> {
+
         return listOf(
 
-            Connection(
+            ConnectionRequest(
                 userId = "11",
-                initials = "AS",
-                name = "Aarav Sharma",
-                sub = "MCA 1st Year",
-                avatarBg = Color(0xFFFEF0E6),
-                avatarText = OrangeDark,
-                status = ConnectionStatus.PENDING
+                fullName = "Aarav Sharma",
+                course = "MCA",
+                academicYear = 1,
+                avatarUrl = null,
+                type = RequestType.INCOMING
             ),
 
-            Connection(
+            ConnectionRequest(
                 userId = "12",
-                initials = "NK",
-                name = "Neha Kapoor",
-                sub = "BCA 3rd Year",
-                avatarBg = Color(0xFFE6F1FB),
-                avatarText = Color(0xFF0C447C),
-                status = ConnectionStatus.PENDING
+                fullName = "Neha Kapoor",
+                course = "BCA",
+                academicYear = 3,
+                avatarUrl = null,
+                type = RequestType.INCOMING
             )
         )
     }
 
-    fun getSentInvites(): List<Connection> {
+    fun getSentInvites(): List<ConnectionRequest> {
+
         return listOf(
 
-            Connection(
+            ConnectionRequest(
                 userId = "21",
-                initials = "RM",
-                name = "Rohan Mehta",
-                sub = "MCA 2nd Year",
-                avatarBg = Color(0xFFE1F5EE),
-                avatarText = Color(0xFF085041),
-                status = ConnectionStatus.PENDING
+                fullName = "Rohan Mehta",
+                course = "MCA",
+                academicYear = 2,
+                avatarUrl = null,
+                type = RequestType.OUTGOING
             ),
 
-            Connection(
+            ConnectionRequest(
                 userId = "22",
-                initials = "PS",
-                name = "Priya Singh",
-                sub = "B.Tech CSE 2nd Year",
-                avatarBg = Color(0xFFFFF4D9),
-                avatarText = Color(0xFF8C6A00),
-                status = ConnectionStatus.PENDING
+                fullName = "Priya Singh",
+                course = "B.Tech CSE",
+                academicYear = 2,
+                avatarUrl = null,
+                type = RequestType.OUTGOING
             )
         )
     }

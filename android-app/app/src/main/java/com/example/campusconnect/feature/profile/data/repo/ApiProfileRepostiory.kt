@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.data
+package com.example.campusconnect.feature.profile.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
@@ -6,7 +6,7 @@ import com.example.campusconnect.feature.profile.data.remote.request.*
 import com.example.campusconnect.feature.profile.data.remote.response.*
 import com.example.campusconnect.feature.profile.model.*
 
-class ProfileRepository(
+class ApiProfileRepository(
     private val api: ProfileApi = RetrofitClient.profileApi
 ) {
 
@@ -32,18 +32,6 @@ class ProfileRepository(
 
     suspend fun getUserStats(userId: Int): Result<ProfileStats> = runCatching {
         api.getUserStats(userId).body()?.data?.toDomain() ?: error("Empty response")
-    }
-
-    // -------------------------------------------------------------------------
-    // Preferences
-    // -------------------------------------------------------------------------
-
-    suspend fun getPreferences(): Result<UserPreferences> = runCatching {
-        api.getPreferences().body()?.data?.toDomain() ?: error("Empty response")
-    }
-
-    suspend fun updatePreferences(prefs: UserPreferences): Result<UserPreferences> = runCatching {
-        api.updatePreferences(prefs.toRequest()).body()?.data?.toDomain() ?: error("Empty response")
     }
 
     // -------------------------------------------------------------------------
@@ -98,21 +86,21 @@ class ProfileRepository(
     // Honor
     // -------------------------------------------------------------------------
 
-    suspend fun getMyHonor(): Result<List<Honor>> = runCatching {
-        api.getMyHonor().body()?.data?.map { it.toDomain() } ?: emptyList()
-    }
-
-    suspend fun getUserHonor(userId: Int): Result<List<Honor>> = runCatching {
-        api.getUserHonor(userId).body()?.data?.map { it.toDomain() } ?: emptyList()
-    }
-
-    suspend fun getLeaderboard(): Result<List<HonorEntry>> = runCatching {
-        api.getLeaderboard().body()?.data?.map { it.toDomain() } ?: emptyList()
-    }
-
-    suspend fun updateHonorPriority(honorId: Int, priority: Int): Result<Unit> = runCatching {
-        api.updateHonorPriority(UpdateHonorPriorityRequest(honorId, priority))
-    }
+//    suspend fun getMyHonor(): Result<List<Honor>> = runCatching {
+//        api.getMyHonor().body()?.data?.map { it.toDomain() } ?: emptyList()
+//    }
+//
+//    suspend fun getUserHonor(userId: Int): Result<List<Honor>> = runCatching {
+//        api.getUserHonor(userId).body()?.data?.map { it.toDomain() } ?: emptyList()
+//    }
+//
+//    suspend fun getLeaderboard(): Result<List<HonorEntry>> = runCatching {
+//        api.getLeaderboard().body()?.data?.map { it.toDomain() } ?: emptyList()
+//    }
+//
+//    suspend fun updateHonorPriority(honorId: Int, priority: Int): Result<Unit> = runCatching {
+//        api.updateHonorPriority(UpdateHonorPriorityRequest(honorId, priority))
+//    }
 
     // -------------------------------------------------------------------------
     // Interests
@@ -158,10 +146,6 @@ class ProfileRepository(
         TODO("implement when wiring to real backend")
     }
 
-    private fun PreferencesResponse.toDomain(): UserPreferences {
-        TODO("implement when wiring to real backend")
-    }
-
     private fun ConnectionResponse.toDomain(): Connection {
         TODO("implement when wiring to real backend")
     }
@@ -174,13 +158,13 @@ class ProfileRepository(
         TODO("implement when wiring to real backend")
     }
 
-    private fun HonorResponse.toDomain(): Honor {
-        TODO("implement when wiring to real backend")
-    }
+//    private fun HonorResponse.toDomain(): Honor {
+//        TODO("implement when wiring to real backend")
+//    }
 
-    private fun HonorLeaderboardEntryResponse.toDomain(): HonorEntry {
-        TODO("implement when wiring to real backend")
-    }
+//    private fun HonorLeaderboardEntryResponse.toDomain(): HonorEntry {
+//        TODO("implement when wiring to real backend")
+//    }
 
     private fun InterestResponse.toDomain(): Interest {
         TODO("implement when wiring to real backend")
@@ -198,7 +182,4 @@ class ProfileRepository(
         TODO("implement when wiring to real backend")
     }
 
-    private fun UserPreferences.toRequest(): UpdatePreferencesRequest {
-        TODO("implement when wiring to real backend")
-    }
 }

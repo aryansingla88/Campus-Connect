@@ -23,9 +23,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.example.campusconnect.core.components.AppAvatar
+
 @Composable
 fun ProfileHeader(
-    initials: String,
+    entityId: String,
+    avatarUrl: String?,
     displayName: String,
     username: String,
     bio: String,
@@ -60,38 +63,35 @@ fun ProfileHeader(
 
             // ── Avatar ────────────────────────────────────────────────────
             Box(
-                modifier = Modifier
-                    .size(82.dp)
-                    .clip(CircleShape)
-                    .background(OrangeLight)
-                    .border(3.dp, Orange, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    initials,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OrangeDark
+
+                AppAvatar(
+                    entityId = entityId,
+                    displayName = displayName,
+                    imageUrl = avatarUrl,
+                    size = 82.dp,
+                    showBorder = true,
+                    borderWidth = 3.dp
                 )
+
                 avatarOverlay?.invoke(this)
 
-                // Camera overlay — only in edit mode
                 if (isEditMode && onEditAvatar != null) {
                     Box(
                         modifier = Modifier
-                            .matchParentSize()
+                            .size(82.dp)
+                            .clip(CircleShape)
                             .background(Color.Black.copy(alpha = 0.35f)),
                         contentAlignment = Alignment.Center
                     ) {
                         IconButton(
-                            onClick = onEditAvatar,
-                            modifier = Modifier.size(36.dp)
+                            onClick = onEditAvatar
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.CameraAlt,
+                                Icons.Outlined.CameraAlt,
                                 contentDescription = "Change photo",
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
+                                tint = Color.White
                             )
                         }
                     }

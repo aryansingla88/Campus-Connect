@@ -1,36 +1,67 @@
 package com.example.campusconnect.feature.profile.data.fake
 
-import androidx.compose.ui.graphics.Color
-import com.example.campusconnect.feature.profile.model.Honor
-import com.example.campusconnect.feature.profile.model.HonorEntry
-import com.example.campusconnect.feature.profile.ui.components.*
+import com.example.campusconnect.feature.profile.model.HonorType
+import com.example.campusconnect.feature.profile.model.ProfileHonor
+import com.example.campusconnect.feature.profile.model.ProfileHonors
 
 object FakeHonorService {
 
-    fun getHonorEntries(): List<HonorEntry> {
+    fun getProfileHonors(): ProfileHonors {
 
-        return listOf(
-            HonorEntry(1, "PS", "Priya Sharma", 340, Color(0xFFFEF0E6)),
-            HonorEntry(2, "AS", "Aryan Sharma", 280, Color(0xFFFFE8D6), isMe = true),
-            HonorEntry(3, "RK", "Rahul Kumar", 240, Color(0xFFE1F5EE)),
-            HonorEntry(4, "AV", "Amit Verma", 190, Color(0xFFEEEDFE)),
-        )
-    }
+        return ProfileHonors(
 
-    fun getBadges(): List<Honor> {
+            honorRank = 12,
 
-        return listOf(
-            Honor("Problem Solver", "Coding Excellence", BadgeBlue),
-            Honor("Community Helper", "Helping Students", BadgePurple),
-            Honor("Top Contributor", "Campus Impact", BadgeGreen),
-        )
-    }
+            badges = listOf(
 
-    fun getMedals(): List<Honor> {
+                ProfileHonor(
+                    honorId = "problem_solver",
+                    type = HonorType.BADGE,
+                    title = "Problem Solver",
+                    subtitle = "Coding Excellence",
+                    iconUrl = null,
+                    priority = 1
+                ),
 
-        return listOf(
-            Honor("Gold Medal", "Top Performer", MedalGold),
-            Honor("Silver Medal", "Outstanding Work", MedalSilver),
+                ProfileHonor(
+                    honorId = "community_helper",
+                    type = HonorType.BADGE,
+                    title = "Community Helper",
+                    subtitle = "Helping Students",
+                    iconUrl = null,
+                    priority = 2
+                ),
+
+                ProfileHonor(
+                    honorId = "top_contributor",
+                    type = HonorType.BADGE,
+                    title = "Top Contributor",
+                    subtitle = "Campus Impact",
+                    iconUrl = null,
+                    priority = 3
+                )
+            ),
+
+            medals = listOf(
+
+                ProfileHonor(
+                    honorId = "gold_medal",
+                    type = HonorType.MEDAL,
+                    title = "Gold Medal",
+                    subtitle = "Top Performer",
+                    iconUrl = null,
+                    priority = 1
+                ),
+
+                ProfileHonor(
+                    honorId = "silver_medal",
+                    type = HonorType.MEDAL,
+                    title = "Silver Medal",
+                    subtitle = "Outstanding Work",
+                    iconUrl = null,
+                    priority = 2
+                )
+            )
         )
     }
 }

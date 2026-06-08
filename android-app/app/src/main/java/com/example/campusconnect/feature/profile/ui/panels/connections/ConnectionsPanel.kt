@@ -3,14 +3,11 @@ package com.example.campusconnect.feature.profile.ui.panels.connections
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -20,6 +17,7 @@ import com.example.campusconnect.feature.profile.model.Connection
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.ui.components.*
+import com.example.campusconnect.core.components.AppAvatar
 
 @Composable
 fun ConnectionsPanel(
@@ -45,35 +43,26 @@ fun ConnectionsPanel(
         )
 
         connections
-            .filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
+            .filter { query.isBlank() || it.fullName.contains(query, ignoreCase = true) }
             .forEachIndexed { index, c ->
                 ProfileListCard(
-                    title    = c.name,
-                    subtitle = c.sub,
+                    title = c.fullName,
+                    subtitle = "${c.course} • Year ${c.academicYear}",
                     onClick  = { onConnectionClick(c.userId) },
                     leadingContent = {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(c.avatarBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                c.initials,
-                                fontSize   = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color      = c.avatarText
-                            )
-                        }
-                    },
+                        AppAvatar(
+                            entityId = c.userId,
+                            displayName = c.fullName,
+                            imageUrl = c.avatarUrl,
+                            size = 38.dp
+                        )},
                     trailingContent = {
                         ConnectionButton(
                             status  = c.status,
                             mode    = mode,
                             onClick = {
                                 when (c.status) {
-                                    ConnectionStatus.ADD       -> onStatusChange(index, ConnectionStatus.PENDING)
+                                    ConnectionStatus.NOT_CONNECTED       -> onStatusChange(index, ConnectionStatus.PENDING)
                                     ConnectionStatus.PENDING   -> Unit
                                     ConnectionStatus.CONNECTED -> Unit
                                 }
@@ -92,17 +81,17 @@ private fun ConnectionButton(
     onClick: () -> Unit
 ) {
     val containerColor = when (status) {
-        ConnectionStatus.ADD       -> Orange
+        ConnectionStatus.NOT_CONNECTED       -> Orange
         ConnectionStatus.PENDING   -> OrangeLight
         ConnectionStatus.CONNECTED -> Color.Transparent
     }
     val contentColor = when (status) {
-        ConnectionStatus.ADD       -> Color.White
+        ConnectionStatus.NOT_CONNECTED       -> Color.White
         ConnectionStatus.PENDING   -> OrangeDark
         ConnectionStatus.CONNECTED -> TextMuted
     }
     val label = when {
-        status == ConnectionStatus.ADD     -> "Add"
+        status == ConnectionStatus.NOT_CONNECTED     -> "Add"
         status == ConnectionStatus.PENDING -> "Pending"
         mode   == ProfileMode.OWN         -> "Remove"
         else                               -> "Connected"

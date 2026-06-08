@@ -1,16 +1,19 @@
 package com.example.campusconnect.feature.profile.viewmodel
 
 import androidx.compose.runtime.*
-import com.example.campusconnect.feature.profile.data.fake.FakeProfileService
-import com.example.campusconnect.feature.profile.model.PublicUserProfile
-import com.example.campusconnect.feature.profile.model.StatPanel
-import com.example.campusconnect.feature.profile.data.fake.FakeRequestsService
-import com.example.campusconnect.feature.profile.model.ConnectionStatus
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+
+import com.example.campusconnect.feature.profile.model.*
+
 class MyProfileViewModel : BaseProfileViewModel() {
 
-    override var profile by mutableStateOf(FakeProfileService.getMyProfile())
+    override var profile by mutableStateOf(PublicUserProfile())
 
-    var editableProfile by mutableStateOf(profile.copy())
+    var stats by mutableStateOf(ProfileStats())
+        private set
+
+    var editableProfile by mutableStateOf(PublicUserProfile())
         private set
 
     var isEditMode by mutableStateOf(false)
@@ -19,15 +22,47 @@ class MyProfileViewModel : BaseProfileViewModel() {
     var activeManagePanel by mutableStateOf<StatPanel?>(null)
         private set
 
-    val incomingRequests =
-        FakeRequestsService
-            .getIncomingRequests()
-            .toMutableStateList()
+    val incomingRequests = mutableStateListOf<ConnectionRequest>()
 
-    val sentInvites =
-        FakeRequestsService
-            .getSentInvites()
-            .toMutableStateList()
+    val sentInvites = mutableStateListOf<ConnectionRequest>()
+
+    init {
+
+        loadData()
+
+        viewModelScope.launch {
+
+            repository.getMyProfile()
+                .getOrNull()
+                ?.let {
+                    profile = it
+                    editableProfile = it.copy()
+                }
+
+            repository.getMyStats()
+                .getOrNull()
+                ?.let {
+                    stats = it
+                }
+
+            repository.getConnectionRequests()
+                .getOrNull()
+                ?.let { requests ->
+
+                    incomingRequests.addAll(
+                        requests.filter {
+                            it.type == RequestType.INCOMING
+                        }
+                    )
+
+                    sentInvites.addAll(
+                        requests.filter {
+                            it.type == RequestType.OUTGOING
+                        }
+                    )
+                }
+        }
+    }
 
     fun openManagePanel(panel: StatPanel) {
         activeManagePanel = panel
@@ -58,27 +93,20 @@ class MyProfileViewModel : BaseProfileViewModel() {
 
     fun acceptRequest(userId: String) {
 
-        val request =
-            incomingRequests.find {
-                it.userId == userId
-            } ?: return
-
-        incomingRequests.remove(request)
-
-        connections.add(
-            request.copy(
-                status = ConnectionStatus.CONNECTED
-            )
-        )
+        incomingRequests.removeAll {
+            it.userId == userId
+        }
     }
 
     fun declineRequest(userId: String) {
+
         incomingRequests.removeAll {
             it.userId == userId
         }
     }
 
     fun cancelInvite(userId: String) {
+
         sentInvites.removeAll {
             it.userId == userId
         }

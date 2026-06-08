@@ -21,7 +21,8 @@ import com.example.campusconnect.feature.profile.model.Club
 import com.example.campusconnect.feature.profile.model.ClubStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.ui.components.*
-
+import com.example.campusconnect.core.components.AppAvatar
+import com.example.campusconnect.core.components.AvatarShape
 @Composable
 fun ClubsPanel(
     clubs: List<Club>,
@@ -49,29 +50,22 @@ fun ClubsPanel(
             .forEachIndexed { index, c ->
                 ProfileListCard(
                     title    = c.name,
-                    subtitle = c.members,
+                    subtitle = "${c.memberCount} members",
                     leadingContent = {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(c.iconBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Outlined.Groups,
-                                contentDescription = null,
-                                tint     = c.iconTint,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        AppAvatar(
+                            entityId = c.clubId,
+                            displayName = c.name,
+                            imageUrl = c.logoUrl,
+                            size = 38.dp,
+                            shape = AvatarShape.ROUNDED
+                        )
                     },
                     trailingContent = {
                         ClubButton(
                             status  = c.status,
                             onClick = {
                                 when (c.status) {
-                                    ClubStatus.JOIN    -> onStatusChange(index, ClubStatus.PENDING)
+                                    ClubStatus. NOT_JOINED    -> onStatusChange(index, ClubStatus.PENDING)
                                     ClubStatus.PENDING -> Unit
                                     ClubStatus.JOINED  -> Unit
                                 }
@@ -86,17 +80,17 @@ fun ClubsPanel(
 @Composable
 private fun ClubButton(status: ClubStatus, onClick: () -> Unit) {
     val containerColor = when (status) {
-        ClubStatus.JOIN    -> Orange
+        ClubStatus. NOT_JOINED    -> Orange
         ClubStatus.PENDING -> OrangeLight
         ClubStatus.JOINED  -> Orange
     }
     val contentColor = when (status) {
-        ClubStatus.JOIN    -> Color.White
+        ClubStatus. NOT_JOINED    -> Color.White
         ClubStatus.PENDING -> OrangeDark
         ClubStatus.JOINED  -> Color.White
     }
     val label = when (status) {
-        ClubStatus.JOIN    -> "Join"
+        ClubStatus. NOT_JOINED    -> "Join"
         ClubStatus.PENDING -> "Pending"
         ClubStatus.JOINED  -> "Joined"
     }

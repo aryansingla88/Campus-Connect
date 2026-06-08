@@ -11,12 +11,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.profile.ui.components.*
+import com.example.campusconnect.feature.profile.model.Interest
 
 @Composable
 fun ManageInterestsPanel(
-    interests: List<String>,
-    allInterests: List<String>,
-    onAddInterest: (String) -> Unit
+    interests: List<Interest>,
+    allInterests: List<Interest>,
+    onAddInterest: (Interest) -> Unit
 ) {
 
     val availableInterests =
@@ -51,9 +52,8 @@ fun ManageInterestsPanel(
             items(availableInterests) { interest ->
 
                 ProfileListCard(
-                    title = interest,
-                    subtitle = interestCategory(interest),
-
+                    title = interest.label,
+                    subtitle = interest.category,
                     trailingContent = {
 
                         IconButton(
@@ -72,28 +72,4 @@ fun ManageInterestsPanel(
             }
         }
     }
-}
-
-private fun interestCategory(tag: String) = when (tag) {
-    "AI/ML" -> "Technology"
-    "Web Development" -> "Development"
-    "UI/UX Design" -> "Design"
-    "Photography" -> "Creative"
-    "Gaming" -> "Entertainment"
-    "Open Source" -> "Technology"
-    "Hackathons" -> "Career"
-    "App Development" -> "Development"
-    "Cyber Security" -> "Technology"
-    "Data Science" -> "Technology"
-    "Public Speaking" -> "Career"
-    "Content Creation" -> "Creative"
-    "Competitive Coding" -> "Technology"
-    "Football" -> "Sports"
-    "Basketball" -> "Sports"
-    "Music" -> "Creative"
-    "Dance" -> "Creative"
-    "Entrepreneurship" -> "Career"
-    "Startups" -> "Career"
-    "Graphic Design" -> "Design"
-    else -> "Interest"
 }

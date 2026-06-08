@@ -12,26 +12,26 @@ object FakeClubsService {
         return listOf(
 
             Club(
+                clubId = "dev_club",
                 name = "Dev Club",
-                members = "142 members",
-                iconBg = Color(0xFFE6F1FB),
-                iconTint = Color(0xFF185FA5),
+                logoUrl = null,
+                memberCount = 142,
                 status = ClubStatus.JOINED
             ),
 
             Club(
+                clubId = "innovators_hub",
                 name = "Innovators Hub",
-                members = "89 members",
-                iconBg = Color(0xFFFEF0E6),
-                iconTint = OrangeDark,
+                logoUrl = null,
+                memberCount = 89,
                 status = ClubStatus.PENDING
             ),
 
             Club(
+                clubId = "photography_club",
                 name = "Photography Club",
-                members = "56 members",
-                iconBg = Color(0xFFEEEDFE),
-                iconTint = Color(0xFF3C3489),
+                logoUrl = null,
+                memberCount = 56,
                 status = ClubStatus.JOINED
             )
         )

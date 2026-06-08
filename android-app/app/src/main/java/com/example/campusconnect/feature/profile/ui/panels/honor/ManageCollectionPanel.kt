@@ -29,7 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.profile.model.Honor
+import com.example.campusconnect.feature.profile.model.ProfileHonor
 import com.example.campusconnect.feature.profile.ui.components.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -38,8 +38,8 @@ private enum class CollectionTab { BADGES, MEDALS }
 
 @Composable
 fun ManageCollectionPanel(
-    badges          : List<Honor>,
-    medals          : List<Honor>,
+    badges : List<ProfileHonor>,
+    medals : List<ProfileHonor>,
     onBadgeMoveUp   : (Int) -> Unit,
     onBadgeMoveDown : (Int) -> Unit,
     onMedalMoveUp   : (Int) -> Unit,
@@ -114,7 +114,7 @@ fun ManageCollectionPanel(
 //
 @Composable
 private fun HonorItemRow(
-    item       : Honor,
+    item : ProfileHonor,
     index      : Int,
     total      : Int,
     isBadge    : Boolean,
@@ -126,20 +126,20 @@ private fun HonorItemRow(
 ) {
     ProfileListCard(
         title    = item.title,
-        subtitle = item.subtitle,
+        subtitle = item.subtitle ?: "",
 
         leadingContent = {
             Box(
                 modifier         = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(item.color.copy(alpha = 0.15f)),
+                    .background(OrangeDark.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (isBadge) {
-                    Box(Modifier.size(18.dp).clip(CircleShape).background(item.color))
+                    Box(Modifier.size(18.dp).clip(CircleShape).background(Orange))
                 } else {
-                    Icon(Icons.Outlined.WorkspacePremium, null, tint = item.color, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.WorkspacePremium, null, tint = OrangeDark, modifier = Modifier.size(18.dp))
                 }
             }
         },

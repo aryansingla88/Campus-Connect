@@ -1,17 +1,21 @@
 package com.example.campusconnect.feature.profile.model
 
+import com.example.campusconnect.core.utils.toInitials
+
 data class PublicUserProfile(
 
     // Identity
     val userId: String = "",
     val fullName: String = "",
     val username: String = "",
-    val initials: String = "",
     val bio: String = "",
+    val avatarUrl: String? = null,
 
     // Academic
     val course: String = "",
-    val year: String = "",
+    val branch: String = "",
+    val academicYear: String = "",
+    val batch: String = "",
     val hostel: String = "",
     val hometown: String = "",
 
@@ -30,12 +34,6 @@ data class PublicUserProfile(
 
     // Metadata
     val memberSince: String = "",
-
-    // Stats
-    val connectionCount: Int = 0,
-    val honorRank: Int = 0,
-    val clubCount: Int = 0,
-    val interestCount: Int = 0,
 
     // Visibility
     val showPhone: Boolean = false,
