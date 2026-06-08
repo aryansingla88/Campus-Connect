@@ -24,7 +24,9 @@ import com.example.campusconnect.feature.posts.models.Post
 @Composable
 fun PostDetailCard(
 
-    post: Post
+    post: Post,
+
+    commentCount: Int
 ) {
 
     ElevatedCard(
@@ -197,11 +199,21 @@ fun PostDetailCard(
 
                     upvotes = post.upvotes,
 
-                    downvotes = post.downvotes
+                    downvotes = post.downvotes,
+
+                    userVote = post.userVote,
+
+                    onUpvoteClick = {
+
+                    },
+
+                    onDownvoteClick = {
+
+                    }
                 )
 
                 Text(
-                    text = "💬 ${post.commentCount}"
+                    text = "💬 $commentCount"
                 )
             }
         }

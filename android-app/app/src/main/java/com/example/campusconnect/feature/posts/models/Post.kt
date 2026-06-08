@@ -1,4 +1,5 @@
 package com.example.campusconnect.feature.posts.models
+import com.example.campusconnect.feature.posts.models.VoteType
 
 data class Post(
 
@@ -18,7 +19,7 @@ data class Post(
 
     val downvotes: Int,
 
-    val commentCount: Int,
+    val userVote: VoteType? = null,
 
     val createdAt: String
 )
