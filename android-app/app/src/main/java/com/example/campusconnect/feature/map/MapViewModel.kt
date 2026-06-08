@@ -1,18 +1,21 @@
 package com.example.campusconnect.feature.map
 
 import androidx.lifecycle.ViewModel
-import com.example.campusconnect.feature.map.mapengine.CoordinateConverter
+import com.example.campusconnect.feature.map.data.fake.FakeMapUserProfileService
+import com.example.campusconnect.feature.map.mapengine.MapCalibration
+import com.example.campusconnect.feature.map.mapengine.MapMarker
+import com.example.campusconnect.feature.map.mapengine.MarkerRenderData
 import com.example.campusconnect.feature.map.mapengine.MarkerRenderer
 import com.example.campusconnect.feature.map.mapengine.MarkerType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.example.campusconnect.feature.map.mapengine.MapCalibration
+
 class MapViewModel : ViewModel() {
 
+    private val fakeUserProfileService = FakeMapUserProfileService()
     private val fakeMapService = FakeMapService()
     private val markerRenderer = MarkerRenderer()
-
     private val coordinateConverter = MapCalibration.converter
 
     private val _uiState = MutableStateFlow(MapUiState())
@@ -35,40 +38,59 @@ class MapViewModel : ViewModel() {
             )
         }
 
-        updateState(markers = markers)
+        updateState(
+            markers = markers,
+            selectedMarkerId = null,
+            activeFilter = null
+        )
     }
 
     fun selectMarker(markerId: String) {
-        val selectedMarker = _uiState.value.markers.firstOrNull {
-            it.id == markerId
+        val selectedMarker = _uiState.value.renderData.firstOrNull { it.id == markerId }
+            ?: return
+
+        val selectedProfile = if (selectedMarker.type == MarkerType.USER) {
+            fakeUserProfileService.getProfileByMarkerId(markerId)
+        } else {
+            null
         }
 
         updateState(
+            markers = _uiState.value.markers,
             selectedMarkerId = markerId,
-            selectedMarker = selectedMarker
+            activeFilter = _uiState.value.activeFilter,
+            selectedMarkerOverride = selectedMarker,
+            selectedUserProfileOverride = selectedProfile
         )
     }
 
     fun clearSelection() {
         updateState(
+            markers = _uiState.value.markers,
             selectedMarkerId = null,
-            selectedMarker = null
+            activeFilter = _uiState.value.activeFilter,
+            selectedMarkerOverride = null,
+            selectedUserProfileOverride = null
         )
     }
 
     fun setFilter(type: MarkerType?) {
         updateState(
-            activeFilter = type,
+            markers = _uiState.value.markers,
             selectedMarkerId = null,
-            selectedMarker = null
+            activeFilter = type,
+            selectedMarkerOverride = null,
+            selectedUserProfileOverride = null
         )
     }
 
     private fun updateState(
-        markers: List<com.example.campusconnect.feature.map.mapengine.MapMarker> = _uiState.value.markers,
+        markers: List<MapMarker> = _uiState.value.markers,
         selectedMarkerId: String? = _uiState.value.selectedMarkerId,
-        selectedMarker: com.example.campusconnect.feature.map.mapengine.MapMarker? = _uiState.value.selectedMarker,
-        activeFilter: MarkerType? = _uiState.value.activeFilter
+        activeFilter: MarkerType? = _uiState.value.activeFilter,
+        selectedMarkerOverride: MarkerRenderData? = _uiState.value.selectedMarker,
+        selectedUserProfileOverride: com.example.campusconnect.feature.map.model.MapUserProfile? =
+            _uiState.value.selectedUserProfile
     ) {
         val visibleMarkers = if (activeFilter == null) {
             markers
@@ -76,15 +98,21 @@ class MapViewModel : ViewModel() {
             markers.filter { it.type == activeFilter }
         }
 
+        val renderData = markerRenderer.buildMarkerRenderData(
+            markers = visibleMarkers,
+            selectedMarkerId = selectedMarkerId
+        )
+
+        val selectedMarker = selectedMarkerOverride
+            ?: renderData.firstOrNull { it.id == selectedMarkerId }
+
         _uiState.value = _uiState.value.copy(
             markers = markers,
+            renderData = renderData,
             selectedMarkerId = selectedMarkerId,
             selectedMarker = selectedMarker,
-            activeFilter = activeFilter,
-            renderData = markerRenderer.buildMarkerRenderData(
-                markers = visibleMarkers,
-                selectedMarkerId = selectedMarkerId
-            )
+            selectedUserProfile = selectedUserProfileOverride,
+            activeFilter = activeFilter
         )
     }
 }

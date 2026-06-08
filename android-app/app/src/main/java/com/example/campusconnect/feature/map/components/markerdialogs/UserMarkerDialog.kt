@@ -2,9 +2,7 @@ package com.example.campusconnect.feature.map.components.markerdialogs
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,141 +11,112 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.map.data.fake.FakeMapUserProfileService
-import com.example.campusconnect.feature.map.model.MapMedal
+import com.example.campusconnect.feature.map.model.MapUserProfile
 
 private val OrangePrimary = Color(0xFFFF6F00)
-private val OrangeLight = Color(0xFFFFF3E0)
-private val TextDark = Color(0xFF202124)
-private val TextMuted = Color(0xFF8A8A8A)
-private val PurpleAccent = Color(0xFF7E57FF)
+private val AvatarBg = Color(0xFFF4ECD9)
+private val TextDark = Color(0xFF222222)
+private val TextMuted = Color(0xFF6F6F6F)
+private val DividerColor = Color(0xFFBDBDBD)
 
 @Composable
 fun UserMarkerDialog(
-    userId: String,
-    onDismiss: () -> Unit,
-    onAddFriend: (String) -> Unit
+    profile: MapUserProfile,
+    modifier: Modifier = Modifier,
+    onDismiss: () -> Unit = {},
+    onAddFriendClick: () -> Unit = {}
 ) {
-    val profile = remember(userId) {
-        FakeMapUserProfileService.getUserProfile(userId)
-    }
-
-    val noRipple = remember { MutableInteractionSource() }
-
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.04f))
-            .clickable(
-                interactionSource = noRipple,
-                indication = null
-            ) {
-                onDismiss()
-            },
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
+        // Light dim layer. Blur is handled in MapScreen.kt
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.96f)
-                .height(214.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    // card ke andar click se dismiss nahi hoga
-                }
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.05f))
+                .clickable { onDismiss() }
+        )
+
+        GrainOverlay(
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         ) {
-            // Reference jaisa top bubble.
-            // Ye Card se pehle draw ho raha hai, isliye card ke peeche/attached feel aayega.
-            InterestHintBubble(
+            MutualsPill(
+                count = profile.mutualFriendsCount,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(end = 88.dp)
-                    .offset(y = (-48).dp)
+                    .padding(end = 52.dp)
+                    .offset(y = (-32).dp)
             )
 
             Card(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.97f)
+                    containerColor = Color.White
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
             ) {
-                Box(
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 14.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 18.dp)
                 ) {
-                    AddFriendIconButton(
-                        modifier = Modifier.align(Alignment.TopEnd),
-                        onClick = { onAddFriend(profile.userId) }
-                    )
-
                     Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        // LEFT: avatar + badges/medals
-                        Column(
-                            modifier = Modifier.width(118.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Box(
+                            modifier = Modifier
+                                .size(96.dp)
+                                .clip(CircleShape)
+                                .background(AvatarBg),
+                            contentAlignment = Alignment.Center
                         ) {
-                            ProfileAvatar(
-                                name = profile.fullName,
-                                modifier = Modifier.size(86.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(9.dp))
-
-                            CompactAchievementRow(
-                                title = "Badges",
-                                content = {
-                                    profile.badges.take(3).forEach { badge ->
-                                        BadgeChip(emoji = badge.emoji)
-                                    }
-                                }
-                            )
-
-                            Spacer(modifier = Modifier.height(5.dp))
-
-                            CompactAchievementRow(
-                                title = "Medals",
-                                content = {
-                                    profile.medals.take(3).forEach { medal ->
-                                        MedalChip(medal = medal)
-                                    }
-                                }
+                            Text(
+                                text = profile.fullName
+                                    .split(" ")
+                                    .take(2)
+                                    .mapNotNull { it.firstOrNull()?.toString() }
+                                    .joinToString(""),
+                                color = OrangePrimary,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
 
-                        // RIGHT: user details
                         Column(
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(end = 38.dp),
-                            verticalArrangement = Arrangement.Center
+                                .padding(top = 10.dp)
                         ) {
                             Text(
                                 text = profile.fullName,
                                 color = TextDark,
-                                fontSize = 19.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -155,38 +124,53 @@ fun UserMarkerDialog(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = profile.username,
-                                color = PurpleAccent,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            Spacer(modifier = Modifier.height(7.dp))
-
-                            Text(
-                                text = "${profile.course} • ${profile.batch}",
-                                color = TextDark.copy(alpha = 0.70f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            Spacer(modifier = Modifier.height(7.dp))
-
-                            Text(
-                                text = profile.description,
-                                color = TextMuted,
+                                text = "${profile.course} • ${profile.startYear}-${profile.endYear}",
+                                color = TextDark,
                                 fontSize = 13.sp,
-                                lineHeight = 17.sp,
                                 fontWeight = FontWeight.Medium,
-                                maxLines = 3,
+                                maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(OrangePrimary)
+                                .clickable { onAddFriendClick() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = "Add Friend",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = profile.description,
+                        color = TextDark,
+                        fontSize = 14.sp,
+                        lineHeight = 22.sp,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    AchievementSection(
+                        badges = profile.badges,
+                        medals = profile.medals
+                    )
                 }
             }
         }
@@ -194,73 +178,73 @@ fun UserMarkerDialog(
 }
 
 @Composable
-private fun InterestHintBubble(
-    modifier: Modifier = Modifier
+private fun AchievementSection(
+    badges: List<String>,
+    medals: List<Int>
 ) {
-    Box(
-        modifier = modifier
-            .width(118.dp)
-            .height(46.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(68.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = Color.White.copy(alpha = 0.97f),
-            shadowElevation = 3.dp
+        AchievementColumn(
+            title = "Badges",
+            modifier = Modifier.width(126.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "Interest",
-                    color = TextDark,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+            badges.forEach { badge ->
+                BadgeChip(text = badge)
             }
         }
 
-        Canvas(
-            modifier = Modifier
-                .size(width = 18.dp, height = 10.dp)
-                .align(Alignment.BottomCenter)
-        ) {
-            val path = Path().apply {
-                moveTo(size.width / 2f, size.height)
-                lineTo(0f, 0f)
-                lineTo(size.width, 0f)
-                close()
-            }
+        Spacer(modifier = Modifier.width(16.dp))
 
-            drawPath(
-                path = path,
-                color = Color.White.copy(alpha = 0.97f)
-            )
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .height(44.dp)
+                .background(DividerColor.copy(alpha = 0.65f))
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        AchievementColumn(
+            title = "Medals",
+            modifier = Modifier.width(126.dp)
+        ) {
+            medals.forEach { medal ->
+                MedalChip(number = medal)
+            }
         }
     }
 }
 
 @Composable
-private fun CompactAchievementRow(
+private fun AchievementColumn(
     title: String,
+    modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = title,
             color = TextMuted,
-            fontSize = 8.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.width(38.dp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
         )
 
+        Spacer(modifier = Modifier.height(7.dp))
+
         Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(
+                space = 10.dp,
+                alignment = Alignment.CenterHorizontally
+            ),
             verticalAlignment = Alignment.CenterVertically,
             content = content
         )
@@ -268,104 +252,93 @@ private fun CompactAchievementRow(
 }
 
 @Composable
-private fun ProfileAvatar(
-    name: String,
+private fun MutualsPill(
+    count: Int,
     modifier: Modifier = Modifier
 ) {
-    val initials = remember(name) {
-        name.split(" ")
-            .filter { it.isNotBlank() }
-            .take(2)
-            .joinToString("") { it.first().uppercase() }
-    }
-
     Box(
         modifier = modifier
-            .clip(CircleShape)
-            .background(OrangeLight)
-            .border(
-                width = 3.dp,
-                color = OrangePrimary.copy(alpha = 0.35f),
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
+            .width(132.dp)
+            .height(44.dp)
+            .clip(RoundedCornerShape(topStart = 13.dp, topEnd = 13.dp))
+            .background(Color.White.copy(alpha = 0.94f)),
+        contentAlignment = Alignment.TopCenter
     ) {
         Text(
-            text = initials,
-            color = OrangePrimary,
-            fontSize = 29.sp,
-            fontWeight = FontWeight.Bold
+            text = "$count Mutuals",
+            color = TextDark,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp)
         )
     }
 }
 
 @Composable
-private fun AddFriendIconButton(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .size(39.dp)
-            .clip(CircleShape)
-            .background(OrangePrimary)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.PersonAdd,
-            contentDescription = "Add friend",
-            tint = Color.White,
-            modifier = Modifier.size(21.dp)
-        )
-    }
-}
-
-@Composable
-private fun BadgeChip(
-    emoji: String
-) {
+private fun BadgeChip(text: String) {
     Box(
         modifier = Modifier
-            .size(21.dp)
-            .clip(RoundedCornerShape(7.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFFEDE7F6), Color(0xFFD1C4E9))
-                )
-            ),
+            .size(30.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(Color(0xFFF1EBFF)),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = emoji,
-            fontSize = 11.sp
+            text = text,
+            fontSize = 15.sp
         )
     }
 }
 
 @Composable
-private fun MedalChip(
-    medal: MapMedal
-) {
-    val color = when (medal.rank) {
-        1 -> Color(0xFFFFC107)
-        2 -> Color(0xFFB0BEC5)
-        3 -> Color(0xFFD9822B)
-        else -> Color(0xFFE0E0E0)
+private fun MedalChip(number: Int) {
+    val medalColor = when (number) {
+        1 -> Color(0xFFF2C23A)
+        2 -> Color(0xFFB8C2C8)
+        else -> Color(0xFFC9873D)
     }
 
     Box(
         modifier = Modifier
-            .size(21.dp)
+            .size(30.dp)
             .clip(CircleShape)
-            .background(color.copy(alpha = 0.95f)),
+            .background(medalColor),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = medal.rank.toString(),
+            text = number.toString(),
             color = Color.White,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp
         )
+    }
+}
+
+@Composable
+private fun GrainOverlay(
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val step = 18f
+
+        var y = 0f
+        while (y < size.height) {
+            var x = 0f
+            while (x < size.width) {
+                val seed = ((x.toInt() * 31 + y.toInt() * 17) % 7)
+
+                if (seed == 0) {
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.045f),
+                        radius = 0.9f,
+                        center = Offset(x, y)
+                    )
+                }
+
+                x += step
+            }
+            y += step
+        }
     }
 }

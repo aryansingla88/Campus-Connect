@@ -1,15 +1,15 @@
 package com.example.campusconnect.feature.map.model
 
 data class MapUserProfile(
-    val userId: String,
+    val id: String,
     val fullName: String,
-    val username: String,
     val course: String,
-    val batch: String,
+    val startYear: Int,
+    val endYear: Int,
     val description: String,
-    val badges: List<MapBadge> = emptyList(),
-    val medals: List<MapMedal> = emptyList(),
-    val isFriend: Boolean = false
+    val badges: List<String>,
+    val medals: List<Int>,
+    val mutualFriendsCount: Int
 )
 
 data class MapBadge(

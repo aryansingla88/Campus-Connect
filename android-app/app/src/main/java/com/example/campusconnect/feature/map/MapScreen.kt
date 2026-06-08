@@ -1,42 +1,44 @@
 package com.example.campusconnect.feature.map
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.core.components.PanelSearchBar
-import com.example.campusconnect.feature.map.mapengine.MarkerType
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.border
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.NearMe
-import androidx.compose.material.icons.filled.Event
 import com.example.campusconnect.feature.map.components.markerdialogs.UserMarkerDialog
+import com.example.campusconnect.feature.map.mapengine.MarkerType
+
 private enum class MapMode {
     NONE,
     VIEW,
     SELECT,
     EVENT
 }
+
 private val OrangePrimary = Color(0xFFFF6F00)
 private val OrangeTop = Color(0xFFFFA726)
 private val OrangeLight = Color(0xFFFFF3E0)
@@ -53,100 +55,119 @@ fun MapScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val showUserProfileDialog =
+        uiState.selectedMarker?.type == MarkerType.USER &&
+                uiState.selectedUserProfile != null
+
     var searchQuery by remember { mutableStateOf("") }
     var showFilters by remember { mutableStateOf(false) }
     var showModes by remember { mutableStateOf(false) }
     var selectedMode by remember { mutableStateOf(MapMode.NONE) }
+
     Box(modifier = Modifier.fillMaxSize()) {
 
-        MapView(
-            modifier = Modifier.fillMaxSize(),
-            markers = uiState.renderData,
-            onMarkerClick = { markerId ->
-                viewModel.selectMarker(markerId)
-            },
-            onMapTap = { x, y ->
-                android.util.Log.d("MAP_PIXEL", "MapScreen received pixel: x=$x, y=$y")
-            },
-            initialFocusMarkerId = "shop_1",
-            initialZoom = 4.2f
-        )
-
-        TopMapControls(
+        // Everything behind user dialog gets blurred.
+        // User dialog itself is outside this Box, so it stays sharp.
+        Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 20.dp),
-            searchQuery = searchQuery,
-            onSearchQueryChange = { searchQuery = it },
-            onFilterClick = { showFilters = !showFilters },
-            onSettingsClick = {}
-        )
-
-        SideTab(
-            text = "PROFILE",
-            icon = Icons.Default.Person,
-            isLeftSide = true,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 0.dp)
-        )
-
-        SideTab(
-            text = "CHAT",
-            icon = Icons.Default.Chat,
-            isLeftSide = false,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 0.dp)
-        )
-
-        ModeButton(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 40.dp),
-            onClick = {
-                val nextShowModes = !showModes
-                showModes = nextShowModes
-
-                if (!nextShowModes) {
-                    selectedMode = MapMode.NONE
-                }
-            }
-        )
-
-        if (showFilters) {
-            FilterPanel(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 94.dp, end = 72.dp),
-                onFilterSelected = { type ->
-                    viewModel.setFilter(type)
-                    showFilters = false
-                }
-            )
-        }
-
-        if (showModes) {
-            ModePanel(
-                selectedMode = selectedMode,
-                onModeSelected = { mode ->
-                    selectedMode = mode
+                .fillMaxSize()
+                .blur(if (showUserProfileDialog) 3.dp else 0.dp)
+        ) {
+            MapView(
+                modifier = Modifier.fillMaxSize(),
+                markers = uiState.renderData,
+                onMarkerClick = { markerId ->
+                    viewModel.selectMarker(markerId)
                 },
+                onMapTap = { x, y ->
+                    android.util.Log.d("MAP_PIXEL", "MapScreen received pixel: x=$x, y=$y")
+                },
+                initialFocusMarkerId = "shop_1",
+                initialZoom = 4.2f
+            )
+
+            TopMapControls(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 20.dp),
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                onFilterClick = { showFilters = !showFilters },
+                onSettingsClick = {}
+            )
+
+            SideTab(
+                text = "PROFILE",
+                icon = Icons.Default.Person,
+                isLeftSide = true,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 0.dp)
+            )
+
+            SideTab(
+                text = "CHAT",
+                icon = Icons.Default.Chat,
+                isLeftSide = false,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 0.dp)
+            )
+
+            ModeButton(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 90.dp)
-            )
-        }
+                    .padding(bottom = 40.dp),
+                onClick = {
+                    val nextShowModes = !showModes
+                    showModes = nextShowModes
 
-        uiState.selectedMarker?.let { marker ->
-            if (marker.type == MarkerType.USER) {
-                UserMarkerDialog(
-                    userId = marker.id,
-                    onDismiss = { viewModel.clearSelection() },
-                    onAddFriend = { userId ->
-                        android.util.Log.d("MAP_USER", "Add friend clicked: $userId")
+                    if (!nextShowModes) {
+                        selectedMode = MapMode.NONE
+                    }
+                }
+            )
+
+            if (showFilters) {
+                FilterPanel(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 94.dp, end = 72.dp),
+                    onFilterSelected = { type ->
+                        viewModel.setFilter(type)
+                        showFilters = false
                     }
                 )
+            }
+
+            if (showModes) {
+                ModePanel(
+                    selectedMode = selectedMode,
+                    onModeSelected = { mode ->
+                        selectedMode = mode
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 90.dp)
+                )
+            }
+        }
+
+        // Dialog / previews should stay outside blur Box.
+        uiState.selectedMarker?.let { marker ->
+            if (marker.type == MarkerType.USER) {
+                uiState.selectedUserProfile?.let { profile ->
+                    UserMarkerDialog(
+                        profile = profile,
+                        onDismiss = { viewModel.clearSelection() },
+                        onAddFriendClick = {
+                            android.util.Log.d(
+                                "MAP_USER",
+                                "Add friend clicked: ${profile.id}"
+                            )
+                        }
+                    )
+                }
             } else {
                 MarkerPreviewCard(
                     modifier = Modifier
@@ -319,9 +340,7 @@ private fun SideTab(
             Row(
                 modifier = Modifier
                     .requiredWidth(96.dp)
-                    .graphicsLayer {
-                        rotationZ = -90f
-                    },
+                    .graphicsLayer { rotationZ = -90f },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
@@ -356,12 +375,7 @@ private fun ModeButton(
         modifier = modifier
             .size(66.dp)
             .background(
-                brush = Brush.verticalGradient(
-                    listOf(
-                        Color(0xFFFFA726),
-                        Color(0xFFFF6F00)
-                    )
-                ),
+                brush = OrangeGradient,
                 shape = CircleShape
             )
             .border(
