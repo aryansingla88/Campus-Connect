@@ -10,8 +10,8 @@ import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.posts.navigation.postNav
 import com.example.campusconnect.feature.profile.ProfileNav
 import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
-//import com.example.campusconnect.feature.registerations.RegisterationNav
-//import com.example.campusconnect.feature.registerations.navigateToFormBuilder
+import com.example.campusconnect.feature.events.registerations.RegisterationNav
+import com.example.campusconnect.feature.events.registerations.navigateToFormBuilder
 
 @Composable
 fun AppNavHost() {
@@ -51,7 +51,7 @@ fun AppNavHost() {
                 onMap = { navController.navigate("map") },
                 onProfile = { navController.navigate("profile")},
                 onSplash={navController.navigate("splash")},
-//                onFormBuilder = { navController.navigateToFormBuilder(1) }
+                onFormBuilder = { navController.navigateToFormBuilder(1) }
             )
         }
 
@@ -60,6 +60,6 @@ fun AppNavHost() {
         eventNav(navController)
         mapNav(navController)
         ProfileNav(navController)
-//        RegisterationNav(navController)
+        RegisterationNav(navController)
     }
 }

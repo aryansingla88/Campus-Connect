@@ -15,7 +15,7 @@ fun TestScreen(
     onMap: () -> Unit,
     onProfile: () -> Unit,
     onSplash: () -> Unit,
-//    onFormBuilder: () -> Unit
+    onFormBuilder: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -28,6 +28,6 @@ fun TestScreen(
         Button(onClick = onMap) { Text("Map") }
         Button(onClick = onProfile) { Text("Profile") }
         Button(onClick = onSplash) {Text("Splash")}
-//        Button(onClick = onFormBuilder) { Text("Form Builder") }
+        Button(onClick = onFormBuilder) { Text("Form Builder") }
     }
 }
