@@ -242,7 +242,7 @@ private fun InlinePriorityWheel(
 
     LaunchedEffect(isScrolling, centredIndex) {
         if (isScrolling) return@LaunchedEffect
-        delay(1100)
+        delay(700)
         val target = centredIndex
         if (target != current - 1) onMoveTo(target)
         else onCollapse()
@@ -259,7 +259,7 @@ private fun InlinePriorityWheel(
         LazyColumn(
             state          = listState,
             modifier       = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = itemHeightDp), // centres first/last
+            contentPadding = PaddingValues(vertical = itemHeightDp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             itemsIndexed((1..total).toList()) { _, number ->
