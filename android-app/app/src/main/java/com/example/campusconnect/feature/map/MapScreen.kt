@@ -171,7 +171,10 @@ fun MapScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 0.dp)
+                    .offset(
+                        x = 6.dp, // bahar/right
+                        y = 110.dp  // niche
+                    )
             )
 
             ModeButton(
