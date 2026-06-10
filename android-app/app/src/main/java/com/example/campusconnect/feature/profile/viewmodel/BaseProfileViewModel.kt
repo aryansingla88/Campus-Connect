@@ -2,51 +2,72 @@ package com.example.campusconnect.feature.profile.viewmodel
 
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
-import com.example.campusconnect.feature.profile.data.FakeClubsService
-import com.example.campusconnect.feature.profile.data.FakeConnectionsService
-import com.example.campusconnect.feature.profile.data.FakeHonorService
-import com.example.campusconnect.feature.profile.data.FakeInterestsService
-import com.example.campusconnect.feature.profile.model.PublicUserProfile
-import com.example.campusconnect.feature.profile.model.StatPanel
+import com.example.campusconnect.feature.profile.model.*
+import com.example.campusconnect.feature.profile.data.repo.*
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+
 
 abstract class BaseProfileViewModel : ViewModel() {
 
+    protected open val repository: ProfileRepository =
+        FakeProfileRepository()
+
     abstract var profile: PublicUserProfile
 
-    val connections =
-        FakeConnectionsService
-            .getConnections()
-            .toMutableStateList()
+    val connections = mutableStateListOf<Connection>()
 
-    val clubs =
-        FakeClubsService
-            .getClubs()
-            .toMutableStateList()
+    val clubs = mutableStateListOf<Club>()
 
-    val badges =
-        FakeHonorService
-            .getBadges()
-            .toMutableStateList()
+    var honorRank by mutableIntStateOf(0)
+        private set
 
-    val medals =
-        FakeHonorService
-            .getMedals()
-            .toMutableStateList()
+    val badges = mutableStateListOf<ProfileHonor>()
 
-    val honorEntries =
-        FakeHonorService
-            .getHonorEntries()
+    val medals = mutableStateListOf<ProfileHonor>()
 
-    val interests =
-        FakeInterestsService
-            .getInterests()
-            .toMutableStateList()
 
-    val allInterests =
-        FakeInterestsService
-            .getAllInterests()
+    val interests = mutableStateListOf<Interest>()
+    var allInterests by mutableStateOf<List<Interest>>(emptyList())
+        private set
+
+
     var activePanel by mutableStateOf<StatPanel?>(null)
         private set
+
+    protected fun loadData(){
+
+        viewModelScope.launch {
+
+            repository.getMyConnections()
+                .getOrNull()
+                ?.let { connections.addAll(it) }
+
+            repository.getMyClubs()
+                .getOrNull()
+                ?.let { clubs.addAll(it) }
+
+            repository.getProfileHonors()
+                .getOrNull()
+                ?.let { honors ->
+
+                    honorRank = honors.honorRank
+
+                    badges.addAll(honors.badges)
+
+                    medals.addAll(honors.medals)
+                }
+
+            repository.getSelectedInterests()
+                .getOrNull()
+                ?.let { interests.addAll(it) }
+
+            allInterests =
+                repository
+                    .getAllInterests()
+                    .getOrDefault(emptyList())
+        }
+    }
 
     fun togglePanel(panel: StatPanel) {
         activePanel = if (activePanel == panel) null else panel
@@ -80,14 +101,15 @@ abstract class BaseProfileViewModel : ViewModel() {
         medals.add(index + 1, item)
     }
 
-    fun addInterest(interest: String) {
+
+    fun addInterest(interest: Interest) {
 
         if (interest !in interests) {
             interests.add(interest)
         }
     }
 
-    fun removeInterest(interest: String) {
+    fun removeInterest(interest: Interest) {
         interests.remove(interest)
     }
 

@@ -19,6 +19,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -29,7 +30,9 @@ import com.example.campusconnect.feature.posts.components.FeedTopBar
 import com.example.campusconnect.feature.posts.models.dummyPosts
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
 import com.example.campusconnect.feature.posts.models.dummyTopics
+import com.example.campusconnect.feature.posts.models.dummyComments
 
+//@OptIn means ->"I know I'm using an experimental Material 3 API, and I accept that it may change in future versions."
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
@@ -37,6 +40,23 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
     var selectedTab by remember {
         mutableIntStateOf(0)
     }
+    var selectedTopic by remember {
+
+        mutableStateOf<String?>(null)
+    }
+    val filteredPosts =
+
+        if (selectedTopic == null) {
+
+            dummyPosts
+        }
+        else {
+
+            dummyPosts.filter {
+
+                it.tag == selectedTopic
+            }
+        }
 
     Scaffold(
         bottomBar = {
@@ -48,7 +68,7 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
 
                 NavigationBarItem(
 
-                    selected = selectedTab == 0,
+                    selected = selectedTab == 0,//if selectedTab is 0 then selectedTab==0 returns true and thus selected gets true
 
                     onClick = {
                         selectedTab = 0
@@ -148,12 +168,24 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
 
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(padding)
+                            .padding(padding)//This line tells the contents of the scaffold to leave space for bottom navigation,
+                            // padding inside brackets is Scaffold's padding
                             .padding(horizontal = 12.dp),
 
                         verticalArrangement = Arrangement.spacedBy(12.dp),
+                        //above line is for adding space between items
 
                         contentPadding = PaddingValues(vertical = 12.dp)
+                        /*
+                        contentPadding = PaddingValues(vertical = 12.dp)
+
+                        means:
+
+                        contentPadding = PaddingValues(
+                        top = 12.dp,
+                        bottom = 12.dp
+                        )
+                         */
 
                     ) {
                         item {
@@ -169,16 +201,37 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
                             )
                         }
                         item {
-
+                            // When a topic chip is clicked, update selectedTopic with that topic's name.
+                            // This triggers recomposition, causing filteredPosts to be recalculated and
+                            // only posts matching the selected topic to be displayed.
                             TopicChipsRow(
-                                topics = dummyTopics
+
+                                topics = dummyTopics,
+
+                                selectedTopic = selectedTopic,
+
+                                onTopicSelected = {
+
+                                    selectedTopic = it
+                                }
                             )
                         }
 
-                        items(dummyPosts) { post ->
+                        items(filteredPosts) { post ->
+
+                            val commentCount =
+
+                                dummyComments.count {
+
+                                    it.postId == post.id
+                                }
 
                             com.example.campusconnect.feature.posts.components.PostCard(
+
                                 post = post,
+
+                                commentCount = commentCount,
+
                                 onClick = {
 
                                     onPostClick(post.id)

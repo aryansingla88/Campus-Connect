@@ -18,17 +18,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.profile.model.Honor
-import com.example.campusconnect.feature.profile.model.HonorEntry
+import com.example.campusconnect.feature.profile.model.ProfileHonor
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.ui.components.*
 
 @Composable
 fun HonorPanel(
     honorRank: Int,
-    badges: List<Honor>,
-    medals: List<Honor>,
-    honorEntries: List<HonorEntry>,
+    badges: List<ProfileHonor>,
+    medals: List<ProfileHonor>,
     mode: ProfileMode,
     onHonorBoardClick: () -> Unit = {}
 ) {
@@ -68,20 +66,20 @@ fun HonorPanel(
         ) { badge ->
             ProfileListCard(
                 title    = badge.title,
-                subtitle = badge.subtitle,
+                subtitle = badge.subtitle ?: "",
                 leadingContent = {
                     Box(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(badge.color.copy(alpha = 0.15f)),
+                            .background(OrangeDark.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(18.dp)
                                 .clip(CircleShape)
-                                .background(badge.color)
+                                .background(Orange)
                         )
                     }
                 }
@@ -96,19 +94,19 @@ fun HonorPanel(
         ) { medal ->
             ProfileListCard(
                 title    = medal.title,
-                subtitle = medal.subtitle,
+                subtitle = medal.subtitle ?: "",
                 leadingContent = {
                     Box(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(medal.color.copy(alpha = 0.15f)),
+                            .background(OrangeDark.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Outlined.WorkspacePremium,
                             contentDescription = null,
-                            tint     = medal.color,
+                            tint = OrangeDark,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -121,10 +119,10 @@ fun HonorPanel(
 @Composable
 private fun HonorSection(
     title: String,
-    items: List<Honor>,
+    items: List<ProfileHonor>,
     showAll: Boolean,
     onToggle: () -> Unit,
-    itemContent: @Composable (Honor) -> Unit
+    itemContent: @Composable (ProfileHonor) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),

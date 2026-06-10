@@ -19,13 +19,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.profile.model.ProfileMode
+import com.example.campusconnect.feature.profile.model.Interest
 import com.example.campusconnect.feature.profile.ui.components.*
 
 @Composable
 fun InterestsPanel(
-    interests: List<String>,
+    interests: List<Interest>,
     mode: ProfileMode,
-    onRemove: (String) -> Unit = {},
+    onRemove: (Interest) -> Unit,
     onAddClick: () -> Unit = {}
 ) {
     Column(
@@ -63,13 +64,15 @@ fun InterestsPanel(
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            interests.forEach { tag ->
+            interests.forEach { interest ->
                 ProfileListCard(
-                    title    = tag,
-                    subtitle = interestCategory(tag),
+                    title = interest.label,
+                    subtitle = interest.category,
                     trailingContent = if (mode == ProfileMode.OWN) {
                         {
-                            IconButton(onClick = { onRemove(tag) }) {
+                            IconButton(
+                                onClick = { onRemove(interest) }
+                            ) {
                                 Icon(
                                     Icons.Default.Close,
                                     contentDescription = "Remove",
@@ -83,13 +86,4 @@ fun InterestsPanel(
             }
         }
     }
-}
-
-private fun interestCategory(tag: String) = when (tag) {
-    "AI/ML"           -> "Technology"
-    "Web Development" -> "Development"
-    "UI/UX Design"    -> "Design"
-    "Photography"     -> "Creative"
-    "Gaming"          -> "Entertainment"
-    else              -> "Interest"
 }
