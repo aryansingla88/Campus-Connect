@@ -2,6 +2,7 @@ package com.example.campusconnect.feature.map.components.markerdialogs
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,9 +29,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.map.model.MapEventInfo
 
-private val NotifyOrange = Color(0xFFFF8A1C)
-private val IconLightOrange = Color(0xFFFFB099)
+private val OrangePrimary = Color(0xFFFF6F00)
+private val DarkOrange = Color(0xFFE65100)
+private val LightOrange = Color(0xFFFFF3E0)
 private val TextDark = Color(0xFF202020)
+private val TextMuted = Color(0xFF6F7682)
+private val BorderOrange = Color(0xFFFFCC80)
+
+private val WhiteOrangeGradient = Brush.verticalGradient(
+    colors = listOf(
+        Color.White,
+        Color(0xFFFFFBF7),
+        LightOrange
+    )
+)
 
 @Composable
 fun EventMarkerDialog(
@@ -76,25 +88,22 @@ private fun EventDescriptionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth(0.86f)
-            .height(400.dp),
+            .height(455.dp) // changed: button cut fix
+            .border(
+                width = 1.dp,
+                color = BorderOrange.copy(alpha = 0.85f),
+                shape = RoundedCornerShape(28.dp)
+            ),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF090D18)
+            containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF171B2A),
-                            Color(0xFF090D18),
-                            Color(0xFF050812)
-                        )
-                    )
-                )
+                .background(WhiteOrangeGradient)
         ) {
             NotifyButton(
                 modifier = Modifier
@@ -104,17 +113,35 @@ private fun EventDescriptionCard(
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 26.dp, end = 26.dp, top = 28.dp, bottom = 26.dp)
+                    .fillMaxSize()
+                    .padding(
+                        start = 26.dp,
+                        end = 26.dp,
+                        top = 32.dp,
+                        bottom = 24.dp // changed
+                    )
             ) {
                 Text(
                     text = event.title.uppercase(),
-                    color = Color.White,
-                    fontSize = 34.sp,
-                    lineHeight = 38.sp,
+                    color = DarkOrange,
+                    fontSize = 31.sp, // changed
+                    lineHeight = 35.sp, // changed
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(end = 64.dp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = event.hostName.uppercase(),
+                    color = TextDark,
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
@@ -122,62 +149,37 @@ private fun EventDescriptionCard(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = event.hostName.uppercase(),
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        lineHeight = 23.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                    EventInfoPill(
+                        text = "📅  ${event.date}",
                         modifier = Modifier.weight(1f)
                     )
 
-                    Column(
-                        modifier = Modifier.width(112.dp)
-                    ) {
-                        Text(
-                            text = "📅  ${event.date}",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            lineHeight = 24.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-
-                        Text(
-                            text = "⏰  ${event.time}",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            lineHeight = 24.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
+                    EventInfoPill(
+                        text = "⏰  ${event.time}",
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(22.dp))
 
                 Text(
                     text = event.description,
-                    color = Color.White,
+                    color = TextMuted,
                     fontSize = 17.sp,
-                    lineHeight = 23.sp,
+                    lineHeight = 24.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 5,
+                    maxLines = 5, // changed: button ke liye space fix
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.weight(1f))
 
-                PosterActionButtons(
+                EventActionButtons(
                     onNavigateClick = onNavigateClick,
                     onRegisterClick = onRegisterClick
                 )
@@ -192,97 +194,142 @@ private fun EventPosterCard(
     onNavigateClick: () -> Unit,
     onRegisterClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(0.86f)
-            .height(590.dp), // same height rakhi hai
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF090D18)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.86f)
+                .height(500.dp) // changed: poster only card
+                .border(
+                    width = 1.dp,
+                    color = BorderOrange.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(28.dp)
+                ),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
-            Image(
-                painter = painterResource(id = event.posterResId!!),
-                contentDescription = event.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.02f),
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.24f),
-                                Color.Black.copy(alpha = 0.48f)
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Image(
+                    painter = painterResource(id = event.posterResId!!),
+                    contentDescription = event.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.04f),
+                                    Color.Transparent,
+                                    Color.White.copy(alpha = 0.08f)
+                                )
                             )
                         )
-                    )
-            )
+                )
 
-            NotifyButton(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 18.dp, end = 18.dp)
-            )
-
-            PosterActionButtons(
-                onNavigateClick = onNavigateClick,
-                onRegisterClick = onRegisterClick,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 26.dp, end = 26.dp, bottom = 26.dp)
-            )
+                NotifyButton(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 18.dp, end = 18.dp)
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.height(15.dp)) // changed: buttons poster ke niche gap
+
+        // changed: buttons direct blurred map ke upar, koi background nahi
+        EventActionButtons(
+            onNavigateClick = onNavigateClick,
+            onRegisterClick = onRegisterClick,
+            modifier = Modifier
+                .fillMaxWidth(0.86f)
+                .padding(horizontal = 8.dp)
+        )
     }
 }
 
 @Composable
-private fun PosterActionButtons(
+private fun EventInfoPill(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White.copy(alpha = 0.90f))
+            .border(
+                width = 1.dp,
+                color = BorderOrange.copy(alpha = 0.75f),
+                shape = RoundedCornerShape(20.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = DarkOrange,
+            fontSize = 15.sp,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun EventActionButtons(
     onNavigateClick: () -> Unit,
     onRegisterClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp), // changed: fixed button row height
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(24.dp))
-                .background(Color.White.copy(alpha = 0.26f))
+                .background(OrangePrimary)
                 .clickable { onNavigateClick() },
             contentAlignment = Alignment.Center
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 Text(
                     text = "Navigate",
-                    color = NotifyOrange,
-                    fontSize = 18.sp,
+                    color = Color.White,
+                    fontSize = 16.sp, // changed
                     fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 Icon(
                     imageVector = Icons.Default.NearMe,
                     contentDescription = "Navigate",
-                    tint = IconLightOrange,
+                    tint = Color.White,
                     modifier = Modifier
-                        .size(22.dp)
+                        .size(20.dp)
                         .graphicsLayer {
                             rotationZ = -12f
                         }
@@ -293,29 +340,36 @@ private fun PosterActionButtons(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(24.dp))
-                .background(Color.White.copy(alpha = 0.26f))
+                .background(Color.White.copy(alpha = 0.95f))
+                .border(
+                    width = 1.dp,
+                    color = BorderOrange,
+                    shape = RoundedCornerShape(24.dp)
+                )
                 .clickable { onRegisterClick() },
             contentAlignment = Alignment.Center
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 Text(
                     text = "Register",
-                    color = NotifyOrange,
-                    fontSize = 18.sp,
+                    color = DarkOrange,
+                    fontSize = 16.sp, // changed
                     fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 Text(
                     text = "📝",
-                    color = IconLightOrange,
-                    fontSize = 18.sp
+                    fontSize = 16.sp
                 )
             }
         }
@@ -330,13 +384,18 @@ private fun NotifyButton(
         modifier = modifier
             .size(45.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(NotifyOrange),
+            .background(Color.White.copy(alpha = 0.96f))
+            .border(
+                width = 1.dp,
+                color = BorderOrange,
+                shape = RoundedCornerShape(14.dp)
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Default.Notifications,
             contentDescription = "Notification",
-            tint = Color.White,
+            tint = DarkOrange,
             modifier = Modifier.size(24.dp)
         )
     }

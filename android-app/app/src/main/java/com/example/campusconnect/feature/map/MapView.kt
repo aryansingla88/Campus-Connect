@@ -792,8 +792,8 @@ private fun DrawScope.drawHighPriorityEventPin(
     isSelected: Boolean,
     priority: Int
 ) {
-    val eventColor = Color(0xFFFF6F00)
-    val heartColor = Color(0xFFFFF176)
+    val eventColor = Color(0xFFE63100) // changed: dark orange
+    val innerCircleColor = Color.White // changed: heart ki jagah white circle
 
     val pinRadius = radius * 1.12f
     val circleCenterY = y - pinRadius * 0.18f
@@ -836,13 +836,11 @@ private fun DrawScope.drawHighPriorityEventPin(
         color = eventColor
     )
 
-    drawPath(
-        path = createHeartPath(
-            centerX = x,
-            centerY = circleCenterY - pinRadius * 0.02f,
-            size = pinRadius * 0.90f
-        ),
-        color = heartColor
+    // changed: heart remove karke white circle add kiya
+    drawCircle(
+        color = innerCircleColor,
+        radius = pinRadius * 0.36f,
+        center = Offset(x, circleCenterY)
     )
 }
 
