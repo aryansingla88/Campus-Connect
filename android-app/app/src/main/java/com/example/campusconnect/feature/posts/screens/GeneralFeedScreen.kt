@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.posts.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -40,10 +41,12 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
     var selectedTab by remember {
         mutableIntStateOf(0)
     }
+
     var selectedTopic by remember {
 
         mutableStateOf<String?>(null)
     }
+
     val filteredPosts =
 
         if (selectedTopic == null) {
@@ -158,85 +161,89 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
             when (selectedTab) {
 
                 0 -> {
-                    /*
-                    In Jetpack Compose, LazyColumn is a vertically scrolling list that only renders
-                     the items currently visible on the screen. It is the modern, declarative equivalent
-                      of the RecyclerView used in the older Android View system
-                     */
 
-                    LazyColumn(
+                    Column(
 
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(padding)//This line tells the contents of the scaffold to leave space for bottom navigation,
-                            // padding inside brackets is Scaffold's padding
-                            .padding(horizontal = 12.dp),
+                            .padding(padding)
+                    ) {
 
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        //above line is for adding space between items
+                        FeedTopBar(
 
-                        contentPadding = PaddingValues(vertical = 12.dp)
-                        /*
-                        contentPadding = PaddingValues(vertical = 12.dp)
+                            currentTitle = when (selectedTab) {
 
-                        means:
-
-                        contentPadding = PaddingValues(
-                        top = 12.dp,
-                        bottom = 12.dp
+                                0 -> "General"
+                                1 -> "Events"
+                                else -> "Custom"
+                            }
                         )
+
+                        // When a topic chip is clicked, update selectedTopic with that topic's name.
+                        // This triggers recomposition, causing filteredPosts to be recalculated and
+                        // only posts matching the selected topic to be displayed.
+                        TopicChipsRow(
+
+                            topics = dummyTopics,
+
+                            selectedTopic = selectedTopic,
+
+                            onTopicSelected = {
+
+                                selectedTopic = it
+                            }
+                        )
+
+                        /*
+                        In Jetpack Compose, LazyColumn is a vertically scrolling list that only renders
+                         the items currently visible on the screen. It is the modern, declarative equivalent
+                          of the RecyclerView used in the older Android View system
                          */
 
-                    ) {
-                        item {
+                        LazyColumn(
 
-                            FeedTopBar(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp),
 
-                                currentTitle = when (selectedTab) {
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            //above line is for adding space between items
 
-                                    0 -> "General"
-                                    1 -> "Events"
-                                    else -> "Custom"
-                                }
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                            /*
+                            contentPadding = PaddingValues(vertical = 12.dp)
+
+                            means:
+
+                            contentPadding = PaddingValues(
+                            top = 12.dp,
+                            bottom = 12.dp
                             )
-                        }
-                        item {
-                            // When a topic chip is clicked, update selectedTopic with that topic's name.
-                            // This triggers recomposition, causing filteredPosts to be recalculated and
-                            // only posts matching the selected topic to be displayed.
-                            TopicChipsRow(
+                             */
 
-                                topics = dummyTopics,
+                        ) {
 
-                                selectedTopic = selectedTopic,
+                            items(filteredPosts) { post ->
 
-                                onTopicSelected = {
+                                val commentCount =
 
-                                    selectedTopic = it
-                                }
-                            )
-                        }
+                                    dummyComments.count {
 
-                        items(filteredPosts) { post ->
+                                        it.postId == post.id
+                                    }
 
-                            val commentCount =
+                                com.example.campusconnect.feature.posts.components.PostCard(
 
-                                dummyComments.count {
+                                    post = post,
 
-                                    it.postId == post.id
-                                }
+                                    commentCount = commentCount,
 
-                            com.example.campusconnect.feature.posts.components.PostCard(
+                                    onClick = {
 
-                                post = post,
-
-                                commentCount = commentCount,
-
-                                onClick = {
-
-                                    onPostClick(post.id)
-                                }
-                            )
+                                        onPostClick(post.id)
+                                    }
+                                )
+                            }
                         }
                     }
                 }

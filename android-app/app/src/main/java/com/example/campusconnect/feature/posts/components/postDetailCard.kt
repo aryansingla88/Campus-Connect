@@ -80,12 +80,24 @@ fun PostDetailCard(
                     modifier = Modifier.width(12.dp)
                 )
 
-                Text(
+                Column {
 
-                    text = post.username,
+                    Text(
 
-                    style = MaterialTheme.typography.titleMedium
-                )
+                        text = post.username,
+
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Text(
+
+                        text = post.createdAt,
+
+                        style = MaterialTheme.typography.bodySmall,
+
+                        color = HintColor
+                    )
+                }
             }
 
             Spacer(
@@ -109,7 +121,7 @@ fun PostDetailCard(
 
                     text = post.title,
 
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
 
                     modifier = Modifier.weight(1f)
                 )
@@ -128,6 +140,7 @@ fun PostDetailCard(
                     Text(
 
                         text = post.tag,
+                        style = MaterialTheme.typography.bodySmall,
 
                         modifier = Modifier.padding(
                             horizontal = 12.dp,
@@ -175,7 +188,7 @@ fun PostDetailCard(
 
                 text = post.body,
 
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyMedium
             )
 
             /*

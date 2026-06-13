@@ -131,7 +131,7 @@ fun PostCard(
 
                             text = post.username,
 
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelMedium,
 
                             color = LabelColor
                         )
@@ -142,7 +142,7 @@ fun PostCard(
 
                             text = post.createdAt,
 
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.bodySmall,
 
                             color = HintColor
                         )
@@ -179,7 +179,7 @@ fun PostCard(
 
                             color = OrangePrimary,
 
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
 
@@ -208,7 +208,7 @@ fun PostCard(
 
                 text = post.title,
 
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
 
                 color = LabelColor
             )
@@ -223,7 +223,7 @@ fun PostCard(
 
                 text = post.body,
 
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
 
                 color = LabelColor.copy(alpha = 0.8f),
 
