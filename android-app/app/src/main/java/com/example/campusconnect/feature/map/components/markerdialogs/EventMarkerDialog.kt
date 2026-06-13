@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NearMe
@@ -22,8 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,18 +32,9 @@ import com.example.campusconnect.feature.map.model.MapEventInfo
 
 private val OrangePrimary = Color(0xFFFF6F00)
 private val DarkOrange = Color(0xFFE65100)
-private val LightOrange = Color(0xFFFFF3E0)
 private val TextDark = Color(0xFF202020)
 private val TextMuted = Color(0xFF6F7682)
 private val BorderOrange = Color(0xFFFFCC80)
-
-private val WhiteOrangeGradient = Brush.verticalGradient(
-    colors = listOf(
-        Color.White,
-        Color(0xFFFFFBF7),
-        LightOrange
-    )
-)
 
 @Composable
 fun EventMarkerDialog(
@@ -88,7 +80,7 @@ private fun EventDescriptionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth(0.86f)
-            .height(455.dp) // changed: button cut fix
+            .height(455.dp)
             .border(
                 width = 1.dp,
                 color = BorderOrange.copy(alpha = 0.85f),
@@ -100,90 +92,99 @@ private fun EventDescriptionCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(WhiteOrangeGradient)
+                .background(Color.White)
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 18.dp)
         ) {
-            NotifyButton(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 18.dp, end = 18.dp)
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        start = 26.dp,
-                        end = 26.dp,
-                        top = 32.dp,
-                        bottom = 24.dp // changed
-                    )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    text = event.title.uppercase(),
+                    text = event.title,
                     color = DarkOrange,
-                    fontSize = 31.sp, // changed
-                    lineHeight = 35.sp, // changed
+                    fontSize = 31.sp,
+                    lineHeight = 35.sp,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(end = 64.dp)
+                    modifier = Modifier.weight(1f)
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = event.hostName.uppercase(),
-                    color = TextDark,
-                    fontSize = 18.sp,
-                    lineHeight = 22.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    EventInfoPill(
-                        text = "📅  ${event.date}",
-                        modifier = Modifier.weight(1f)
-                    )
+                    SmallNotifyButton()
 
-                    EventInfoPill(
-                        text = "⏰  ${event.time}",
-                        modifier = Modifier.weight(1f)
+                    NavigateTopButton(
+                        onClick = onNavigateClick
                     )
                 }
-
-                Spacer(modifier = Modifier.height(22.dp))
-
-                Text(
-                    text = event.description,
-                    color = TextMuted,
-                    fontSize = 17.sp,
-                    lineHeight = 24.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 5, // changed: button ke liye space fix
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                EventActionButtons(
-                    onNavigateClick = onNavigateClick,
-                    onRegisterClick = onRegisterClick
-                )
             }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                EventTimelineSection(
+                    time = event.time,
+                    date = event.date,
+                    modifier = Modifier.width(128.dp)
+                )
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = event.description,
+                        color = TextDark,
+                        fontSize = 14.sp, // changed: small text for more content
+                        lineHeight = 18.sp, // changed
+                        fontWeight = FontWeight.Normal,
+                        maxLines = 5, // changed: 5 lines
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Location:",
+                        color = TextDark,
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+
+                    Text(
+                        text = getEventLocation(event.id),
+                        color = TextDark,
+                        fontSize = 14.sp,
+                        lineHeight = 17.sp,
+                        fontWeight = FontWeight.Normal,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            HostsSection() // changed: Top Participants -> Hosts
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            RegisterNowButton(
+                onClick = onRegisterClick
+            )
         }
     }
 }
@@ -201,7 +202,7 @@ private fun EventPosterCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.86f)
-                .height(500.dp) // changed: poster only card
+                .height(500.dp)
                 .border(
                     width = 1.dp,
                     color = BorderOrange.copy(alpha = 0.85f),
@@ -245,9 +246,8 @@ private fun EventPosterCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(15.dp)) // changed: buttons poster ke niche gap
+        Spacer(modifier = Modifier.height(18.dp))
 
-        // changed: buttons direct blurred map ke upar, koi background nahi
         EventActionButtons(
             onNavigateClick = onNavigateClick,
             onRegisterClick = onRegisterClick,
@@ -259,28 +259,248 @@ private fun EventPosterCard(
 }
 
 @Composable
-private fun EventInfoPill(
-    text: String,
-    modifier: Modifier = Modifier
-) {
+private fun SmallNotifyButton() {
     Box(
-        modifier = modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.90f))
+        modifier = Modifier
+            .padding(top = 4.dp)
+            .size(38.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .background(Color.White)
             .border(
                 width = 1.dp,
-                color = BorderOrange.copy(alpha = 0.75f),
-                shape = RoundedCornerShape(20.dp)
+                color = BorderOrange,
+                shape = RoundedCornerShape(13.dp)
             ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Notifications,
+            contentDescription = "Notification",
+            tint = DarkOrange,
+            modifier = Modifier.size(21.dp)
+        )
+    }
+}
+@Composable
+private fun NavigateTopButton(
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(OrangePrimary),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .border(
+                        width = 2.dp,
+                        color = Color.White,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.NearMe,
+                    contentDescription = "Navigate",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(27.dp)
+                        .graphicsLayer {
+                            rotationZ = -12f
+                        }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "Navigate",
+            color = DarkOrange,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun EventTimelineSection(
+    time: String,
+    date: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.height(128.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            TimelineIcon(
+                text = "⏰" // changed: proper time emoji
+            )
+
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(48.dp)
+                    .background(OrangePrimary)
+            )
+
+            TimelineIcon(
+                text = "📅" // changed: proper calendar emoji
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column {
+            Box(
+                modifier = Modifier.height(44.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = time,
+                    color = TextDark,
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1
+                )
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Box(
+                modifier = Modifier.height(44.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = date,
+                    color = TextDark,
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimelineIcon(
+    text: String
+) {
+    Box(
+        modifier = Modifier
+            .size(44.dp) // changed: icon bigger
+            .clip(CircleShape)
+            .background(OrangePrimary),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            color = DarkOrange,
-            fontSize = 15.sp,
-            fontFamily = FontFamily.Monospace,
+            color = Color.White,
+            fontSize = 20.sp, // changed: emoji clearly visible
             fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun HostsSection() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.End
+    ) {
+        Text(
+            text = "Hosts", // changed
+            color = DarkOrange,
+            fontSize = 22.sp,
+            lineHeight = 26.sp,
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.padding(end = 76.dp)
+        )
+
+        Spacer(modifier = Modifier.height(9.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ParticipantAvatar(name = "Alex", initials = "A", bg = Color(0xFFB3E5FC))
+            ParticipantAvatar(name = "Maria", initials = "M", bg = Color(0xFFC8E6C9))
+            ParticipantAvatar(name = "Chen", initials = "C", bg = Color(0xFFFFECB3))
+            ParticipantAvatar(name = "Fatima", initials = "F", bg = Color(0xFFF8BBD0))
+        }
+    }
+}
+
+@Composable
+private fun ParticipantAvatar(
+    name: String,
+    initials: String,
+    bg: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(bg),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = initials,
+                color = TextDark,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = name,
+            color = TextDark,
+            fontSize = 11.sp,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun RegisterNowButton(
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(OrangePrimary)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Register Now",
+            color = Color.White,
+            fontSize = 25.sp,
+            lineHeight = 29.sp,
+            fontWeight = FontWeight.ExtraBold,
             maxLines = 1
         )
     }
@@ -295,7 +515,7 @@ private fun EventActionButtons(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp), // changed: fixed button row height
+            .height(50.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -303,7 +523,7 @@ private fun EventActionButtons(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(25.dp))
                 .background(OrangePrimary)
                 .clickable { onNavigateClick() },
             contentAlignment = Alignment.Center
@@ -316,8 +536,7 @@ private fun EventActionButtons(
                 Text(
                     text = "Navigate",
                     color = Color.White,
-                    fontSize = 16.sp, // changed
-                    fontFamily = FontFamily.Monospace,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
@@ -341,12 +560,12 @@ private fun EventActionButtons(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(25.dp))
                 .background(Color.White.copy(alpha = 0.95f))
                 .border(
                     width = 1.dp,
                     color = BorderOrange,
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(25.dp)
                 )
                 .clickable { onRegisterClick() },
             contentAlignment = Alignment.Center
@@ -359,8 +578,7 @@ private fun EventActionButtons(
                 Text(
                     text = "Register",
                     color = DarkOrange,
-                    fontSize = 16.sp, // changed
-                    fontFamily = FontFamily.Monospace,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
@@ -398,5 +616,13 @@ private fun NotifyButton(
             tint = DarkOrange,
             modifier = Modifier.size(24.dp)
         )
+    }
+}
+
+private fun getEventLocation(eventId: String): String {
+    return when (eventId) {
+        "event_1" -> "Student Center Ballrooms"
+        "event_2" -> "Coding Lab"
+        else -> "Campus Auditorium"
     }
 }
