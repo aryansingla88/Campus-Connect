@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.map.components
+package com.example.campusconnect.feature.map.mapengine
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.SpringSpec

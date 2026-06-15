@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.map
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -53,13 +54,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.core.components.PanelSearchBar
-import com.example.campusconnect.feature.map.components.MapMotion
+import com.example.campusconnect.feature.map.mapengine.MapMotion
 import com.example.campusconnect.feature.map.components.markerdialogs.EventMarkerDialog
 import com.example.campusconnect.feature.map.components.markerdialogs.PoiMarkerDialog
 import com.example.campusconnect.feature.map.components.markerdialogs.UserMarkerDialog
-import com.example.campusconnect.feature.map.data.fake.FakeMapEventInfoService
-import com.example.campusconnect.feature.map.data.fake.FakeMapPoiInfoService
+import com.example.campusconnect.feature.map.mapengine.MapView
 import com.example.campusconnect.feature.map.mapengine.MarkerType
+
 
 private enum class MapMode {
     NONE,
@@ -108,11 +109,20 @@ fun MapScreen(
 
     var lastSelectedMarker by remember { mutableStateOf(uiState.selectedMarker) }
     var lastSelectedProfile by remember { mutableStateOf(uiState.selectedUserProfile) }
+    var lastSelectedPoi by remember { mutableStateOf(uiState.selectedPoiInfo) }
+    var lastSelectedEvent by remember { mutableStateOf(uiState.selectedEventInfo) }
 
-    LaunchedEffect(uiState.selectedMarker, uiState.selectedUserProfile) {
+    LaunchedEffect(
+        uiState.selectedMarker,
+        uiState.selectedUserProfile,
+        uiState.selectedPoiInfo,
+        uiState.selectedEventInfo
+    ) {
         if (uiState.selectedMarker != null) {
             lastSelectedMarker = uiState.selectedMarker
             lastSelectedProfile = uiState.selectedUserProfile
+            lastSelectedPoi = uiState.selectedPoiInfo
+            lastSelectedEvent = uiState.selectedEventInfo
         }
     }
 
@@ -132,7 +142,7 @@ fun MapScreen(
                 },
                 onMapTap = { x, y ->
                     selectedSidePanel = SidePanel.NONE
-                    android.util.Log.d(
+                    Log.d(
                         "MAP_PIXEL",
                         "MapScreen received pixel: x=$x, y=$y"
                     )
@@ -249,6 +259,8 @@ fun MapScreen(
                                     viewModel.clearSelection()
                                 },
                                 onAddFriendClick = {
+                                    viewModel.sendConnectionRequest(profile.id)
+
                                     android.util.Log.d(
                                         "MAP_USER",
                                         "Add friend clicked: ${profile.id}"
@@ -259,58 +271,50 @@ fun MapScreen(
                     }
 
                     MarkerType.POI -> {
-                        val poiInfo = remember(marker.id, marker.label) {
-                            FakeMapPoiInfoService.getPoiInfo(
-                                poiId = marker.id,
-                                fallbackName = marker.label
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            PoiMarkerDialog(
-                                poi = poiInfo,
-                                onNavigateClick = {
-                                    android.util.Log.d(
-                                        "MAP_POI",
-                                        "Navigate clicked: ${poiInfo.id}"
-                                    )
-                                },
-                                onCloseClick = {
-                                    viewModel.clearSelection()
-                                }
-                            )
+                        lastSelectedPoi?.let { poiInfo ->
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                PoiMarkerDialog(
+                                    poi = poiInfo,
+                                    onNavigateClick = {
+                                        android.util.Log.d(
+                                            "MAP_POI",
+                                            "Navigate clicked: ${poiInfo.id}"
+                                        )
+                                    },
+                                    onCloseClick = {
+                                        viewModel.clearSelection()
+                                    }
+                                )
+                            }
                         }
                     }
 
                     MarkerType.EVENT -> {
-                        val eventInfo = remember(marker.id, marker.label) {
-                            FakeMapEventInfoService.getEventInfo(
-                                eventId = marker.id,
-                                fallbackTitle = marker.label
+                        lastSelectedEvent?.let { eventInfo ->
+                            EventMarkerDialog(
+                                event = eventInfo,
+                                onDismiss = {
+                                    viewModel.clearSelection()
+                                },
+                                onNavigateClick = {
+                                    android.util.Log.d(
+                                        "MAP_EVENT",
+                                        "Navigate clicked: ${eventInfo.id}"
+                                    )
+                                },
+                                onRegisterClick = {
+                                    viewModel.registerEvent(eventInfo.id)
+
+                                    android.util.Log.d(
+                                        "MAP_EVENT",
+                                        "Register clicked: ${eventInfo.id}"
+                                    )
+                                }
                             )
                         }
-
-                        EventMarkerDialog(
-                            event = eventInfo,
-                            onDismiss = {
-                                viewModel.clearSelection()
-                            },
-                            onNavigateClick = {
-                                android.util.Log.d(
-                                    "MAP_EVENT",
-                                    "Navigate clicked: ${eventInfo.id}"
-                                )
-                            },
-                            onRegisterClick = {
-                                android.util.Log.d(
-                                    "MAP_EVENT",
-                                    "Register clicked: ${eventInfo.id}"
-                                )
-                            }
-                        )
                     }
 
                     else -> {
@@ -329,6 +333,37 @@ fun MapScreen(
                         }
                     }
                 }
+            }
+        }
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Loading map...",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        if (uiState.isDetailLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Loading details...",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

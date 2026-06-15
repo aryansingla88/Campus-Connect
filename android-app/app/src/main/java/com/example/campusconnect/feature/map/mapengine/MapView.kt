@@ -1,5 +1,6 @@
-package com.example.campusconnect.feature.map
+package com.example.campusconnect.feature.map.mapengine
 
+import android.graphics.Paint
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -25,8 +26,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntSize
 import com.example.campusconnect.R
-import com.example.campusconnect.feature.map.mapengine.MarkerRenderData
-import com.example.campusconnect.feature.map.mapengine.MarkerType
 import kotlin.math.pow
 
 private const val MAP_IMAGE_WIDTH = 3000f
@@ -395,7 +394,7 @@ private fun DrawScope.drawPoiMarker(
         center = Offset(x, y)
     )
 
-    val paint = android.graphics.Paint().apply {
+    val paint = Paint().apply {
         color = android.graphics.Color.WHITE
         textSize = labelTextSize
         isFakeBoldText = marker.isHighlighted
@@ -692,11 +691,11 @@ private fun DrawScope.drawShopLabel(
     centerX: Float,
     topY: Float
 ) {
-    val textPaint = android.graphics.Paint().apply {
+    val textPaint = Paint().apply {
         isAntiAlias = true
         color = android.graphics.Color.WHITE
         textSize = 22f
-        textAlign = android.graphics.Paint.Align.LEFT
+        textAlign = Paint.Align.LEFT
         isFakeBoldText = true
     }
 
