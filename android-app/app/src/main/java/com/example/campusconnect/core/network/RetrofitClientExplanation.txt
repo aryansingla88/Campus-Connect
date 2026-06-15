@@ -1,0 +1,229 @@
+package com.example.campusconnect.core.network
+
+import com.example.campusconnect.core.session.SessionManager
+import com.example.campusconnect.feature.profile.data.remote.ProfileApi
+import okhttp3.OkHttpClient
+import okhttp3.logging.*
+import okhttp3.Interceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+
+
+/*
+Normal flow:
+
+App  ---------->  Server
+
+With an interceptor:
+
+App --> Interceptor --> Server
+
+The interceptor gets a chance to see the request before it goes out and the response before it comes back.
+*/
+
+object RetrofitClient {
+
+     /*
+    An Auth Interceptor is a piece of code that automatically adds authentication information (usually a JWT token)
+    to every network request before it is sent.
+
+In your code:
+
+private val authInterceptor = Interceptor { chain ->
+
+you're creating an interceptor named authInterceptor.
+    */
+
+    // Interceptors ---------------------------------------------
+    private val authInterceptor = Interceptor { chain ->
+
+
+
+/* A Builder is a temporary object used to construct or modify another object step by step.
+
+In your code:
+
+val builder = chain.request().newBuilder()
+Step 1
+chain.request()
+
+gets the current HTTP request.
+
+For example:
+
+GET /profile
+Step 2
+.newBuilder()
+
+creates a modifiable copy of that request.
+
+The original request is immutable (cannot be changed).
+
+So instead of modifying the original request, OkHttp gives you a builder.
+
+Think of:
+
+Request
+
+as a finished house 🏠
+
+and
+
+Request.Builder
+
+as a construction site 🚧 where you can still make changes.
+
+Step 3
+
+Now you can modify the request:
+
+builder.addHeader(
+    "Authorization",
+    "Bearer $token"
+)
+builder.addHeader(
+    "Content-Type",
+    "application/json"
+)
+
+The builder keeps track of all these changes.
+
+Step 4
+
+When finished:
+
+builder.build()
+
+creates a new immutable Request object.
+
+Then:
+
+chain.proceed(builder.build())
+
+sends that newly built request.*/
+
+        val builder = chain.request().newBuilder()
+
+        /*
+        "?."
+        This is the safe call operator.
+        For example token?.length(), if token is empty this doesnot crash, if token is not empty it will return token's length.
+        */
+
+        /*
+        below SessionManager.getToken code snippet is essentially this mentioned here-
+        That snippet just has more kotlin shortcuts
+        val token = SessionManager.getToken()
+
+        if (token != null && token.isNotBlank()) {
+        builder.addHeader(
+            ApiConfig.HEADER_AUTH,
+            "Bearer $token"
+        )
+        }
+        */
+
+        SessionManager.getToken()?.takeIf { it.isNotBlank() }?.let { token ->
+            builder.addHeader(
+                ApiConfig.HEADER_AUTH,
+                "Bearer $token"
+            )
+        }
+
+        builder.addHeader(
+            ApiConfig.HEADER_CONTENT_TYPE,
+            "application/json"
+        )
+
+        builder.addHeader(
+            ApiConfig.HEADER_ACCEPT,
+            "application/json"
+        )
+
+        chain.proceed(builder.build())
+    }
+    /*
+    The logging interceptor prints details to Logcat.
+    */
+
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    // OkHttp client ---------------------------------------------
+
+    /*
+    Create an OkHttpClient Builder.
+
+    A builder lets you configure the client before creating it.
+
+    Then add interceptors one by one.
+    */
+
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(authInterceptor)
+        .addInterceptor(loggingInterceptor)
+        .connectTimeout(ApiConfig.TIMEOUT_SEC, TimeUnit.SECONDS)
+        .readTimeout(ApiConfig.TIMEOUT_SEC,    TimeUnit.SECONDS)
+        .writeTimeout(ApiConfig.TIMEOUT_SEC,   TimeUnit.SECONDS)
+        .build()
+
+
+    // Retrofit instance ---------------------------------------------
+
+    /*
+    Now we're creating the Retrofit object itself.
+
+    This snippet creates:
+
+    private val retrofit = ...
+
+    which is the API framework that sits on top of OkHttp.
+    */
+
+    private val retrofit = Retrofit.Builder()
+        .baseUrl(ApiConfig.BASE_URL)
+        .client(okHttpClient) //Attach the OkHttpClient we created earlier.
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+
+    // API instances ---------------------------------------------
+    /*
+    In one sentence
+    val profileApi: ProfileApi = retrofit.create(ProfileApi::class.java)
+    means-
+
+    "Ask Retrofit to generate a working implementation of the ProfileApi interface
+     and store it in profileApi so the app can make profile-related API calls."
+    */
+
+    val profileApi: ProfileApi = retrofit.create(ProfileApi::class.java)
+    // val authApi    : AuthApi    = retrofit.create(AuthApi::class.java)
+    // val eventsApi  : EventsApi  = retrofit.create(EventsApi::class.java)
+    // val postsApi   : PostsApi   = retrofit.create(PostsApi::class.java)
+    // val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
+}
+/*
+FINAL FLOW:
+
+ProfileApi
+    ↓
+Retrofit
+    ↓
+OkHttpClient
+    ↓
+AuthInterceptor
+    ↓
+LoggingInterceptor
+    ↓
+Server
+    ↓
+JSON Response
+    ↓
+Gson Converter
+    ↓
+ProfileResponse object
+*/
+

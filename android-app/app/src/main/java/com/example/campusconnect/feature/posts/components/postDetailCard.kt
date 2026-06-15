@@ -139,7 +139,8 @@ fun PostDetailCard(
 
                     Text(
 
-                        text = post.tag,
+                        text = post.tags.firstOrNull() ?: "",
+
                         style = MaterialTheme.typography.bodySmall,
 
                         modifier = Modifier.padding(

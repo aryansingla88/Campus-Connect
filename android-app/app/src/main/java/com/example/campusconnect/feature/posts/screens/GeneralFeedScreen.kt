@@ -32,11 +32,30 @@ import com.example.campusconnect.feature.posts.models.dummyPosts
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
 import com.example.campusconnect.feature.posts.models.dummyTopics
 import com.example.campusconnect.feature.posts.models.dummyComments
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+import com.example.campusconnect.feature.posts.models.Post
+import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 
 //@OptIn means ->"I know I'm using an experimental Material 3 API, and I accept that it may change in future versions."
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
+    val viewModel: FeedViewModel = viewModel()
+
+    var posts by remember {
+
+        mutableStateOf<List<Post>>(emptyList())
+    }
+
+    LaunchedEffect(Unit) {
+
+        posts = viewModel
+            .getPosts()
+            .getOrDefault(emptyList())
+    }
+
 
     var selectedTab by remember {
         mutableIntStateOf(0)
@@ -51,13 +70,13 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
 
         if (selectedTopic == null) {
 
-            dummyPosts
+            posts
         }
         else {
 
-            dummyPosts.filter {
+            posts.filter {
 
-                it.tag == selectedTopic
+                selectedTopic in it.tags
             }
         }
 

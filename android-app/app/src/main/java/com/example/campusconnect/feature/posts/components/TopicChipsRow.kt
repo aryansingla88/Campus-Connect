@@ -74,7 +74,7 @@ fun TopicChipsRow(
 
                     dummyPosts.count {
 
-                        it.tag == topic.name
+                        topic.name in it.tags
                     }
 
                 TopicChip(

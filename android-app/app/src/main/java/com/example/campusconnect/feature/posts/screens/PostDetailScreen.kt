@@ -9,28 +9,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.campusconnect.feature.posts.components.PostDetailCard
-import com.example.campusconnect.feature.posts.models.dummyComments
 import androidx.compose.foundation.lazy.items
 import com.example.campusconnect.feature.posts.components.CommentCard
 import com.example.campusconnect.feature.posts.components.PostDetailTopBar
 
 import com.example.campusconnect.feature.posts.models.Post
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.feature.posts.viewmodel.PostDetailViewModel
 
 
 @Composable
 fun PostDetailScreen(
 
+
     post: Post,
 
     onBackClick: () -> Unit
 ) {
+    val viewModel: PostDetailViewModel = viewModel()
+    var commentsForPost by remember {
 
-    val commentsForPost =
+        mutableStateOf<List<Comment>>(emptyList())
+    }
 
-        dummyComments.filter {
+    LaunchedEffect(post.id) {
 
-            it.postId == post.id
-        }
+        commentsForPost =
+
+            viewModel
+                .getComments(post.id)
+                .getOrDefault(emptyList())
+    }
     val topLevelComments =
 
         commentsForPost.filter {
