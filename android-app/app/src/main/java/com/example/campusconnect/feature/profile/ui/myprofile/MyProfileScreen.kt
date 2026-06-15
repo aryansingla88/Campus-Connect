@@ -148,12 +148,14 @@ fun MyProfileScreen(
                 .padding(innerPadding)
         ) {
             ProfileHeader(
-                initials      = currentProfile.initials,
+                entityId = currentProfile.userId,
+                avatarUrl = currentProfile.avatarUrl,
                 displayName   = currentProfile.fullName,
                 username      = currentProfile.username,
                 bio           = currentProfile.bio,
-                badgeColors   = vm.badges.map  { it.color },
-                medalColors   = vm.medals.map  { it.color },
+                badgeColors = emptyList(),
+                medalColors = emptyList(),
+
                 isEditMode    = vm.isEditMode,
                 onEditAvatar  = {
                     scope.launch {
@@ -218,10 +220,9 @@ fun MyProfileScreen(
                         onConnectionClick = { userId -> onNavigateToProfile(userId) }
                     )
                     panel == StatPanel.HONOR -> HonorPanel(
-                        honorRank    = vm.profile.honorRank,
+                        honorRank    = vm.honorRank,
                         badges       = vm.badges,
                         medals       = vm.medals,
-                        honorEntries = vm.honorEntries,
                         mode         = ProfileMode.OWN
                     )
                     panel == StatPanel.CLUBS -> ClubsPanel(

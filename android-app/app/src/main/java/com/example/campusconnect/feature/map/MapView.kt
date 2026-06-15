@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -20,7 +21,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.IntSize
 import com.example.campusconnect.R
 import com.example.campusconnect.feature.map.mapengine.MarkerRenderData
 import com.example.campusconnect.feature.map.mapengine.MarkerType
@@ -28,18 +31,68 @@ import kotlin.math.pow
 
 private const val MAP_IMAGE_WIDTH = 3000f
 private const val MAP_IMAGE_HEIGHT = 3000f
+private const val MIN_ZOOM = 2.1f
+private const val MAX_ZOOM = 5f
 
 @Composable
 fun MapView(
     modifier: Modifier = Modifier,
     markers: List<MarkerRenderData> = emptyList(),
     onMarkerClick: (String) -> Unit = {},
-    onMapTap: (Float, Float) -> Unit = { _, _ -> }
+    onMapTap: (Float, Float) -> Unit = { _, _ -> },
+    initialFocusMarkerId: String? = null,
+    initialZoom: Float = 2.2f
 ) {
     var scale by remember { mutableStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
+    var initialFocusApplied by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .onSizeChanged { containerSize = it }
+    ) {
+        LaunchedEffect(containerSize, markers, initialFocusMarkerId) {
+            if (
+                !initialFocusApplied &&
+                containerSize.width > 0 &&
+                containerSize.height > 0 &&
+                markers.isNotEmpty()
+            ) {
+                val focusMarker = markers.firstOrNull { it.id == initialFocusMarkerId }
+                    ?: markers.firstOrNull()
+
+                focusMarker?.let { marker ->
+                    val bounds = calculateImageBounds(
+                        width = containerSize.width.toFloat(),
+                        height = containerSize.height.toFloat()
+                    )
+
+                    val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
+                    val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
+
+                    val targetScale = initialZoom.coerceIn(MIN_ZOOM, MAX_ZOOM)
+
+                    val targetOffset = Offset(
+                        x = containerSize.width / 2f - mapX * targetScale,
+                        y = containerSize.height / 2f - mapY * targetScale
+                    )
+
+                    scale = targetScale
+                    offset = clampOffsetSmooth(
+                        offset = targetOffset,
+                        scale = targetScale,
+                        containerWidth = containerSize.width.toFloat(),
+                        containerHeight = containerSize.height.toFloat(),
+                        bounds = bounds
+                    )
+
+                    initialFocusApplied = true
+                }
+            }
+        }
 
         Image(
             painter = painterResource(id = R.drawable.campus_map),
@@ -56,22 +109,17 @@ fun MapView(
             contentScale = ContentScale.Fit
         )
 
-        Canvas(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val bounds = calculateImageBounds(size.width, size.height)
 
             markers.forEach { marker ->
                 val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
                 val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
 
-                val screenX = mapX * scale + offset.x
-                val screenY = mapY * scale + offset.y
-
                 drawMarker(
                     marker = marker,
-                    x = screenX,
-                    y = screenY,
+                    x = mapX * scale + offset.x,
+                    y = mapY * scale + offset.y,
                     zoom = scale
                 )
             }
@@ -81,14 +129,30 @@ fun MapView(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(1f, 5f)
-                        offset += pan
+                    detectTransformGestures { centroid, pan, zoom, _ ->
+                        val bounds = calculateImageBounds(
+                            width = size.width.toFloat(),
+                            height = size.height.toFloat()
+                        )
+
+                        val oldScale = scale
+                        val newScale = (oldScale * zoom).coerceIn(MIN_ZOOM, MAX_ZOOM)
+                        val zoomChange = newScale / oldScale
+
+                        val newOffset = centroid - (centroid - offset) * zoomChange + pan
+
+                        scale = newScale
+                        offset = clampOffsetSmooth(
+                            offset = newOffset,
+                            scale = newScale,
+                            containerWidth = size.width.toFloat(),
+                            containerHeight = size.height.toFloat(),
+                            bounds = bounds
+                        )
                     }
                 }
                 .pointerInput(markers, scale, offset) {
                     detectTapGestures { tap ->
-
                         val bounds = calculateImageBounds(
                             width = size.width.toFloat(),
                             height = size.height.toFloat()
@@ -163,139 +227,724 @@ private fun calculateImageBounds(
     }
 }
 
+private fun clampOffsetSmooth(
+    offset: Offset,
+    scale: Float,
+    containerWidth: Float,
+    containerHeight: Float,
+    bounds: ImageBounds
+): Offset {
+    val mapWidth = bounds.width * scale
+    val mapHeight = bounds.height * scale
+
+    val mapLeft = bounds.left * scale
+    val mapTop = bounds.top * scale
+
+    val minX = containerWidth - mapLeft - mapWidth
+    val maxX = -mapLeft
+
+    val minY = containerHeight - mapTop - mapHeight
+    val maxY = -mapTop
+
+    val finalX = if (mapWidth <= containerWidth) {
+        (containerWidth - mapWidth) / 2f - mapLeft
+    } else {
+        offset.x.coerceIn(minX, maxX)
+    }
+
+    val finalY = if (mapHeight <= containerHeight) {
+        (containerHeight - mapHeight) / 2f - mapTop
+    } else {
+        offset.y.coerceIn(minY, maxY)
+    }
+
+    return Offset(finalX, finalY)
+}
+
 private fun DrawScope.drawMarker(
     marker: MarkerRenderData,
     x: Float,
     y: Float,
     zoom: Float
 ) {
-    val zoomBoost = (zoom - 1f).coerceIn(0f, 2f) * 2.5f
-    val visualRadius = (marker.radius + zoomBoost).coerceIn(10f, 26f)
-    val selectedRadius = visualRadius + 7f
-    val labelTextSize = (24f + zoomBoost).coerceIn(24f, 30f)
+    val zoomBoost = (zoom - 1f).coerceIn(0f, 2f) * 2.2f
+    val visualRadius = (marker.radius + zoomBoost).coerceIn(8f, 30f)
+    val selectedRadius = visualRadius + 8f
+    val labelTextSize = if (marker.isHighlighted) 27f else 23f
 
     when (marker.type) {
-
         MarkerType.POI -> {
-            drawCircle(
-                color = Color(marker.color),
+            drawPoiMarker(
+                marker = marker,
+                x = x,
+                y = y,
                 radius = visualRadius,
-                center = Offset(x, y)
-            )
-
-            drawContext.canvas.nativeCanvas.drawText(
-                marker.label,
-                x + visualRadius + 6f,
-                y + 6f,
-                android.graphics.Paint().apply {
-                    color = android.graphics.Color.WHITE
-                    textSize = labelTextSize
-                    isFakeBoldText = true
-                }
+                labelTextSize = labelTextSize
             )
         }
 
         MarkerType.USER -> {
-            val isFemale = marker.gender == "female"
-
-            drawCircle(
-                color = Color(marker.color),
-                radius = visualRadius,
-                center = Offset(x, y)
-            )
-
-            drawCircle(
-                color = Color.White,
-                radius = 4f,
-                center = Offset(x - 5f, y - 3f)
-            )
-
-            drawCircle(
-                color = Color.White,
-                radius = 4f,
-                center = Offset(x + 5f, y - 3f)
-            )
-
-            if (isFemale) {
-                drawCircle(
-                    color = Color(0xFFFFC1E3),
-                    radius = visualRadius + 4f,
-                    center = Offset(x, y),
-                    style = Stroke(width = 3f)
-                )
+            val userRadius = if (marker.isSelected) {
+                visualRadius * 1.18f
             } else {
-                drawLine(
-                    color = Color.White,
-                    start = Offset(x - 7f, y + 7f),
-                    end = Offset(x + 7f, y + 7f),
-                    strokeWidth = 3f
-                )
-            }
-        }
-
-        MarkerType.EVENT -> {
-            val eventPath = Path().apply {
-                moveTo(x, y - visualRadius)
-                cubicTo(
-                    x + visualRadius,
-                    y - visualRadius,
-                    x + visualRadius,
-                    y + visualRadius / 2f,
-                    x,
-                    y + visualRadius * 1.5f
-                )
-                cubicTo(
-                    x - visualRadius,
-                    y + visualRadius / 2f,
-                    x - visualRadius,
-                    y - visualRadius,
-                    x,
-                    y - visualRadius
-                )
-                close()
+                visualRadius
             }
 
-            drawPath(
-                path = eventPath,
-                color = Color(0xFFFF9800)
-            )
-
-            drawCircle(
-                color = Color.White,
-                radius = visualRadius / 3f,
-                center = Offset(x, y)
+            drawUserAvatarMarker(
+                marker = marker,
+                x = x,
+                y = y,
+                radius = userRadius
             )
         }
 
         MarkerType.SHOP -> {
-            val hutPath = Path().apply {
-                moveTo(x, y - visualRadius)
-                lineTo(x - visualRadius, y)
-                lineTo(x - visualRadius, y + visualRadius)
-                lineTo(x + visualRadius, y + visualRadius)
-                lineTo(x + visualRadius, y)
-                close()
+            drawShopMarker(
+                marker = marker,
+                x = x,
+                y = y,
+                radius = visualRadius
+            )
+        }
+
+        MarkerType.EVENT -> {
+            val eventRadius = if (marker.isSelected) {
+                visualRadius * 1.08f
+            } else {
+                visualRadius
             }
 
-            drawPath(
-                path = hutPath,
-                color = Color(marker.color)
-            )
-
-            drawRect(
-                color = Color(0xFFFFF3E0),
-                topLeft = Offset(x - 4f, y + 4f),
-                size = Size(8f, 10f)
-            )
+            if (marker.priority >= 2) {
+                drawHighPriorityEventPin(
+                    x = x,
+                    y = y,
+                    radius = eventRadius,
+                    isSelected = marker.isSelected,
+                    priority = marker.priority
+                )
+            } else {
+                drawLowPriorityEventPin(
+                    x = x,
+                    y = y,
+                    radius = eventRadius,
+                    isSelected = marker.isSelected,
+                    priority = marker.priority
+                )
+            }
         }
     }
 
-    if (marker.isSelected) {
+    if (
+        marker.isSelected &&
+        marker.type != MarkerType.SHOP &&
+        marker.type != MarkerType.USER &&
+        marker.type != MarkerType.EVENT
+    ) {
         drawCircle(
             color = Color.White,
             radius = selectedRadius,
             center = Offset(x, y),
             style = Stroke(width = 3f)
         )
+
+        drawCircle(
+            color = Color(0xFFFFA726).copy(alpha = 0.35f),
+            radius = selectedRadius + 5f,
+            center = Offset(x, y),
+            style = Stroke(width = 5f)
+        )
+    }
+}
+
+private fun DrawScope.drawPoiMarker(
+    marker: MarkerRenderData,
+    x: Float,
+    y: Float,
+    radius: Float,
+    labelTextSize: Float
+) {
+    val dotColor = if (marker.isHighlighted) {
+        Color(0xFF00C853)
+    } else {
+        Color(0xFF66BB6A)
+    }
+
+    val ringColor = if (marker.isHighlighted) {
+        Color(0xFFB9F6CA)
+    } else {
+        Color.White.copy(alpha = 0.75f)
+    }
+
+    if (marker.isHighlighted) {
+        drawCircle(
+            color = dotColor.copy(alpha = 0.28f),
+            radius = radius + 8f,
+            center = Offset(x, y)
+        )
+    }
+
+    drawCircle(
+        color = ringColor,
+        radius = radius + 3f,
+        center = Offset(x, y)
+    )
+
+    drawCircle(
+        color = dotColor,
+        radius = radius,
+        center = Offset(x, y)
+    )
+
+    val paint = android.graphics.Paint().apply {
+        color = android.graphics.Color.WHITE
+        textSize = labelTextSize
+        isFakeBoldText = marker.isHighlighted
+    }
+
+    val textWidth = paint.measureText(marker.label)
+    val labelWidth = textWidth + 22f
+    val labelHeight = if (marker.isHighlighted) 30f else 26f
+
+    val labelLeft = x + radius + 8f
+    val labelTop = y - labelHeight / 2f
+
+    drawRoundRect(
+        color = Color.Black.copy(alpha = if (marker.isHighlighted) 0.58f else 0.42f),
+        topLeft = Offset(labelLeft, labelTop),
+        size = Size(labelWidth, labelHeight),
+        cornerRadius = CornerRadius(13f, 13f)
+    )
+
+    drawContext.canvas.nativeCanvas.drawText(
+        marker.label,
+        labelLeft + 11f,
+        y + labelTextSize / 3f,
+        paint
+    )
+}
+
+private fun DrawScope.drawUserAvatarMarker(
+    marker: MarkerRenderData,
+    x: Float,
+    y: Float,
+    radius: Float
+) {
+    val isFemale = marker.gender == "female"
+
+    val markerColor = if (isFemale) {
+        Color(0xFFE83E8C)
+    } else {
+        Color(0xFF4285F4)
+    }
+
+    val pinRadius = radius * 1.30f
+    val circleCenter = Offset(x, y - pinRadius * 0.15f)
+    val circleRadius = pinRadius
+    val tipY = y + pinRadius * 1.60f
+
+    fun createPinPath(
+        centerX: Float,
+        centerY: Float,
+        r: Float,
+        tip: Float
+    ): Path {
+        return Path().apply {
+            moveTo(centerX, tip)
+
+            cubicTo(
+                centerX - r * 0.45f,
+                centerY + r * 0.65f,
+                centerX - r,
+                centerY + r * 0.45f,
+                centerX - r,
+                centerY
+            )
+
+            cubicTo(
+                centerX - r,
+                centerY - r * 0.62f,
+                centerX - r * 0.55f,
+                centerY - r,
+                centerX,
+                centerY - r
+            )
+
+            cubicTo(
+                centerX + r * 0.55f,
+                centerY - r,
+                centerX + r,
+                centerY - r * 0.62f,
+                centerX + r,
+                centerY
+            )
+
+            cubicTo(
+                centerX + r,
+                centerY + r * 0.45f,
+                centerX + r * 0.45f,
+                centerY + r * 0.65f,
+                centerX,
+                tip
+            )
+
+            close()
+        }
+    }
+
+    val borderPath = createPinPath(
+        centerX = circleCenter.x,
+        centerY = circleCenter.y,
+        r = circleRadius + 3.5f,
+        tip = tipY + 3f
+    )
+
+    val pinPath = createPinPath(
+        centerX = circleCenter.x,
+        centerY = circleCenter.y,
+        r = circleRadius,
+        tip = tipY
+    )
+
+    if (marker.isSelected) {
+        drawPath(
+            path = borderPath,
+            color = Color.White.copy(alpha = 0.42f),
+            style = Stroke(width = radius * 0.65f)
+        )
+
+        drawCircle(
+            color = Color.White.copy(alpha = 0.22f),
+            radius = radius * 1.45f,
+            center = Offset(x, y)
+        )
+    }
+
+    drawCircle(
+        color = Color.Black.copy(alpha = 0.18f),
+        radius = pinRadius * 0.55f,
+        center = Offset(x + 1.5f, tipY + 2f)
+    )
+
+    drawPath(
+        path = borderPath,
+        color = Color.White
+    )
+
+    drawPath(
+        path = pinPath,
+        color = markerColor
+    )
+
+    drawCircle(
+        color = Color.White,
+        radius = pinRadius * 0.25f,
+        center = Offset(
+            x,
+            circleCenter.y - pinRadius * 0.18f
+        )
+    )
+
+    drawRoundRect(
+        color = Color.White,
+        topLeft = Offset(
+            x - pinRadius * 0.45f,
+            circleCenter.y + pinRadius * 0.18f
+        ),
+        size = Size(
+            pinRadius * 0.9f,
+            pinRadius * 0.38f
+        ),
+        cornerRadius = CornerRadius(
+            pinRadius * 0.18f,
+            pinRadius * 0.18f
+        )
+    )
+}
+
+private fun DrawScope.drawShopMarker(
+    marker: MarkerRenderData,
+    x: Float,
+    y: Float,
+    radius: Float
+) {
+    val shopColor = Color(0xFFC9992466)
+    val windowColor = Color(0xFFFFEFE6)
+
+    val iconWidth = radius * 3.3f
+    val iconHeight = radius * 2.9f
+
+    val left = x - iconWidth / 2f
+    val top = y - iconHeight / 2f
+
+    val roofPeakY = top
+    val roofShoulderY = top + iconHeight * 0.26f
+    val roofBaseY = top + iconHeight * 0.43f
+    val scallopDepth = iconHeight * 0.16f
+
+    val bodyTop = roofBaseY + scallopDepth * 0.75f
+    val bodyLeft = left + iconWidth * 0.18f
+    val bodyWidth = iconWidth * 0.64f
+    val bodyHeight = iconHeight * 0.50f
+    val bodyBottom = bodyTop + bodyHeight
+
+    val roofPath = Path().apply {
+        moveTo(x, roofPeakY)
+
+        lineTo(left + iconWidth * 0.18f, roofShoulderY)
+
+        quadraticBezierTo(
+            left + iconWidth * 0.06f,
+            roofShoulderY + iconHeight * 0.04f,
+            left + iconWidth * 0.08f,
+            roofBaseY
+        )
+
+        val startX = left + iconWidth * 0.08f
+        val scallopWidth = iconWidth * 0.21f
+
+        repeat(4) { index ->
+            val sx = startX + index * scallopWidth
+            val ex = sx + scallopWidth
+            val cx = sx + scallopWidth / 2f
+
+            quadraticBezierTo(
+                cx,
+                roofBaseY + scallopDepth,
+                ex,
+                roofBaseY
+            )
+        }
+
+        quadraticBezierTo(
+            left + iconWidth * 0.94f,
+            roofShoulderY + iconHeight * 0.04f,
+            left + iconWidth * 0.82f,
+            roofShoulderY
+        )
+
+        lineTo(x, roofPeakY)
+        close()
+    }
+
+    drawPath(
+        path = roofPath,
+        color = Color.White.copy(alpha = 0.45f),
+        style = Stroke(width = radius * 1.25f)
+    )
+
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.28f),
+        topLeft = Offset(
+            bodyLeft - radius * 0.45f,
+            bodyTop - radius * 0.2f
+        ),
+        size = Size(
+            bodyWidth + radius * 0.9f,
+            bodyHeight + radius * 0.55f
+        ),
+        cornerRadius = CornerRadius(radius * 0.3f, radius * 0.3f)
+    )
+
+    drawPath(
+        path = roofPath,
+        color = Color.Black.copy(alpha = 0.16f),
+        style = Stroke(width = radius * 0.35f)
+    )
+
+    drawRect(
+        color = Color.Black.copy(alpha = 0.14f),
+        topLeft = Offset(bodyLeft + 2f, bodyTop + 3f),
+        size = Size(bodyWidth, bodyHeight)
+    )
+
+    drawPath(
+        path = roofPath,
+        color = shopColor
+    )
+
+    drawRect(
+        color = shopColor,
+        topLeft = Offset(bodyLeft, bodyTop),
+        size = Size(bodyWidth, bodyHeight)
+    )
+
+    drawRect(
+        color = windowColor,
+        topLeft = Offset(
+            bodyLeft + bodyWidth * 0.58f,
+            bodyTop + bodyHeight * 0.28f
+        ),
+        size = Size(
+            bodyWidth * 0.24f,
+            bodyHeight * 0.27f
+        )
+    )
+
+    drawShopLabel(
+        label = marker.label,
+        centerX = x,
+        topY = bodyBottom + 10f
+    )
+}
+
+private fun DrawScope.drawShopLabel(
+    label: String,
+    centerX: Float,
+    topY: Float
+) {
+    val textPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.WHITE
+        textSize = 22f
+        textAlign = android.graphics.Paint.Align.LEFT
+        isFakeBoldText = true
+    }
+
+    val textWidth = textPaint.measureText(label)
+
+    val horizontalPadding = 10f
+    val bgHeight = 28f
+    val bgWidth = textWidth + horizontalPadding * 2f
+
+    val bgLeft = centerX - bgWidth / 2f
+    val bgTop = topY
+    val bgCorner = 10f
+
+    drawRoundRect(
+        color = Color.Black.copy(alpha = 0.48f),
+        topLeft = Offset(bgLeft, bgTop),
+        size = Size(bgWidth, bgHeight),
+        cornerRadius = CornerRadius(bgCorner, bgCorner)
+    )
+
+    val textX = centerX - textWidth / 2f
+    val textY = bgTop + bgHeight / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
+
+    drawContext.canvas.nativeCanvas.drawText(
+        label,
+        textX,
+        textY,
+        textPaint
+    )
+}
+
+private fun DrawScope.drawLowPriorityEventPin(
+    x: Float,
+    y: Float,
+    radius: Float,
+    isSelected: Boolean,
+    priority: Int
+) {
+    val eventColor = Color(0xFFFF6F00)
+
+    val pinRadius = radius * 1.05f
+    val circleCenterY = y - pinRadius * 0.18f
+    val tipY = y + pinRadius * 1.32f
+
+    val pinPath = createEventPinPath(
+        centerX = x,
+        centerY = circleCenterY,
+        radius = pinRadius,
+        tipY = tipY
+    )
+
+    if (isSelected) {
+        drawEventAreaHalo(
+            x = x,
+            y = circleCenterY,
+            radius = pinRadius,
+            priority = priority
+        )
+    }
+
+    drawCircle(
+        color = Color.Black.copy(alpha = 0.18f),
+        radius = pinRadius * 0.75f,
+        center = Offset(x + 2f, tipY - pinRadius * 0.05f)
+    )
+
+    drawPath(
+        path = createEventPinPath(
+            centerX = x,
+            centerY = circleCenterY,
+            radius = pinRadius + 3.2f,
+            tipY = tipY + 3f
+        ),
+        color = Color.White
+    )
+
+    drawPath(
+        path = pinPath,
+        color = eventColor
+    )
+
+    drawCircle(
+        color = Color.White,
+        radius = pinRadius * 0.36f,
+        center = Offset(x, circleCenterY)
+    )
+}
+
+private fun DrawScope.drawHighPriorityEventPin(
+    x: Float,
+    y: Float,
+    radius: Float,
+    isSelected: Boolean,
+    priority: Int
+) {
+    val eventColor = Color(0xFFFF6F00)
+    val heartColor = Color(0xFFFFF176)
+
+    val pinRadius = radius * 1.12f
+    val circleCenterY = y - pinRadius * 0.18f
+    val tipY = y + pinRadius * 1.35f
+
+    val pinPath = createEventPinPath(
+        centerX = x,
+        centerY = circleCenterY,
+        radius = pinRadius,
+        tipY = tipY
+    )
+
+    if (isSelected) {
+        drawEventAreaHalo(
+            x = x,
+            y = circleCenterY,
+            radius = pinRadius,
+            priority = priority
+        )
+    }
+
+    drawCircle(
+        color = Color.Black.copy(alpha = 0.20f),
+        radius = pinRadius * 0.85f,
+        center = Offset(x + 2f, tipY - pinRadius * 0.03f)
+    )
+
+    drawPath(
+        path = createEventPinPath(
+            centerX = x,
+            centerY = circleCenterY,
+            radius = pinRadius + 3.5f,
+            tipY = tipY + 3f
+        ),
+        color = Color.White
+    )
+
+    drawPath(
+        path = pinPath,
+        color = eventColor
+    )
+
+    drawPath(
+        path = createHeartPath(
+            centerX = x,
+            centerY = circleCenterY - pinRadius * 0.02f,
+            size = pinRadius * 0.90f
+        ),
+        color = heartColor
+    )
+}
+
+private fun createEventPinPath(
+    centerX: Float,
+    centerY: Float,
+    radius: Float,
+    tipY: Float
+): Path {
+    return Path().apply {
+        moveTo(centerX, tipY)
+
+        cubicTo(
+            centerX - radius * 0.45f,
+            centerY + radius * 0.72f,
+            centerX - radius,
+            centerY + radius * 0.45f,
+            centerX - radius,
+            centerY
+        )
+
+        cubicTo(
+            centerX - radius,
+            centerY - radius * 0.62f,
+            centerX - radius * 0.55f,
+            centerY - radius,
+            centerX,
+            centerY - radius
+        )
+
+        cubicTo(
+            centerX + radius * 0.55f,
+            centerY - radius,
+            centerX + radius,
+            centerY - radius * 0.62f,
+            centerX + radius,
+            centerY
+        )
+
+        cubicTo(
+            centerX + radius,
+            centerY + radius * 0.45f,
+            centerX + radius * 0.45f,
+            centerY + radius * 0.72f,
+            centerX,
+            tipY
+        )
+
+        close()
+    }
+}
+
+private fun DrawScope.drawEventAreaHalo(
+    x: Float,
+    y: Float,
+    radius: Float,
+    priority: Int
+) {
+    val priorityScale = when {
+        priority >= 3 -> 2.65f
+        priority == 2 -> 2.25f
+        else -> 1.90f
+    }
+
+    val ringRadius = radius * priorityScale
+
+    drawCircle(
+        color = Color.White.copy(alpha = 0.88f),
+        radius = ringRadius,
+        center = Offset(x, y),
+        style = Stroke(width = 4.5f)
+    )
+}
+
+private fun createHeartPath(
+    centerX: Float,
+    centerY: Float,
+    size: Float
+): Path {
+    val top = centerY - size * 0.25f
+
+    return Path().apply {
+        moveTo(centerX, centerY + size * 0.55f)
+
+        cubicTo(
+            centerX - size * 1.05f,
+            centerY - size * 0.05f,
+            centerX - size * 0.75f,
+            top - size * 0.55f,
+            centerX,
+            top
+        )
+
+        cubicTo(
+            centerX + size * 0.75f,
+            top - size * 0.55f,
+            centerX + size * 1.05f,
+            centerY - size * 0.05f,
+            centerX,
+            centerY + size * 0.55f
+        )
+
+        close()
     }
 }

@@ -90,11 +90,10 @@ fun ProfilePanelSection(
                 )
 
                 panel == StatPanel.HONOR -> HonorPanel(
-                    honorRank    = vm.profile.honorRank,
-                    badges       = vm.badges,
-                    medals       = vm.medals,
-                    honorEntries = vm.honorEntries,
-                    mode         = mode
+                    honorRank = vm.honorRank,
+                    badges = vm.badges,
+                    medals = vm.medals,
+                    mode = mode
                 )
 
                 panel == StatPanel.CLUBS -> ClubsPanel(

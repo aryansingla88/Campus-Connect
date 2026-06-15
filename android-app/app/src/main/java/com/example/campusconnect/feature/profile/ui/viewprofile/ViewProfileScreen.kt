@@ -47,22 +47,23 @@ fun ViewProfileScreen(
                 .padding(innerPadding)
         ) {
             ProfileHeader(
-                initials     = vm.profile.initials,
+                entityId = vm.profile.userId,
+                avatarUrl = vm.profile.avatarUrl,
                 displayName  = vm.profile.fullName,
                 username     = vm.profile.username,
                 bio          = vm.profile.bio,
-                badgeColors  = vm.badges.map { it.color },
-                medalColors  = vm.medals.map { it.color },
+                badgeColors = emptyList(),
+                medalColors = emptyList(),
                 headerAction = {
                     // Connect / Message button
                 }
             )
 
             StatsRow(
-                connectionCount = vm.profile.connectionCount,
+                connectionCount = vm.connections.size,
                 honorCount      = vm.badges.size + vm.medals.size,
-                clubCount       = vm.profile.clubCount,
-                interestCount   = vm.profile.interestCount,
+                clubCount       = vm.clubs.size,
+                interestCount   = vm.interests.size,
                 activePanel     = vm.activePanel,
                 onStatClick     = { vm.togglePanel(it) }
             )
@@ -84,11 +85,10 @@ fun ViewProfileScreen(
                         }
                     )
                     StatPanel.HONOR -> HonorPanel(
-                        honorRank    = vm.profile.honorRank,
-                        badges       = vm.badges,
-                        medals       = vm.medals,
-                        honorEntries = vm.honorEntries,
-                        mode         = ProfileMode.VIEW
+                        honorRank    = vm.honorRank,
+                        badges = vm.badges,
+                        medals = vm.medals,
+                        mode = ProfileMode.VIEW
                     )
                     StatPanel.CLUBS -> ClubsPanel(
                         clubs          = vm.clubs,
@@ -99,7 +99,8 @@ fun ViewProfileScreen(
                     )
                     StatPanel.INTERESTS -> InterestsPanel(
                         interests = vm.interests,
-                        mode      = ProfileMode.VIEW
+                        mode = ProfileMode.VIEW,
+                        onRemove = {}
                     )
                     null -> ProfileContent(
                         profile = vm.profile,

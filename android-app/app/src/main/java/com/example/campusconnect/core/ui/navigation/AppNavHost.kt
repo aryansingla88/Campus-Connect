@@ -2,9 +2,7 @@ package com.example.campusconnect.core.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.*
-import com.example.campusconnect.feature.auth.LoginScreen
 import com.example.campusconnect.feature.splash.SplashScreen
-import com.example.campusconnect.feature.splash.SplashDestination
 import com.example.campusconnect.feature.test.TestScreen
 import com.example.campusconnect.feature.auth.authNav
 import com.example.campusconnect.feature.events.eventNav
@@ -12,6 +10,8 @@ import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.posts.navigation.postNav
 import com.example.campusconnect.feature.profile.ProfileNav
 import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
+import com.example.campusconnect.feature.events.registerations.RegisterationNav
+import com.example.campusconnect.feature.events.registerations.navigateToFormBuilder
 
 @Composable
 fun AppNavHost() {
@@ -50,7 +50,8 @@ fun AppNavHost() {
                 onEvents = { navController.navigate("events_root") },
                 onMap = { navController.navigate("map") },
                 onProfile = { navController.navigate("profile")},
-                onSplash={navController.navigate("splash")}
+                onSplash={navController.navigate("splash")},
+                onFormBuilder = { navController.navigateToFormBuilder(1) }
             )
         }
 
@@ -59,5 +60,6 @@ fun AppNavHost() {
         eventNav(navController)
         mapNav(navController)
         ProfileNav(navController)
+        RegisterationNav(navController)
     }
 }

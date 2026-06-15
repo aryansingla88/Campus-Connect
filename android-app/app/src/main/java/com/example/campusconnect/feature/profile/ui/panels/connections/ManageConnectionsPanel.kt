@@ -12,9 +12,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.profile.model.Connection
+import com.example.campusconnect.feature.profile.model.ConnectionRequest
 import com.example.campusconnect.feature.profile.ui.components.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import com.example.campusconnect.core.components.AppAvatar
 
 private enum class ManageTab {
     REQUESTS,
@@ -23,8 +24,8 @@ private enum class ManageTab {
 
 @Composable
 fun ManageConnectionsPanel(
-    incomingRequests: List<Connection>,
-    sentInvites: List<Connection>,
+    incomingRequests: List<ConnectionRequest>,
+    sentInvites: List<ConnectionRequest>,
     onAccept: (String) -> Unit,
     onDecline: (String) -> Unit,
     onCancelInvite: (String) -> Unit
@@ -126,11 +127,16 @@ fun ManageConnectionsPanel(
                 items(list, key = { it.userId }) { person ->
 
                     ProfileListCard(
-                        title = person.name,
-                        subtitle = person.sub,
+                        title = person.fullName,
+                        subtitle = "${person.course} • Year ${person.academicYear}",
 
                         leadingContent = {
-                            AvatarBadge(person)
+                            AppAvatar(
+                                entityId = person.userId,
+                                displayName = person.fullName,
+                                imageUrl = person.avatarUrl,
+                                size = 44.dp
+                            )
                         },
 
                         trailingContent = {
@@ -209,25 +215,3 @@ fun ManageConnectionsPanel(
     }
 }
 
-@Composable
-private fun AvatarBadge(
-    person: Connection
-) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .background(
-                color = OrangeLight,
-                shape = androidx.compose.foundation.shape.CircleShape
-            ),
-        contentAlignment =
-            androidx.compose.ui.Alignment.Center
-    ) {
-        Text(
-            text = person.initials,
-            color = OrangeDark,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp
-        )
-    }
-}
