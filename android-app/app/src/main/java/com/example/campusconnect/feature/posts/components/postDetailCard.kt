@@ -139,7 +139,7 @@ fun PostDetailCard(
 
                     Text(
 
-                        text = post.tags.firstOrNull() ?: "",
+                        post.tags.firstOrNull()?.name ?: "",
 
                         style = MaterialTheme.typography.bodySmall,
 

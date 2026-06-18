@@ -30,7 +30,7 @@ import com.example.campusconnect.core.ui.theme.*
 import com.example.campusconnect.feature.posts.components.FeedTopBar
 import com.example.campusconnect.feature.posts.models.dummyPosts
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
-import com.example.campusconnect.feature.posts.models.dummyTopics
+import com.example.campusconnect.feature.posts.models.dummyTags
 import com.example.campusconnect.feature.posts.models.dummyComments
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -76,7 +76,10 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
 
             posts.filter {
 
-                selectedTopic in it.tags
+                it.tags.any { tag ->
+
+                    tag.name == selectedTopic
+                }
             }
         }
 
@@ -203,7 +206,7 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
                         // only posts matching the selected topic to be displayed.
                         TopicChipsRow(
 
-                            topics = dummyTopics,
+                            tags = dummyTags,
 
                             selectedTopic = selectedTopic,
 

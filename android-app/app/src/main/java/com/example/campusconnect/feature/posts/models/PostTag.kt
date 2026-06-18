@@ -1,10 +1,8 @@
 package com.example.campusconnect.feature.posts.models
 
-data class Topic(
+data class PostTag(
 
     val id: Int,
 
-    val name: String,
-
-    val postCount: Int
+    val name: String
 )

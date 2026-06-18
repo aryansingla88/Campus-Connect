@@ -170,7 +170,7 @@ fun PostCard(
 
                         Text(
 
-                            text = post.tags.firstOrNull() ?: "",
+                            post.tags.firstOrNull()?.name ?: "",
 
                             modifier = Modifier.padding(
                                 horizontal = 12.dp,

@@ -24,13 +24,13 @@ import androidx.compose.ui.unit.dp
 
 import com.example.campusconnect.core.ui.theme.*
 
-import com.example.campusconnect.feature.posts.models.Topic
 import com.example.campusconnect.feature.posts.models.dummyPosts
+import com.example.campusconnect.feature.posts.models.PostTag
 
 @Composable
 fun TopicChipsRow(
 
-    topics: List<Topic>,
+    tags: List<PostTag>,
 
     selectedTopic: String?,
 
@@ -68,26 +68,29 @@ fun TopicChipsRow(
         TOPIC CHIPS
          */
 
-            items(topics) { topic ->
+            items(tags) { tag ->
 
                 val postCount =
 
                     dummyPosts.count {
 
-                        topic.name in it.tags
+                        it.tags.any { postTag ->
+
+                            postTag.name == tag.name
+                        }
                     }
 
                 TopicChip(
 
-                    topic = topic,
+                    tag = tag,
 
                     postCount = postCount,
 
-                    isSelected = selectedTopic == topic.name,
+                    isSelected = selectedTopic == tag.name,
 
                     onClick = {
 
-                        onTopicSelected(topic.name)
+                        onTopicSelected(tag.name)
                     }
                 )
             }

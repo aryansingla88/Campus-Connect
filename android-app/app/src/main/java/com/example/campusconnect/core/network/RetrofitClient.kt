@@ -8,6 +8,7 @@ import okhttp3.Interceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import com.example.campusconnect.feature.posts.data.remote.PostsApi
 
 object RetrofitClient {
 
@@ -64,6 +65,6 @@ object RetrofitClient {
     val profileApi: ProfileApi = retrofit.create(ProfileApi::class.java)
     // val authApi    : AuthApi    = retrofit.create(AuthApi::class.java)
     // val eventsApi  : EventsApi  = retrofit.create(EventsApi::class.java)
-    // val postsApi   : PostsApi   = retrofit.create(PostsApi::class.java)
+    val postsApi   : PostsApi   = retrofit.create(PostsApi::class.java)
     // val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
 }

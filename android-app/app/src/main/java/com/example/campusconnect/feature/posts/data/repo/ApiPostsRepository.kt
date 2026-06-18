@@ -8,6 +8,7 @@ import com.example.campusconnect.feature.posts.data.remote.PostsApi
 
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
+import com.example.campusconnect.feature.posts.models.PostTag
 
 class ApiPostsRepository(
 
@@ -20,6 +21,11 @@ class ApiPostsRepository(
     override suspend fun getPosts(): Result<List<Post>> {
 
         TODO()
+    }
+
+    override suspend fun getTags(): Result<List<PostTag>> {
+
+        TODO("Not implemented yet")
     }
 
     override suspend fun getPost(
@@ -36,7 +42,7 @@ class ApiPostsRepository(
 
         title: String,
 
-        content: String,
+        body : String,
 
         tags: List<String>,
 
@@ -53,7 +59,7 @@ class ApiPostsRepository(
 
         title: String,
 
-        content: String,
+        body : String,
 
         tags: List<String>
 
@@ -83,7 +89,7 @@ class ApiPostsRepository(
 
         postId: Int,
 
-        content: String
+        body : String
 
     ): Result<Comment> {
 
@@ -96,7 +102,7 @@ class ApiPostsRepository(
 
         parentCommentId: Int,
 
-        content: String
+        body : String
 
     ): Result<Comment> {
 
@@ -107,7 +113,7 @@ class ApiPostsRepository(
 
         commentId: Int,
 
-        content: String
+        body : String
 
     ): Result<Comment> {
 

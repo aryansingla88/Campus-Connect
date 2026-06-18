@@ -6,6 +6,8 @@ import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.dummyComments
 import com.example.campusconnect.feature.posts.models.dummyPosts
+import com.example.campusconnect.feature.posts.models.PostTag
+import com.example.campusconnect.feature.posts.models.dummyTags
 
 class FakePostsRepository : PostsRepository {
 
@@ -29,6 +31,11 @@ class FakePostsRepository : PostsRepository {
         )
     }
 
+    override suspend fun getTags(): Result<List<PostTag>> {
+
+        return Result.success(dummyTags)
+    }
+
 
     // Posts -------------------------------------------------------------
 
@@ -36,7 +43,7 @@ class FakePostsRepository : PostsRepository {
 
         title: String,
 
-        content: String,
+        body : String,
 
         tags: List<String>,
 
@@ -52,7 +59,7 @@ class FakePostsRepository : PostsRepository {
 
         title: String,
 
-        content: String,
+        body : String,
 
         tags: List<String>
     ): Result<Post> {
@@ -87,7 +94,7 @@ class FakePostsRepository : PostsRepository {
 
         postId: Int,
 
-        content: String
+        body : String
     ): Result<Comment> {
 
         TODO()
@@ -99,7 +106,7 @@ class FakePostsRepository : PostsRepository {
 
         parentCommentId: Int,
 
-        content: String
+        body : String
     ): Result<Comment> {
 
         TODO()
@@ -109,7 +116,7 @@ class FakePostsRepository : PostsRepository {
 
         commentId: Int,
 
-        content: String
+        body : String
     ): Result<Comment> {
 
         TODO()

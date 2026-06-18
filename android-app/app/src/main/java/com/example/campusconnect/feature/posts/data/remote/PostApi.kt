@@ -30,8 +30,8 @@ interface PostsApi {
         @Part("title")
         title: RequestBody,
 
-        @Part("content")
-        content: RequestBody,
+        @Part("body")
+        body: RequestBody,
 
         @Part
         image: MultipartBody.Part?,

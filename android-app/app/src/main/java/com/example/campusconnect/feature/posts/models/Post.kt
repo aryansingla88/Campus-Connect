@@ -11,7 +11,7 @@ data class Post(
 
     val body: String,
 
-    val tags: List<String>,
+    val tags: List<PostTag>,
 
     val imageUrl: String? = null,
 

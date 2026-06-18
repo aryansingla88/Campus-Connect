@@ -20,13 +20,13 @@ import androidx.compose.ui.unit.dp
 
 import com.example.campusconnect.core.ui.theme.*
 
-import com.example.campusconnect.feature.posts.models.Topic
 import androidx.compose.foundation.clickable
+import com.example.campusconnect.feature.posts.models.PostTag
 
 @Composable
 fun TopicChip(
 
-    topic: Topic,
+    tag: PostTag,
 
     postCount: Int,
 
@@ -79,7 +79,7 @@ fun TopicChip(
 
         Text(
 
-            text = topic.name,
+            text = tag.name,
 
             color =
                 if (isSelected)

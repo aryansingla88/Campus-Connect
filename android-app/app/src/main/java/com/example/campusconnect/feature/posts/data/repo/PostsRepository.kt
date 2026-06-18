@@ -1,15 +1,19 @@
 package com.example.campusconnect.feature.posts.data.repo
 
+
 import java.io.File
 
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
+import com.example.campusconnect.feature.posts.models.PostTag
 
 interface PostsRepository {
 
     // Feed -------------------------------------------------------------
 
     suspend fun getPosts(): Result<List<Post>>
+
+    suspend fun getTags(): Result<List<PostTag>>
 
     suspend fun getPost(
         postId: Int
@@ -22,7 +26,7 @@ interface PostsRepository {
 
         title: String,
 
-        content: String,
+        body: String,
 
         tags: List<String>,
 
@@ -35,7 +39,7 @@ interface PostsRepository {
 
         title: String,
 
-        content: String,
+        body : String,
 
         tags: List<String>
     ): Result<Post>
@@ -55,7 +59,7 @@ interface PostsRepository {
 
         postId: Int,
 
-        content: String
+        body : String
     ): Result<Comment>
 
     suspend fun createReply(
@@ -64,14 +68,14 @@ interface PostsRepository {
 
         parentCommentId: Int,
 
-        content: String
+        body : String
     ): Result<Comment>
 
     suspend fun updateComment(
 
         commentId: Int,
 
-        content: String
+        body : String
     ): Result<Comment>
 
     suspend fun deleteComment(

@@ -7,7 +7,9 @@ val dummyPosts = listOf(
         username = "pratham_yadav",
         title = "Need DBMS Notes",
         body = "Can someone share normalization notes before the mid-sem exam?",
-        tags = listOf("Study Help"),
+        tags = listOf(
+            PostTag(1, "Study Help")
+        ),
         imageUrl = null,
         upvotes = 42,
         downvotes = 3,
@@ -19,7 +21,9 @@ val dummyPosts = listOf(
         username = "aman_kumar",
         title = "Best DSA Playlist?",
         body = "Looking for a complete DSA playlist for placement preparation.",
-        tags = listOf("Study Help"),
+        tags = listOf(
+            PostTag(1, "Study Help")
+        ),
         imageUrl = null,
         upvotes = 31,
         downvotes = 1,
@@ -31,7 +35,9 @@ val dummyPosts = listOf(
         username = "nikhil_patidar",
         title = "Microsoft OA Experience",
         body = "The OA had 2 coding questions and one was graph based. Happy to answer doubts.",
-        tags= listOf("Placements"),
+        tags = listOf(
+            PostTag(2, "Placements")
+        ),
         imageUrl = null,
         upvotes = 67,
         downvotes = 2,
@@ -43,7 +49,9 @@ val dummyPosts = listOf(
         username = "vivek_verma",
         title = "Internship Resources",
         body = "Sharing a drive containing OA sheets, interview experiences and resume templates.",
-        tags = listOf("Placements"),
+        tags = listOf(
+            PostTag(2, "Placements")
+        ),
         imageUrl = null,
         upvotes = 89,
         downvotes = 1,
@@ -55,7 +63,9 @@ val dummyPosts = listOf(
         username = "khushi_sharma",
         title = "Lost Wallet Near Library",
         body = "Brown leather wallet with college ID inside. Please contact if found.",
-        tags = listOf("Lost & Found"),
+        tags = listOf(
+            PostTag(3, "Lost & Found")
+        ),
         imageUrl = null,
         upvotes = 56,
         downvotes = 0,
@@ -67,7 +77,9 @@ val dummyPosts = listOf(
         username = "aryan_singla",
         title = "Found AirPods",
         body = "Found AirPods near the Mechanical Department block.",
-        tags = listOf("Lost & Found"),
+        tags = listOf(
+            PostTag(3, "Lost & Found")
+        ),
         imageUrl = null,
         upvotes = 38,
         downvotes = 0,
@@ -79,7 +91,9 @@ val dummyPosts = listOf(
         username = "arvind_kumar",
         title = "Hostel WiFi Down Again",
         body = "Hostel 6 WiFi has been down since morning. Is everyone facing the same issue?",
-        tags = listOf("Hostels"),
+        tags = listOf(
+            PostTag(4, "Hostels")
+        ),
         imageUrl = null,
         upvotes = 74,
         downvotes = 4,
@@ -91,7 +105,9 @@ val dummyPosts = listOf(
         username = "lokesh_kumawat",
         title = "Room Available in Hostel",
         body = "One room is vacant after semester withdrawal. Contact if interested.",
-        tags = listOf("Hostels"),
+        tags = listOf(
+            PostTag(4, "Hostels")
+        ),
         imageUrl = null,
         upvotes = 22,
         downvotes = 1,
@@ -103,7 +119,9 @@ val dummyPosts = listOf(
         username = "shivansh_sharma",
         title = "Mess Paneer Day Review",
         body = "Today was surprisingly decent. Paneer wasn't rubber this time.",
-        tags = listOf("Mess & Food"),
+        tags = listOf(
+            PostTag(5, "Mess & Food")
+        ),
         imageUrl = null,
         upvotes = 63,
         downvotes = 5,
@@ -115,7 +133,9 @@ val dummyPosts = listOf(
         username = "sohel_paul",
         title = "Best Late Night Food?",
         body = "Where do you guys eat after 11 PM near campus?",
-        tags = listOf("Mess & Food"),
+        tags = listOf(
+            PostTag(5, "Mess & Food")
+        ),
         imageUrl = null,
         upvotes = 45,
         downvotes = 2,
@@ -127,7 +147,9 @@ val dummyPosts = listOf(
         username = "shivam_gupta",
         title = "Night Canteen Open?",
         body = "Is the night canteen operating during exams?",
-        tags = listOf("Night Life"),
+        tags = listOf(
+            PostTag(6, "Night Life")
+        ),
         imageUrl = null,
         upvotes = 28,
         downvotes = 0,
@@ -139,7 +161,9 @@ val dummyPosts = listOf(
         username = "vansh_gupta",
         title = "Anyone Up For Chai?",
         body = "Heading to Gokul after study hours. Anyone joining?",
-        tags = listOf("Night Life"),
+        tags = listOf(
+            PostTag(6, "Night Life")
+        ),
         imageUrl = null,
         upvotes = 35,
         downvotes = 1,
@@ -151,7 +175,9 @@ val dummyPosts = listOf(
         username = "pratiksha_dubey",
         title = "Techspardha Schedule Released",
         body = "The official schedule has finally been released.",
-        tags = listOf("Events"),
+        tags = listOf(
+            PostTag(7, "Events")
+        ),
         imageUrl = null,
         upvotes = 58,
         downvotes = 2,
@@ -163,7 +189,9 @@ val dummyPosts = listOf(
         username = "gopala_chachre",
         title = "Photography Workshop",
         body = "Photography club is organizing a workshop this weekend.",
-        tags = listOf("Events"),
+        tags = listOf(
+            PostTag(7, "Events")
+        ),
         imageUrl = "https://picsum.photos/600/400",
         upvotes = 41,
         downvotes = 1,
@@ -175,7 +203,9 @@ val dummyPosts = listOf(
         username = "akshat_mahatha",
         title = "Football Team Selection",
         body = "Trials will be conducted next Monday evening.",
-        tags = listOf("Sports"),
+        tags = listOf(
+            PostTag(8, "Sports")
+        ),
         imageUrl = null,
         upvotes = 66,
         downvotes = 3,
@@ -187,7 +217,9 @@ val dummyPosts = listOf(
         username = "sanchit_tewari",
         title = "Badminton Partner Needed",
         body = "Looking for someone to play badminton regularly after classes.",
-        tags = listOf("Sports"),
+        tags = listOf(
+            PostTag(8, "Sports")
+        ),
         imageUrl = null,
         upvotes = 29,
         downvotes = 0,
@@ -199,7 +231,9 @@ val dummyPosts = listOf(
         username = "vanshika_malhotra",
         title = "Coding Club Recruitment",
         body = "Applications for the coding club are now open.",
-        tags = listOf("Clubs"),
+        tags = listOf(
+            PostTag(9, "Clubs")
+        ),
         imageUrl = null,
         upvotes = 53,
         downvotes = 1,
@@ -211,7 +245,9 @@ val dummyPosts = listOf(
         username = "arijit_das",
         title = "Robotics Club Showcase",
         body = "We will be showcasing our latest rover prototype tomorrow.",
-        tags = listOf("Clubs"),
+        tags = listOf(
+            PostTag(9, "Clubs")
+        ),
         imageUrl = "https://picsum.photos/600/401",
         upvotes = 72,
         downvotes = 2,
@@ -223,22 +259,26 @@ val dummyPosts = listOf(
         username = "abhishek_dhangar",
         title = "Selling Scientific Calculator",
         body = "Casio calculator in excellent condition. DM if interested.",
-        tags = listOf("Buy & Sell"),
+        tags = listOf(
+            PostTag(10, "Buy & Sell")
+        ),
         imageUrl = null,
         upvotes = 24,
         downvotes = 0,
         createdAt = "2d"
     ),
+
     Post(
         id = 20,
         username = "pratham_yadav",
         title = "Selling First Year Books",
         body = "Complete first year set available at a reasonable price.",
-        tags = listOf("Buy & Sell"),
+        tags = listOf(
+            PostTag(10, "Buy & Sell")
+        ),
         imageUrl = null,
         upvotes = 37,
         downvotes = 1,
-
         createdAt = "18h"
     )
 )
