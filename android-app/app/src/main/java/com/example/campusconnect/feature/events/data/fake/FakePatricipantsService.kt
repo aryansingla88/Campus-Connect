@@ -1,31 +1,8 @@
-package com.example.campusconnect.feature.events.data
+package com.example.campusconnect.feature.events.data.fake
 
-// ─── Models ───────────────────────────────────────────────────────────────────
-
-data class TeamMember(
-    val id       : Int,
-    val name     : String,
-    val subtitle : String,          // e.g. "MCA 2nd Year"
-    val isLeader : Boolean = false,
-    val initials : String = name
-        .split(" ").take(2).joinToString("") { it.take(1).uppercase() }
-)
-
-data class ParticipantTeam(
-    val id      : Int,
-    val name    : String,
-    val members : List<TeamMember>
-)
-
-data class SoloParticipant(
-    val id       : Int,
-    val name     : String,
-    val subtitle : String,
-    val initials : String = name
-        .split(" ").take(2).joinToString("") { it.take(1).uppercase() }
-)
-
-// ─── FakeParticipantsService ──────────────────────────────────────────────────
+import com.example.campusconnect.feature.events.model.ParticipantTeam
+import com.example.campusconnect.feature.events.model.SoloParticipant
+import com.example.campusconnect.feature.events.model.TeamMember
 
 class FakeParticipantsService {
 
@@ -88,17 +65,16 @@ class FakeParticipantsService {
 
     fun getTeams(eventId: Int): List<ParticipantTeam> {
         val count = (eventId % 3) + 1
-        val start = (eventId % allTeams.size)
+        val start = eventId % allTeams.size
         return allTeams.drop(start).take(count).ifEmpty { allTeams.take(count) }
     }
 
     fun getSoloParticipants(eventId: Int): List<SoloParticipant> {
         val count = (eventId % 4) + 2
-        val start = (eventId % allSolo.size)
+        val start = eventId % allSolo.size
         return allSolo.drop(start).take(count).ifEmpty { allSolo.take(count) }
     }
 
-    fun getTotalCount(eventId: Int): Int {
-        return getTeams(eventId).sumOf { it.members.size } + getSoloParticipants(eventId).size
-    }
+    fun getTotalCount(eventId: Int): Int =
+        getTeams(eventId).sumOf { it.members.size } + getSoloParticipants(eventId).size
 }

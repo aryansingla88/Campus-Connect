@@ -3,10 +3,10 @@ package com.example.campusconnect.feature.events.viewmodel
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
-import com.example.campusconnect.feature.events.data.FakeEventService
+import com.example.campusconnect.feature.events.data.fake.FakeEventService
 import com.example.campusconnect.feature.events.model.EventUiState
-import com.example.campusconnect.model.Event
-import com.example.campusconnect.model.EventStatus
+import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.EventStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 

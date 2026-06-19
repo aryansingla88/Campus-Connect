@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-import com.example.campusconnect.model.Event
+import com.example.campusconnect.feature.events.model.Event
 
 @Composable
 fun EventDetailScreen(event: Event) {

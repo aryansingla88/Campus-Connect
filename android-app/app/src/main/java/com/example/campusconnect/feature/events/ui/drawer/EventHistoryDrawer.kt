@@ -32,14 +32,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.campusconnect.feature.events.data.FakeMedalService
-import com.example.campusconnect.feature.events.data.FakeParticipantsService
-import com.example.campusconnect.feature.events.data.MedalAward
-import com.example.campusconnect.feature.events.data.MedalType
-import com.example.campusconnect.feature.events.data.ParticipantTeam
-import com.example.campusconnect.feature.events.data.SoloParticipant
-import com.example.campusconnect.model.Event
-import com.example.campusconnect.model.EventStatus
+import com.example.campusconnect.feature.events.data.fake.FakeMedalService
+import com.example.campusconnect.feature.events.data.fake.FakeParticipantsService
+import com.example.campusconnect.feature.events.model.MedalAward
+import com.example.campusconnect.feature.events.model.MedalType
+import com.example.campusconnect.feature.events.model.ParticipantTeam
+import com.example.campusconnect.feature.events.model.SoloParticipant
+import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.EventStatus
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 private val Orange       = Color(0xFFFF6F00)

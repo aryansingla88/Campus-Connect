@@ -21,8 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.model.Event
-import com.example.campusconnect.model.EventStatus
+import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.EventStatus
 
 // ─── Colour helpers ───────────────────────────────────────────────────────────
 

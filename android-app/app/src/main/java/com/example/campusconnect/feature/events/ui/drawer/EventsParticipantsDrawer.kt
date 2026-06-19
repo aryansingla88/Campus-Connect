@@ -32,11 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.events.data.FakeParticipantsService
-import com.example.campusconnect.feature.events.data.ParticipantTeam
-import com.example.campusconnect.feature.events.data.SoloParticipant
-import com.example.campusconnect.feature.events.data.TeamMember
-import com.example.campusconnect.model.Event
+import com.example.campusconnect.feature.events.data.fake.FakeParticipantsService
+import com.example.campusconnect.feature.events.model.ParticipantTeam
+import com.example.campusconnect.feature.events.model.SoloParticipant
+import com.example.campusconnect.feature.events.model.TeamMember
+import com.example.campusconnect.feature.events.model.Event
 
 private val OrangePrimary = Color(0xFFFF6F00)
 private val OrangeLight   = Color(0xFFFFF3E0)

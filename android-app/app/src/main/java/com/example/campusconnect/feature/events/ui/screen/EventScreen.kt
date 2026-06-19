@@ -32,8 +32,8 @@ import com.example.campusconnect.feature.events.ui.drawer.EventParticipantsDrawe
 import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
 import com.example.campusconnect.feature.events.ui.components.ModeToggle
 import com.example.campusconnect.feature.events.ui.components.ToolIcon
-import com.example.campusconnect.model.Event
-import com.example.campusconnect.model.EventStatus
+import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.EventStatus
 import kotlinx.coroutines.delay
 
 private enum class ToastType { CREATED, UPDATED, DELETED }
