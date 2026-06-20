@@ -28,7 +28,7 @@ interface PostsRepository {
 
         body: String,
 
-        tags: List<String>,
+        tags: List<PostTag>,
 
         image: File?
     ): Result<Post>
@@ -41,7 +41,7 @@ interface PostsRepository {
 
         body : String,
 
-        tags: List<String>
+        tags: List<PostTag>
     ): Result<Post>
 
     suspend fun deletePost(

@@ -45,7 +45,7 @@ class FakePostsRepository : PostsRepository {
 
         body : String,
 
-        tags: List<String>,
+        tags: List<PostTag>,
 
         image: File?
     ): Result<Post> {
@@ -61,7 +61,7 @@ class FakePostsRepository : PostsRepository {
 
         body : String,
 
-        tags: List<String>
+        tags: List<PostTag>
     ): Result<Post> {
 
         TODO()

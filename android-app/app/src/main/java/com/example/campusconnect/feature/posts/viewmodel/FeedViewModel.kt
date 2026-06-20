@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.posts.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.example.campusconnect.feature.posts.data.repo.ApiPostsRepository
 
 import com.example.campusconnect.feature.posts.data.repo.FakePostsRepository
 import com.example.campusconnect.feature.posts.data.repo.PostsRepository
