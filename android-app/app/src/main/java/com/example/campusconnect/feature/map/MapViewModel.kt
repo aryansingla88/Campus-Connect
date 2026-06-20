@@ -4,15 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.campusconnect.feature.map.data.repo.FakeMapRepo
 import com.example.campusconnect.feature.map.data.repo.MapRepo
-import com.example.campusconnect.feature.map.mapengine.MapCalibration
-import com.example.campusconnect.feature.map.mapengine.MapMarker
-import com.example.campusconnect.feature.map.mapengine.MarkerRenderData
-import com.example.campusconnect.feature.map.mapengine.MarkerRenderer
-import com.example.campusconnect.feature.map.mapengine.MarkerType
-import com.example.campusconnect.feature.map.model.MapEventInfo
-import com.example.campusconnect.feature.map.model.MapPoiInfo
-import com.example.campusconnect.feature.map.model.MapUiState
-import com.example.campusconnect.feature.map.model.MapUserProfile
+import com.example.campusconnect.feature.map.mapengine.*
+import com.example.campusconnect.feature.map.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,7 +32,10 @@ class MapViewModel(
                 errorMessage = null
             )
 
-            repository.getMarkers()
+            repository.getMarkers(
+                type = null,
+                search = null
+            )
                 .onSuccess { markers ->
                     val positionedMarkers = markers.map { marker ->
                         val point = coordinateConverter.latLngToPoint(

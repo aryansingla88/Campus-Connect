@@ -1,6 +1,7 @@
 package com.example.campusconnect.core.network
 
 import com.example.campusconnect.core.session.SessionManager
+import com.example.campusconnect.feature.map.data.remote.MapApi
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
 import okhttp3.OkHttpClient
 import okhttp3.logging.*
@@ -65,5 +66,5 @@ object RetrofitClient {
     // val authApi    : AuthApi    = retrofit.create(AuthApi::class.java)
     // val eventsApi  : EventsApi  = retrofit.create(EventsApi::class.java)
     // val postsApi   : PostsApi   = retrofit.create(PostsApi::class.java)
-    // val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
+     val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
 }
