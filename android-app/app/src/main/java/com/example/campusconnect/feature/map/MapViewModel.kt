@@ -25,7 +25,10 @@ class MapViewModel(
         loadMarkers()
     }
 
-    private fun loadMarkers() {
+    private fun loadMarkers(
+        type: MarkerType? = null,
+        search: String? = null
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
@@ -33,8 +36,8 @@ class MapViewModel(
             )
 
             repository.getMarkers(
-                type = null,
-                search = null
+                type = type,
+                search = search
             )
                 .onSuccess { markers ->
                     val positionedMarkers = markers.map { marker ->
@@ -52,7 +55,7 @@ class MapViewModel(
                     updateState(
                         markers = positionedMarkers,
                         selectedMarkerId = null,
-                        activeFilter = null,
+                        activeFilter = type,
                         isLoading = false,
                         errorMessage = null
                     )
@@ -162,16 +165,9 @@ class MapViewModel(
     }
 
     fun setFilter(type: MarkerType?) {
-        updateState(
-            markers = _uiState.value.markers,
-            selectedMarkerId = null,
-            activeFilter = type,
-            selectedMarkerOverride = null,
-            selectedUserProfileOverride = null,
-            selectedPoiInfoOverride = null,
-            selectedEventInfoOverride = null,
-            isDetailLoading = false,
-            detailErrorMessage = null
+        loadMarkers(
+            type = type,
+            search = null
         )
     }
 
