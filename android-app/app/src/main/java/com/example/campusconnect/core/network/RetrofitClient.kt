@@ -1,10 +1,11 @@
 package com.example.campusconnect.core.network
 
 import com.example.campusconnect.core.session.SessionManager
+import com.example.campusconnect.feature.events.data.remote.EventsApi
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
-import okhttp3.OkHttpClient
-import okhttp3.logging.*
 import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -63,7 +64,7 @@ object RetrofitClient {
 
     val profileApi: ProfileApi = retrofit.create(ProfileApi::class.java)
     // val authApi    : AuthApi    = retrofit.create(AuthApi::class.java)
-    // val eventsApi  : EventsApi  = retrofit.create(EventsApi::class.java)
+     val eventsApi  : EventsApi = retrofit.create(EventsApi::class.java)
     // val postsApi   : PostsApi   = retrofit.create(PostsApi::class.java)
     // val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
 }
