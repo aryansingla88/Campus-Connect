@@ -1,60 +1,52 @@
 package com.example.campusconnect.feature.events.data.repo
 
-import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
-import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
-import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest
-import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
-import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
-import com.example.campusconnect.feature.events.data.remote.request.RevokeAccessRequest
-import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
-import com.example.campusconnect.feature.events.data.remote.response.EventResponse
-import com.example.campusconnect.feature.events.data.remote.response.MedalAwardResponse
-import com.example.campusconnect.feature.events.data.remote.response.ParticipantTeamResponse
-import com.example.campusconnect.feature.events.data.remote.response.RegistrationResponse
-import com.example.campusconnect.feature.events.data.remote.response.SoloParticipantResponse
-import com.example.campusconnect.feature.events.data.remote.response.UserAccessResponse
+import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.MedalAward
+import com.example.campusconnect.feature.events.model.MedalType
+import com.example.campusconnect.feature.events.model.ParticipantTeam
+import com.example.campusconnect.feature.events.model.SoloParticipant
+import com.example.campusconnect.feature.events.model.UserAccess
+import com.example.campusconnect.feature.events.registrations.model.Registration
 
 interface EventRepository {
 
     // Events -------------------------------------------------------------
 
-    suspend fun getEvents(): Result<List<EventResponse>>
+    suspend fun getEvents(): Result<List<Event>>
 
-    suspend fun getEvent(eventId: Int): Result<EventResponse>
+    suspend fun getEvent(
+        eventId: Int
+    ): Result<Event>
 
     suspend fun createEvent(
-        request: CreateEventRequest
-    ): Result<EventResponse>
+        event: Event
+    ): Result<Event>
 
     suspend fun updateEvent(
-        eventId: Int,
-        request: UpdateEventRequest
-    ): Result<EventResponse>
+        event: Event
+    ): Result<Event>
 
-    suspend fun deleteEvent(eventId: Int): Result<Unit>
+    suspend fun deleteEvent(
+        eventId: Int
+    ): Result<Unit>
 
 
     // Registration -------------------------------------------------------
 
     suspend fun getRegistration(
         eventId: Int
-    ): Result<RegistrationResponse>
-
-    suspend fun createRegistration(
-        eventId: Int,
-        request: CreateRegistrationRequest
-    ): Result<RegistrationResponse>
+    ): Result<Registration>
 
 
     // Participants -------------------------------------------------------
 
     suspend fun getTeams(
         eventId: Int
-    ): Result<List<ParticipantTeamResponse>>
+    ): Result<List<ParticipantTeam>>
 
     suspend fun getSoloParticipants(
         eventId: Int
-    ): Result<List<SoloParticipantResponse>>
+    ): Result<List<SoloParticipant>>
 
     suspend fun getParticipantsCount(
         eventId: Int
@@ -65,16 +57,15 @@ interface EventRepository {
 
     suspend fun getMedalsForEvent(
         eventId: Int
-    ): Result<List<MedalAwardResponse>>
+    ): Result<List<MedalAward>>
 
     suspend fun awardMedal(
-        eventId: Int,
-        request: AwardMedalRequest
-    ): Result<MedalAwardResponse>
+        award: MedalAward
+    ): Result<MedalAward>
 
     suspend fun removeMedal(
         eventId: Int,
-        request: RemoveMedalRequest
+        medalType: MedalType
     ): Result<Unit>
 
 
@@ -82,20 +73,10 @@ interface EventRepository {
 
     suspend fun getUsersWithAccess(
         eventId: Int
-    ): Result<List<UserAccessResponse>>
+    ): Result<List<UserAccess>>
 
     suspend fun searchUsers(
         eventId: Int,
         query: String
-    ): Result<List<UserAccessResponse>>
-
-    suspend fun grantAccess(
-        eventId: Int,
-        request: GrantAccessRequest
-    ): Result<Unit>
-
-    suspend fun revokeAccess(
-        eventId: Int,
-        request: RevokeAccessRequest
-    ): Result<Unit>
+    ): Result<List<UserAccess>>
 }

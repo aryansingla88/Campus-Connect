@@ -4,36 +4,60 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AddLocation
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.campusconnect.feature.events.viewmodel.EventViewModel
+import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.EventStatus
+import com.example.campusconnect.feature.events.ui.components.EventMarker
+import com.example.campusconnect.feature.events.ui.components.ModeToggle
+import com.example.campusconnect.feature.events.ui.components.ToolIcon
 import com.example.campusconnect.feature.events.ui.dialog.EventAccessDialog
 import com.example.campusconnect.feature.events.ui.dialog.EventCreateDialog
 import com.example.campusconnect.feature.events.ui.drawer.EventHistoryDrawer
-import com.example.campusconnect.feature.events.ui.components.EventMarker
 import com.example.campusconnect.feature.events.ui.drawer.EventParticipantsDrawer
 import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
-import com.example.campusconnect.feature.events.ui.components.ModeToggle
-import com.example.campusconnect.feature.events.ui.components.ToolIcon
-import com.example.campusconnect.feature.events.model.Event
-import com.example.campusconnect.feature.events.model.EventStatus
+import com.example.campusconnect.feature.events.viewmodel.EventViewModel
 import kotlinx.coroutines.delay
 
 private enum class ToastType { CREATED, UPDATED, DELETED }
@@ -270,7 +294,7 @@ fun EventScreen() {
                     },
                     onRegistration = { },
                     onChat         = { },
-                    onAccess       = { event -> accessEvent = event; showAccessDialog = true },
+                    onAccess       = { event -> accessEvent = event; viewModel.loadAccessUsers(event.id); showAccessDialog = true },
                     onDelete       = { event -> viewModel.requestDelete(event) }
                 )
             }
@@ -282,9 +306,15 @@ fun EventScreen() {
             if (currentEvent != null) {
                 Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
                     EventParticipantsDrawer(
-                        event    = currentEvent,
-                        isOpen   = showParticipants,
-                        onToggle = { showParticipants = !showParticipants }
+                        event = currentEvent,
+                        teams = viewModel.teams.collectAsState().value,
+                        solo = viewModel.soloParticipants.collectAsState().value,
+                        total = viewModel.participantsCount.collectAsState().value,
+                        isOpen = showParticipants,
+                        onToggle = {
+                            viewModel.loadParticipants(currentEvent.id)
+                            showParticipants = !showParticipants
+                        }
                     )
                 }
             }
@@ -294,9 +324,35 @@ fun EventScreen() {
         if (!isSelectingLocation && !showDialog && !showPreview) {
             Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
                 EventHistoryDrawer(
-                    isOpen   = showHistoryDrawer,
+                    isOpen = showHistoryDrawer,
                     onToggle = { showHistoryDrawer = !showHistoryDrawer },
-                    events   = events
+                    events = events,
+
+                    medals = viewModel.medals.collectAsState().value,
+
+                    teams = viewModel.teams.collectAsState().value,
+
+                    soloParticipants =
+                        viewModel.soloParticipants.collectAsState().value,
+
+                    onLoadMedals = {
+                        viewModel.loadMedals(it)
+                    },
+
+                    onLoadParticipants = {
+                        viewModel.loadParticipants(it)
+                    },
+
+                    onAwardMedal = { award ->
+                        viewModel.awardMedal(award)
+                    },
+
+                    onRemoveMedal = { eventId, medalType ->
+                        viewModel.removeMedal(
+                            eventId,
+                            medalType
+                        )
+                    },
                 )
             }
         }
@@ -339,8 +395,19 @@ fun EventScreen() {
         // ── ACCESS DIALOG ─────────────────────────────────────────────────────
         if (showAccessDialog && accessEvent != null) {
             EventAccessDialog(
-                event     = accessEvent!!,
-                onDismiss = { showAccessDialog = false; accessEvent = null }
+                event = accessEvent!!,
+                users = viewModel.accessUsers.collectAsState().value,
+                searchResults = viewModel.searchResults.collectAsState().value,
+                onSearch = { query ->
+                    viewModel.searchAccessUsers(
+                        accessEvent!!.id,
+                        query
+                    )
+                },
+                onDismiss = {
+                    showAccessDialog = false
+                    accessEvent = null
+                }
             )
         }
 

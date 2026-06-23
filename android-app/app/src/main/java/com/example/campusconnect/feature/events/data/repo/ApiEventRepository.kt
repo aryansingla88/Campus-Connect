@@ -2,88 +2,71 @@ package com.example.campusconnect.feature.events.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.events.data.remote.EventsApi
-import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
-import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
-import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest
-import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
-import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
-import com.example.campusconnect.feature.events.data.remote.request.RevokeAccessRequest
-import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
+import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.MedalAward
+import com.example.campusconnect.feature.events.model.MedalType
+import com.example.campusconnect.feature.events.model.ParticipantTeam
+import com.example.campusconnect.feature.events.model.SoloParticipant
+import com.example.campusconnect.feature.events.model.UserAccess
+import com.example.campusconnect.feature.events.registrations.model.Registration
 
 class ApiEventRepository(
     private val api: EventsApi = RetrofitClient.eventsApi
 ) : EventRepository {
 
-    override suspend fun getEvents() = TODO()
+    override suspend fun getEvents(): Result<List<Event>> = TODO()
 
     override suspend fun getEvent(
         eventId: Int
-    ) = TODO()
+    ): Result<Event> = TODO()
 
     override suspend fun createEvent(
-        request: CreateEventRequest
-    ) = TODO()
+        event: Event
+    ): Result<Event> = TODO()
 
     override suspend fun updateEvent(
-        eventId: Int,
-        request: UpdateEventRequest
-    ) = TODO()
+        event: Event
+    ): Result<Event> = TODO()
 
     override suspend fun deleteEvent(
         eventId: Int
-    ) = TODO()
+    ): Result<Unit> = TODO()
 
     override suspend fun getRegistration(
         eventId: Int
-    ) = TODO()
-
-    override suspend fun createRegistration(
-        eventId: Int,
-        request: CreateRegistrationRequest
-    ) = TODO()
+    ): Result<Registration> = TODO()
 
     override suspend fun getTeams(
         eventId: Int
-    ) = TODO()
+    ): Result<List<ParticipantTeam>> = TODO()
 
     override suspend fun getSoloParticipants(
         eventId: Int
-    ) = TODO()
+    ): Result<List<SoloParticipant>> = TODO()
 
     override suspend fun getParticipantsCount(
         eventId: Int
-    ) = TODO()
+    ): Result<Int> = TODO()
 
     override suspend fun getMedalsForEvent(
         eventId: Int
-    ) = TODO()
+    ): Result<List<MedalAward>> = TODO()
 
     override suspend fun awardMedal(
-        eventId: Int,
-        request: AwardMedalRequest
-    ) = TODO()
+        award: MedalAward
+    ): Result<MedalAward> = TODO()
 
     override suspend fun removeMedal(
         eventId: Int,
-        request: RemoveMedalRequest
-    ) = TODO()
+        medalType: MedalType
+    ): Result<Unit> = TODO()
 
     override suspend fun getUsersWithAccess(
         eventId: Int
-    ) = TODO()
+    ): Result<List<UserAccess>> = TODO()
 
     override suspend fun searchUsers(
         eventId: Int,
         query: String
-    ) = TODO()
-
-    override suspend fun grantAccess(
-        eventId: Int,
-        request: GrantAccessRequest
-    ) = TODO()
-
-    override suspend fun revokeAccess(
-        eventId: Int,
-        request: RevokeAccessRequest
-    ) = TODO()
+    ): Result<List<UserAccess>> = TODO()
 }

@@ -3,22 +3,144 @@ package com.example.campusconnect.feature.events.viewmodel
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
-import com.example.campusconnect.feature.events.data.fake.FakeEventService
-import com.example.campusconnect.feature.events.model.EventUiState
+import androidx.lifecycle.viewModelScope
+import com.example.campusconnect.feature.events.data.repo.EventRepository
+import com.example.campusconnect.feature.events.data.repo.FakeEventRepository
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.EventStatus
+import com.example.campusconnect.feature.events.model.EventUiState
+import com.example.campusconnect.feature.events.model.MedalAward
+import com.example.campusconnect.feature.events.model.MedalType
+import com.example.campusconnect.feature.events.model.ParticipantTeam
+import com.example.campusconnect.feature.events.model.SoloParticipant
+import com.example.campusconnect.feature.events.model.UserAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class EventViewModel : ViewModel() {
 
-    private val fakeService = FakeEventService()
+    private val repository: EventRepository =
+        FakeEventRepository()
 
     private val _uiState = MutableStateFlow(EventUiState())
     val uiState: StateFlow<EventUiState> = _uiState
 
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
+
+    private val _teams =
+        MutableStateFlow<List<ParticipantTeam>>(emptyList())
+    val teams: StateFlow<List<ParticipantTeam>> = _teams
+
+    private val _soloParticipants =
+        MutableStateFlow<List<SoloParticipant>>(emptyList())
+    val soloParticipants: StateFlow<List<SoloParticipant>> = _soloParticipants
+
+    private val _participantsCount =
+        MutableStateFlow(0)
+    val participantsCount: StateFlow<Int> = _participantsCount
+
+    fun loadParticipants(eventId: Int) {
+        viewModelScope.launch {
+
+            _teams.value =
+                repository.getTeams(eventId)
+                    .getOrDefault(emptyList())
+
+            _soloParticipants.value =
+                repository.getSoloParticipants(eventId)
+                    .getOrDefault(emptyList())
+
+            _participantsCount.value =
+                repository.getParticipantsCount(eventId)
+                    .getOrDefault(0)
+        }
+    }
+
+    private val _accessUsers =
+        MutableStateFlow<List<UserAccess>>(emptyList())
+
+    val accessUsers: StateFlow<List<UserAccess>> =
+        _accessUsers
+
+    private val _searchResults =
+        MutableStateFlow<List<UserAccess>>(emptyList())
+
+    val searchResults = _searchResults
+
+    fun loadAccessUsers(eventId: Int) {
+        viewModelScope.launch {
+
+            _accessUsers.value =
+                repository.getUsersWithAccess(eventId)
+                    .getOrDefault(emptyList())
+        }
+    }
+
+    fun searchAccessUsers(
+        eventId: Int,
+        query: String
+    ) {
+
+        if (query.isBlank()) {
+            _searchResults.value = emptyList()
+            return
+        }
+
+        viewModelScope.launch {
+
+            _searchResults.value =
+                repository.searchUsers(eventId, query)
+                    .getOrDefault(emptyList())
+        }
+    }
+
+    private val _medals =
+        MutableStateFlow<List<MedalAward>>(emptyList())
+
+    val medals: StateFlow<List<MedalAward>> =
+        _medals
+
+    fun loadMedals(eventId: Int) {
+        viewModelScope.launch {
+
+            val eventMedals =
+                repository.getMedalsForEvent(eventId)
+                    .getOrDefault(emptyList())
+
+            _medals.value =
+                _medals.value
+                    .filter { it.eventId != eventId } +
+                        eventMedals
+        }
+    }
+
+    fun awardMedal(
+        award: MedalAward
+    ) {
+        viewModelScope.launch {
+
+            repository.awardMedal(award)
+
+            loadMedals(award.eventId)
+        }
+    }
+
+    fun removeMedal(
+        eventId: Int,
+        medalType: MedalType
+    ) {
+        viewModelScope.launch {
+
+            repository.removeMedal(
+                eventId,
+                medalType
+            )
+
+            loadMedals(eventId)
+        }
+    }
 
     // ── Preview sheet state ───────────────────────────────────────────────────
 
@@ -51,7 +173,11 @@ class EventViewModel : ViewModel() {
     }
 
     init {
-        _events.value = fakeService.getEvents()
+        viewModelScope.launch {
+            _events.value =
+                repository.getEvents()
+                    .getOrDefault(emptyList())
+        }
     }
 
     // ── Marker / preview ──────────────────────────────────────────────────────
@@ -151,10 +277,16 @@ class EventViewModel : ViewModel() {
             status = EventStatus.LIVE
         )
 
-        val success = fakeService.updateEvent(updated)
-        if (success) {
-            _events.value = fakeService.getEvents()
+        viewModelScope.launch {
+
+            repository.updateEvent(updated)
+
+            _events.value =
+                repository.getEvents()
+                    .getOrDefault(emptyList())
+
             _uiState.value = EventUiState(success = true)
+
             _isEditMode.value = false
             _editingEventId.value = -1
         }
@@ -171,8 +303,14 @@ class EventViewModel : ViewModel() {
     @RequiresApi(Build.VERSION_CODES.N)
     fun confirmDelete() {
         val event = _pendingDeleteEvent.value ?: return
-        fakeService.deleteEvent(event.id)
-        _events.value = fakeService.getEvents()
+        viewModelScope.launch {
+
+            repository.deleteEvent(event.id)
+
+            _events.value =
+                repository.getEvents()
+                    .getOrDefault(emptyList())
+        }
         _pendingDeleteEvent.value = null
         _deleteSuccess.value = true   // trigger toast in EventScreen
         closePreview()
@@ -267,9 +405,14 @@ class EventViewModel : ViewModel() {
             status = EventStatus.LIVE
         )
 
-        val success = fakeService.createEvent(event)
-        if (success) {
-            _events.value = fakeService.getEvents()
+        viewModelScope.launch {
+
+            repository.createEvent(event)
+
+            _events.value =
+                repository.getEvents()
+                    .getOrDefault(emptyList())
+
             _uiState.value = EventUiState(success = true)
         }
 

@@ -3,7 +3,7 @@ package com.example.campusconnect.feature.events.data.fake
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
 
-class FakeMedalService {
+object FakeMedalService {
 
     private val awards = mutableListOf<MedalAward>()
 
