@@ -1,58 +1,18 @@
 package com.example.campusconnect.feature.map
 
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.*
+import androidx.compose.animation.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -69,13 +29,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.R
 import com.example.campusconnect.core.components.PanelSearchBar
-import com.example.campusconnect.feature.map.components.markerdialogs.EventMarkerDialog
-import com.example.campusconnect.feature.map.components.markerdialogs.PoiMarkerDialog
-import com.example.campusconnect.feature.map.components.markerdialogs.UserMarkerDialog
-import com.example.campusconnect.feature.map.mapengine.MapMotion
-import com.example.campusconnect.feature.map.mapengine.MapView
-import com.example.campusconnect.feature.map.mapengine.MarkerType
-
+import com.example.campusconnect.feature.map.components.markerdialogs.*
+import com.example.campusconnect.feature.map.mapengine.*
+import androidx.compose.foundation.shape.CircleShape
 private enum class MapMode {
     POSTER,
     HOME,
@@ -236,9 +192,9 @@ fun MapScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(
-                        start = 8.dp,
-                        end = 8.dp,
-                        bottom = 6.dp
+                        start = 42.dp,
+                        end = 42.dp,
+                        bottom = 24.dp
                     )
             )
 
@@ -685,34 +641,34 @@ private fun ModeBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(54.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = OrangeLight.copy(alpha = 0.92f),
-        tonalElevation = 10.dp,
-        shadowElevation = 12.dp
+            .height(56.dp), // changed: bar height smaller
+        shape = RoundedCornerShape(28.dp),
+        color = Color(0xFFEDEDED).copy(alpha = 0.78f),
+        tonalElevation = 8.dp,
+        shadowElevation = 10.dp
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .border(
                     width = 1.dp,
-                    color = OrangePrimary.copy(alpha = 0.45f),
-                    shape = RoundedCornerShape(24.dp)
+                    color = Color.White.copy(alpha = 0.65f),
+                    shape = RoundedCornerShape(28.dp)
                 )
                 .padding(
-                    start = 6.dp,
-                    end = 6.dp,
-                    top = 4.dp,
+                    start = 8.dp,
+                    end = 8.dp,
+                    top = 4.dp,     // changed: top padding smaller
                     bottom = 4.dp
                 )
         ) {
             Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ModeBarItem(
-                    emoji = "🧾",
+                    imageRes = R.drawable.poster_mode,
                     selected = selectedMode == MapMode.POSTER,
                     onClick = {
                         onModeSelected(MapMode.POSTER)
@@ -753,14 +709,13 @@ private fun ModeBar(
 
 @Composable
 private fun ModeBarItem(
+    imageRes: Int,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    emoji: String? = null,
-    imageRes: Int? = null
+    modifier: Modifier = Modifier
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1.03f else 1f,
+        targetValue = if (selected) 1.02f else 1f, // changed: very little zoom
         animationSpec = MapMotion.springSoft(),
         label = "mode_bar_item_scale"
     )
@@ -768,37 +723,37 @@ private fun ModeBarItem(
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (selected) {
-                    OrangePrimary.copy(alpha = 0.96f)
-                } else {
-                    Color.Transparent
-                }
-            )
             .clickable {
                 onClick()
             },
         contentAlignment = Alignment.Center
     ) {
-        if (imageRes != null) {
+        Box(
+            modifier = Modifier
+                .size(
+                    if (selected) 46.dp else 42.dp // changed: selected circle not too big
+                )
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clip(CircleShape)
+                .background(
+                    if (selected) {
+                        OrangePrimary.copy(alpha = 0.96f)
+                    } else {
+                        Color.Transparent
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
             Image(
                 painter = painterResource(id = imageRes),
                 contentDescription = null,
                 modifier = Modifier.size(
-                    if (selected) 40.dp else 36.dp
+                    if (selected) 31.dp else 28.dp // changed: default icon smaller
                 ),
                 contentScale = ContentScale.Fit
-            )
-        } else {
-            Text(
-                text = emoji ?: "",
-                fontSize = if (selected) 25.sp else 23.sp,
-                lineHeight = 25.sp
             )
         }
     }
