@@ -1,19 +1,16 @@
 package com.example.campusconnect.feature.map
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import android.util.Log
+import androidx.compose.animation.core.*
+import androidx.compose.animation.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,19 +21,28 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.campusconnect.R
 import com.example.campusconnect.core.components.PanelSearchBar
-import com.example.campusconnect.feature.map.components.markerdialogs.UserMarkerDialog
-import com.example.campusconnect.feature.map.mapengine.MarkerType
-
+import com.example.campusconnect.feature.map.components.markerdialogs.*
+import com.example.campusconnect.feature.map.mapengine.*
+import androidx.compose.foundation.shape.CircleShape
 private enum class MapMode {
+    POSTER,
+    HOME,
+    EVENT,
+    SHOP
+}
+
+private enum class SidePanel {
     NONE,
-    VIEW,
-    SELECT,
-    EVENT
+    PROFILE,
+    CHAT
 }
 
 private val OrangePrimary = Color(0xFFFF6F00)
@@ -46,7 +52,10 @@ private val TextDark = Color(0xFF2A2A2A)
 private val HintColor = Color(0xFFAAAAAA)
 
 private val OrangeGradient = Brush.verticalGradient(
-    listOf(OrangeTop, OrangePrimary)
+    listOf(
+        OrangeTop,
+        OrangePrimary
+    )
 )
 
 @Composable
@@ -55,32 +64,63 @@ fun MapScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val showUserProfileDialog =
-        uiState.selectedMarker?.type == MarkerType.USER &&
-                uiState.selectedUserProfile != null
+    val showCenteredMarkerDialog =
+        uiState.selectedMarker?.type == MarkerType.USER ||
+                uiState.selectedMarker?.type == MarkerType.EVENT
+
+    val animatedBlur by animateDpAsState(
+        targetValue = if (showCenteredMarkerDialog) 3.dp else 0.dp,
+        animationSpec = MapMotion.tweenSlow(),
+        label = "map_background_blur"
+    )
 
     var searchQuery by remember { mutableStateOf("") }
     var showFilters by remember { mutableStateOf(false) }
-    var showModes by remember { mutableStateOf(false) }
-    var selectedMode by remember { mutableStateOf(MapMode.NONE) }
+    var selectedMode by remember { mutableStateOf(MapMode.HOME) }
+    var selectedSidePanel by remember { mutableStateOf(SidePanel.NONE) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    var lastSelectedMarker by remember { mutableStateOf(uiState.selectedMarker) }
+    var lastSelectedProfile by remember { mutableStateOf(uiState.selectedUserProfile) }
+    var lastSelectedPoi by remember { mutableStateOf(uiState.selectedPoiInfo) }
+    var lastSelectedEvent by remember { mutableStateOf(uiState.selectedEventInfo) }
 
-        // Everything behind user dialog gets blurred.
-        // User dialog itself is outside this Box, so it stays sharp.
+    LaunchedEffect(
+        uiState.selectedMarker,
+        uiState.selectedUserProfile,
+        uiState.selectedPoiInfo,
+        uiState.selectedEventInfo
+    ) {
+        if (uiState.selectedMarker != null) {
+            lastSelectedMarker = uiState.selectedMarker
+            lastSelectedProfile = uiState.selectedUserProfile
+            lastSelectedPoi = uiState.selectedPoiInfo
+            lastSelectedEvent = uiState.selectedEventInfo
+        }
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .blur(if (showUserProfileDialog) 3.dp else 0.dp)
+                .blur(animatedBlur)
         ) {
             MapView(
                 modifier = Modifier.fillMaxSize(),
                 markers = uiState.renderData,
                 onMarkerClick = { markerId ->
+                    selectedSidePanel = SidePanel.NONE
                     viewModel.selectMarker(markerId)
                 },
                 onMapTap = { x, y ->
-                    android.util.Log.d("MAP_PIXEL", "MapScreen received pixel: x=$x, y=$y")
+                    selectedSidePanel = SidePanel.NONE
+
+                    Log.d(
+                        "MAP_PIXEL",
+                        "MapScreen received pixel: x=$x, y=$y"
+                    )
                 },
                 initialFocusMarkerId = "shop_1",
                 initialZoom = 4.2f
@@ -91,95 +131,254 @@ fun MapScreen(
                     .align(Alignment.TopCenter)
                     .padding(top = 20.dp),
                 searchQuery = searchQuery,
-                onSearchQueryChange = { searchQuery = it },
-                onFilterClick = { showFilters = !showFilters },
+                onSearchQueryChange = { query ->
+                    searchQuery = query
+                },
+                onFilterClick = {
+                    showFilters = !showFilters
+                },
                 onSettingsClick = {}
             )
 
-            SideTab(
-                text = "PROFILE",
-                icon = Icons.Default.Person,
-                isLeftSide = true,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 0.dp)
-            )
-
-            SideTab(
-                text = "CHAT",
-                icon = Icons.Default.Chat,
-                isLeftSide = false,
+            RightSideTabs(
+                selectedSidePanel = selectedSidePanel,
+                onProfileClick = {
+                    selectedSidePanel =
+                        if (selectedSidePanel == SidePanel.PROFILE) {
+                            SidePanel.NONE
+                        } else {
+                            SidePanel.PROFILE
+                        }
+                },
+                onChatClick = {
+                    selectedSidePanel =
+                        if (selectedSidePanel == SidePanel.CHAT) {
+                            SidePanel.NONE
+                        } else {
+                            SidePanel.CHAT
+                        }
+                },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 0.dp)
+                    .offset(
+                        x = 6.dp,
+                        y = 110.dp
+                    )
             )
 
-            ModeButton(
+            ModeBar(
+                selectedMode = selectedMode,
+                onModeSelected = { mode ->
+                    selectedMode = mode
+
+                    when (mode) {
+                        MapMode.POSTER -> {
+                            viewModel.setFilter(MarkerType.EVENT)
+                        }
+
+                        MapMode.HOME -> {
+                            viewModel.setFilter(null)
+                        }
+
+                        MapMode.EVENT -> {
+                            viewModel.setFilter(MarkerType.EVENT)
+                        }
+
+                        MapMode.SHOP -> {
+                            viewModel.setFilter(MarkerType.SHOP)
+                        }
+                    }
+                },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 40.dp),
-                onClick = {
-                    val nextShowModes = !showModes
-                    showModes = nextShowModes
-
-                    if (!nextShowModes) {
-                        selectedMode = MapMode.NONE
-                    }
-                }
+                    .padding(
+                        start = 42.dp,
+                        end = 42.dp,
+                        bottom = 24.dp
+                    )
             )
 
-            if (showFilters) {
+            AnimatedVisibility(
+                visible = showFilters,
+                enter = fadeIn(MapMotion.tweenMedium()) +
+                        slideInHorizontally(
+                            animationSpec = MapMotion.tweenMedium(),
+                            initialOffsetX = { it / 3 }
+                        ),
+                exit = fadeOut(MapMotion.tweenFast()) +
+                        slideOutHorizontally(
+                            animationSpec = MapMotion.tweenFast(),
+                            targetOffsetX = { it / 3 }
+                        ),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 94.dp, end = 72.dp)
+            ) {
                 FilterPanel(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 94.dp, end = 72.dp),
                     onFilterSelected = { type ->
                         viewModel.setFilter(type)
                         showFilters = false
-                    }
-                )
-            }
 
-            if (showModes) {
-                ModePanel(
-                    selectedMode = selectedMode,
-                    onModeSelected = { mode ->
-                        selectedMode = mode
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 90.dp)
+                        selectedMode = when (type) {
+                            null -> MapMode.HOME
+                            MarkerType.EVENT -> MapMode.EVENT
+                            MarkerType.SHOP -> MapMode.SHOP
+                            else -> MapMode.HOME
+                        }
+                    }
                 )
             }
         }
 
-        // Dialog / previews should stay outside blur Box.
-        uiState.selectedMarker?.let { marker ->
-            if (marker.type == MarkerType.USER) {
-                uiState.selectedUserProfile?.let { profile ->
-                    UserMarkerDialog(
-                        profile = profile,
-                        onDismiss = { viewModel.clearSelection() },
-                        onAddFriendClick = {
-                            android.util.Log.d(
-                                "MAP_USER",
-                                "Add friend clicked: ${profile.id}"
+        AnimatedVisibility(
+            visible = uiState.selectedMarker != null,
+            enter = markerCardEnter(),
+            exit = markerCardExit()
+        ) {
+            lastSelectedMarker?.let { marker ->
+                when (marker.type) {
+
+                    MarkerType.USER -> {
+                        lastSelectedProfile?.let { profile ->
+                            UserMarkerDialog(
+                                profile = profile,
+                                onDismiss = {
+                                    viewModel.clearSelection()
+                                },
+                                onAddFriendClick = {
+                                    viewModel.sendConnectionRequest(profile.id)
+
+                                    Log.d(
+                                        "MAP_USER",
+                                        "Add friend clicked: ${profile.id}"
+                                    )
+                                }
                             )
                         }
-                    )
+                    }
+
+                    MarkerType.POI -> {
+                        lastSelectedPoi?.let { poiInfo ->
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                PoiMarkerDialog(
+                                    poi = poiInfo,
+                                    onNavigateClick = {
+                                        Log.d(
+                                            "MAP_POI",
+                                            "Navigate clicked: ${poiInfo.id}"
+                                        )
+                                    },
+                                    onCloseClick = {
+                                        viewModel.clearSelection()
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    MarkerType.EVENT -> {
+                        lastSelectedEvent?.let { eventInfo ->
+                            EventMarkerDialog(
+                                event = eventInfo,
+                                onDismiss = {
+                                    viewModel.clearSelection()
+                                },
+                                onNavigateClick = {
+                                    Log.d(
+                                        "MAP_EVENT",
+                                        "Navigate clicked: ${eventInfo.id}"
+                                    )
+                                },
+                                onRegisterClick = {
+                                    viewModel.registerEvent(eventInfo.id)
+
+                                    Log.d(
+                                        "MAP_EVENT",
+                                        "Register clicked: ${eventInfo.id}"
+                                    )
+                                }
+                            )
+                        }
+                    }
+
+                    MarkerType.SHOP -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            MarkerPreviewCard(
+                                modifier = Modifier.padding(16.dp),
+                                title = marker.label,
+                                type = marker.type.name,
+                                onClose = {
+                                    viewModel.clearSelection()
+                                }
+                            )
+                        }
+                    }
                 }
-            } else {
-                MarkerPreviewCard(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp),
-                    title = marker.label,
-                    type = marker.type.name,
-                    onClose = { viewModel.clearSelection() }
+            }
+        }
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Loading map...",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        if (uiState.isDetailLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Loading details...",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
     }
+}
+
+private fun markerCardEnter(): EnterTransition {
+    return fadeIn(MapMotion.tweenMedium()) +
+            slideInVertically(
+                animationSpec = MapMotion.tweenMedium(),
+                initialOffsetY = { it / 3 }
+            ) +
+            scaleIn(
+                initialScale = 0.98f,
+                animationSpec = MapMotion.springSoft()
+            )
+}
+
+private fun markerCardExit(): ExitTransition {
+    return fadeOut(MapMotion.tweenFast()) +
+            slideOutVertically(
+                animationSpec = MapMotion.tweenFast(),
+                targetOffsetY = { it / 3 }
+            ) +
+            scaleOut(
+                targetScale = 0.98f,
+                animationSpec = MapMotion.tweenFast()
+            )
 }
 
 @Composable
@@ -196,7 +395,9 @@ private fun TopMapControls(
             .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.weight(1f)) {
+        Box(
+            modifier = Modifier.weight(1f)
+        ) {
             PanelSearchBar(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
@@ -206,7 +407,9 @@ private fun TopMapControls(
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        DiamondButton(onClick = onFilterClick)
+        DiamondButton(
+            onClick = onFilterClick
+        )
 
         Spacer(modifier = Modifier.width(14.dp))
 
@@ -215,7 +418,9 @@ private fun TopMapControls(
                 .size(38.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(OrangeLight.copy(alpha = 0.95f))
-                .clickable { onSettingsClick() },
+                .clickable {
+                    onSettingsClick()
+                },
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -236,15 +441,21 @@ private fun DiamondButton(
     Box(
         modifier = modifier
             .size(30.dp)
-            .graphicsLayer { rotationZ = 45f }
+            .graphicsLayer {
+                rotationZ = 45f
+            }
             .clip(RoundedCornerShape(8.dp))
             .background(OrangeGradient)
-            .clickable { onClick() },
+            .clickable {
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "◆",
-            modifier = Modifier.graphicsLayer { rotationZ = -45f },
+            modifier = Modifier.graphicsLayer {
+                rotationZ = -45f
+            },
             color = Color.White
         )
     }
@@ -274,11 +485,25 @@ private fun FilterPanel(
                 fontWeight = FontWeight.SemiBold
             )
 
-            FilterButton("All") { onFilterSelected(null) }
-            FilterButton("Users") { onFilterSelected(MarkerType.USER) }
-            FilterButton("Events") { onFilterSelected(MarkerType.EVENT) }
-            FilterButton("POI") { onFilterSelected(MarkerType.POI) }
-            FilterButton("Shops") { onFilterSelected(MarkerType.SHOP) }
+            FilterButton("All") {
+                onFilterSelected(null)
+            }
+
+            FilterButton("Users") {
+                onFilterSelected(MarkerType.USER)
+            }
+
+            FilterButton("Events") {
+                onFilterSelected(MarkerType.EVENT)
+            }
+
+            FilterButton("POI") {
+                onFilterSelected(MarkerType.POI)
+            }
+
+            FilterButton("Shops") {
+                onFilterSelected(MarkerType.SHOP)
+            }
         }
     }
 }
@@ -304,43 +529,84 @@ private fun FilterButton(
 }
 
 @Composable
+private fun RightSideTabs(
+    selectedSidePanel: SidePanel,
+    onProfileClick: () -> Unit,
+    onChatClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        SideTab(
+            text = "PROFILE",
+            icon = Icons.Default.Person,
+            selected = selectedSidePanel == SidePanel.PROFILE,
+            onClick = onProfileClick
+        )
+
+        SideTab(
+            text = "CHAT",
+            icon = Icons.Default.Chat,
+            selected = selectedSidePanel == SidePanel.CHAT,
+            onClick = onChatClick
+        )
+    }
+}
+
+@Composable
 private fun SideTab(
     text: String,
     icon: ImageVector,
-    isLeftSide: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val tabShape = RoundedCornerShape(
+        topStart = 16.dp,
+        bottomStart = 16.dp,
+        topEnd = 0.dp,
+        bottomEnd = 0.dp
+    )
+
+    val singleTabColor = Color(0xFFFFF3E0)
+
     Surface(
         modifier = modifier
-            .width(28.dp)
-            .height(96.dp),
-        shape = if (isLeftSide) {
-            RoundedCornerShape(
-                topStart = 0.dp,
-                bottomStart = 0.dp,
-                topEnd = 14.dp,
-                bottomEnd = 14.dp
-            )
-        } else {
-            RoundedCornerShape(
-                topStart = 14.dp,
-                bottomStart = 14.dp,
-                topEnd = 0.dp,
-                bottomEnd = 0.dp
-            )
-        },
-        color = OrangeLight.copy(alpha = 0.92f),
-        tonalElevation = 4.dp,
-        shadowElevation = 4.dp
+            .width(40.dp)
+            .height(108.dp)
+            .clickable(
+                interactionSource = remember {
+                    MutableInteractionSource()
+                },
+                indication = null
+            ) {
+                onClick()
+            },
+        shape = tabShape,
+        color = singleTabColor,
+        tonalElevation = 8.dp,
+        shadowElevation = 8.dp
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(singleTabColor)
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.35f),
+                    shape = tabShape
+                ),
             contentAlignment = Alignment.Center
         ) {
             Row(
                 modifier = Modifier
-                    .requiredWidth(96.dp)
-                    .graphicsLayer { rotationZ = -90f },
+                    .requiredWidth(108.dp)
+                    .graphicsLayer {
+                        rotationZ = -90f
+                    },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
@@ -348,16 +614,16 @@ private fun SideTab(
                     imageVector = icon,
                     contentDescription = text,
                     tint = TextDark,
-                    modifier = Modifier.size(12.dp)
+                    modifier = Modifier.size(14.dp)
                 )
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
                     text = text,
                     color = TextDark,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     softWrap = false
                 )
@@ -367,148 +633,128 @@ private fun SideTab(
 }
 
 @Composable
-private fun ModeButton(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .size(66.dp)
-            .background(
-                brush = OrangeGradient,
-                shape = CircleShape
-            )
-            .border(
-                width = 2.dp,
-                color = Color.White.copy(alpha = 0.35f),
-                shape = CircleShape
-            )
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.GridView,
-            contentDescription = "Map Modes",
-            tint = Color.White,
-            modifier = Modifier.size(27.dp)
-        )
-    }
-}
-
-@Composable
-private fun ModePanel(
+private fun ModeBar(
     selectedMode: MapMode,
     onModeSelected: (MapMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Surface(
         modifier = modifier
-            .width(220.dp)
-            .height(90.dp),
-        contentAlignment = Alignment.BottomCenter
+            .fillMaxWidth()
+            .height(56.dp), // changed: bar height smaller
+        shape = RoundedCornerShape(28.dp),
+        color = Color(0xFFEDEDED).copy(alpha = 0.78f),
+        tonalElevation = 8.dp,
+        shadowElevation = 10.dp
     ) {
-        SmallMode(
-            text = "View",
-            icon = Icons.Default.Visibility,
-            selected = selectedMode == MapMode.VIEW,
-            onClick = { onModeSelected(MapMode.VIEW) },
+        Box(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 1.dp, top = 20.dp)
-        )
+                .fillMaxSize()
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.65f),
+                    shape = RoundedCornerShape(28.dp)
+                )
+                .padding(
+                    start = 8.dp,
+                    end = 8.dp,
+                    top = 4.dp,     // changed: top padding smaller
+                    bottom = 4.dp
+                )
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ModeBarItem(
+                    imageRes = R.drawable.poster_mode,
+                    selected = selectedMode == MapMode.POSTER,
+                    onClick = {
+                        onModeSelected(MapMode.POSTER)
+                    },
+                    modifier = Modifier.weight(1f)
+                )
 
-        SmallMode(
-            text = "Select",
-            icon = Icons.Default.NearMe,
-            selected = selectedMode == MapMode.SELECT,
-            onClick = { onModeSelected(MapMode.SELECT) },
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
+                ModeBarItem(
+                    imageRes = R.drawable.home_mode,
+                    selected = selectedMode == MapMode.HOME,
+                    onClick = {
+                        onModeSelected(MapMode.HOME)
+                    },
+                    modifier = Modifier.weight(1f)
+                )
 
-        SmallMode(
-            text = "Event",
-            icon = Icons.Default.Event,
-            selected = selectedMode == MapMode.EVENT,
-            onClick = { onModeSelected(MapMode.EVENT) },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(end = 1.dp, top = 20.dp)
-        )
+                ModeBarItem(
+                    imageRes = R.drawable.event_mode,
+                    selected = selectedMode == MapMode.EVENT,
+                    onClick = {
+                        onModeSelected(MapMode.EVENT)
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+
+                ModeBarItem(
+                    imageRes = R.drawable.shop_mode,
+                    selected = selectedMode == MapMode.SHOP,
+                    onClick = {
+                        onModeSelected(MapMode.SHOP)
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun SmallMode(
-    text: String,
-    icon: ImageVector,
+private fun ModeBarItem(
+    imageRes: Int,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = if (selected) {
-        OrangeLight.copy(alpha = 0.96f)
-    } else {
-        Color.White.copy(alpha = 0.94f)
-    }
-
-    val borderColor = if (selected) {
-        OrangePrimary
-    } else {
-        Color.Transparent
-    }
-
-    val contentColor = if (selected) {
-        OrangePrimary
-    } else {
-        Color(0xFF6F7682)
-    }
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.02f else 1f, // changed: very little zoom
+        animationSpec = MapMotion.springSoft(),
+        label = "mode_bar_item_scale"
+    )
 
     Box(
         modifier = modifier
-            .size(64.dp)
-            .background(
-                color = if (selected) OrangePrimary.copy(alpha = 0.18f) else Color.Transparent,
-                shape = CircleShape
-            )
-            .padding(if (selected) 3.dp else 0.dp)
-            .clickable { onClick() },
+            .fillMaxHeight()
+            .clickable {
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
-        Surface(
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .border(
-                    width = if (selected) 3.dp else 0.dp,
-                    color = borderColor,
-                    shape = CircleShape
+                .size(
+                    if (selected) 46.dp else 42.dp // changed: selected circle not too big
+                )
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clip(CircleShape)
+                .background(
+                    if (selected) {
+                        OrangePrimary.copy(alpha = 0.96f)
+                    } else {
+                        Color.Transparent
+                    }
                 ),
-            shape = CircleShape,
-            color = bgColor,
-            tonalElevation = if (selected) 8.dp else 5.dp,
-            shadowElevation = if (selected) 10.dp else 5.dp
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = text,
-                    tint = contentColor,
-                    modifier = Modifier.size(18.dp)
-                )
-
-                Spacer(modifier = Modifier.height(3.dp))
-
-                Text(
-                    text = text,
-                    color = if (selected) OrangePrimary else TextDark,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
-            }
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = null,
+                modifier = Modifier.size(
+                    if (selected) 31.dp else 28.dp // changed: default icon smaller
+                ),
+                contentScale = ContentScale.Fit
+            )
         }
     }
 }
@@ -523,10 +769,16 @@ private fun MarkerPreviewCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
             Text(
                 text = title,
                 color = TextDark,
@@ -540,7 +792,9 @@ private fun MarkerPreviewCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Button(
                     onClick = {},
                     colors = ButtonDefaults.buttonColors(
