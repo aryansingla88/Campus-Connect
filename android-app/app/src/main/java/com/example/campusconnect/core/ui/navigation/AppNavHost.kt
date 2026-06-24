@@ -10,8 +10,8 @@ import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.posts.navigation.postNav
 import com.example.campusconnect.feature.profile.ProfileNav
 import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
-import com.example.campusconnect.feature.events.registerations.RegisterationNav
-import com.example.campusconnect.feature.events.registerations.navigateToFormBuilder
+import com.example.campusconnect.feature.events.registrations.RegisterationNav
+import com.example.campusconnect.feature.events.registrations.navigateToFormBuilder
 
 @Composable
 fun AppNavHost() {
