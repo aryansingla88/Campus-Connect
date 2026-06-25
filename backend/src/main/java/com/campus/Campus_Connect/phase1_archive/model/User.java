@@ -2,8 +2,8 @@ package com.campus.Campus_Connect.phase1_archive.model;
 
 import jakarta.persistence.*;
 
-@Entity
-@Table(name = "users")
+//@Entity
+//@Table(name = "users")
 public class User {
 
     @Id
@@ -14,7 +14,7 @@ public class User {
 
     private String email;
 
-    @Column(name = "password_hash")   // 🔥 matches DB
+    @Column(name = "password_hash")
     private String password;
 
     public User() {}
