@@ -1,4 +1,3 @@
-
 -- USERS
 CREATE TABLE users (
                        id SERIAL PRIMARY KEY,
@@ -7,7 +6,7 @@ CREATE TABLE users (
                        email VARCHAR(255) UNIQUE NOT NULL,
                        password_hash VARCHAR(255) NOT NULL,
 
-                       role VARCHAR(50) NOT NULL DEFAULT 'student',
+                       role VARCHAR(50) NOT NULL DEFAULT 'STUDENT',
                        is_banned BOOLEAN NOT NULL DEFAULT FALSE,
 
                        last_login TIMESTAMP,
@@ -41,7 +40,9 @@ CREATE TABLE user_profile (
                               branch VARCHAR(255),
                               admission_year INTEGER NOT NULL,
 
-                              hostel VARCHAR(255) NOT NULL,
+                              roll_number VARCHAR(20) UNIQUE,
+
+                              hostel VARCHAR(255),
                               hometown VARCHAR(255),
 
                               gender VARCHAR(50),
