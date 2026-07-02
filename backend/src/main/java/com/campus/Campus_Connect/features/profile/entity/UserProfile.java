@@ -39,7 +39,7 @@ public class UserProfile {
     @Column(name = "course_id")
     private Integer courseId;
 
-    private String branch;
+    private String branch;       // id later (nullable)
 
     @Column(name = "admission_year")
     private Integer admissionYear;

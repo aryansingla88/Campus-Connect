@@ -18,7 +18,7 @@ public class RegisterRequest {
     private String fullName;
 
     private Integer courseId;
-    private String branch;     // nullable
+    private String branch;     // id later (nullable)
 
     private Integer admissionYear;
 
