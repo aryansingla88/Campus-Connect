@@ -1,6 +1,7 @@
 package com.campus.Campus_Connect.features.auth.service;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
+import com.campus.Campus_Connect.features.auth.dto.request.LoginRequest;
 import com.campus.Campus_Connect.features.auth.dto.request.RegisterRequest;
 import com.campus.Campus_Connect.features.auth.dto.response.AuthResponse;
 import com.campus.Campus_Connect.features.auth.entity.User;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -57,11 +60,44 @@ public class AuthService {
 
         userProfileRepository.save(profile);
 
+        AuthResponse response = AuthResponse.builder()
+                .build();
+
         return ApiResponse.success(
-                AuthResponse.builder().build(),
+                response,
                 "Registration successful."
         );
 
     }
 
+    public ApiResponse<AuthResponse> login(LoginRequest request) {
+
+        Optional<User> user = userRepository.findByUsernameOrEmail(
+                request.getIdentifier(),
+                request.getIdentifier()
+        );
+
+        if (user.isEmpty()) {
+            return ApiResponse.failure("Username/Email not found.");
+        }
+
+        User foundUser = user.get();
+
+        boolean isPasswordCorrect = passwordEncoder.matches(
+                request.getPassword(),
+                foundUser.getPasswordHash()
+        );
+
+        if (!isPasswordCorrect){
+            return ApiResponse.failure("Incorrect password.");
+        }
+
+        AuthResponse response = AuthResponse.builder()
+                .build();
+
+        return ApiResponse.success(
+                response,
+                "Login successful."
+        );
+    }
 }

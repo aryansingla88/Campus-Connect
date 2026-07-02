@@ -1,6 +1,7 @@
 package com.campus.Campus_Connect.features.auth.controller;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
+import com.campus.Campus_Connect.features.auth.dto.request.LoginRequest;
 import com.campus.Campus_Connect.features.auth.dto.request.RegisterRequest;
 import com.campus.Campus_Connect.features.auth.dto.response.AuthResponse;
 import com.campus.Campus_Connect.features.auth.service.AuthService;
@@ -21,4 +22,10 @@ public class AuthController {
         return authService.register(request);
     }
 
+    @PostMapping("/login")
+    public ApiResponse<AuthResponse> login(
+            @RequestBody LoginRequest request
+    ) {
+        return authService.login(request);
+    }
 }
