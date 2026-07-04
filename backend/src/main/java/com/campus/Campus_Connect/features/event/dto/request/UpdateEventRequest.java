@@ -1,12 +1,16 @@
 package com.campus.Campus_Connect.features.event.dto.request;
 
+
+import com.campus.Campus_Connect.features.event.entity.enums.VisibilityType;
+import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.*;
+import java.time.Instant;
 
-import java.time.LocalDateTime;
+
 
 @Getter
 @Setter
@@ -27,9 +31,8 @@ public class UpdateEventRequest {
     @DecimalMax(value = "180.0", message = "Longitude must be at most 180.")
     private Double longitude;
 
-    private LocalDateTime startTime;
-
-    private LocalDateTime endTime;
+    private Instant startTime;
+    private Instant endTime;
 
     private Integer clubId;
 
@@ -37,11 +40,11 @@ public class UpdateEventRequest {
 
     private String venue;
 
-    private String visibilityType;
+    private VisibilityType visibilityType;
 
     private String visibilityValue;
 
-    private String registrationType;
+    private RegistrationType registrationType;
 
     private String registrationLink;
 

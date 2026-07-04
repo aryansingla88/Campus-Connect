@@ -64,7 +64,7 @@ public class EventServiceImpl implements EventService {
 
         // TODO: Replace with authenticated user after JWT integration
         User creator =
-                userRepository.findById(1)
+                userRepository.findById(2)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException("Creator not found."));
 

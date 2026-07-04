@@ -1,9 +1,14 @@
 package com.campus.Campus_Connect.features.event.dto.request;
 
+
+import com.campus.Campus_Connect.features.event.entity.enums.VisibilityType;
+import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import java.time.Instant;
 
-import java.time.LocalDateTime;
+
+
 
 @Getter
 @Setter
@@ -28,9 +33,8 @@ public class CreateEventRequest {
     private Double longitude;
 
     @NotNull(message = "Start time is required.")
-    private LocalDateTime startTime;
-
-    private LocalDateTime endTime;
+    private Instant startTime;
+    private Instant endTime;
 
     private Integer clubId;
 
@@ -39,12 +43,12 @@ public class CreateEventRequest {
     private String venue;
 
     @NotBlank(message = "Visibility type is required.")
-    private String visibilityType;
+    private VisibilityType visibilityType;
 
     private String visibilityValue;
 
     @NotBlank(message = "Registration type is required.")
-    private String registrationType;
+    private RegistrationType registrationType;
 
     private String registrationLink;
 
