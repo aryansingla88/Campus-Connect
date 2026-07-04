@@ -1,8 +1,12 @@
 package com.campus.Campus_Connect.features.event.dto.response;
 
+import com.campus.Campus_Connect.features.event.entity.enums.ApprovalStatus;
+import com.campus.Campus_Connect.features.event.entity.enums.EventState;
+import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
+import com.campus.Campus_Connect.features.event.entity.enums.VisibilityType;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -21,9 +25,8 @@ public class EventResponse {
 
     private Double longitude;
 
-    private LocalDateTime startTime;
-
-    private LocalDateTime endTime;
+    private Instant startTime;
+    private Instant endTime;
 
     private Integer createdBy;
 
@@ -33,17 +36,17 @@ public class EventResponse {
 
     private String venue;
 
-    private String visibilityType;
+    private VisibilityType visibilityType;
 
     private String visibilityValue;
 
-    private String registrationType;
+    private RegistrationType registrationType;
 
     private String registrationLink;
 
-    private String approvalStatus;
+    private ApprovalStatus approvalStatus;
 
-    private String eventState;
+    private EventState eventState;
 
     private Integer priority;
 }
