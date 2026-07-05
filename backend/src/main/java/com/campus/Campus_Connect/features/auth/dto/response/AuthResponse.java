@@ -4,10 +4,13 @@ import lombok.*;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class AuthResponse {
 
-    private String message;
+    private String token;
+
+    @Builder.Default
+    private String tokenType = "Bearer";
 }

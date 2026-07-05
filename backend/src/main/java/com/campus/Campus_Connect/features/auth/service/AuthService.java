@@ -8,6 +8,7 @@ import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.profile.repository.UserProfileRepository;
+import com.campus.Campus_Connect.features.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,6 +25,8 @@ public class AuthService {
     private final UserProfileRepository userProfileRepository;
 
     private final BCryptPasswordEncoder passwordEncoder;
+
+    private final JwtService jwtService;
 
     //Register
     @Transactional
@@ -58,9 +61,12 @@ public class AuthService {
                 .dob(request.getDob())
                 .build();
 
-        userProfileRepository.save(profile);
+        userRepository.save(user);
+
+        String token = jwtService.generateToken(user.getId());
 
         AuthResponse response = AuthResponse.builder()
+                .token(token)
                 .build();
 
         return ApiResponse.success(
@@ -92,8 +98,12 @@ public class AuthService {
             return ApiResponse.failure("Incorrect password.");
         }
 
+        String token = jwtService.generateToken(foundUser.getId());
+
         AuthResponse response = AuthResponse.builder()
+                .token(token)
                 .build();
+
 
         return ApiResponse.success(
                 response,
