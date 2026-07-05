@@ -2,6 +2,7 @@ package com.campus.Campus_Connect.common.response;
 
 import lombok.*;
 
+
 @Getter
 @Setter
 @NoArgsConstructor
