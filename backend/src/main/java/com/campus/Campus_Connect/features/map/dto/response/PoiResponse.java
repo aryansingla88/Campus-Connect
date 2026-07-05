@@ -23,5 +23,5 @@ public class PoiResponse {
 
     private String iconType;
 
-    private Boolean visibility;
+    private String visibility;
 }

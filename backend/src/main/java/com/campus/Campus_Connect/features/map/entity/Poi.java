@@ -37,6 +37,12 @@ public class Poi {
     @Column(name = "longitude", nullable = false)
     private Double longitude;
 
+    @Column(name = "icon_type", nullable = false)
+    private String iconType;
+
+    @Column(name = "visibility", nullable = false)
+    private String visibility;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
