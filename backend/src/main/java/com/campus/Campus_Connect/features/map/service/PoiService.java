@@ -138,6 +138,8 @@ public class PoiService {
                 .description(poi.getDescription())
                 .latitude(poi.getLatitude())
                 .longitude(poi.getLongitude())
+                .iconType(poi.getIconType())
+                .visibility(poi.getVisibility())
                 .build();
     }
 }
