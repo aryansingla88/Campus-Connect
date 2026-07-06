@@ -4,8 +4,10 @@ import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.features.auth.dto.request.LoginRequest;
 import com.campus.Campus_Connect.features.auth.dto.request.RegisterRequest;
 import com.campus.Campus_Connect.features.auth.dto.response.AuthResponse;
+import com.campus.Campus_Connect.features.auth.dto.response.UserResponse;
 import com.campus.Campus_Connect.features.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,5 +29,11 @@ public class AuthController {
             @RequestBody LoginRequest request
     ) {
         return authService.login(request);
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<UserResponse> me() {
+        System.out.println(SecurityContextHolder.getContext().getAuthentication());
+        return authService.getCurrentUser();
     }
 }

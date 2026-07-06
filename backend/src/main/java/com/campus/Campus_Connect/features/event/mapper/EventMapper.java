@@ -11,10 +11,30 @@ import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
 import com.campus.Campus_Connect.features.event.entity.enums.VisibilityType;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Component
 public class EventMapper {
+
+    private EventState resolveEventState(Event event) {
+
+        if (event.getEventState() == EventState.CANCELLED) {
+            return EventState.CANCELLED;
+        }
+
+        Instant now = Instant.now();
+
+        if (now.isBefore(event.getStartTime())) {
+            return EventState.UPCOMING;
+        }
+
+        if (event.getEndTime() != null &&
+                now.isAfter(event.getEndTime())) {
+            return EventState.COMPLETED;
+        }
+
+        return EventState.ONGOING;
+    }
 
     // ------------------------------------------------------------------------
     // Create Request -> Entity
@@ -41,19 +61,11 @@ public class EventMapper {
                 .hostName(request.getHostName())
                 .venue(request.getVenue())
 
-                .visibilityType(
-                        VisibilityType.valueOf(
-                                request.getVisibilityType().toUpperCase()
-                        )
-                )
+                .visibilityType(request.getVisibilityType())
 
                 .visibilityValue(request.getVisibilityValue())
 
-                .registrationType(
-                        RegistrationType.valueOf(
-                                request.getRegistrationType().toUpperCase()
-                        )
-                )
+                .registrationType(request.getRegistrationType())
 
                 .registrationLink(request.getRegistrationLink())
 
@@ -108,9 +120,7 @@ public class EventMapper {
 
         if (request.getVisibilityType() != null)
             event.setVisibilityType(
-                    VisibilityType.valueOf(
-                            request.getVisibilityType().toUpperCase()
-                    )
+                    request.getVisibilityType()
             );
 
         if (request.getVisibilityValue() != null)
@@ -118,9 +128,7 @@ public class EventMapper {
 
         if (request.getRegistrationType() != null)
             event.setRegistrationType(
-                    RegistrationType.valueOf(
-                            request.getRegistrationType().toUpperCase()
-                    )
+                    request.getRegistrationType()
             );
 
         if (request.getRegistrationLink() != null)
@@ -160,23 +168,23 @@ public class EventMapper {
                 .venue(event.getVenue())
 
                 .visibilityType(
-                        event.getVisibilityType().name()
+                        event.getVisibilityType()
                 )
 
                 .visibilityValue(event.getVisibilityValue())
 
                 .registrationType(
-                        event.getRegistrationType().name()
+                        event.getRegistrationType()
                 )
 
                 .registrationLink(event.getRegistrationLink())
 
                 .approvalStatus(
-                        event.getApprovalStatus().name()
+                        event.getApprovalStatus()
                 )
 
                 .eventState(
-                        event.getEventState().name()
+                        resolveEventState(event)
                 )
 
                 .priority(event.getPriority())

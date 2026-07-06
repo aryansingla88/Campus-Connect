@@ -1,13 +1,16 @@
 package com.campus.Campus_Connect.features.auth.service;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
+import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.dto.request.LoginRequest;
 import com.campus.Campus_Connect.features.auth.dto.request.RegisterRequest;
 import com.campus.Campus_Connect.features.auth.dto.response.AuthResponse;
+import com.campus.Campus_Connect.features.auth.dto.response.UserResponse;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.profile.repository.UserProfileRepository;
+import com.campus.Campus_Connect.features.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,6 +27,8 @@ public class AuthService {
     private final UserProfileRepository userProfileRepository;
 
     private final BCryptPasswordEncoder passwordEncoder;
+
+    private final JwtService jwtService;
 
     //Register
     @Transactional
@@ -58,9 +63,12 @@ public class AuthService {
                 .dob(request.getDob())
                 .build();
 
-        userProfileRepository.save(profile);
+        userRepository.save(user);
+
+        String token = jwtService.generateToken(user.getId());
 
         AuthResponse response = AuthResponse.builder()
+                .token(token)
                 .build();
 
         return ApiResponse.success(
@@ -72,16 +80,13 @@ public class AuthService {
 
     public ApiResponse<AuthResponse> login(LoginRequest request) {
 
-        Optional<User> user = userRepository.findByUsernameOrEmail(
+        User foundUser = userRepository.findByUsernameOrEmail(
                 request.getIdentifier(),
                 request.getIdentifier()
+        ).orElseThrow(() ->
+                new IllegalArgumentException("Username/Email not found.")
         );
 
-        if (user.isEmpty()) {
-            return ApiResponse.failure("Username/Email not found.");
-        }
-
-        User foundUser = user.get();
 
         boolean isPasswordCorrect = passwordEncoder.matches(
                 request.getPassword(),
@@ -92,12 +97,37 @@ public class AuthService {
             return ApiResponse.failure("Incorrect password.");
         }
 
+        if (Boolean.TRUE.equals(foundUser.getIsBanned())) {
+            return ApiResponse.failure("Your account has been banned.");
+        }
+
+        String token = jwtService.generateToken(foundUser.getId());
+
         AuthResponse response = AuthResponse.builder()
+                .token(token)
                 .build();
+
 
         return ApiResponse.success(
                 response,
                 "Login successful."
+        );
+    }
+
+    public ApiResponse<UserResponse> getCurrentUser() {
+
+        User currentUser = SecurityUtils.getCurrentUser();
+
+        UserResponse response = UserResponse.builder()
+                .id(currentUser.getId())
+                .username(currentUser.getUsername())
+                .email(currentUser.getEmail())
+                .role(currentUser.getRole())
+                .build();
+
+        return ApiResponse.success(
+                response,
+                "Current user fetched successfully."
         );
     }
 }
