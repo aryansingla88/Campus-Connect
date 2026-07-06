@@ -1,7 +1,10 @@
 package com.campus.Campus_Connect.features.event.service.Impl;
 
 import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
+import com.campus.Campus_Connect.common.exception.UnauthorizedException;
 import com.campus.Campus_Connect.common.response.ApiResponse;
+import com.campus.Campus_Connect.common.security.AuthorizationUtils;
+import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.event.dto.request.CreateEventRequest;
@@ -62,11 +65,7 @@ public class EventServiceImpl implements EventService {
             CreateEventRequest request
     ) {
 
-        // TODO: Replace with authenticated user after JWT integration
-        User creator =
-                userRepository.findById(2)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException("Creator not found."));
+        User creator = SecurityUtils.getCurrentUser();
 
         Event event =
                 eventMapper.toEntity(
@@ -95,6 +94,10 @@ public class EventServiceImpl implements EventService {
                         .orElseThrow(() ->
                                 new ResourceNotFoundException("Event not found."));
 
+        AuthorizationUtils.requireOwner(
+                event.getCreator().getId()
+        );
+
         eventMapper.updateEntity(
                 event,
                 request
@@ -119,6 +122,10 @@ public class EventServiceImpl implements EventService {
                 eventRepository.findById(eventId)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException("Event not found."));
+
+        AuthorizationUtils.requireOwner(
+                event.getCreator().getId()
+        );
 
         eventRepository.delete(event);
 
