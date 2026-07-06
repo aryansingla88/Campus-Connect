@@ -56,14 +56,13 @@ public class AuthService {
                 .user(user)
                 .fullName(request.getFullName())
                 .courseId(request.getCourseId())
-                .branch(request.getBranch())
                 .admissionYear(request.getAdmissionYear())
                 .rollNumber(request.getRollNumber())
                 .gender(request.getGender())
                 .dob(request.getDob())
                 .build();
 
-        userRepository.save(user);
+        userProfileRepository.save(profile);
 
         String token = jwtService.generateToken(user.getId());
 
