@@ -1,9 +1,11 @@
 package com.campus.Campus_Connect.features.auth.service;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
+import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.dto.request.LoginRequest;
 import com.campus.Campus_Connect.features.auth.dto.request.RegisterRequest;
 import com.campus.Campus_Connect.features.auth.dto.response.AuthResponse;
+import com.campus.Campus_Connect.features.auth.dto.response.UserResponse;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
@@ -78,16 +80,13 @@ public class AuthService {
 
     public ApiResponse<AuthResponse> login(LoginRequest request) {
 
-        Optional<User> user = userRepository.findByUsernameOrEmail(
+        User foundUser = userRepository.findByUsernameOrEmail(
                 request.getIdentifier(),
                 request.getIdentifier()
+        ).orElseThrow(() ->
+                new IllegalArgumentException("Username/Email not found.")
         );
 
-        if (user.isEmpty()) {
-            return ApiResponse.failure("Username/Email not found.");
-        }
-
-        User foundUser = user.get();
 
         boolean isPasswordCorrect = passwordEncoder.matches(
                 request.getPassword(),
@@ -96,6 +95,10 @@ public class AuthService {
 
         if (!isPasswordCorrect){
             return ApiResponse.failure("Incorrect password.");
+        }
+
+        if (Boolean.TRUE.equals(foundUser.getIsBanned())) {
+            return ApiResponse.failure("Your account has been banned.");
         }
 
         String token = jwtService.generateToken(foundUser.getId());
@@ -108,6 +111,23 @@ public class AuthService {
         return ApiResponse.success(
                 response,
                 "Login successful."
+        );
+    }
+
+    public ApiResponse<UserResponse> getCurrentUser() {
+
+        User currentUser = SecurityUtils.getCurrentUser();
+
+        UserResponse response = UserResponse.builder()
+                .id(currentUser.getId())
+                .username(currentUser.getUsername())
+                .email(currentUser.getEmail())
+                .role(currentUser.getRole())
+                .build();
+
+        return ApiResponse.success(
+                response,
+                "Current user fetched successfully."
         );
     }
 }
