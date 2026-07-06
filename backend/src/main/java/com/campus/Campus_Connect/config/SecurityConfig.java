@@ -1,5 +1,6 @@
-package com.campus.Campus_Connect.features.security;
+package com.campus.Campus_Connect.config;
 
+import com.campus.Campus_Connect.features.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,7 +33,10 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(
+                                "/auth/login",
+                                "/auth/register"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
 
