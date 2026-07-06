@@ -42,12 +42,12 @@ public class CreateEventRequest {
 
     private String venue;
 
-    @NotBlank(message = "Visibility type is required.")
+    @NotNull(message = "Visibility type is required.")
     private VisibilityType visibilityType;
 
     private String visibilityValue;
 
-    @NotBlank(message = "Registration type is required.")
+    @NotNull(message = "Registration type is required.")
     private RegistrationType registrationType;
 
     private String registrationLink;
