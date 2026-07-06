@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -14,10 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreatePostRequest {
-
-    @NotBlank(message = "Post type is required")
-    private String postType;
+public class UpdatePostRequest {
 
     @NotBlank(message = "Title is required")
     private String title;
@@ -27,6 +23,4 @@ public class CreatePostRequest {
 
     @NotEmpty(message = "At least one tag must be selected")
     private List<Integer> tags;
-
-    private MultipartFile image;
 }
