@@ -1,18 +1,27 @@
 package com.campus.Campus_Connect.features.event.entity;
 
 import com.campus.Campus_Connect.features.auth.entity.User;
+import com.campus.Campus_Connect.features.event.entity.Event;
+import com.campus.Campus_Connect.features.event.entity.EventMemberId;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
-@Table(name = "event_members")
+@Table(
+        name = "event_members",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = {
+                                "event_id",
+                                "user_id"
+                        }
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,21 +32,21 @@ public class EventMember {
     @EmbeddedId
     private EventMemberId id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("eventId")
-    @JoinColumn(name = "event_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id")
     private Event event;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EventMemberRole role;
 
-
-    @Column(name = "joined_at", nullable = false, updatable = false)
-    private LocalDateTime joinedAt;
+    @CreationTimestamp
+    @Column(name = "joined_at", updatable = false)
+    private Instant joinedAt;
 }
