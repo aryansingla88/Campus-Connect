@@ -5,12 +5,8 @@ import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.event.entity.Event;
-import com.campus.Campus_Connect.features.event.entity.EventMember;
-import com.campus.Campus_Connect.features.event.entity.EventMemberId;
 import com.campus.Campus_Connect.features.event.entity.EventRegistration;
-import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.event.entity.enums.RegistrationStatus;
-import com.campus.Campus_Connect.features.event.repository.EventMemberRepository;
 import com.campus.Campus_Connect.features.event.repository.EventRegistrationRepository;
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import jakarta.transaction.Transactional;
@@ -25,7 +21,6 @@ public class RegistrationService {
 
     private final EventRepository eventRepository;
     private final EventRegistrationRepository eventRegistrationRepository;
-    private final EventMemberRepository eventMemberRepository;
 
     @Transactional
     public ApiResponse<RegistrationResponse> registerForEvent(Integer eventId) {
@@ -50,20 +45,10 @@ public class RegistrationService {
                 .user(currentUser)
                 .status(RegistrationStatus.CONFIRMED)
                 .submittedAt(LocalDateTime.now())
+                .teamId(null)                         
                 .build();
 
         registration = eventRegistrationRepository.save(registration);
-
-        EventMember member = EventMember.builder()
-                .id(new EventMemberId(event.getId(), currentUser.getId()))
-                .event(event)
-                .user(currentUser)
-                .role(EventMemberRole.PARTICIPANT)
-                .teamId(null)
-                .joinedAt(LocalDateTime.now())
-                .build();
-
-        eventMemberRepository.save(member);
 
         RegistrationResponse response = RegistrationResponse.builder()
                 .registrationId(registration.getId())

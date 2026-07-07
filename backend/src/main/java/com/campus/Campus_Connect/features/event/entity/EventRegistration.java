@@ -32,6 +32,13 @@ public class EventRegistration {
     @Column(nullable = false)
     private RegistrationStatus status;
 
+    //    @ManyToOne(fetch = FetchType.LAZY)             -- later after teams
+    //    @JoinColumn(name = "team_id")
+    //    private EventTeam team;
+
+    @Column(name = "team_id")
+    private Integer teamId;
+
     @Column(name = "submitted_at", nullable = false, updatable = false)
     private LocalDateTime submittedAt;
 }

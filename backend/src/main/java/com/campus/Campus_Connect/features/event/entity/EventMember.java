@@ -37,12 +37,6 @@ public class EventMember {
     @Column(nullable = false)
     private EventMemberRole role;
 
-//    @ManyToOne(fetch = FetchType.LAZY)             -- later after teams
-//    @JoinColumn(name = "team_id")
-//    private EventTeam team;
-
-    @Column(name = "team_id")
-    private Integer teamId;
 
     @Column(name = "joined_at", nullable = false, updatable = false)
     private LocalDateTime joinedAt;
