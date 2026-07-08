@@ -62,4 +62,40 @@ public class EventPermissionService {
     public boolean isCreator(Integer eventId) {
         return getCurrentMember(eventId).getRole() == EventMemberRole.CREATOR;
     }
+
+    public EventMember getMember(
+            Integer eventId,
+            Integer userId
+    ) {
+
+        return eventMemberRepository
+                .findByEventIdAndUserId(
+                        eventId,
+                        userId
+                )
+                .orElse(null);
+    }
+
+    public EventMember requireMember(
+            Integer eventId,
+            Integer userId
+    ) {
+
+        return eventMemberRepository
+                .findByEventIdAndUserId(
+                        eventId,
+                        userId
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User does not have access."
+                        ));
+    }
+
+    public boolean hasAccess(
+            Integer eventId,
+            Integer userId
+    ) {
+        return getMember(eventId, userId) != null;
+    }
 }

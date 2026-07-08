@@ -18,4 +18,6 @@ public class UserAccessResponse {
 
     private EventMemberRole role;
 
+    private Boolean hasAccess;
+
 }

@@ -1,8 +1,10 @@
 package com.campus.Campus_Connect.features.event.mapper;
 
+import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.dto.response.UserAccessResponse;
 import com.campus.Campus_Connect.features.event.entity.EventMember;
+import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
 import com.campus.Campus_Connect.features.metadata.courses.entity.Course;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
@@ -19,18 +21,31 @@ public class EventMemberMapper {
 
     public UserAccessResponse toResponse(EventMember member) {
 
-        User user = member.getUser();
+        return toResponse(
+                member.getUser(),
+                member.getRole(),
+                true
+        );
+    }
+
+    public UserAccessResponse toResponse(
+            User user,
+            EventMemberRole role,
+            boolean hasAccess
+    ) {
+
         UserProfile profile = user.getProfile();
 
         Course course = courseRepository.findById(profile.getCourseId())
                 .orElseThrow(() ->
-                        new RuntimeException("Course not found."));
+                        new ResourceNotFoundException("Course not found."));
 
         return UserAccessResponse.builder()
                 .id(user.getId())
                 .name(profile.getFullName())
                 .subtitle(buildSubtitle(profile, course))
-                .role(member.getRole())
+                .role(role)
+                .hasAccess(hasAccess)
                 .build();
     }
 
