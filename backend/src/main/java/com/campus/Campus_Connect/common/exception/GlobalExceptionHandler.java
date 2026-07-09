@@ -1,6 +1,7 @@
 package com.campus.Campus_Connect.common.exception;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
+import com.campus.Campus_Connect.features.post.exception.PostNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -106,5 +107,13 @@ public class GlobalExceptionHandler {
                 .body(
                         ApiResponse.failure(ex.getMessage())
                 );
+    }
+
+    @ExceptionHandler(PostNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePostNotFoundException(
+            PostNotFoundException ex) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.failure(ex.getMessage()));
     }
 }
