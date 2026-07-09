@@ -54,7 +54,7 @@ public class PostMapper {
 
         var userVote = post.getVotes()
                 .stream()
-                .filter(v -> v.getUserId().equals(currentUserId))
+                .filter(v -> v.getId().getUserId().equals(currentUserId))
                 .map(PostVote::getVoteType)
                 .findFirst()
                 .orElse(null);

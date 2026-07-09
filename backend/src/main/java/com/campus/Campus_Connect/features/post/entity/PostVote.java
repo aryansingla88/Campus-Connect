@@ -6,12 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "post_votes",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"post_id", "user_id"})
-        }
-)
+@Table(name = "post_votes")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,19 +14,16 @@ import java.time.LocalDateTime;
 @Builder
 public class PostVote {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @EmbeddedId
+    private PostVoteId id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId("postId")
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-    @Column(name = "user_id", nullable = false)
-    private Integer userId;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "vote_type", nullable = false)
+    @Enumerated(EnumType.STRING)
     private VoteType voteType;
 
     @Column(name = "created_at", nullable = false)

@@ -1,5 +1,7 @@
 package com.campus.Campus_Connect.features.post.service.impl;
 
+import com.campus.Campus_Connect.common.security.SecurityUtils;
+import com.campus.Campus_Connect.common.service.FileStorageService;
 import com.campus.Campus_Connect.features.post.dto.request.CreateCommentRequest;
 import com.campus.Campus_Connect.features.post.dto.request.CreatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.request.UpdateCommentRequest;
@@ -8,6 +10,7 @@ import com.campus.Campus_Connect.features.post.dto.response.CommentResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
 import com.campus.Campus_Connect.features.post.entity.Post;
+import com.campus.Campus_Connect.features.post.entity.PostImage;
 import com.campus.Campus_Connect.features.post.entity.PostTag;
 import com.campus.Campus_Connect.features.post.exception.PostNotFoundException;
 import com.campus.Campus_Connect.features.post.mapper.PostMapper;
@@ -26,6 +29,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
+
+    private final FileStorageService fileStorageService;
 
     private final PostRepository postRepository;
 
@@ -69,16 +74,20 @@ public class PostServiceImpl implements PostService {
 
         Post post = new Post();
 
+        // Basic fields
         post.setTitle(request.getTitle());
         post.setContentRaw(request.getBody());
-
         post.setPostType(request.getPostType());
 
+        // Defaults
         post.setVisibilityType("PUBLIC");
         post.setVisibilityValue(null);
-
         post.setAllowComments(true);
 
+        // Logged-in user
+        post.setCreatorId(SecurityUtils.getCurrentUserId());
+
+        // Tags
         List<PostTag> tags = postTagRepository.findAllById(request.getTags());
 
         if (tags.size() != request.getTags().size()) {
@@ -87,15 +96,35 @@ public class PostServiceImpl implements PostService {
 
         post.setTags(new HashSet<>(tags));
 
+        // Time
         post.setCreatedAt(LocalDateTime.now());
         post.setUpdatedAt(LocalDateTime.now());
 
-        // creatorId -> after authentication
-        // tags -> next
-        // image -> later
-        // save -> later
+        // Save Post first
+        Post savedPost = postRepository.save(post);
 
-        return null;
+        // Image
+        if (request.getImage() != null && !request.getImage().isEmpty()) {
+
+            String imagePath =
+                    fileStorageService.storePostImage(request.getImage());
+
+            PostImage postImage = PostImage.builder()
+                    .post(savedPost)
+                    .imageUrl(imagePath)
+                    .imageOrder(1)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            savedPost.getImages().add(postImage);
+
+            savedPost = postRepository.save(savedPost);
+        }
+
+        return postMapper.toPostResponse(
+                savedPost,
+                SecurityUtils.getCurrentUserId()
+        );
     }
 
     @Override
@@ -142,6 +171,4 @@ public class PostServiceImpl implements PostService {
     public void removeVote(Integer postId) {
 
     }
-}
-
 }
