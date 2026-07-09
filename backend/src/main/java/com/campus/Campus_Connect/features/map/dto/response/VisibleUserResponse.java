@@ -7,21 +7,15 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PoiResponse {
+public class VisibleUserResponse {
 
-    private String id;
+    private Integer userId;
 
-    private String name;
-
-    private String category;
-
-    private String description;
+    private String username;
 
     private Double latitude;
 
     private Double longitude;
 
-    private String iconType;
-
-    private String visibility;
+    private Boolean insideCampus;
 }
