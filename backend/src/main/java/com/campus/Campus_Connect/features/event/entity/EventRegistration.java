@@ -5,6 +5,7 @@ import com.campus.Campus_Connect.features.event.entity.enums.RegistrationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -40,5 +41,5 @@ public class EventRegistration {
     private Integer teamId;
 
     @Column(name = "submitted_at", nullable = false, updatable = false)
-    private LocalDateTime submittedAt;
+    private Instant submittedAt;
 }

@@ -27,7 +27,7 @@ public class EventPermissionService {
                 )
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "You are not a member of this event."
+                                "You are not a manager of this event."
                         ));
     }
 

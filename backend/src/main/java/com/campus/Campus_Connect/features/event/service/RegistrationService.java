@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Service
@@ -44,7 +45,7 @@ public class RegistrationService {
                 .event(event)
                 .user(currentUser)
                 .status(RegistrationStatus.CONFIRMED)
-                .submittedAt(LocalDateTime.now())
+                .submittedAt(Instant.now())
                 .teamId(null)                         
                 .build();
 
