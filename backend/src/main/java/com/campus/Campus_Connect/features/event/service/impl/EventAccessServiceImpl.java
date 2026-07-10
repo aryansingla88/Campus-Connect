@@ -1,4 +1,4 @@
-package com.campus.Campus_Connect.features.event.service.Impl;
+package com.campus.Campus_Connect.features.event.service.impl;
 
 import com.campus.Campus_Connect.common.exception.BadRequestException;
 import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
