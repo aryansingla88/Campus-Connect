@@ -35,6 +35,21 @@ public class EventServiceImpl implements EventService {
     private final EventPermissionService permissionService;
 
     @Override
+    public ApiResponse<List<EventResponse>> getEventFeed() {
+        // 1. DB se algorithm ke through pre-sorted events fetch karo (O(1) logic overhead)
+        List<Event> sortedEvents = eventRepository.findActiveEventsForFeed();
+
+        // 2. Apne DTO (EventResponse) mein map karo.
+        // (Assume kar raha hoon tumhare paas mapToResponse jaisa koi method hai)
+        List<EventResponse> responseList = sortedEvents.stream()
+                .map(eventMapper::toResponse) // Tumhara apna mapping logic use karna
+                .toList();
+
+        // 3. Fast response return kardo
+        return ApiResponse.success(responseList, "Event feed fetched successfully");
+    }
+
+    @Override
     public ApiResponse<List<EventResponse>> getEvents() {
 
         List<EventResponse> events =
