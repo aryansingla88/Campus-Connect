@@ -18,9 +18,7 @@ import java.io.Serializable;
 @EqualsAndHashCode
 public class EventMemberId implements Serializable {
 
-    @Column(name = "event_id")
     private Integer eventId;
 
-    @Column(name = "user_id")
     private Integer userId;
 }

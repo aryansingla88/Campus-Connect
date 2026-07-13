@@ -19,19 +19,21 @@ public class UserPresenceController {
     private final UserPresenceService userPresenceService;
 
     // ---------------------------------------------------------
-    // Update My Presence
+    // Update Current User Location
     // ---------------------------------------------------------
 
     @PatchMapping("/me")
     public ApiResponse<PresenceResponse> updateMyPresence(
-            @Valid @RequestBody UpdatePresenceRequest request
+            @Valid
+            @RequestBody
+            UpdatePresenceRequest request
     ) {
 
         return userPresenceService.updateMyPresence(request);
     }
 
     // ---------------------------------------------------------
-    // Get My Presence
+    // Get Current User Location
     // ---------------------------------------------------------
 
     @GetMapping("/me")
@@ -45,8 +47,10 @@ public class UserPresenceController {
     // ---------------------------------------------------------
 
     @GetMapping
-    public ApiResponse<List<VisibleUserResponse>> getVisibleUsers() {
+    public ApiResponse<List<VisibleUserResponse>>
+    getVisibleUsers() {
 
         return userPresenceService.getVisibleUsers();
     }
+
 }

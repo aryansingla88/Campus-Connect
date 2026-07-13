@@ -69,7 +69,7 @@ public class EventMapper {
 
                 .registrationLink(request.getRegistrationLink())
 
-                .priority(request.getPriority())
+                .basePriorityLevel(request.getPriority())
 
                 // defaults
                 .approvalStatus(ApprovalStatus.PENDING)
@@ -135,7 +135,7 @@ public class EventMapper {
             event.setRegistrationLink(request.getRegistrationLink());
 
         if (request.getPriority() != null)
-            event.setPriority(request.getPriority());
+            event.setBasePriorityLevel(request.getPriority());
     }
 
     // ------------------------------------------------------------------------
@@ -187,7 +187,7 @@ public class EventMapper {
                         resolveEventState(event)
                 )
 
-                .priority(event.getPriority())
+                .priority(event.getBasePriorityLevel())
 
                 .build();
     }

@@ -25,4 +25,5 @@ public interface EventService {
     ApiResponse<Void> deleteEvent(
             Integer eventId
     );
+
 }

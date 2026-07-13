@@ -11,9 +11,14 @@ import com.campus.Campus_Connect.features.event.dto.request.CreateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.request.UpdateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.response.EventResponse;
 import com.campus.Campus_Connect.features.event.entity.Event;
+import com.campus.Campus_Connect.features.event.entity.EventMember;
+import com.campus.Campus_Connect.features.event.entity.EventMemberId;
+import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.event.mapper.EventMapper;
+import com.campus.Campus_Connect.features.event.repository.EventMemberRepository;
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.event.service.EventService;
+import com.campus.Campus_Connect.features.event.security.EventPermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +31,8 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
-    private final UserRepository userRepository;
+    private final EventMemberRepository eventMemberRepository;
+    private final EventPermissionService permissionService;
 
     @Override
     public ApiResponse<List<EventResponse>> getEvents() {
@@ -75,6 +81,21 @@ public class EventServiceImpl implements EventService {
 
         event = eventRepository.save(event);
 
+        EventMember creatorMember =
+                EventMember.builder()
+                        .id(
+                                new EventMemberId(
+                                        event.getId(),
+                                        creator.getId()
+                                )
+                        )
+                        .event(event)
+                        .user(creator)
+                        .role(EventMemberRole.CREATOR)
+                        .build();
+
+        eventMemberRepository.save(creatorMember);
+
         return ApiResponse.success(
                 eventMapper.toResponse(event),
                 "Event created successfully."
@@ -89,14 +110,11 @@ public class EventServiceImpl implements EventService {
             UpdateEventRequest request
     ) {
 
-        Event event =
-                eventRepository.findById(eventId)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException("Event not found."));
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Event not found."));
 
-        AuthorizationUtils.requireOwner(
-                event.getCreator().getId()
-        );
+        permissionService.requireManager(eventId);
 
         eventMapper.updateEntity(
                 event,
@@ -118,14 +136,11 @@ public class EventServiceImpl implements EventService {
             Integer eventId
     ) {
 
-        Event event =
-                eventRepository.findById(eventId)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException("Event not found."));
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Event not found."));
 
-        AuthorizationUtils.requireOwner(
-                event.getCreator().getId()
-        );
+        permissionService.requireCreator(eventId);
 
         eventRepository.delete(event);
 

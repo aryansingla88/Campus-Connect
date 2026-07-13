@@ -130,9 +130,17 @@ public class Event {
     // Priority
     // ------------------------------------------------------------------------
 
-    @Column(nullable = false)
-    private Integer priority;
+    @Column(name = "base_priority_level", nullable = false)
+    @Builder.Default
+    private Integer basePriorityLevel = 1;
 
+    @Column(name = "priority_score", nullable = false)
+    @Builder.Default
+    private Double priorityScore = 0.0;
+
+    @Column(name = "priority_level", nullable = false)
+    @Builder.Default
+    private Integer priorityLevel = 1;
 
     // ------------------------------------------------------------------------
     // Audit
