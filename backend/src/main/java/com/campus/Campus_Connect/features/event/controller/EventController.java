@@ -56,4 +56,11 @@ public class EventController {
     ) {
         return eventService.deleteEvent(eventId);
     }
+
+    // GET /api/events/feed
+    @GetMapping("/feed")
+    public ApiResponse<List<EventResponse>> getEventFeed() {
+        // Sirf data fetch aur return, zero processing!
+        return eventService.getEventFeed();
+    }
 }

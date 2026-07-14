@@ -8,7 +8,8 @@ import com.campus.Campus_Connect.features.event.dto.response.EventResponse;
 import java.util.List;
 
 public interface EventService {
-
+    // Get pre-sorted event feed
+    ApiResponse<List<EventResponse>> getEventFeed();
     ApiResponse<List<EventResponse>> getEvents();
 
     ApiResponse<EventResponse> getEvent(Integer eventId);
