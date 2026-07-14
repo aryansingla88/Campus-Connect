@@ -46,7 +46,7 @@ public class RegistrationService {
                 .user(currentUser)
                 .status(RegistrationStatus.CONFIRMED)
                 .submittedAt(Instant.now())
-                .teamId(null)                         
+                .team(null)
                 .build();
 
         registration = eventRegistrationRepository.save(registration);

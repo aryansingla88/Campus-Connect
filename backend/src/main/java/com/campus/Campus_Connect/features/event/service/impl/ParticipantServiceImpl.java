@@ -1,4 +1,4 @@
-package com.campus.Campus_Connect.features.event.service.Impl;
+package com.campus.Campus_Connect.features.event.service.impl;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.features.event.dto.response.ParticipantTeamResponse;
@@ -56,7 +56,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         for (EventRegistration registration : registrations) {
 
-            if (registration.getTeamId() == null) {
+            if (registration.getTeam().getId() == null) {
 
                 soloParticipants.add(
                         participantMapper.toSoloResponse(
@@ -68,7 +68,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
                 teamRegistrations
                         .computeIfAbsent(
-                                registration.getTeamId(),
+                                registration.getTeam().getId(),
                                 id -> new ArrayList<>()
                         )
                         .add(registration);

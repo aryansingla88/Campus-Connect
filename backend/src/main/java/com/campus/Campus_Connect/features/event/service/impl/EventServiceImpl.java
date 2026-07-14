@@ -1,12 +1,9 @@
-package com.campus.Campus_Connect.features.event.service.Impl;
+package com.campus.Campus_Connect.features.event.service.impl;
 
 import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
-import com.campus.Campus_Connect.common.exception.UnauthorizedException;
 import com.campus.Campus_Connect.common.response.ApiResponse;
-import com.campus.Campus_Connect.common.security.AuthorizationUtils;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
-import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.event.dto.request.CreateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.request.UpdateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.response.EventResponse;
