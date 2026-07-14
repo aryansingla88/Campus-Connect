@@ -1,5 +1,6 @@
 package com.campus.Campus_Connect.features.post.entity;
 
+import com.campus.Campus_Connect.features.auth.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,8 +21,9 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "creator_id", nullable = false)
-    private Integer creatorId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
 
     @Column(name = "post_type", nullable = false)
     private String postType;
