@@ -21,4 +21,8 @@ public interface UserInterestRepository extends JpaRepository<UserInterest, User
             Integer userId,
             Integer interestId
     );
+
+    long countByIdUserId(
+            Integer userId
+    );
 }

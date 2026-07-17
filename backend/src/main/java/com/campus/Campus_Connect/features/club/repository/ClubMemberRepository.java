@@ -49,4 +49,9 @@ public interface ClubMemberRepository extends JpaRepository<ClubMember, ClubMemb
             Integer clubId,
             ClubMemberStatus memberStatus
     );
+
+    long countByIdUserIdAndMemberStatus(
+            Integer userId,
+            ClubMemberStatus memberStatus
+    );
 }

@@ -31,4 +31,7 @@ public interface UserHonorRepository
     void deleteByHonor_Id(
             Integer honorId
     );
+    long countByUser_Id(
+            Integer userId
+    );
 }
