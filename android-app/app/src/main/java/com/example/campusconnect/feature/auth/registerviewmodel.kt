@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.example.campusconnect.feature.auth.FakeAuthRepository
+import com.example.campusconnect.feature.auth.data.remote.response.CourseResponse
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -51,8 +52,16 @@ class RegisterViewModel(application: Application)
 
     // course
 
-    private val _course = MutableStateFlow("")
-    val course: StateFlow<String> = _course
+    private val _courses =
+        MutableStateFlow<List<CourseResponse>>(emptyList())
+
+    val courses: StateFlow<List<CourseResponse>> = _courses
+
+    private val _selectedCourse =
+        MutableStateFlow<CourseResponse?>(null)
+
+    val selectedCourse: StateFlow<CourseResponse?> =
+        _selectedCourse
 
     // year
 

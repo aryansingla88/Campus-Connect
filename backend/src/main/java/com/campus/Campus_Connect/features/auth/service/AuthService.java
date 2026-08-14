@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
 import java.util.Optional;
 
 @Service
@@ -25,6 +25,7 @@ public class AuthService {
     private final UserRepository userRepository;
 
     private final UserProfileRepository userProfileRepository;
+    private final CourseRepository courseRepository;
 
     private final BCryptPasswordEncoder passwordEncoder;
 
@@ -41,6 +42,10 @@ public class AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             return ApiResponse.failure("Email already exists.");
         }
+
+        courseRepository.findByIdAndIsActiveTrue(request.getCourseId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Invalid or inactive course."));
 
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
