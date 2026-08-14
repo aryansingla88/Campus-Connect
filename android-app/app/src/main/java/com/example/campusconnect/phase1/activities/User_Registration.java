@@ -50,10 +50,7 @@ public class User_Registration extends AppCompatActivity {
 
             String email = roll + "@nitkkr.ac.in";
 
-
-            // -------------------------------
-            // 1️⃣ Roll number validation
-            // -------------------------------
+            // 1️ Roll number validation
 
             if(!roll.matches("\\d{6,12}")){
                 warning.setText("Email must be 6–12 digits.");
@@ -61,19 +58,14 @@ public class User_Registration extends AppCompatActivity {
             }
 
 
-            // -------------------------------
-            // 2️⃣ Username validation
-            // -------------------------------
+            // 2️ Username validation
 
             if(!username.matches("^[A-Za-z0-9_]{6,15}$")){
                 warning.setText("Username must be 6–15 characters and contain only letters, numbers or underscore.");
                 return;
             }
 
-
-            // -------------------------------
-            // 3️⃣ Password validation
-            // -------------------------------
+            // 3️ Password validation
 
             String passwordRegex =
                     "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#^()_+=-]).{8,15}$";
@@ -84,9 +76,7 @@ public class User_Registration extends AppCompatActivity {
             }
 
 
-            // -------------------------------
-            // 4️⃣ Confirm password
-            // -------------------------------
+            // 4️ Confirm password
 
             if(!password.equals(confirm)){
                 warning.setText("Passwords do not match.");
@@ -94,9 +84,7 @@ public class User_Registration extends AppCompatActivity {
             }
 
 
-            // ==================================================
-            // ✅ If all validations pass → CALL BACKEND
-            // ==================================================
+            // If all validations pass → CALL BACKEND
 
             RegisterRequest request = new RegisterRequest(email, username, password);
 

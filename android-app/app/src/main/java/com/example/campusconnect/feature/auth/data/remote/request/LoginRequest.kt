@@ -1,4 +1,6 @@
 package com.example.campusconnect.feature.auth.data.remote.request
 
-class LoginRequest {
-}
+data class LoginRequest(
+    val identifier: String,
+    val password: String
+)
