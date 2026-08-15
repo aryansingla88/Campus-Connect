@@ -67,32 +67,32 @@ fun PoiMarkerDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(
-                        start = 26.dp,   // changed: heading/content left se proper gap
-                        end = 24.dp,     // changed
+                        start = 26.dp,
+                        end = 24.dp,
                         top = 8.dp,
                         bottom = 16.dp
                     )
             ) {
                 PoiTopHandle()
 
-                Spacer(modifier = Modifier.height(16.dp)) // changed
+                Spacer(modifier = Modifier.height(16.dp))
 
                 PoiHeader(
                     title = poi.name,
-                    type = poi.type
+                    category = poi.category // Modified: Replaced type with category
                 )
 
-                Spacer(modifier = Modifier.height(16.dp)) // changed
+                Spacer(modifier = Modifier.height(16.dp))
 
                 PoiDescription(
                     description = limitWords(
-                        text = poi.description,
+                        text = poi.description.orEmpty(), // Modified: Handled nullable description
                         wordLimit = 24
                     ),
                     modifier = Modifier.weight(1f)
                 )
 
-                Spacer(modifier = Modifier.height(8.dp)) // changed
+                Spacer(modifier = Modifier.height(8.dp))
 
                 PoiActions(
                     onNavigateClick = onNavigateClick,
@@ -135,17 +135,17 @@ private fun PoiTopHandle() {
 @Composable
 private fun PoiHeader(
     title: String,
-    type: String
+    category: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically // changed
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = title,
             color = TextDark,
-            fontSize = 30.sp,        // changed: smaller clean heading
-            lineHeight = 32.sp,      // changed
+            fontSize = 30.sp,
+            lineHeight = 32.sp,
             fontWeight = FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -155,14 +155,14 @@ private fun PoiHeader(
         Spacer(modifier = Modifier.width(12.dp))
 
         Text(
-            text = "Type:${type.lowercase()}",
+            text = "Type:${category.lowercase()}", // Uses category while keeping UI text format
             color = TextMuted,
-            fontSize = 17.sp,        // changed
-            lineHeight = 19.sp,      // changed
+            fontSize = 17.sp,
+            lineHeight = 19.sp,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
-            modifier = Modifier.padding(top = 3.dp) // changed
+            modifier = Modifier.padding(top = 3.dp)
         )
     }
 }

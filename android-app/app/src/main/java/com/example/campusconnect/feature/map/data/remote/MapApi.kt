@@ -5,7 +5,6 @@ import com.example.campusconnect.feature.map.data.remote.request.EventRegReq
 import com.example.campusconnect.feature.map.data.remote.response.CategoryRes
 import com.example.campusconnect.feature.map.data.remote.response.EventHostRes
 import com.example.campusconnect.feature.map.data.remote.response.EventMapRes
-import com.example.campusconnect.feature.map.data.remote.response.MarkerRes
 import com.example.campusconnect.feature.map.data.remote.response.PoiRes
 import com.example.campusconnect.feature.map.data.remote.response.ShopRes
 import com.example.campusconnect.feature.map.data.remote.response.UserMapRes
@@ -14,26 +13,25 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
-import retrofit2.http.Query
 
 interface MapApi {
 
-    // Map markers -------------------------------------------------------------
+    // Domain List Endpoints (Separate APIs for each domain) ---------------------
 
-    @GET("map/markers")
-    suspend fun getMarkers(
-        @Query("type") type: String? = null,
-        @Query("search") search: String? = null
-    ): ApiResponse<List<MarkerRes>>
+    @GET("presence")
+    suspend fun getVisibleUsers(): ApiResponse<List<UserMapRes>>
 
-    @GET("map/search")
-    suspend fun searchMarkers(
-        @Query("q") query: String,
-        @Query("type") type: String? = null
-    ): ApiResponse<List<MarkerRes>>
+    @GET("poi")
+    suspend fun getPois(): ApiResponse<List<PoiRes>>
+
+    @GET("events")
+    suspend fun getEvents(): ApiResponse<List<EventMapRes>>
+
+    @GET("shops")
+    suspend fun getShops(): ApiResponse<List<ShopRes>>
 
 
-    // User marker card -------------------------------------------------------------
+    // User Marker & Profile Endpoints ------------------------------------------
 
     @GET("users/{userId}")
     suspend fun getUserProfile(
@@ -46,7 +44,7 @@ interface MapApi {
     ): ApiResponse<Unit>
 
 
-    // POI marker card -------------------------------------------------------------
+    // POI Marker Card ----------------------------------------------------------
 
     @GET("poi/{poiId}")
     suspend fun getPoiInfo(
@@ -54,7 +52,7 @@ interface MapApi {
     ): ApiResponse<PoiRes>
 
 
-    // Event marker card -------------------------------------------------------------
+    // Event Marker Card --------------------------------------------------------
 
     @GET("events/{eventId}")
     suspend fun getEventInfo(
@@ -83,7 +81,7 @@ interface MapApi {
     ): ApiResponse<Unit>
 
 
-    // Categories -------------------------------------------------------------
+    // Categories ---------------------------------------------------------------
 
     @GET("event-categories")
     suspend fun getEventCategories(): ApiResponse<List<CategoryRes>>
@@ -92,9 +90,7 @@ interface MapApi {
     suspend fun getShopCategories(): ApiResponse<List<CategoryRes>>
 
 
-    // Shop marker card -------------------------------------------------------------
-    // Shops should be loaded only in dedicated SHOP mode using:
-    // GET map/markers?type=SHOP
+    // Shop Marker Card ---------------------------------------------------------
 
     @GET("shops/{shopId}")
     suspend fun getShopInfo(

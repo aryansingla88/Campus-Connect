@@ -3,6 +3,10 @@ package com.example.campusconnect.feature.map.model
 data class MapPoiInfo(
     val id: String,
     val name: String,
-    val type: String,
-    val description: String
+    val category: String,
+    val description: String? = null,
+    val iconType: String? = null,
+    val visibility: String? = null,
+    val priority: Int = 0,
+    val sizeString: String = "MEDIUM"
 )
