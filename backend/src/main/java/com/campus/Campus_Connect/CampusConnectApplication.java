@@ -12,5 +12,4 @@ public class CampusConnectApplication {
 		SpringApplication.run(CampusConnectApplication.class, args);
 
 	}
-
 }
