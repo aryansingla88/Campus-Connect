@@ -9,6 +9,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class CampusConnectApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(CampusConnectApplication.class, args)}
+		SpringApplication.run(CampusConnectApplication.class, args);
+
+	}
 
 }

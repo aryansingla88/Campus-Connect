@@ -3,7 +3,6 @@ package com.campus.Campus_Connect.features.honor.repository;
 import com.campus.Campus_Connect.features.honor.entity.HonorItem;
 import com.campus.Campus_Connect.features.honor.entity.UserHonor;
 import com.campus.Campus_Connect.features.honor.entity.UserHonorId;
-import com.campus.Campus_Connect.features.honor.enums.HonorType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -24,13 +23,15 @@ public interface UserHonorRepository
             Integer eventId
     );
 
-    List<UserHonor> findByHonor_Id(
+    boolean existsByUser_IdAndHonor_Id(
+            Integer userId,
             Integer honorId
     );
 
     void deleteByHonor_Id(
             Integer honorId
     );
+
     long countByUser_Id(
             Integer userId
     );

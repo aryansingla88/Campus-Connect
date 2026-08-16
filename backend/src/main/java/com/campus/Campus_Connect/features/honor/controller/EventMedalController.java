@@ -14,7 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
-public class HonorController {
+public class EventMedalController {
 
     private final HonorService honorService;
 

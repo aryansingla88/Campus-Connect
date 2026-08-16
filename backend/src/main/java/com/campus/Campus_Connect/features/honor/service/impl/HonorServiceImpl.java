@@ -404,7 +404,7 @@ public class HonorServiceImpl implements HonorService {
                                         : registration.getTeam().getTeamName()
                         )
                         .event(event)
-                        .condition(null)
+                        .statisticType(null)
                         .build();
 
         return honorItemRepository.save(

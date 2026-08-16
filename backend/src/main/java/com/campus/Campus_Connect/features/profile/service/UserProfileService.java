@@ -5,6 +5,8 @@ import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberStatus;
+import com.campus.Campus_Connect.features.connection.entity.ConnectionStatus;
+import com.campus.Campus_Connect.features.connection.repository.ConnectionRepository;
 import com.campus.Campus_Connect.features.honor.repository.UserHonorRepository;
 import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
 import com.campus.Campus_Connect.features.metadata.courses.dto.CourseResponse;
@@ -36,6 +38,7 @@ public class UserProfileService {
     private final ClubMemberRepository clubMemberRepository;
     private final UserHonorRepository userHonorRepository;
     private final UserInterestRepository userInterestRepository;
+    private final ConnectionRepository connectionRepository;
 
 
     public ApiResponse<UserProfileResponse> getMyProfile() {
@@ -277,8 +280,12 @@ private ProfileStatsResponse buildProfileStats(Integer userId) {
 }
 
     private Integer getConnectionCount(Integer userId) {
-        // TODO: Replace once Connection feature is implemented
-        return 0;
+        return Math.toIntExact(
+                connectionRepository.countConnectionsByUserIdAndStatus(
+                        userId,
+                        ConnectionStatus.CONNECTED
+                )
+        );
     }
 
     private Integer getClubCount(Integer userId) {

@@ -2,6 +2,7 @@ package com.campus.Campus_Connect.features.honor.entity;
 
 import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.honor.enums.HonorType;
+import com.campus.Campus_Connect.features.honor.enums.StatisticType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,10 +36,13 @@ public class HonorItem {
     private String iconUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
+    @JoinColumn(name = "event_id")
     private Event event;
 
-    private String condition;
+    @Enumerated(EnumType.STRING)
+    private StatisticType statisticType;
+
+    private Integer threshold;
 
     @CreationTimestamp
     private Instant createdAt;

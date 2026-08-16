@@ -24,7 +24,7 @@ public class BadgeEvaluatorService {
             StatisticType statisticType,
             int currentValue
     ) {
-
+        
         List<HonorItem> badges =
                 honorItemRepository.findByTypeAndStatisticTypeOrderByThresholdAsc(
                         HonorType.BADGE,

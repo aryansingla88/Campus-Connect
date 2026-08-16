@@ -3,6 +3,7 @@ package com.campus.Campus_Connect.features.honor.repository;
 import com.campus.Campus_Connect.features.event.entity.EventRegistration;
 import com.campus.Campus_Connect.features.honor.entity.HonorItem;
 import com.campus.Campus_Connect.features.honor.enums.HonorType;
+import com.campus.Campus_Connect.features.honor.enums.StatisticType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -11,10 +12,6 @@ import java.util.Optional;
 public interface HonorItemRepository
         extends JpaRepository<HonorItem,Integer> {
 
-    List<HonorItem> findByEvent_IdAndType(
-            Integer eventId,
-            HonorType type
-    );
 
     Optional<HonorItem> findByEvent_IdAndTypeAndTitle(
             Integer eventId,
@@ -36,6 +33,15 @@ public interface HonorItemRepository
     Optional<HonorItem> findByIdAndEvent_Id(
             Integer honorId,
             Integer eventId
+    );
+
+    // ---------- Badges ----------
+
+    List<HonorItem> findByType(HonorType type);
+
+    List<HonorItem> findByTypeAndStatisticTypeOrderByThresholdAsc(
+            HonorType type,
+            StatisticType statisticType
     );
 
 }
