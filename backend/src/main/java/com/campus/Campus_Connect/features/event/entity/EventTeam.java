@@ -1,6 +1,7 @@
 package com.campus.Campus_Connect.features.event.entity;
 
 import com.campus.Campus_Connect.features.auth.entity.User;
+import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
