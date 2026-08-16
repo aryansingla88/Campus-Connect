@@ -16,6 +16,8 @@ import com.campus.Campus_Connect.features.event.repository.EventMemberRepository
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.event.service.EventService;
 import com.campus.Campus_Connect.features.event.security.EventPermissionService;
+import com.campus.Campus_Connect.features.honor.service.BadgeEvaluatorService;
+import com.campus.Campus_Connect.features.honor.enums.StatisticType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,7 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final EventMemberRepository eventMemberRepository;
     private final EventPermissionService permissionService;
+    private final BadgeEvaluatorService badgeEvaluatorService;
 
     @Override
     public ApiResponse<List<EventResponse>> getEventFeed() {
@@ -107,6 +110,19 @@ public class EventServiceImpl implements EventService {
                         .build();
 
         eventMemberRepository.save(creatorMember);
+
+        //For Badges--aryan
+        long hostedCount =
+                eventMemberRepository.countByUser_IdAndRole(
+                        creator.getId(),
+                        EventMemberRole.CREATOR
+                );
+
+        badgeEvaluatorService.evaluateBadges(
+                creator.getId(),
+                StatisticType.HOSTED_EVENTS,
+                Math.toIntExact(hostedCount)
+        );
 
         return ApiResponse.success(
                 eventMapper.toResponse(event),

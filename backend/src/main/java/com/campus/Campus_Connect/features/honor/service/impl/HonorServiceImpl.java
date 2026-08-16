@@ -14,7 +14,7 @@ import com.campus.Campus_Connect.features.event.repository.EventTeamRepository;
 import com.campus.Campus_Connect.features.event.security.EventValidationService;
 import com.campus.Campus_Connect.features.event.security.EventPermissionService;
 import com.campus.Campus_Connect.features.honor.dto.request.AwardMedalRequest;
-import com.campus.Campus_Connect.features.honor.dto.response.EventMedalsResponse;
+import com.campus.Campus_Connect.features.honor.dto.response.MedalsResponse;
 import com.campus.Campus_Connect.features.honor.dto.response.MedalCandidateResponse;
 import com.campus.Campus_Connect.features.honor.dto.response.MedalResponse;
 import com.campus.Campus_Connect.features.honor.entity.HonorItem;
@@ -24,8 +24,16 @@ import com.campus.Campus_Connect.features.honor.enums.HonorType;
 import com.campus.Campus_Connect.features.honor.enums.MedalType;
 import com.campus.Campus_Connect.features.honor.mapper.HonorMapper;
 import com.campus.Campus_Connect.features.honor.repository.HonorItemRepository;
+import com.campus.Campus_Connect.features.honor.repository.HonorPointsRepository;
 import com.campus.Campus_Connect.features.honor.repository.UserHonorRepository;
+import com.campus.Campus_Connect.features.honor.service.BadgeEvaluatorService;
 import com.campus.Campus_Connect.features.honor.service.HonorService;
+import com.campus.Campus_Connect.features.honor.enums.StatisticType;
+import com.campus.Campus_Connect.common.security.SecurityUtils;
+import com.campus.Campus_Connect.features.auth.repository.UserRepository;
+import com.campus.Campus_Connect.features.honor.dto.response.HonorResponse;
+import com.campus.Campus_Connect.features.honor.dto.response.ProfileHonorsResponse;
+import com.campus.Campus_Connect.features.honor.dto.request.UpdateHonorPriorityRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,23 +50,19 @@ import java.util.stream.Collectors;
 public class HonorServiceImpl implements HonorService {
 
     private final EventRegistrationRepository eventRegistrationRepository;
-
     private final EventTeamRepository eventTeamRepository;
-
     private final ParticipantDisplayMapper participantDisplayMapper;
-
     private final HonorItemRepository honorItemRepository;
-
     private final UserHonorRepository userHonorRepository;
-
     private final EventValidationService eventValidationService;
-
     private final EventPermissionService permissionService;
-
     private final HonorMapper honorMapper;
+    private final BadgeEvaluatorService badgeEvaluatorService;
+    private final UserRepository userRepository;
+    private final HonorPointsRepository honorPointsRepository;
 
     @Override
-    public ApiResponse<EventMedalsResponse> getEventMedals(
+    public ApiResponse<MedalsResponse> getEventMedals(
             Integer eventId
     ) {
 
@@ -90,8 +94,8 @@ public class HonorServiceImpl implements HonorService {
         if (silver.getAwarded()) awardedCount++;
         if (bronze.getAwarded()) awardedCount++;
 
-        EventMedalsResponse response =
-                EventMedalsResponse.builder()
+        MedalsResponse response =
+                MedalsResponse.builder()
                         .gold(gold)
                         .silver(silver)
                         .bronze(bronze)
@@ -464,5 +468,168 @@ public class HonorServiceImpl implements HonorService {
         userHonorRepository.save(
                 userHonor
         );
+
+        // For Badges -- aryan
+        long medalCount =
+                userHonorRepository.countByUser_IdAndHonor_Type(
+                        user.getId(),
+                        HonorType.MEDAL
+                );
+
+        badgeEvaluatorService.evaluateBadges(
+                user.getId(),
+                StatisticType.MEDALS_WON,
+                Math.toIntExact(medalCount)
+        );
     }
+
+//    ------------------------------------------------------
+
+    @Override
+    public ApiResponse<ProfileHonorsResponse> getMyHonors() {
+
+        User currentUser = SecurityUtils.getCurrentUser();
+
+        return getHonorsForUser(currentUser.getId());
+    }
+
+    @Override
+    public ApiResponse<ProfileHonorsResponse> getUserHonors(
+            Integer userId
+    ) {
+
+        userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found.")
+                );
+
+        return getHonorsForUser(userId);
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<Void> updateHonorPriority(
+            UpdateHonorPriorityRequest request
+    ) {
+
+        User currentUser = SecurityUtils.getCurrentUser();
+
+        UserHonor targetHonor =
+                userHonorRepository
+                        .findByUser_IdAndHonor_Id(
+                                currentUser.getId(),
+                                request.getHonorId()
+                        )
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Honor not found."
+                                )
+                        );
+
+        HonorType honorType =
+                targetHonor.getHonor().getType();
+
+        List<UserHonor> honors =
+                userHonorRepository
+                        .findByUser_IdAndHonor_TypeOrderByPriorityAsc(
+                                currentUser.getId(),
+                                honorType
+                        );
+
+        honors.remove(targetHonor);
+
+        int newIndex = request.getPriority() - 1;
+
+        if (newIndex < 0 || newIndex > honors.size()) {
+            throw new BadRequestException(
+                    "Invalid honor priority."
+            );
+        }
+
+        honors.add(newIndex, targetHonor);
+
+        for (int i = 0; i < honors.size(); i++) {
+            honors.get(i).setPriority(i + 1);
+        }
+
+        userHonorRepository.saveAll(honors);
+
+        return ApiResponse.success(
+                null,
+                "Honor priority updated successfully."
+        );
+    }
+
+    private ApiResponse<ProfileHonorsResponse> getHonorsForUser(
+            Integer userId
+    ) {
+
+        List<UserHonor> badges =
+                userHonorRepository
+                        .findByUser_IdAndHonor_TypeOrderByPriorityAsc(
+                                userId,
+                                HonorType.BADGE
+                        );
+
+        List<UserHonor> medals =
+                userHonorRepository
+                        .findByUser_IdAndHonor_TypeOrderByPriorityAsc(
+                                userId,
+                                HonorType.MEDAL
+                        );
+
+        List<HonorResponse> badgeResponses =
+                badges.stream()
+                        .map(this::buildHonorResponse)
+                        .toList();
+
+        List<HonorResponse> medalResponses =
+                medals.stream()
+                        .map(this::buildHonorResponse)
+                        .toList();
+
+        ProfileHonorsResponse response =
+                ProfileHonorsResponse.builder()
+                        .honorRank(getHonorRank(userId))
+                        .badges(badgeResponses)
+                        .medals(medalResponses)
+                        .build();
+
+        return ApiResponse.success(
+                response,
+                "Honors fetched successfully."
+        );
+    }
+
+    private HonorResponse buildHonorResponse(
+            UserHonor userHonor
+    ) {
+
+        HonorItem honor = userHonor.getHonor();
+
+        return HonorResponse.builder()
+                .honorId(honor.getId())
+                .type(honor.getType())
+                .title(honor.getTitle())
+                .subtitle(honor.getSubtitle())
+                .iconUrl(honor.getIconUrl())
+                .eventId(
+                        honor.getEvent() != null
+                                ? honor.getEvent().getId()
+                                : null
+                )
+                .priority(userHonor.getPriority())
+                .awardedAt(userHonor.getAwardedAt())
+                .build();
+    }
+
+    private Integer getHonorRank(Integer userId) {
+
+        long usersWithMorePoints =
+                honorPointsRepository.countUsersWithMorePoints(userId);
+
+        return Math.toIntExact(usersWithMorePoints + 1);
+    }
+
+
 }

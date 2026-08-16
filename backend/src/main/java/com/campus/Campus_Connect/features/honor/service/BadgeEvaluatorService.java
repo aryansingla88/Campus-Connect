@@ -24,7 +24,7 @@ public class BadgeEvaluatorService {
             StatisticType statisticType,
             int currentValue
     ) {
-        
+
         List<HonorItem> badges =
                 honorItemRepository.findByTypeAndStatisticTypeOrderByThresholdAsc(
                         HonorType.BADGE,
@@ -45,7 +45,13 @@ public class BadgeEvaluatorService {
             }
 
             UserHonor userHonor = new UserHonor();
-            userHonor.setId(new UserHonorId(userId, badge.getId()));
+
+            userHonor.setId(
+                    new UserHonorId(
+                            userId,
+                            badge.getId()
+                    )
+            );
 
             userHonorRepository.save(userHonor);
         }
