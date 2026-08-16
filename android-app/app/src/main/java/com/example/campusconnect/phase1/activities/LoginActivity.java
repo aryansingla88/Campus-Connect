@@ -49,27 +49,23 @@ public class LoginActivity extends AppCompatActivity {
                 String Name = username.getText().toString().trim();
                 String Pass = password.getText().toString().trim();
 
-                // -------------------------------
                 // 1️ Username empty check
-                // -------------------------------
+
 
                 if(Name.isEmpty()){
                     warning.setText("Username cannot be empty");
                     return;
                 }
 
-                // -------------------------------
-                // 2️⃣ Password empty check
-                // -------------------------------
+                // 2️ Password empty check
 
                 if(Pass.isEmpty()){
                     warning.setText("Password cannot be empty");
                     return;
                 }
 
-                // ==================================================
-                // ✅ If both fields valid → CALL BACKEND
-                // ==================================================
+
+                //  If both fields valid → CALL BACKEND
 
                 LoginRequest request = new LoginRequest(Name, Pass);
 

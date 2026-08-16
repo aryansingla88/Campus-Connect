@@ -22,4 +22,15 @@ public interface EventRegistrationRepository
             Integer eventId,
             Integer userId
     );
+
+    Optional<EventRegistration> findByIdAndEventId(
+            Integer registrationId,
+            Integer eventId
+    );
+
+    List<EventRegistration> findByEventIdAndTeamId(
+            Integer eventId,
+            Integer teamId
+    );
+
 }

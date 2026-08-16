@@ -5,7 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
+
 public interface EventRepository extends JpaRepository<Event, Integer> {
+
+    List<Event> findByCreator_Id(
+            Integer creatorId
+    );
 
     // 1. App ki Feed ke liye: Seedha Level (6 to 1) aur Score ke basis par sorted
     // Note: Agar tumhara EventState enum me 'ACTIVE' ki jagah 'PUBLISHED' ya 'ONGOING' hai, toh usko replace kar lena.

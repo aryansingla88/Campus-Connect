@@ -2,8 +2,10 @@ package com.campus.Campus_Connect.features.event.security;
 
 import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
 import com.campus.Campus_Connect.common.exception.UnauthorizedException;
+import com.campus.Campus_Connect.common.security.AuthorizationUtils;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
+import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.event.entity.EventMember;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.event.repository.EventMemberRepository;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 public class EventPermissionService {
 
     private final EventMemberRepository eventMemberRepository;
+    private final EventValidationService eventValidationService;
 
     public EventMember getCurrentMember(Integer eventId) {
 
@@ -31,17 +34,17 @@ public class EventPermissionService {
                         ));
     }
 
-    public EventMember requireCreator(Integer eventId) {
+    public void requireCreator(
+            Integer eventId
+    ) {
 
-        EventMember member = getCurrentMember(eventId);
+        Event event = eventValidationService.getEvent(
+                eventId
+        );
 
-        if (member.getRole() != EventMemberRole.CREATOR) {
-            throw new UnauthorizedException(
-                    "Only the event creator can perform this action."
-            );
-        }
-
-        return member;
+        AuthorizationUtils.requireOwner(
+                event.getCreator().getId()
+        );
     }
 
     public EventMember requireManager(Integer eventId) {

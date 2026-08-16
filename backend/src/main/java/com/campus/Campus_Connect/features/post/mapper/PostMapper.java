@@ -61,7 +61,7 @@ public class PostMapper {
 
         return PostResponse.builder()
                 .id(post.getId())
-                .username(null) // Will come from User entity later
+                .username(post.getCreator().getUsername())
                 .title(post.getTitle())
                 .body(post.getContentRaw())
                 .tags(toPostTagResponseList(post.getTags()))
@@ -83,7 +83,7 @@ public class PostMapper {
                                 ? comment.getParentComment().getId()
                                 : null
                 )
-                .username(null) // Will come from User entity later
+                .username(comment.getCreator().getUsername())
                 .body(comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .build();
