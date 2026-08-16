@@ -1,6 +1,5 @@
 package com.campus.Campus_Connect.features.honor.repository;
 
-import com.campus.Campus_Connect.features.event.entity.EventRegistration;
 import com.campus.Campus_Connect.features.honor.entity.HonorItem;
 import com.campus.Campus_Connect.features.honor.enums.HonorType;
 import org.springframework.data.jpa.repository.JpaRepository;
