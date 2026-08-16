@@ -1,7 +1,7 @@
 package com.example.campusconnect.backend.api
 
-import com.example.campusconnect.backend.request.LoginRequest
 import com.example.campusconnect.backend.response.LoginResponse
+import com.example.campusconnect.feature.auth.data.remote.request.LoginRequest
 
 object AuthApi {
 
@@ -10,7 +10,7 @@ object AuthApi {
         // Fake backend logic
 
         return if (
-            request.username == "test" &&
+            request.identifier == "test" &&
             request.password == "1234"
         ) {
 
