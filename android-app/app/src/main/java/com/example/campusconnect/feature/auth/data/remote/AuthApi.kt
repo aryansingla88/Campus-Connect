@@ -1,6 +1,5 @@
 package com.example.campusconnect.feature.auth.data.remote
 
-import com.example.campusconnect.backend.request.LoginRequest
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.auth.data.remote.request.LoginRequest
 import com.example.campusconnect.feature.auth.data.remote.request.RegisterRequest

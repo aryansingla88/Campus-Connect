@@ -6,9 +6,9 @@ import com.example.campusconnect.feature.map.data.remote.request.EventRegReq
 import com.example.campusconnect.feature.map.data.remote.response.EventMapRes
 import com.example.campusconnect.feature.map.data.remote.response.PoiRes
 import com.example.campusconnect.feature.map.data.remote.response.ShopRes
-import com.example.campusconnect.feature.map.data.remote.response.UserMapRes
 import com.example.campusconnect.feature.map.data.remote.response.toMarker
 import com.example.campusconnect.feature.map.data.remote.response.toPoiInfo
+import com.example.campusconnect.feature.map.data.remote.response.toMapUserProfile
 import com.example.campusconnect.feature.map.mapengine.MapMarker
 import com.example.campusconnect.feature.map.mapengine.MarkerSize
 import com.example.campusconnect.feature.map.mapengine.MarkerType
@@ -63,11 +63,13 @@ class ApiMapRepo(
         }
     }
 
+    // Modified: Int conversion for UserPreviewRes endpoint call
     override suspend fun getUserProfile(
         userId: String
     ): Result<MapUserProfile> {
         return runCatching {
-            val response = api.getUserProfile(userId)
+            val numericUserId = userId.replace("USER_", "").toIntOrNull() ?: 1
+            val response = api.getUserProfile(numericUserId)
 
             if (!response.success || response.data == null) {
                 throw Exception(response.message ?: "Unable to load user profile")
@@ -191,8 +193,8 @@ private fun EventMapRes.toMapMarker(): MapMarker {
         id = "EVENT_$id",
         sourceId = id,
         type = MarkerType.EVENT,
-        latitude = latitude ?: 0.0,   // Handled nullability
-        longitude = longitude ?: 0.0, // Handled nullability
+        latitude = latitude ?: 0.0,
+        longitude = longitude ?: 0.0,
         label = title,
         size = MarkerSize.MEDIUM
     )
@@ -203,26 +205,14 @@ private fun ShopRes.toMapMarker(): MapMarker {
         id = "SHOP_$id",
         sourceId = id,
         type = MarkerType.SHOP,
-        latitude = latitude ?: 0.0,   // Handled nullability
-        longitude = longitude ?: 0.0, // Handled nullability
+        latitude = latitude ?: 0.0,
+        longitude = longitude ?: 0.0,
         label = name,
         size = MarkerSize.MEDIUM
     )
 }
 
-private fun UserMapRes.toMapUserProfile(): MapUserProfile {
-    return MapUserProfile(
-        id = userId.toString(),
-        fullName = username,
-        course = "",
-        startYear = 0,
-        endYear = 0,
-        description = "",
-        badges = emptyList(),
-        medals = emptyList(),
-        mutualFriendsCount = 0
-    )
-}
+// Removed old UserMapRes.toMapUserProfile() since UserPreviewRes.toMapUserProfile() is used
 
 private fun EventMapRes.toMapEventInfo(): MapEventInfo {
     return MapEventInfo(

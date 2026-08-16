@@ -8,6 +8,7 @@ import com.example.campusconnect.feature.map.data.remote.response.EventMapRes
 import com.example.campusconnect.feature.map.data.remote.response.PoiRes
 import com.example.campusconnect.feature.map.data.remote.response.ShopRes
 import com.example.campusconnect.feature.map.data.remote.response.UserMapRes
+import com.example.campusconnect.feature.map.data.remote.response.UserPreviewRes
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -16,7 +17,7 @@ import retrofit2.http.Path
 
 interface MapApi {
 
-    // Domain List Endpoints (Separate APIs for each domain) ---------------------
+    // Domain List Endpoints -----------------------------------------------------
 
     @GET("presence")
     suspend fun getVisibleUsers(): ApiResponse<List<UserMapRes>>
@@ -31,12 +32,12 @@ interface MapApi {
     suspend fun getShops(): ApiResponse<List<ShopRes>>
 
 
-    // User Marker & Profile Endpoints ------------------------------------------
+    // User Marker & Preview Card Endpoints -------------------------------------
 
-    @GET("users/{userId}")
+    @GET("presence/users/{userId}/preview")
     suspend fun getUserProfile(
-        @Path("userId") userId: String
-    ): ApiResponse<UserMapRes>
+        @Path("userId") userId: Int
+    ): ApiResponse<UserPreviewRes>
 
     @POST("users/{userId}/connections/request")
     suspend fun sendConnectionRequest(
