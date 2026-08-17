@@ -5,6 +5,7 @@ import com.example.campusconnect.feature.map.data.remote.request.EventRegReq
 import com.example.campusconnect.feature.map.data.remote.response.CategoryRes
 import com.example.campusconnect.feature.map.data.remote.response.EventHostRes
 import com.example.campusconnect.feature.map.data.remote.response.EventMapRes
+import com.example.campusconnect.feature.map.data.remote.response.EventPreviewRes
 import com.example.campusconnect.feature.map.data.remote.response.PoiRes
 import com.example.campusconnect.feature.map.data.remote.response.ShopRes
 import com.example.campusconnect.feature.map.data.remote.response.UserMapRes
@@ -55,6 +56,11 @@ interface MapApi {
 
     // Event Marker Card --------------------------------------------------------
 
+    @GET("map/events/{eventId}/preview")
+    suspend fun getEventPreview(
+        @Path("eventId") eventId: Int
+    ): ApiResponse<EventPreviewRes>
+
     @GET("events/{eventId}")
     suspend fun getEventInfo(
         @Path("eventId") eventId: String
@@ -65,10 +71,10 @@ interface MapApi {
         @Path("eventId") eventId: String
     ): ApiResponse<List<EventHostRes>>
 
-    @POST("events/{eventId}/registrations")
+    @POST("events/{eventId}/register")
     suspend fun registerEvent(
         @Path("eventId") eventId: String,
-        @Body request: EventRegReq
+        @Body request: EventRegReq = EventRegReq()
     ): ApiResponse<Unit>
 
     @POST("events/{eventId}/reminders")

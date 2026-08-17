@@ -1,6 +1,6 @@
 package com.example.campusconnect.feature.map.data.fake
 
-import android.R as AndroidR
+import com.example.campusconnect.feature.map.model.HostInfo
 import com.example.campusconnect.feature.map.model.MapEventInfo
 
 object FakeMapEventInfoService {
@@ -11,26 +11,48 @@ object FakeMapEventInfoService {
     ): MapEventInfo {
         return when (eventId) {
 
-            "event_1" -> MapEventInfo(
+            // Event 1: Poster Card Variant
+            "event_1", "EVENT_1", "1" -> MapEventInfo(
                 id = eventId,
                 title = "Dance Competition",
                 hostName = "Cultural Club",
                 date = "12 Jun",
                 time = "6:00 PM",
-                description = "A college dance competition is a high-energy event where students showcase choreography, technique, and synchronization across genres like hip-hop, contemporary, and traditional folk.",
-                posterResId = null
+                description = "A college dance competition is a high-energy event where students showcase choreography.",
+                venue = "Student Center Ballrooms",
+              //  posterUrl = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800",
+                posterUrl =null,
+                posterResId = com.example.campusconnect.R.drawable.test_poster,
+               // posterUrl = "https://picsum.photos/600/800",
+                // Only Event 1 gets poster
+                isJoined = true,
+                hosts = listOf(
+                    HostInfo(1, "Alex"),
+                    HostInfo(2, "Maria"),
+                    HostInfo(3, "Chen"),
+                    HostInfo(4, "Fatima")
+                )
             )
 
-            "event_2" -> MapEventInfo(
+            // Event 2: Normal Description Card Variant
+            "event_2", "EVENT_2", "2" -> MapEventInfo(
                 id = eventId,
                 title = "Hackathon",
                 hostName = "Coding Club",
                 date = "15 Jun",
                 time = "10:00 AM",
                 description = "A 24-hour coding event where students build creative tech solutions, collaborate in teams, and present their ideas.",
-                posterResId = AndroidR.drawable.ic_menu_gallery // temporary test poster
+                venue = "Main Auditorium",
+                posterUrl = null,
+                posterResId = null, // No poster = Normal Description Card
+                isJoined = true,
+                hosts = listOf(
+                    HostInfo(5, "Rahul"),
+                    HostInfo(6, "Priya")
+                )
             )
 
+            // Default Fallback: Normal Description Card Variant
             else -> MapEventInfo(
                 id = eventId,
                 title = fallbackTitle,
@@ -38,7 +60,11 @@ object FakeMapEventInfoService {
                 date = "Coming Soon",
                 time = "TBA",
                 description = "$fallbackTitle event details will be loaded from backend later.",
-                posterResId = null
+                venue = "Campus Complex",
+                posterUrl = null,
+                posterResId = null,
+                isJoined = false, // Fixed: Added missing parameter here
+                hosts = emptyList()
             )
         }
     }

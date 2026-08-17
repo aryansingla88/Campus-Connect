@@ -9,6 +9,7 @@ import com.example.campusconnect.feature.map.data.remote.response.ShopRes
 import com.example.campusconnect.feature.map.data.remote.response.toMarker
 import com.example.campusconnect.feature.map.data.remote.response.toPoiInfo
 import com.example.campusconnect.feature.map.data.remote.response.toMapUserProfile
+import com.example.campusconnect.feature.map.data.remote.response.toMapEventInfo
 import com.example.campusconnect.feature.map.mapengine.MapMarker
 import com.example.campusconnect.feature.map.mapengine.MarkerSize
 import com.example.campusconnect.feature.map.mapengine.MarkerType
@@ -63,7 +64,6 @@ class ApiMapRepo(
         }
     }
 
-    // Modified: Int conversion for UserPreviewRes endpoint call
     override suspend fun getUserProfile(
         userId: String
     ): Result<MapUserProfile> {
@@ -102,13 +102,19 @@ class ApiMapRepo(
         eventId: String
     ): Result<MapEventInfo> {
         return runCatching {
-            val response = api.getEventInfo(eventId)
+            val numericId = eventId.replace("EVENT_", "").replace("event_", "").toIntOrNull() ?: 1
+            val response = api.getEventPreview(numericId)
 
             if (!response.success || response.data == null) {
-                throw Exception(response.message ?: "Unable to load event")
+                throw Exception(response.message ?: "Unable to load event preview")
             }
 
-            response.data.toMapEventInfo()
+            val eventData = response.data.toMapEventInfo()
+
+            // Testing ke liye hardcode test URL inject karein
+            eventData.copy(
+                posterUrl = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800"
+            )
         }
     }
 
@@ -186,7 +192,7 @@ class ApiMapRepo(
     }
 }
 
-// Extension functions for remaining DTO mappings
+// Extension functions for DTO mappings
 
 private fun EventMapRes.toMapMarker(): MapMarker {
     return MapMarker(
@@ -209,20 +215,6 @@ private fun ShopRes.toMapMarker(): MapMarker {
         longitude = longitude ?: 0.0,
         label = name,
         size = MarkerSize.MEDIUM
-    )
-}
-
-// Removed old UserMapRes.toMapUserProfile() since UserPreviewRes.toMapUserProfile() is used
-
-private fun EventMapRes.toMapEventInfo(): MapEventInfo {
-    return MapEventInfo(
-        id = id,
-        title = title,
-        hostName = hostName ?: "Campus Team",
-        date = date ?: startTime ?: "Coming Soon",
-        time = time ?: "TBA",
-        description = description ?: "",
-        posterResId = null
     )
 }
 

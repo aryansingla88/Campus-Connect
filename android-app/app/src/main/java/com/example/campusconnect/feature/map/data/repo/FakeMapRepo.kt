@@ -66,15 +66,13 @@ class FakeMapRepo : MapRepo {
     }
 
     // Preserved: Event bottom sheet details
-    override suspend fun getEventInfo(
-        eventId: String
-    ): Result<MapEventInfo> {
-        return Result.success(
+    override suspend fun getEventInfo(eventId: String): Result<MapEventInfo> {
+        return runCatching {
             FakeMapEventInfoService.getEventInfo(
                 eventId = eventId,
                 fallbackTitle = "Campus Event"
             )
-        )
+        }
     }
 
     // Preserved: Event actions
