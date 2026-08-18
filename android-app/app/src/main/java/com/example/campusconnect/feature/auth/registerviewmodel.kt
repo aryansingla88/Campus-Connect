@@ -6,14 +6,30 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import com.example.campusconnect.feature.auth.FakeAuthRepository
 import com.example.campusconnect.feature.auth.data.remote.response.CourseResponse
+import com.example.campusconnect.feature.auth.data.repo.ApiCourseRepository
+import com.example.campusconnect.feature.auth.data.repo.ApiAuthRepository
+import com.example.campusconnect.feature.auth.domain.repository.AuthRepository
+import com.example.campusconnect.feature.auth.data.repo.CourseRepository
+import com.example.campusconnect.feature.auth.data.remote.request.RegisterRequest
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import com.example.campusconnect.feature.auth.data.google.GoogleEmailVerificationResult
+import com.example.campusconnect.feature.auth.data.google.GoogleEmailVerifier
 
 class RegisterViewModel(application: Application)
     : AndroidViewModel(application) {
+
+    private val courseRepository: CourseRepository =
+        ApiCourseRepository()
+
+    private val authRepository: AuthRepository =
+        ApiAuthRepository()
+
+    init {
+        loadCourses()
+    }
 
     // username
     /*
@@ -35,6 +51,13 @@ class RegisterViewModel(application: Application)
             StateFlow<Boolean> =
         _emailVerified
 
+    private val _googleIdToken =
+        MutableStateFlow<String?>(null)
+
+    val googleIdToken:
+            StateFlow<String?> =
+        _googleIdToken
+
     // password
 
     private val _password = MutableStateFlow("")
@@ -55,7 +78,8 @@ class RegisterViewModel(application: Application)
     private val _courses =
         MutableStateFlow<List<CourseResponse>>(emptyList())
 
-    val courses: StateFlow<List<CourseResponse>> = _courses
+    val courses: StateFlow<List<CourseResponse>> =
+        _courses
 
     private val _selectedCourse =
         MutableStateFlow<CourseResponse?>(null)
@@ -63,10 +87,9 @@ class RegisterViewModel(application: Application)
     val selectedCourse: StateFlow<CourseResponse?> =
         _selectedCourse
 
-    // year
-
-    private val _year = MutableStateFlow("")
-    val year: StateFlow<String> = _year
+    // admission year
+    private val _admissionYear = MutableStateFlow("")
+    val admissionYear: StateFlow<String> = _admissionYear
 
     // gender
 
@@ -77,6 +100,9 @@ class RegisterViewModel(application: Application)
 
     private val _dob = MutableStateFlow("")
     val dob: StateFlow<String> = _dob
+
+
+
     //warning
     private val _messageEvent =
         MutableSharedFlow<String>()
@@ -89,6 +115,29 @@ class RegisterViewModel(application: Application)
     private val _registerSuccess = MutableStateFlow(false)
     val registerSuccess: StateFlow<Boolean> = _registerSuccess
 
+    // =========================
+    // course loading
+    // =========================
+
+    private fun loadCourses() {
+
+        viewModelScope.launch {
+
+            courseRepository
+                .getCourses()
+                .onSuccess { courses ->
+
+                    _courses.value = courses
+                }
+                .onFailure { error ->
+
+                    _messageEvent.emit(
+                        error.message
+                            ?: "Failed to load courses"
+                    )
+                }
+        }
+    }
 
     // =========================
     // field update functions
@@ -112,8 +161,8 @@ class RegisterViewModel(application: Application)
         val filtered = value.filter {
             it.isDigit()
         }
-        if(filtered.length<=12){
-        _rollNumber.value = filtered
+        if (filtered.length <= 12) {
+            _rollNumber.value = filtered
         }
     }
 
@@ -149,12 +198,12 @@ class RegisterViewModel(application: Application)
         _realName.value = filtered
     }
 
-    fun onCourseChange(value: String) {
-        _course.value = value
+    fun onCourseChange(value: CourseResponse) {
+        _selectedCourse.value = value
     }
 
-    fun onYearChange(value: String) {
-        _year.value = value
+    fun onAdmissionYearChange(value: String) {
+        _admissionYear.value = value
     }
 
     fun onGenderChange(value: String) {
@@ -186,10 +235,35 @@ class RegisterViewModel(application: Application)
         val confirmPassword = _confirmPassword.value.trim()
 
         val realName = _realName.value.trim()
-        val course = _course.value.trim()
-        val year = _year.value.trim()
+        val selectedCourse = _selectedCourse.value
+        val admissionYear = admissionYear.value.trim()
         val gender = _gender.value.trim()
         val dob = _dob.value.trim()
+
+        if (!_emailVerified.value) {
+
+            viewModelScope.launch {
+                _messageEvent.emit(
+                    "Verify your email with Google first"
+                )
+            }
+
+            return
+        }
+
+        val googleIdToken =
+            _googleIdToken.value
+
+        if (googleIdToken.isNullOrBlank()) {
+
+            viewModelScope.launch {
+                _messageEvent.emit(
+                    "Google verification is required"
+                )
+            }
+
+            return
+        }
 
         // empty checks
 
@@ -273,17 +347,18 @@ class RegisterViewModel(application: Application)
             return
         }
 
-        if (course.isEmpty()) {
+        if (selectedCourse == null) {
             viewModelScope.launch {
 
                 _messageEvent.emit(
-                    "Enter course"
+                    "Select course"
                 )
             }
+
             return
         }
 
-        if (year.isEmpty()) {
+        if (admissionYear.isEmpty()) {
             viewModelScope.launch {
 
                 _messageEvent.emit(
@@ -313,49 +388,76 @@ class RegisterViewModel(application: Application)
             return
         }
 
+        val backendDob = try {
+            val parts = dob.split("/")
 
-        // temporary local storage
+            if (parts.size != 3) {
+                throw IllegalArgumentException("Invalid DOB format")
+            }
 
-        val prefs = getApplication<Application>()
-            .getSharedPreferences(
-                "CampusApp",
-                Context.MODE_PRIVATE
+            val day = parts[0].toInt()
+            val month = parts[1].toInt()
+            val year = parts[2].toInt()
+
+            String.format(
+                "%04d-%02d-%02d",
+                year,
+                month,
+                day
             )
 
-        prefs.edit()
+        } catch (e: Exception) {
 
-            .putString("registered_username", username)
+            viewModelScope.launch {
+                _messageEvent.emit("Invalid DOB")
+            }
 
-            .putString("registered_email", email)
+            return
+        }
 
-            .putString("registered_password", password)
 
-            .putString("real_name", realName)
+        val request = RegisterRequest(
+            username = username,
+            email = email,
+            password = password,
+            fullName = realName,
+            courseId = selectedCourse.courseId,
+            admissionYear = admissionYear.toInt(),
+            gender = gender,
+            dob = backendDob,
+            rollNumber = rollNumber,
+            googleIdToken = googleIdToken
+        )
 
-            .putString("course", course)
+        viewModelScope.launch {
 
-            .putString("year", year)
+            authRepository
+                .register(request)
+                .onSuccess {
+                    _registerSuccess.value = true
 
-            .putString("gender", gender)
-
-            .putString("dob", dob)
-
-            .apply()
-
-        // registration success
-
-        _registerSuccess.value = true
+                    _messageEvent.emit(
+                        "Registration successful"
+                    )
+                }
+                .onFailure { error ->
+                    _messageEvent.emit(
+                        error.message
+                            ?: "Registration failed"
+                    )
+                }
+        }
     }
-    fun sendOtp() {
+
+
+    fun verifyGoogleEmail(context: Context) {
 
         val rollNumber =
             _rollNumber.value.trim()
 
         if (rollNumber.isEmpty()) {
-            // clear warning
 
             viewModelScope.launch {
-
                 _messageEvent.emit(
                     "Enter roll number"
                 )
@@ -363,63 +465,79 @@ class RegisterViewModel(application: Application)
 
             return
         }
+
         if (rollNumber.length !in 6..12) {
 
             viewModelScope.launch {
-
                 _messageEvent.emit(
                     "Roll number must be 6-12 digits"
                 )
             }
 
-
             return
         }
 
-        val email =
-            "$rollNumber@nitkkr.ac.in"
+        viewModelScope.launch {
 
-        val success =
-            FakeAuthRepository.sendOtp(email)
+            when (
+                val result =
+                    GoogleEmailVerifier.verify(context)
+            ) {
 
-        if (success) {
-            viewModelScope.launch {
+                is GoogleEmailVerificationResult.Success -> {
 
-                _messageEvent.emit(
-                    "OTP sent successfully"
-                )
+                    val expectedEmail =
+                        "$rollNumber@nitkkr.ac.in"
+
+                    if (
+                        result.email.equals(
+                            expectedEmail,
+                            ignoreCase = true
+                        )
+                    ) {
+
+                        _googleIdToken.value =
+                            result.idToken
+
+                        _emailVerified.value =
+                            true
+
+                        _messageEvent.emit(
+                            "Email verified successfully"
+                        )
+
+                    } else {
+
+                        _googleIdToken.value =
+                            null
+
+                        _emailVerified.value =
+                            false
+
+                        _messageEvent.emit(
+                            "Google account does not match $expectedEmail"
+                        )
+                    }
+                }
+
+                is GoogleEmailVerificationResult.Failure -> {
+
+                    _googleIdToken.value = null
+
+                    _emailVerified.value = false
+
+                    _messageEvent.emit(
+                        result.message
+                    )
+                }
+
+                GoogleEmailVerificationResult.Cancelled -> {
+
+                    _messageEvent.emit(
+                        "Google verification cancelled"
+                    )
+                }
             }
         }
-    }
-    fun verifyOtp(
-
-        otp: String
-
-    ): VerifyOtpResult {
-
-        val email =
-
-            "${_rollNumber.value}@nitkkr.ac.in"
-
-        val result =
-
-            FakeAuthRepository.verifyOtp(
-                email,
-                otp
-            )
-
-        if (result is VerifyOtpResult.Success) {
-
-            _emailVerified.value = true
-
-            viewModelScope.launch {
-
-                _messageEvent.emit(
-                    "Email verified successfully"
-                )
-            }
-        }
-
-        return result
     }
 }

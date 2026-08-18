@@ -18,5 +18,7 @@ data class RegisterRequest(
 
     val dob: String,
 
-    val rollNumber: String
+    val rollNumber: String,
+
+    val googleIdToken: String
 )
