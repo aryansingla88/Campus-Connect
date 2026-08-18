@@ -8,8 +8,8 @@ import java.util.Optional;
 
 public interface CourseRepository extends JpaRepository<Course, Integer> {
 
-    List<Course> findAllByIsActiveTrueOrderByDegreeAscProgramNameAsc();
+    List<Course> findAllByOrderByDegreeAscProgramAsc();
 
-    Optional<Course> findByIdAndIsActiveTrue(Integer id);
+    Optional<Course> findById(Integer id);
 
 }

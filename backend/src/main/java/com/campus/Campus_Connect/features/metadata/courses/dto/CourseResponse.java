@@ -13,7 +13,7 @@ public class CourseResponse {
 
     private String degree;
 
-    private String programname;      // null if hasBranch = false
+    private String programName;
 
     private String courseCode;
 }
