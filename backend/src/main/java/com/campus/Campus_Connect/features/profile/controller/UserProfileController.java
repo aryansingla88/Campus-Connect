@@ -16,7 +16,7 @@ public class UserProfileController {
 
     private final UserProfileService userProfileService;
 
-    @GetMapping
+    @GetMapping("/me")
     public ApiResponse<UserProfileResponse> getMyProfile(){
         return userProfileService.getMyProfile();
     }
@@ -29,7 +29,7 @@ public class UserProfileController {
         return userProfileService.getUserProfile(userId);
     }
 
-    @PatchMapping
+    @PatchMapping("/me")
     public ApiResponse<UserProfileResponse> updateMyProfile(
             @RequestBody UpdateUserProfileRequest request
     ){

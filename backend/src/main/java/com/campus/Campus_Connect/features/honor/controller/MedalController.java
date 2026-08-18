@@ -2,7 +2,7 @@ package com.campus.Campus_Connect.features.honor.controller;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.features.honor.dto.request.AwardMedalRequest;
-import com.campus.Campus_Connect.features.honor.dto.response.EventMedalsResponse;
+import com.campus.Campus_Connect.features.honor.dto.response.MedalsResponse;
 import com.campus.Campus_Connect.features.honor.dto.response.MedalCandidateResponse;
 import com.campus.Campus_Connect.features.honor.service.HonorService;
 import jakarta.validation.Valid;
@@ -14,12 +14,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
-public class EventMedalController {
+public class MedalController {
 
     private final HonorService honorService;
 
     @GetMapping("/{eventId}/medals")
-    public ApiResponse<EventMedalsResponse> getEventMedals(
+    public ApiResponse<MedalsResponse> getEventMedals(
             @PathVariable Integer eventId
     ) {
 

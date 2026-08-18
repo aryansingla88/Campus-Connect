@@ -42,5 +42,4 @@ public interface HonorItemRepository
             HonorType type,
             StatisticType statisticType
     );
-
 }

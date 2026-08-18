@@ -20,7 +20,7 @@ public class CourseService {
 
     public ApiResponse<List<CourseResponse>> getCourses() {
 
-        List<Course> courses = courseRepository.findAllByIsActiveTrueOrderByDegreeAscProgramNameAsc();
+        List<Course> courses = courseRepository.findAllByOrderByDegreeAscProgramAsc();
 
         List<CourseResponse> response = new ArrayList<>();
 
@@ -36,7 +36,7 @@ public class CourseService {
 
     public ApiResponse<List<DetailedCourseResponse>> getCourseDetails() {
 
-        List<Course> courses = courseRepository.findAllByIsActiveTrueOrderByDegreeAscProgramNameAsc();
+        List<Course> courses = courseRepository.findAllByOrderByDegreeAscProgramAsc();
 
         List<DetailedCourseResponse> response = new ArrayList<>();
 
@@ -52,7 +52,7 @@ public class CourseService {
 
     public ApiResponse<CourseResponse> getCourseById(Integer courseId) {
 
-        Course course = courseRepository.findByIdAndIsActiveTrue(courseId)
+        Course course = courseRepository.findById(courseId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("Course not found.")
                 );

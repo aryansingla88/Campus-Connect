@@ -172,7 +172,7 @@ public class UserProfileService {
         CourseResponse courseResponse = CourseResponse.builder()
                 .courseId(course.getId())
                 .degree(course.getDegree())
-                .programname(course.getProgramName())
+                .programName(course.getProgram())
                 .courseCode(course.getCourseCode())
                 .build();
 
