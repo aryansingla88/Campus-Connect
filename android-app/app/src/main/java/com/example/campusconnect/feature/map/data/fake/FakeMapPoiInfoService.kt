@@ -12,27 +12,41 @@ object FakeMapPoiInfoService {
 
             "poi_main_gate",
             "main_gate",
-            "poi_1" -> MapPoiInfo(
+            "poi_1",
+            "POI_1" -> MapPoiInfo(
                 id = poiId,
                 name = "Main Gate",
-                type = "poi",
-                description = "The Main Gate of the National Institute of Technology, Kurukshetra is located along Kirmich Road."
+                category = "ENTRY_GATE",
+                description = "The Main Gate of the National Institute of Technology, Kurukshetra is located along Kirmich Road.",
+                iconType = "GATE",
+                visibility = "PUBLIC",
+                priority = 10,
+                sizeString = "LARGE"
             )
 
             "poi_library",
             "library",
-            "poi_2" -> MapPoiInfo(
+            "poi_2",
+            "POI_2" -> MapPoiInfo(
                 id = poiId,
                 name = "Library",
-                type = "poi",
-                description = "The Library of the National Institute of Technology, Kurukshetra serves as an important academic."
+                category = "ACADEMIC",
+                description = "The Library of the National Institute of Technology, Kurukshetra serves as an important academic.",
+                iconType = "BOOK",
+                visibility = "PUBLIC",
+                priority = 5,
+                sizeString = "MEDIUM"
             )
 
             else -> MapPoiInfo(
                 id = poiId,
                 name = fallbackName,
-                type = "poi",
-                description = "$fallbackName is an important point of interest on campus. More details will be loaded later."
+                category = "GENERAL",
+                description = "$fallbackName is an important point of interest on campus. More details will be loaded later.",
+                iconType = "DEFAULT",
+                visibility = "PUBLIC",
+                priority = 0,
+                sizeString = "MEDIUM"
             )
         }
     }

@@ -16,14 +16,13 @@ class FakeMapRepo : MapRepo {
     private val fakeMapService = FakeMapService()
     private val fakeUserProfileService = FakeMapUserProfileService()
 
+    // Modified: Only 'search' parameter removed from signature & body
     override suspend fun getMarkers(
-        type: MarkerType?,
-        search: String?
+        type: MarkerType?
     ): Result<List<MapMarker>> {
         var markers = fakeMapService.getMarkers()
 
-        // changed: shops default map me nahi dikhengi
-        // shops sirf dedicated SHOP mode me aayengi
+        // Shops sirf dedicated SHOP mode me dikhenge
         markers = if (type == MarkerType.SHOP) {
             markers.filter { it.type == MarkerType.SHOP }
         } else {
@@ -34,25 +33,10 @@ class FakeMapRepo : MapRepo {
             markers = markers.filter { it.type == type }
         }
 
-        if (!search.isNullOrBlank()) {
-            markers = markers.filter {
-                it.label.contains(search, ignoreCase = true)
-            }
-        }
-
         return Result.success(markers)
     }
 
-    override suspend fun searchMarkers(
-        query: String,
-        type: MarkerType?
-    ): Result<List<MapMarker>> {
-        return getMarkers(
-            type = type,
-            search = query
-        )
-    }
-
+    // Preserved: User preview card data
     override suspend fun getUserProfile(
         userId: String
     ): Result<MapUserProfile> {
@@ -61,51 +45,37 @@ class FakeMapRepo : MapRepo {
         )
     }
 
-    override suspend fun getPoiInfo(
-        poiId: String
-    ): Result<MapPoiInfo> {
-        return Result.success(
-            FakeMapPoiInfoService.getPoiInfo(
-                poiId = poiId,
-                fallbackName = "Campus POI"
-            )
-        )
-    }
-
-    override suspend fun getEventInfo(
-        eventId: String
-    ): Result<MapEventInfo> {
-        return Result.success(
-            FakeMapEventInfoService.getEventInfo(
-                eventId = eventId,
-                fallbackTitle = "Campus Event"
-            )
-        )
-    }
-
-    override suspend fun getShopInfo(
-        shopId: String
-    ): Result<MapShopInfo> {
-        return Result.success(
-            MapShopInfo(
-                id = shopId,
-                name = "Campus Shop",
-                type = "shop",
-                description = "Campus shop details will be loaded later.",
-                openingTime = "09:00 AM",
-                closingTime = "08:00 PM",
-                isOpen = true,
-                phone = null
-            )
-        )
-    }
-
+    // Preserved: Connection request action
     override suspend fun sendConnectionRequest(
         userId: String
     ): Result<Unit> {
         return Result.success(Unit)
     }
 
+    // Preserved: POI bottom sheet details
+    override suspend fun getPoiInfo(
+        poiId: String,
+        fallbackName: String
+    ): Result<MapPoiInfo> {
+        return Result.success(
+            FakeMapPoiInfoService.getPoiInfo(
+                poiId = poiId,
+                fallbackName = if (fallbackName.isBlank()) "Campus POI" else fallbackName
+            )
+        )
+    }
+
+    // Preserved: Event bottom sheet details
+    override suspend fun getEventInfo(eventId: String): Result<MapEventInfo> {
+        return runCatching {
+            FakeMapEventInfoService.getEventInfo(
+                eventId = eventId,
+                fallbackTitle = "Campus Event"
+            )
+        }
+    }
+
+    // Preserved: Event actions
     override suspend fun registerEvent(
         eventId: String
     ): Result<Unit> {
@@ -122,5 +92,23 @@ class FakeMapRepo : MapRepo {
         eventId: String
     ): Result<Unit> {
         return Result.success(Unit)
+    }
+
+    // Preserved: Shop bottom sheet details
+    override suspend fun getShopInfo(
+        shopId: String
+    ): Result<MapShopInfo> {
+        return Result.success(
+            MapShopInfo(
+                id = shopId,
+                name = "Campus Shop",
+                category = "SHOP",
+                description = "Campus shop details will be loaded later.",
+                openingTime = "09:00 AM",
+                closingTime = "08:00 PM",
+                isOpen = true,
+                contactNumber = "+91 9876543210"
+            )
+        )
     }
 }
