@@ -8,15 +8,17 @@ data class RegisterRequest(
 
     val password: String,
 
-    val realName: String,
+    val fullName: String,
 
-    val course: String,
+    val courseId: Int,
 
-    val year: String,
+    val admissionYear: Int,
 
     val gender: String,
 
     val dob: String,
 
-    val rollNumber: String
+    val rollNumber: String,
+
+    val googleIdToken: String
 )
