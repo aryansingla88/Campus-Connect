@@ -12,6 +12,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import java.security.SecureRandom
 import android.util.Base64
+import android.util.Log
 
 sealed class GoogleEmailVerificationResult {
 
@@ -32,6 +33,8 @@ object GoogleEmailVerifier {
     suspend fun verify(
         context: Context
     ): GoogleEmailVerificationResult {
+
+        Log.d("GOOGLE_FLOW", "5. GoogleEmailVerifier.verify() started")
 
         val credentialManager =
             CredentialManager.create(context)
@@ -55,6 +58,11 @@ object GoogleEmailVerifier {
                     .addCredentialOption(authorizedOption)
                     .build()
 
+            Log.d(
+                "GOOGLE_FLOW",
+                "6. Calling getCredential() with authorized accounts"
+            )
+
             val result = try {
 
                 credentialManager.getCredential(
@@ -63,6 +71,13 @@ object GoogleEmailVerifier {
                 )
 
             } catch (e: NoCredentialException) {
+
+                Log.d(
+                    "GOOGLE_FLOW",
+                    "7. No authorized credential, trying ALL accounts"
+                )
+
+
 
                 val allAccountsOption =
                     GetGoogleIdOption.Builder()
@@ -81,13 +96,28 @@ object GoogleEmailVerifier {
                         .addCredentialOption(allAccountsOption)
                         .build()
 
+                Log.d(
+                    "GOOGLE_FLOW",
+                    "8. Calling getCredential() with all accounts"
+                )
+
                 credentialManager.getCredential(
                     context = context,
                     request = allAccountsRequest
                 )
             }
 
+            Log.d(
+                "GOOGLE_FLOW",
+                "9. Credential received successfully"
+            )
+
             val credential = result.credential
+
+            Log.d(
+                "GOOGLE_FLOW",
+                "10. Credential type = ${credential.type}"
+            )
 
             if (
                 credential is CustomCredential &&
@@ -132,12 +162,23 @@ object GoogleEmailVerifier {
 
         } catch (e: GetCredentialException) {
 
+            Log.e(
+                "GOOGLE_FLOW",
+                "ERROR: GetCredentialException",
+                e
+            )
+
             GoogleEmailVerificationResult.Failure(
                 e.message
                     ?: "Google verification failed."
             )
 
         } catch (e: Exception) {
+            Log.e(
+                "GOOGLE_FLOW",
+                "ERROR: Unexpected exception",
+                e
+            )
 
             GoogleEmailVerificationResult.Failure(
                 e.message

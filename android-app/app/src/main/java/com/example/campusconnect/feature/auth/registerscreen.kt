@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import android.app.DatePickerDialog
+import android.util.Log
 import androidx.compose.ui.window.Popup
 import kotlinx.coroutines.delay
 import java.util.Calendar
@@ -199,6 +200,7 @@ fun RegisterScreen(
                             translationX = shakeOffset.value
                         }
                         .clickable {
+                            Log.d("GOOGLE_FLOW", "Verify Email clicked")
                             if (rollNumber.isBlank()) {
 
                                 scope.launch {
@@ -224,7 +226,7 @@ fun RegisterScreen(
 
                                 return@clickable
                             }
-
+                            Log.d("GOOGLE_FLOW", "2. Roll number valid, calling ViewModel")
                             viewModel.verifyGoogleEmail(context)
                         }
                         .padding(top = 6.dp)

@@ -43,7 +43,7 @@ public class AuthService {
             return ApiResponse.failure("Email already exists.");
         }
 
-        courseRepository.findByIdAndIsActiveTrue(request.getCourseId())
+        courseRepository.findById(request.getCourseId())
                 .orElseThrow(() ->
                         new IllegalArgumentException("Invalid or inactive course."));
 

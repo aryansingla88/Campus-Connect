@@ -2,6 +2,7 @@ package com.example.campusconnect.feature.auth
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -452,6 +453,8 @@ class RegisterViewModel(application: Application)
 
     fun verifyGoogleEmail(context: Context) {
 
+        Log.e("TEST_AUTH", "VERIFY GOOGLE EMAIL FUNCTION ENTERED")
+
         val rollNumber =
             _rollNumber.value.trim()
 
@@ -478,6 +481,8 @@ class RegisterViewModel(application: Application)
         }
 
         viewModelScope.launch {
+
+            Log.d("GOOGLE_FLOW", "4. Calling GoogleEmailVerifier.verify()")
 
             when (
                 val result =
