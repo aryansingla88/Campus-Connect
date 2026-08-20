@@ -1,19 +1,13 @@
 package com.example.campusconnect.feature.map.components.markerdialogs
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.campusconnect.feature.map.model.HostInfo
 import com.example.campusconnect.feature.map.model.MapEventInfo
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 
 private val OrangePrimary = Color(0xFFFF6F00)
 private val DarkOrange = Color(0xFFE65100)
@@ -450,35 +446,55 @@ private fun HostsSection(
             fontSize = 22.sp,
             lineHeight = 26.sp,
             fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(end = 76.dp)
+            modifier = Modifier.padding(end = 100.dp)
         )
 
         Spacer(modifier = Modifier.height(9.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(11.dp),
-            verticalAlignment = Alignment.CenterVertically
+        val bgColors = listOf(
+            Color(0xFFB3E5FC),
+            Color(0xFFC8E6C9),
+            Color(0xFFFFECB3),
+            Color(0xFFF8BBD0)
+        )
+
+        // -------------------------------------------------------------
+        // Shrink Window Container (Left side cut/limit)
+        // -------------------------------------------------------------
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.CenterEnd // Keeps list stuck to the right edge
         ) {
-            if (hosts.isNotEmpty()) {
-                val bgColors = listOf(
-                    Color(0xFFB3E5FC),
-                    Color(0xFFC8E6C9),
-                    Color(0xFFFFECB3),
-                    Color(0xFFF8BBD0)
-                )
-                hosts.take(4).forEachIndexed { index, host ->
-                    ParticipantAvatar(
-                        name = host.name,
-                        initials = host.name.take(1).uppercase(),
-                        avatarUrl = host.avatarUrl,
-                        bg = bgColors[index % bgColors.size]
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(0.55f), // Shrinks window: Occupies only 70% width from right
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (hosts.isNotEmpty()) {
+                    itemsIndexed(hosts) { index, host ->
+                        ParticipantAvatar(
+                            name = host.name,
+                            initials = host.name.take(1).uppercase(),
+                            avatarUrl = host.avatarUrl,
+                            bg = bgColors[index % bgColors.size]
+                        )
+                    }
+                } else {
+                    val defaultHosts = listOf(
+                        "Alex" to "A",
+                        "Maria" to "M",
+                        "Chen" to "C",
+                        "Fatima" to "F"
                     )
+                    itemsIndexed(defaultHosts) { index, (name, initial) ->
+                        ParticipantAvatar(
+                            name = name,
+                            initials = initial,
+                            avatarUrl = null,
+                            bg = bgColors[index % bgColors.size]
+                        )
+                    }
                 }
-            } else {
-                ParticipantAvatar(name = "Alex", initials = "A", avatarUrl = null, bg = Color(0xFFB3E5FC))
-                ParticipantAvatar(name = "Maria", initials = "M", avatarUrl = null, bg = Color(0xFFC8E6C9))
-                ParticipantAvatar(name = "Chen", initials = "C", avatarUrl = null, bg = Color(0xFFFFECB3))
-                ParticipantAvatar(name = "Fatima", initials = "F", avatarUrl = null, bg = Color(0xFFF8BBD0))
             }
         }
     }

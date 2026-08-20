@@ -196,7 +196,7 @@ public class UserPresenceService {
         if (profile != null && profile.getCourseId() != null) {
             Course course = courseRepository.findById(profile.getCourseId()).orElse(null);
             if (course != null) {
-                courseName = course.getProgramName();
+                courseName = course.getProgram();
                 courseCode = course.getCourseCode();
             }
         }
