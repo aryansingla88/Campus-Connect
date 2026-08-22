@@ -3,7 +3,6 @@ package com.campus.Campus_Connect.features.map.service;
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
-import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.event.entity.EventMember;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
@@ -27,7 +26,6 @@ public class MapEventService {
 
     private final EventRepository eventRepository;
     private final EventMemberRepository eventMemberRepository;
-    private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
 
     // ---------------------------------------------------------
@@ -38,35 +36,39 @@ public class MapEventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found with ID: " + eventId));
 
-        // EventMemberRepository ko change kiye bina exist hone wale method ka use
+        // Sirf CREATOR, ADMIN, aur HOST roles ke members fetch honge
+        List<EventMemberRole> allowedHostRoles = Arrays.asList(
+                EventMemberRole.CREATOR,
+                EventMemberRole.ADMIN
+        );
+
         List<EventMember> members = eventMemberRepository.findByEventIdAndRoleIn(
                 eventId,
-                Arrays.asList(EventMemberRole.values())
+                allowedHostRoles
         );
 
         List<EventPreviewResponse.HostPreview> hostPreviews = new ArrayList<>();
 
         for (EventMember member : members) {
             Integer userId = member.getId().getUserId();
-            User user = userRepository.findById(userId).orElse(null);
+
+            // Strictly using UserProfileRepository only for fullName and avatarUrl
             UserProfile profile = userProfileRepository.findById(userId).orElse(null);
 
-            if (user != null) {
-                String fullName = (profile != null && profile.getFullName() != null && !profile.getFullName().isBlank())
-                        ? profile.getFullName()
-                        : user.getUsername();
-
-                String avatarUrl = (profile != null) ? profile.getAvatarUrl() : null;
+            if (profile != null) {
+                String fullName = profile.getFullName();
+                String avatarUrl = profile.getAvatarUrl();
                 String role = (member.getRole() != null) ? member.getRole().name() : "HOST";
 
                 hostPreviews.add(EventPreviewResponse.HostPreview.builder()
-                        .userId(user.getId())
+                        .userId(userId)
                         .fullName(fullName)
                         .avatarUrl(avatarUrl)
                         .role(role)
                         .build());
             }
         }
+
         // ---------------------------------------------------------
         // Dynamic isJoined Check from DB
         // ---------------------------------------------------------
@@ -76,6 +78,7 @@ public class MapEventService {
         if (currentUser != null) {
             isJoined = eventMemberRepository.existsByEventIdAndUserId(eventId, currentUser.getId());
         }
+
         boolean isReminderEnabled = false;
         Integer priority = 1;
 

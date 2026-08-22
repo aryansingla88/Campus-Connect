@@ -47,8 +47,18 @@ object FakeMapEventInfoService {
                 posterResId = null, // No poster = Normal Description Card
                 isJoined = true,
                 hosts = listOf(
-                    HostInfo(5, "Rahul"),
-                    HostInfo(6, "Priya")
+                    HostInfo(1, "Rahul"),
+                    HostInfo(2, "Priya"),
+                    HostInfo(3, "Amit"),
+                    HostInfo(4, "Neha"),
+                    HostInfo(5, "Karan"),
+                    HostInfo(6, "Sanya"),
+                    HostInfo(7, "Rahul"),
+                    HostInfo(8, "Priya"),
+                    HostInfo(9, "Amit"),
+                    HostInfo(10, "Neha"),
+                    HostInfo(11, "Karan"),
+                    HostInfo(12, "Sanya")
                 )
             )
 
