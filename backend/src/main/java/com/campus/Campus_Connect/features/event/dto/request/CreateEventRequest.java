@@ -56,4 +56,7 @@ public class CreateEventRequest {
     @Min(value = 1, message = "Priority must be between 1 and 6.")
     @Max(value = 6, message = "Priority must be between 1 and 6.")
     private Integer priority;
+
+    @NotNull(message = "Category is required.")
+    private Integer categoryId;
 }

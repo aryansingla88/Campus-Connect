@@ -8,10 +8,12 @@ import com.campus.Campus_Connect.features.event.dto.request.CreateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.request.UpdateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.response.EventResponse;
 import com.campus.Campus_Connect.features.event.entity.Event;
+import com.campus.Campus_Connect.features.event.entity.EventCategory;
 import com.campus.Campus_Connect.features.event.entity.EventMember;
 import com.campus.Campus_Connect.features.event.entity.EventMemberId;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.event.mapper.EventMapper;
+import com.campus.Campus_Connect.features.event.repository.EventCategoryRepository;
 import com.campus.Campus_Connect.features.event.repository.EventMemberRepository;
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.event.service.EventService;
@@ -32,6 +34,7 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final EventMemberRepository eventMemberRepository;
     private final EventPermissionService permissionService;
+    private final EventCategoryRepository eventCategoryRepository;
     private final BadgeEvaluatorService badgeEvaluatorService;
 
     @Override
@@ -93,6 +96,15 @@ public class EventServiceImpl implements EventService {
                         request,
                         creator
                 );
+
+        EventCategory category =
+                eventCategoryRepository.findById(request.getCategoryId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Event category not found."
+                                ));
+
+        event.getCategories().add(category);
 
         event = eventRepository.save(event);
 

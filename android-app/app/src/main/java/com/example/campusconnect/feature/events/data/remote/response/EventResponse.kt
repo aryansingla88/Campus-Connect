@@ -1,92 +1,59 @@
 package com.example.campusconnect.feature.events.data.remote.response
 
-import com.google.gson.annotations.SerializedName
-
-/**
- * Server response for a single event.
- * Mirrors Event.kt field-for-field, plus the server-generated id.
- * Deserialize this, then map 1:1 into your existing Event data class.
- */
-
 data class EventResponse(
-    @SerializedName("id")
-    val id                     : Int,
 
-    @SerializedName("title")
-    val title                  : String,
+    // =========================
+    // Backend supported fields
+    // =========================
 
-    @SerializedName("description")
-    val description            : String? = null,
+    val id: Int,
 
-    @SerializedName("latitude")
-    val latitude               : Double,
+    val title: String,
 
-    @SerializedName("longitude")
-    val longitude              : Double,
+    val description: String?,
 
-     // TODO(DB):
-    // Temporary map UI coordinates.
-    // Remove once backend sends real latitude/longitude only.
+    val latitude: Double,
 
-    @SerializedName("x_ratio")
-    val xRatio                 : Float = 0.5f,
+    val longitude: Double,
 
-    @SerializedName("y_ratio")
-    val yRatio                 : Float = 0.5f,
+    val startTime: String,
 
-    @SerializedName("date")
-    val date                   : String = "",
+    val endTime: String,
 
-    @SerializedName("start_time")
-    val startTime              : String = "",
+    val createdBy: Int,
 
-    @SerializedName("end_time")
-    val endTime                : String? = null,
+    val clubId: Int?,
 
-    @SerializedName("created_by")
-    val createdBy              : Int = 0,
+    val hostName: String,
 
-    @SerializedName("club_name")
-    val clubName               : String = "",
+    val venue: String,
 
-    @SerializedName("is_poster")
-    val isPoster               : Boolean = false,
+    val visibilityType: String,
 
-    @SerializedName("poster_url")
-    val posterUrl              : String? = null,
+    val visibilityValue: String?,
 
-    @SerializedName("category")
-    val category               : String = "",
+    val registrationType: String,
 
-    @SerializedName("visibility_type")
-    val visibilityType         : String = "",
+    val registrationLink: String?,
 
-    // TODO(DB):
-// Temporary map UI coordinates.
-// Remove once backend sends real latitude/longitude only.
+    val approvalStatus: String,
 
-    @SerializedName("visibility_value")
-    val visibilityValue        : String = "",
+    val eventState: String,
 
-    @SerializedName("registration_required")
-    val registrationRequired   : Boolean = false,
+    val priority: Int,
 
-    @SerializedName("registration_link")
-    val registrationLink       : String = "",
 
-    @SerializedName("in_app_registration")
-    val inAppRegistration      : Boolean = false,
+    // =========================
+    // TODO: Backend support
+    // =========================
 
-    @SerializedName("venue")
-    val venue                  : String = "",
 
-    @SerializedName("enable_chat")
-    val enableChat             : Boolean = false,
 
-    // TODO(DB):
-// Backend values should match EventStatus
-// LIVE | PAST | UPCOMING
+    // TODO: Add posterUrl to backend EventResponse later
+    val posterUrl: String? = null,
 
-    @SerializedName("status")
-    val status                 : String = "UPCOMING"   // LIVE | PAST | UPCOMING
+    // TODO: Add category to backend EventResponse later
+    val category: String? = null,
+
+    //TODO: add registration link
 )
