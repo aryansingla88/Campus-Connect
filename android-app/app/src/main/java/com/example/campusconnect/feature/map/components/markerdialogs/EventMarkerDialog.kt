@@ -1,19 +1,13 @@
 package com.example.campusconnect.feature.map.components.markerdialogs
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +22,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.campusconnect.feature.map.model.HostInfo
 import com.example.campusconnect.feature.map.model.MapEventInfo
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 
 private val OrangePrimary = Color(0xFFFF6F00)
 private val DarkOrange = Color(0xFFE65100)
@@ -44,6 +42,9 @@ fun EventMarkerDialog(
     onNavigateClick: () -> Unit = {},
     onRegisterClick: () -> Unit = {}
 ) {
+    println("DEBUG_LOG: Event Poster URL = ${event.posterUrl}")
+    println("DEBUG_LOG: Event Poster ResId = ${event.posterResId}")
+
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -55,7 +56,8 @@ fun EventMarkerDialog(
                 .clickable { onDismiss() }
         )
 
-        if (event.posterResId != null) {
+        // Poster Variant loads if local posterResId or remote/test posterUrl is present
+        if (event.posterResId != null || !event.posterUrl.isNullOrBlank()) {
             EventPosterCard(
                 event = event,
                 onNavigateClick = onNavigateClick,
@@ -147,10 +149,10 @@ private fun EventDescriptionCard(
                     Text(
                         text = event.description,
                         color = TextDark,
-                        fontSize = 14.sp, // changed: small text for more content
-                        lineHeight = 18.sp, // changed
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp,
                         fontWeight = FontWeight.Normal,
-                        maxLines = 5, // changed: 5 lines
+                        maxLines = 5,
                         overflow = TextOverflow.Ellipsis
                     )
 
@@ -165,7 +167,7 @@ private fun EventDescriptionCard(
                     )
 
                     Text(
-                        text = getEventLocation(event.id),
+                        text = event.venue ?: getEventLocation(event.id),
                         color = TextDark,
                         fontSize = 14.sp,
                         lineHeight = 17.sp,
@@ -178,11 +180,12 @@ private fun EventDescriptionCard(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            HostsSection() // changed: Top Participants -> Hosts
+            HostsSection(hosts = event.hosts)
 
             Spacer(modifier = Modifier.height(14.dp))
 
             RegisterNowButton(
+                isJoined = event.isJoined,
                 onClick = onRegisterClick
             )
         }
@@ -217,12 +220,21 @@ private fun EventPosterCard(
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                Image(
-                    painter = painterResource(id = event.posterResId!!),
-                    contentDescription = event.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
+                if (event.posterResId != null) {
+                    Image(
+                        painter = painterResource(id = event.posterResId),
+                        contentDescription = event.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (!event.posterUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = event.posterUrl,
+                        contentDescription = event.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
 
                 Box(
                     modifier = Modifier
@@ -249,6 +261,7 @@ private fun EventPosterCard(
         Spacer(modifier = Modifier.height(18.dp))
 
         EventActionButtons(
+            isJoined = event.isJoined,
             onNavigateClick = onNavigateClick,
             onRegisterClick = onRegisterClick,
             modifier = Modifier
@@ -281,6 +294,7 @@ private fun SmallNotifyButton() {
         )
     }
 }
+
 @Composable
 private fun NavigateTopButton(
     onClick: () -> Unit
@@ -346,7 +360,7 @@ private fun EventTimelineSection(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             TimelineIcon(
-                text = "⏰" // changed: proper time emoji
+                text = "⏰"
             )
 
             Box(
@@ -357,7 +371,7 @@ private fun EventTimelineSection(
             )
 
             TimelineIcon(
-                text = "📅" // changed: proper calendar emoji
+                text = "📅"
             )
         }
 
@@ -403,7 +417,7 @@ private fun TimelineIcon(
 ) {
     Box(
         modifier = Modifier
-            .size(44.dp) // changed: icon bigger
+            .size(44.dp)
             .clip(CircleShape)
             .background(OrangePrimary),
         contentAlignment = Alignment.Center
@@ -411,7 +425,7 @@ private fun TimelineIcon(
         Text(
             text = text,
             color = Color.White,
-            fontSize = 20.sp, // changed: emoji clearly visible
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
@@ -419,30 +433,69 @@ private fun TimelineIcon(
 }
 
 @Composable
-private fun HostsSection() {
+private fun HostsSection(
+    hosts: List<HostInfo>
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.End
     ) {
         Text(
-            text = "Hosts", // changed
+            text = "Hosts",
             color = DarkOrange,
             fontSize = 22.sp,
             lineHeight = 26.sp,
             fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(end = 76.dp)
+            modifier = Modifier.padding(end = 100.dp)
         )
 
         Spacer(modifier = Modifier.height(9.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(11.dp),
-            verticalAlignment = Alignment.CenterVertically
+        val bgColors = listOf(
+            Color(0xFFB3E5FC),
+            Color(0xFFC8E6C9),
+            Color(0xFFFFECB3),
+            Color(0xFFF8BBD0)
+        )
+
+        // -------------------------------------------------------------
+        // Shrink Window Container (Left side cut/limit)
+        // -------------------------------------------------------------
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.CenterEnd // Keeps list stuck to the right edge
         ) {
-            ParticipantAvatar(name = "Alex", initials = "A", bg = Color(0xFFB3E5FC))
-            ParticipantAvatar(name = "Maria", initials = "M", bg = Color(0xFFC8E6C9))
-            ParticipantAvatar(name = "Chen", initials = "C", bg = Color(0xFFFFECB3))
-            ParticipantAvatar(name = "Fatima", initials = "F", bg = Color(0xFFF8BBD0))
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(0.55f), // Shrinks window: Occupies only 70% width from right
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (hosts.isNotEmpty()) {
+                    itemsIndexed(hosts) { index, host ->
+                        ParticipantAvatar(
+                            name = host.name,
+                            initials = host.name.take(1).uppercase(),
+                            avatarUrl = host.avatarUrl,
+                            bg = bgColors[index % bgColors.size]
+                        )
+                    }
+                } else {
+                    val defaultHosts = listOf(
+                        "Alex" to "A",
+                        "Maria" to "M",
+                        "Chen" to "C",
+                        "Fatima" to "F"
+                    )
+                    itemsIndexed(defaultHosts) { index, (name, initial) ->
+                        ParticipantAvatar(
+                            name = name,
+                            initials = initial,
+                            avatarUrl = null,
+                            bg = bgColors[index % bgColors.size]
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -451,24 +504,36 @@ private fun HostsSection() {
 private fun ParticipantAvatar(
     name: String,
     initials: String,
+    avatarUrl: String? = null,
     bg: Color
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(bg),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = initials,
-                color = TextDark,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
+        if (!avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = name,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(bg),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = initials,
+                    color = TextDark,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -484,6 +549,7 @@ private fun ParticipantAvatar(
 
 @Composable
 private fun RegisterNowButton(
+    isJoined: Boolean,
     onClick: () -> Unit
 ) {
     Box(
@@ -496,7 +562,7 @@ private fun RegisterNowButton(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Register Now",
+            text = if (isJoined) "Registered ✓" else "Register Now",
             color = Color.White,
             fontSize = 25.sp,
             lineHeight = 29.sp,
@@ -508,6 +574,7 @@ private fun RegisterNowButton(
 
 @Composable
 private fun EventActionButtons(
+    isJoined: Boolean,
     onNavigateClick: () -> Unit,
     onRegisterClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -576,7 +643,7 @@ private fun EventActionButtons(
                 modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 Text(
-                    text = "Register",
+                    text = if (isJoined) "Registered" else "Register",
                     color = DarkOrange,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -586,7 +653,7 @@ private fun EventActionButtons(
                 Spacer(modifier = Modifier.width(6.dp))
 
                 Text(
-                    text = "📝",
+                    text = if (isJoined) "✓" else "📝",
                     fontSize = 16.sp
                 )
             }
@@ -621,8 +688,8 @@ private fun NotifyButton(
 
 private fun getEventLocation(eventId: String): String {
     return when (eventId) {
-        "event_1" -> "Student Center Ballrooms"
-        "event_2" -> "Coding Lab"
+        "event_1", "EVENT_1" -> "Student Center Ballrooms"
+        "event_2", "EVENT_2" -> "Coding Lab"
         else -> "Campus Auditorium"
     }
 }

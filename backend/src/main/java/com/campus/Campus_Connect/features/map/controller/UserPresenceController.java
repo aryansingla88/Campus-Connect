@@ -3,6 +3,7 @@ package com.campus.Campus_Connect.features.map.controller;
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.features.map.dto.request.UpdatePresenceRequest;
 import com.campus.Campus_Connect.features.map.dto.response.PresenceResponse;
+import com.campus.Campus_Connect.features.map.dto.response.UserPreviewResponse;
 import com.campus.Campus_Connect.features.map.dto.response.VisibleUserResponse;
 import com.campus.Campus_Connect.features.map.service.UserPresenceService;
 import jakarta.validation.Valid;
@@ -28,7 +29,6 @@ public class UserPresenceController {
             @RequestBody
             UpdatePresenceRequest request
     ) {
-
         return userPresenceService.updateMyPresence(request);
     }
 
@@ -38,7 +38,6 @@ public class UserPresenceController {
 
     @GetMapping("/me")
     public ApiResponse<PresenceResponse> getMyPresence() {
-
         return userPresenceService.getMyPresence();
     }
 
@@ -47,10 +46,18 @@ public class UserPresenceController {
     // ---------------------------------------------------------
 
     @GetMapping
-    public ApiResponse<List<VisibleUserResponse>>
-    getVisibleUsers() {
-
+    public ApiResponse<List<VisibleUserResponse>> getVisibleUsers() {
         return userPresenceService.getVisibleUsers();
     }
 
+    // ---------------------------------------------------------
+    // Get User Preview Card Details
+    // ---------------------------------------------------------
+
+    @GetMapping("/users/{userId}/preview")
+    public ApiResponse<UserPreviewResponse> getUserPreview(
+            @PathVariable Integer userId
+    ) {
+        return userPresenceService.getUserPreview(userId);
+    }
 }

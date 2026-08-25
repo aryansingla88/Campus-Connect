@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import android.app.DatePickerDialog
+import android.util.Log
 import androidx.compose.ui.window.Popup
 import kotlinx.coroutines.delay
 import java.util.Calendar
@@ -65,6 +66,8 @@ fun RegisterScreen(
     //This composable needs a RegisterViewModel type object and if nobody passes one then, create one manually from android's ViewModel system
     viewModel: RegisterViewModel = viewModel()
 ) {
+    val context =
+        androidx.compose.ui.platform.LocalContext.current
 
     val username by viewModel.username.collectAsState()
 
@@ -76,8 +79,13 @@ fun RegisterScreen(
     val confirmPassword by viewModel.confirmPassword.collectAsState()
 
     val realName by viewModel.realName.collectAsState()
-    val course by viewModel.course.collectAsState()
-    val year by viewModel.year.collectAsState()
+
+    val courses by viewModel.courses.collectAsState()
+
+    val selectedCourse by
+    viewModel.selectedCourse.collectAsState()
+
+    val admissionYear by viewModel.admissionYear.collectAsState()
     val gender by viewModel.gender.collectAsState()
     val dob by viewModel.dob.collectAsState()
 
@@ -88,11 +96,6 @@ fun RegisterScreen(
     }
 
     var confirmPasswordVisible by remember {
-        mutableStateOf(false)
-    }
-    //OTP dialog box
-    var showOtpDialog by remember {
-
         mutableStateOf(false)
     }
     val shakeOffset = remember {
@@ -110,15 +113,7 @@ fun RegisterScreen(
 
         mutableStateOf("")
     }
-    var otperror by remember {
 
-        mutableStateOf("")
-    }
-
-    var otpExpired by remember {
-
-        mutableStateOf(false)
-    }
 
     LaunchedEffect(registerSuccess) {
 
@@ -205,6 +200,7 @@ fun RegisterScreen(
                             translationX = shakeOffset.value
                         }
                         .clickable {
+                            Log.d("GOOGLE_FLOW", "Verify Email clicked")
                             if (rollNumber.isBlank()) {
 
                                 scope.launch {
@@ -230,10 +226,8 @@ fun RegisterScreen(
 
                                 return@clickable
                             }
-
-                            viewModel.sendOtp()
-
-                            showOtpDialog = true
+                            Log.d("GOOGLE_FLOW", "2. Roll number valid, calling ViewModel")
+                            viewModel.verifyGoogleEmail(context)
                         }
                         .padding(top = 6.dp)
                 )
@@ -250,7 +244,7 @@ fun RegisterScreen(
                     color = Color(0xFF2E7D32)
                 )
             }
-            Spacer(modifier=Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             //RegisterPasswordField is a user defined function defined below
             RegisterPasswordField(
                 value = password,
@@ -289,26 +283,45 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            RegisterTextField(
-                value = course,
-                placeholder = "Course",
-                onValueChange = viewModel::onCourseChange
+            DropdownField(
+                value =
+                    selectedCourse?.programname
+                        ?: selectedCourse?.degree
+                        ?: "",
+
+                placeholder = "Select Course",
+
+                options =
+                    courses.map { course ->
+                        course.programname
+                            ?: course.degree
+                    },
+
+                onSelected = { selectedName ->
+
+                    courses
+                        .firstOrNull { course ->
+                            (course.programname
+                                ?: course.degree) == selectedName
+                        }
+                        ?.let { course ->
+                            viewModel.onCourseChange(course)
+                        }
+                }
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
             DropdownField(
-                value = year,
-                placeholder = "Select Year",
-
+                value = admissionYear,
+                placeholder = "Select Admission Year",
                 options = listOf(
-                    "1st",
-                    "2nd",
-                    "3rd",
-                    "4th"
+                    "2026",
+                    "2025",
+                    "2024",
+                    "2023"
                 ),
-
-                onSelected = viewModel::onYearChange
+                onSelected = viewModel::onAdmissionYearChange
             )
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -367,42 +380,11 @@ fun RegisterScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))}
-
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
-        if (showOtpDialog) {
 
-            OtpVerificationDialog(
-
-                onDismiss = {
-
-                    showOtpDialog = false
-                },
-
-                onVerify = { otp ->
-
-                    viewModel.verifyOtp(otp)
-
-
-                }
-            )
-            if (otperror.isNotEmpty()) {
-
-                Spacer(
-                    modifier = Modifier.height(6.dp)
-                )
-
-                Text(
-
-                    text = otperror,
-
-                    color = Color.Red,
-
-                    fontSize = 13.sp
-                )
-            }
-        }
+        Spacer(modifier = Modifier.height(40.dp))
+    }
 }
 
 
@@ -755,136 +737,6 @@ fun DobField(
                 .fillMaxWidth()
         )
     }
-}
-@Composable
-fun OtpVerificationDialog(
-
-    onDismiss: () -> Unit,
-
-    onVerify: (String) -> VerifyOtpResult
-) {
-
-    var otp by remember {
-
-        mutableStateOf("")
-    }
-
-    var otpError by remember {
-
-        mutableStateOf("")
-    }
-
-    var otpExpired by remember {
-
-        mutableStateOf(false)
-    }
-
-    AlertDialog(
-
-        onDismissRequest = onDismiss,
-
-        title = {
-
-            Text("Verify Email")
-        },
-
-        text = {
-
-            Column {
-
-                Text(
-                    "Enter OTP sent to your email"
-                )
-
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
-
-                OutlinedTextField(
-
-                    value = otp,
-
-                    onValueChange = {
-                        otp = it
-                    },
-
-                    placeholder = {
-                        Text("Enter OTP")
-                    },
-
-                    singleLine = true
-                )
-
-                if (otpError.isNotEmpty()) {
-
-                    Spacer(
-                        modifier = Modifier.height(6.dp)
-                    )
-
-                    Text(
-
-                        text = otpError,
-
-                        color = Color.Red,
-
-                        fontSize = 13.sp
-                    )
-                }
-            }
-        },
-
-        confirmButton = {
-
-            Button(
-
-                enabled = !otpExpired,
-
-                onClick = {
-
-                    val result = onVerify(otp)
-
-                    when (result) {
-
-                        is VerifyOtpResult.Success -> {
-
-                            onDismiss()
-                        }
-
-                        is VerifyOtpResult.Failure -> {
-
-                            otpError =
-
-                                "Invalid OTP. " +
-                                        "${result.attemptsLeft} attempts left"
-                        }
-
-                        is VerifyOtpResult.Expired -> {
-
-                            otpExpired = true
-
-                            otpError =
-                                "OTP expired. Request new OTP"
-                        }
-                    }
-                }
-
-            ) {
-
-                Text("Verify")
-            }
-        },
-
-        dismissButton = {
-
-            TextButton(
-
-                onClick = onDismiss
-            ) {
-
-                Text("Cancel")
-            }
-        }
-    )
 }
 @Composable
 fun FloatingMessageBanner(

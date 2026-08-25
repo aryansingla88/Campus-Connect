@@ -25,9 +25,9 @@ class MapViewModel(
         loadMarkers()
     }
 
+    // Modified: Removed 'search' parameter to align with updated MapRepo
     private fun loadMarkers(
-        type: MarkerType? = null,
-        search: String? = null
+        type: MarkerType? = null
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -35,10 +35,7 @@ class MapViewModel(
                 errorMessage = null
             )
 
-            repository.getMarkers(
-                type = type,
-                search = search
-            )
+            repository.getMarkers(type = type)
                 .onSuccess { markers ->
                     val positionedMarkers = markers.map { marker ->
                         val point = coordinateConverter.latLngToPoint(
@@ -138,13 +135,25 @@ class MapViewModel(
                 }
 
                 MarkerType.SHOP -> {
-                    _uiState.value = _uiState.value.copy(
-                        isDetailLoading = false,
-                        detailErrorMessage = null,
-                        selectedUserProfile = null,
-                        selectedPoiInfo = null,
-                        selectedEventInfo = null
-                    )
+                    repository.getShopInfo(marker.id)
+                        .onSuccess { shop ->
+                            _uiState.value = _uiState.value.copy(
+                                isDetailLoading = false,
+                                detailErrorMessage = null,
+                                selectedUserProfile = null,
+                                selectedPoiInfo = null,
+                                selectedEventInfo = null
+                            )
+                        }
+                        .onFailure {
+                            _uiState.value = _uiState.value.copy(
+                                isDetailLoading = false,
+                                detailErrorMessage = null,
+                                selectedUserProfile = null,
+                                selectedPoiInfo = null,
+                                selectedEventInfo = null
+                            )
+                        }
                 }
             }
         }
@@ -164,11 +173,9 @@ class MapViewModel(
         )
     }
 
+    // Modified: Passing only 'type' parameter
     fun setFilter(type: MarkerType?) {
-        loadMarkers(
-            type = type,
-            search = null
-        )
+        loadMarkers(type = type)
     }
 
     fun sendConnectionRequest(userId: String) {
@@ -186,6 +193,12 @@ class MapViewModel(
     fun enableEventReminder(eventId: String) {
         viewModelScope.launch {
             repository.enableEventReminder(eventId)
+        }
+    }
+
+    fun disableEventReminder(eventId: String) {
+        viewModelScope.launch {
+            repository.disableEventReminder(eventId)
         }
     }
 

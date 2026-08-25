@@ -6,11 +6,16 @@ import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.map.dto.request.UpdatePresenceRequest;
 import com.campus.Campus_Connect.features.map.dto.response.PresenceResponse;
+import com.campus.Campus_Connect.features.map.dto.response.UserPreviewResponse;
 import com.campus.Campus_Connect.features.map.dto.response.VisibleUserResponse;
 import com.campus.Campus_Connect.features.map.entity.CampusBoundaryPoint;
 import com.campus.Campus_Connect.features.map.entity.UserPresence;
 import com.campus.Campus_Connect.features.map.repository.CampusBoundaryRepository;
 import com.campus.Campus_Connect.features.map.repository.UserPresenceRepository;
+import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
+import com.campus.Campus_Connect.features.metadata.courses.entity.Course;
+import com.campus.Campus_Connect.features.profile.entity.UserProfile;
+import com.campus.Campus_Connect.features.profile.repository.UserProfileRepository;
 import com.campus.Campus_Connect.features.settings.entity.UserPreference;
 import com.campus.Campus_Connect.features.settings.enums.ShowPresence;
 import com.campus.Campus_Connect.features.settings.repository.UserPreferenceRepository;
@@ -19,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +39,8 @@ public class UserPresenceService {
     private final UserPresenceRepository userPresenceRepository;
     private final UserPreferenceRepository userPreferenceRepository;
     private final CampusBoundaryRepository campusBoundaryRepository;
+    private final UserProfileRepository userProfileRepository;
+    private final CourseRepository courseRepository;
 
     // Movement threshold in meters (e.g., don't update DB if movement is < 2 meters)
     private static final double MOVEMENT_THRESHOLD_METERS = 2.0;
@@ -47,8 +55,7 @@ public class UserPresenceService {
         User currentUser = SecurityUtils.getCurrentUser();
         UserPresence presence = getOrCreatePresence(currentUser);
 
-        // Chunk 8: Movement Threshold Logic
-        // Skip database update if movement is insignificant (GPS Jitter)
+        // Movement Threshold Logic
         if (presence.getLatitude() != 0.0 && presence.getLongitude() != 0.0) {
             double distanceMoved = calculateDistanceInMeters(
                     presence.getLatitude(), presence.getLongitude(),
@@ -56,7 +63,6 @@ public class UserPresenceService {
             );
 
             if (distanceMoved < MOVEMENT_THRESHOLD_METERS) {
-                // Return existing data without hitting DB write
                 return ApiResponse.success(
                         mapToPresenceResponse(presence),
                         "Location skipped (Movement too small)."
@@ -131,7 +137,6 @@ public class UserPresenceService {
             );
         }
 
-        // Chunk 7: Offline Filtering (Users active in last 15 minutes)
         LocalDateTime activeThreshold = LocalDateTime.now().minusMinutes(15);
         List<UserPresence> presences = userPresenceRepository.findByLastUpdatedAfter(activeThreshold);
 
@@ -161,21 +166,69 @@ public class UserPresenceService {
                 continue;
             }
 
-            /*
-             * TODO: External Modules Dependency
-             * - CONNECTIONS (Friends only)
-             * - COURSE (Classmates only)
-             * - CLUBS (Club members only)
-             * * This filtering logic relies on APIs from Connections, Course, and Club modules.
-             * To be implemented once those teams expose internal lookup services.
-             */
-
             response.add(mapToVisibleUserResponse(presence));
         }
 
         return ApiResponse.success(
                 response,
                 "Visible users fetched successfully."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Get User Preview Details for Map Card (Alternative Approach)
+    // ---------------------------------------------------------
+
+    public ApiResponse<UserPreviewResponse> getUserPreview(Integer userId) {
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
+        UserProfile profile = userProfileRepository.findById(userId).orElse(null);
+
+        String fullName = (profile != null && profile.getFullName() != null && !profile.getFullName().isBlank())
+                ? profile.getFullName()
+                : targetUser.getUsername();
+
+        String courseName = null;
+        String courseCode = null;
+
+        // Fetch Course entity via profile.getCourseId() without altering UserProfile entity
+        if (profile != null && profile.getCourseId() != null) {
+            Course course = courseRepository.findById(profile.getCourseId()).orElse(null);
+            if (course != null) {
+                courseName = course.getProgram();
+                courseCode = course.getCourseCode();
+            }
+        }
+
+        Integer admissionYear = (profile != null) ? profile.getAdmissionYear() : null;
+
+        // Dynamically calculate current course year from admissionYear
+        Integer courseYear = null;
+        if (admissionYear != null) {
+            int currentYear = Year.now().getValue();
+            courseYear = Math.max(1, currentYear - admissionYear + 1);
+        }
+
+        String avatarUrl = (profile != null) ? profile.getAvatarUrl() : null;
+        String bio = (profile != null) ? profile.getBio() : null;
+        Integer mutualConnectionsCount = 0; // Connections module placeholder
+
+        UserPreviewResponse preview = UserPreviewResponse.builder()
+                .userId(targetUser.getId())
+                .fullName(fullName)
+                .courseName(courseName)
+                .courseCode(courseCode)
+                .courseYear(courseYear)
+                .admissionYear(admissionYear)
+                .avatarUrl(avatarUrl)
+                .bio(bio)
+                .mutualConnectionsCount(mutualConnectionsCount)
+                .build();
+
+        return ApiResponse.success(
+                preview,
+                "User preview fetched successfully."
         );
     }
 
@@ -218,7 +271,7 @@ public class UserPresenceService {
     }
 
     // ---------------------------------------------------------
-    // Chunk 9: Ray Casting Algorithm for Campus Boundary
+    // Ray Casting Algorithm for Campus Boundary
     // ---------------------------------------------------------
 
     private boolean isInsideCampus(Double latitude, Double longitude) {
@@ -228,7 +281,6 @@ public class UserPresenceService {
 
         List<CampusBoundaryPoint> boundary = campusBoundaryRepository.findAllByOrderByPointOrderAsc();
 
-        // Polygon must have at least 3 points
         if (boundary.size() < 3) {
             return false;
         }
@@ -259,14 +311,13 @@ public class UserPresenceService {
     // ---------------------------------------------------------
 
     private double calculateDistanceInMeters(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; // Earth radius in km
+        final int R = 6371;
         double latDistance = Math.toRadians(lat2 - lat1);
         double lonDistance = Math.toRadians(lon2 - lon1);
         double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
                 * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        double distance = R * c * 1000; // convert to meters
-        return distance;
+        return R * c * 1000;
     }
 }

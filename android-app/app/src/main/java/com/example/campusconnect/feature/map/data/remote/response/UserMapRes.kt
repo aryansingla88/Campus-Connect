@@ -1,38 +1,41 @@
 package com.example.campusconnect.feature.map.data.remote.response
 
+import com.example.campusconnect.feature.map.mapengine.MapMarker
+import com.example.campusconnect.feature.map.mapengine.MarkerSize
+import com.example.campusconnect.feature.map.mapengine.MarkerType
 import com.google.gson.annotations.SerializedName
 
 data class UserMapRes(
-    @SerializedName("id")
-    val id: String,
+    @SerializedName("userId")
+    val userId: Int,
 
-    @SerializedName("fullName")
-    val fullName: String,
+    @SerializedName("username")
+    val username: String,
 
-    @SerializedName("course")
-    val course: String? = null,
+    @SerializedName("latitude")
+    val latitude: Double,
 
-    @SerializedName("startYear")
-    val startYear: Int? = null,
+    @SerializedName("longitude")
+    val longitude: Double,
 
-    @SerializedName("endYear")
-    val endYear: Int? = null,
+    @SerializedName("insideCampus")
+    val insideCampus: Boolean? = null,
 
-    @SerializedName("description")
-    val description: String? = null,
-
-    @SerializedName("badges")
-    val badges: List<String>? = null,
-
-    @SerializedName("medals")
-    val medals: List<Int>? = null,
-
-    @SerializedName("mutualFriendsCount")
-    val mutualFriendsCount: Int? = null,
-
-    @SerializedName("avatarUrl")
-    val avatarUrl: String? = null,
-
-    @SerializedName("connectionStatus")
-    val connectionStatus: String? = null
+    @SerializedName("gender")
+    val gender: String? = null
 )
+
+fun UserMapRes.toMarker(): MapMarker {
+    return MapMarker(
+        id = "USER_$userId",
+        sourceId = userId.toString(),
+        type = MarkerType.USER,
+        latitude = latitude,
+        longitude = longitude,
+        label = username,
+        userId = userId,
+        insideCampus = insideCampus,
+        gender = gender,
+        size = MarkerSize.MEDIUM
+    )
+}

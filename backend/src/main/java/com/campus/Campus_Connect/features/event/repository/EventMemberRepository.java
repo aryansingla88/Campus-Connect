@@ -23,4 +23,9 @@ public interface EventMemberRepository extends JpaRepository<EventMember, EventM
             Integer eventId,
             Integer userId
     );
+
+    long countByUser_IdAndRole(
+            Integer userId,
+            EventMemberRole role
+    );
 }

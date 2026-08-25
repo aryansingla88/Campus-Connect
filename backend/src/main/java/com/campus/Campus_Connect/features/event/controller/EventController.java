@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/events")
+@RequestMapping("/events")
 @RequiredArgsConstructor
 public class EventController {
 
@@ -55,5 +55,12 @@ public class EventController {
             @PathVariable Integer eventId
     ) {
         return eventService.deleteEvent(eventId);
+    }
+
+    // GET /api/events/feed
+    @GetMapping("/feed")
+    public ApiResponse<List<EventResponse>> getEventFeed() {
+        // Sirf data fetch aur return, zero processing!
+        return eventService.getEventFeed();
     }
 }

@@ -5,40 +5,40 @@ import com.example.campusconnect.feature.map.data.remote.request.EventRegReq
 import com.example.campusconnect.feature.map.data.remote.response.CategoryRes
 import com.example.campusconnect.feature.map.data.remote.response.EventHostRes
 import com.example.campusconnect.feature.map.data.remote.response.EventMapRes
-import com.example.campusconnect.feature.map.data.remote.response.MarkerRes
+import com.example.campusconnect.feature.map.data.remote.response.EventPreviewRes
 import com.example.campusconnect.feature.map.data.remote.response.PoiRes
 import com.example.campusconnect.feature.map.data.remote.response.ShopRes
 import com.example.campusconnect.feature.map.data.remote.response.UserMapRes
+import com.example.campusconnect.feature.map.data.remote.response.UserPreviewRes
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
-import retrofit2.http.Query
 
 interface MapApi {
 
-    // Map markers -------------------------------------------------------------
+    // Domain List Endpoints -----------------------------------------------------
 
-    @GET("map/markers")
-    suspend fun getMarkers(
-        @Query("type") type: String? = null,
-        @Query("search") search: String? = null
-    ): ApiResponse<List<MarkerRes>>
+    @GET("presence")
+    suspend fun getVisibleUsers(): ApiResponse<List<UserMapRes>>
 
-    @GET("map/search")
-    suspend fun searchMarkers(
-        @Query("q") query: String,
-        @Query("type") type: String? = null
-    ): ApiResponse<List<MarkerRes>>
+    @GET("poi")
+    suspend fun getPois(): ApiResponse<List<PoiRes>>
+
+    @GET("events")
+    suspend fun getEvents(): ApiResponse<List<EventMapRes>>
+
+    @GET("shops")
+    suspend fun getShops(): ApiResponse<List<ShopRes>>
 
 
-    // User marker card -------------------------------------------------------------
+    // User Marker & Preview Card Endpoints -------------------------------------
 
-    @GET("users/{userId}")
+    @GET("presence/users/{userId}/preview")
     suspend fun getUserProfile(
-        @Path("userId") userId: String
-    ): ApiResponse<UserMapRes>
+        @Path("userId") userId: Int
+    ): ApiResponse<UserPreviewRes>
 
     @POST("users/{userId}/connections/request")
     suspend fun sendConnectionRequest(
@@ -46,7 +46,7 @@ interface MapApi {
     ): ApiResponse<Unit>
 
 
-    // POI marker card -------------------------------------------------------------
+    // POI Marker Card ----------------------------------------------------------
 
     @GET("poi/{poiId}")
     suspend fun getPoiInfo(
@@ -54,7 +54,12 @@ interface MapApi {
     ): ApiResponse<PoiRes>
 
 
-    // Event marker card -------------------------------------------------------------
+    // Event Marker Card --------------------------------------------------------
+
+    @GET("map/events/{eventId}/preview")
+    suspend fun getEventPreview(
+        @Path("eventId") eventId: Int
+    ): ApiResponse<EventPreviewRes>
 
     @GET("events/{eventId}")
     suspend fun getEventInfo(
@@ -66,10 +71,10 @@ interface MapApi {
         @Path("eventId") eventId: String
     ): ApiResponse<List<EventHostRes>>
 
-    @POST("events/{eventId}/registrations")
+    @POST("events/{eventId}/register")
     suspend fun registerEvent(
         @Path("eventId") eventId: String,
-        @Body request: EventRegReq
+        @Body request: EventRegReq = EventRegReq()
     ): ApiResponse<Unit>
 
     @POST("events/{eventId}/reminders")
@@ -83,7 +88,7 @@ interface MapApi {
     ): ApiResponse<Unit>
 
 
-    // Categories -------------------------------------------------------------
+    // Categories ---------------------------------------------------------------
 
     @GET("event-categories")
     suspend fun getEventCategories(): ApiResponse<List<CategoryRes>>
@@ -92,9 +97,7 @@ interface MapApi {
     suspend fun getShopCategories(): ApiResponse<List<CategoryRes>>
 
 
-    // Shop marker card -------------------------------------------------------------
-    // Shops should be loaded only in dedicated SHOP mode using:
-    // GET map/markers?type=SHOP
+    // Shop Marker Card ---------------------------------------------------------
 
     @GET("shops/{shopId}")
     suspend fun getShopInfo(
