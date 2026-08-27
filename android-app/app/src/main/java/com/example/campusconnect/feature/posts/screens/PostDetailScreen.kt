@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import com.example.campusconnect.feature.posts.components.CommentCard
 import com.example.campusconnect.feature.posts.components.PostDetailTopBar
 
-import com.example.campusconnect.feature.posts.models.Post
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,29 +21,39 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.viewmodel.PostDetailViewModel
 
 
 @Composable
 fun PostDetailScreen(
 
-
-    post: Post,
+    postId: Int,
 
     onBackClick: () -> Unit
 ) {
     val viewModel: PostDetailViewModel = viewModel()
+
+    var post by remember {
+        mutableStateOf<Post?>(null)
+    }
+
     var commentsForPost by remember {
 
         mutableStateOf<List<Comment>>(emptyList())
     }
 
-    LaunchedEffect(post.id) {
+    LaunchedEffect(postId) {
+
+        viewModel
+            .getPost(postId)
+            .onSuccess {
+                post = it
+            }
 
         commentsForPost =
-
             viewModel
-                .getComments(post.id)
+                .getComments(postId)
                 .getOrDefault(emptyList())
     }
     val topLevelComments =
@@ -67,10 +76,13 @@ fun PostDetailScreen(
         Fixed Post
          */
 
-        PostDetailCard(
-            post = post,
-            commentCount = commentsForPost.size
-        )
+        post?.let {
+
+            PostDetailCard(
+                post = it,
+                commentCount = commentsForPost.size
+            )
+        }
 
         /*
         Scrollable Comments

@@ -25,42 +25,6 @@ class ApiPostsRepository(
 
     // Feed -------------------------------------------------------------
 
-    override suspend fun getPosts(): Result<List<Post>> {
-
-        return Result.success(
-
-            listOf(
-
-                Post(
-                    id = 999,
-
-                    username = "api_test",
-
-                    title = "ApiPostsRepository Test",
-
-                    body = "This post came from ApiPostsRepository",
-
-                    tags = listOf(
-                        PostTag(
-                            id = 1,
-                            name = "Study Help"
-                        )
-                    ),
-
-                    imageUrl = null,
-
-                    upvotes = 10,
-
-                    downvotes = 0,
-
-                    userVote = null,
-
-                    createdAt = "1m"
-                )
-            )
-        )
-    }
-
     override suspend fun getTags(): Result<List<PostTag>> {
 
         return try {
@@ -95,6 +59,37 @@ class ApiPostsRepository(
         }
     }
 
+    override suspend fun getPosts(): Result<List<Post>> {
+
+        return try {
+
+            val response = api.getPosts()
+
+            if (
+                response.isSuccessful &&
+                response.body()?.data != null
+            ) {
+
+                Result.success(
+                    response.body()!!.data!!
+                )
+
+            } else {
+
+                Result.failure(
+                    Exception(
+                        response.body()?.message
+                            ?: "Failed to fetch posts"
+                    )
+                )
+            }
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getPost(
         postId: Int
     ): Result<Post> {
@@ -109,16 +104,13 @@ class ApiPostsRepository(
             ) {
 
                 Result.success(
-
                     response.body()!!.data!!
                 )
 
             } else {
 
                 Result.failure(
-
                     Exception(
-
                         response.body()?.message
                             ?: "Failed to fetch post"
                     )
@@ -135,6 +127,7 @@ class ApiPostsRepository(
     // Posts -------------------------------------------------------------
 
     override suspend fun createPost(
+        postType: String,
 
         title: String,
 
@@ -180,7 +173,13 @@ class ApiPostsRepository(
                 )
             }
 
+            val postTypeBody = postType.toRequestBody(
+                "text/plain".toMediaType()
+            )
+
             val response = api.createPost(
+
+                postType = postTypeBody,
 
                 title = titleBody,
 
@@ -243,7 +242,7 @@ class ApiPostsRepository(
 
                     body = body,
 
-                    tags = tags.map { it.name }
+                    tags = tags.map { it.id }
                 )
             )
 

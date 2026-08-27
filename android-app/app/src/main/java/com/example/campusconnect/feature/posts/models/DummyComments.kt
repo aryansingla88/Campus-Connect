@@ -12,7 +12,7 @@ val dummyComments = listOf(
 
         username = "aman_kumar",
 
-        text = "I have last year's notes.",
+        body = "I have last year's notes.",
 
         createdAt = "2h"
     ),
@@ -27,7 +27,7 @@ val dummyComments = listOf(
 
         username = "vivek_verma",
 
-        text = "Can you send them to me?",
+        body = "Can you send them to me?",
 
         createdAt = "1h"
     ),
@@ -42,7 +42,7 @@ val dummyComments = listOf(
 
         username = "nikhil",
 
-        text = "Check the shared drive folder.",
+        body = "Check the shared drive folder.",
 
         createdAt = "30m"
     ),
@@ -57,7 +57,7 @@ val dummyComments = listOf(
 
         username = "khushi",
 
-        text = "Amazing photo.",
+        body = "Amazing photo.",
 
         createdAt = "15m"
     )

@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,32 +29,50 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.campusconnect.core.ui.theme.*
 import com.example.campusconnect.feature.posts.components.FeedTopBar
-import com.example.campusconnect.feature.posts.models.dummyPosts
-import com.example.campusconnect.feature.posts.components.TopicChipsRow
-import com.example.campusconnect.feature.posts.models.dummyTags
-import com.example.campusconnect.feature.posts.models.dummyComments
-import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.viewmodel.compose.viewModel
-
 import com.example.campusconnect.feature.posts.models.Post
+import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
+import com.example.campusconnect.feature.posts.components.TopicChipsRow
 
 //@OptIn means ->"I know I'm using an experimental Material 3 API, and I accept that it may change in future versions."
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
-    val viewModel: FeedViewModel = viewModel()
+fun GeneralFeedScreen(
+    onPostClick: (Int) -> Unit,
+    viewModel: FeedViewModel = FeedViewModel()
+) {    var posts by remember {
+    mutableStateOf<List<Post>>(emptyList())
+}
 
-    var posts by remember {
+    var tags by remember {
+        mutableStateOf<List<PostTag>>(emptyList())
+    }
 
-        mutableStateOf<List<Post>>(emptyList())
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf<String?>(null)
     }
 
     LaunchedEffect(Unit) {
+        isLoading = true
 
-        posts = viewModel
-            .getPosts()
-            .getOrDefault(emptyList())
+        viewModel.getPosts()
+            .onSuccess {
+                posts = it
+            }
+            .onFailure {
+                errorMessage = it.message ?: "Failed to load posts"
+            }
+
+        viewModel.getTags()
+            .onSuccess {
+                tags = it
+            }
+
+        isLoading = false
     }
 
 
@@ -206,7 +225,7 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
                         // only posts matching the selected topic to be displayed.
                         TopicChipsRow(
 
-                            tags = dummyTags,
+                            tags = tags,
 
                             selectedTopic = selectedTopic,
 
@@ -247,12 +266,7 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
 
                             items(filteredPosts) { post ->
 
-                                val commentCount =
-
-                                    dummyComments.count {
-
-                                        it.postId == post.id
-                                    }
+                                val commentCount = 0
 
                                 com.example.campusconnect.feature.posts.components.PostCard(
 

@@ -23,13 +23,10 @@ interface PostsRepository {
     // Posts -------------------------------------------------------------
 
     suspend fun createPost(
-
+        postType: String,
         title: String,
-
         body: String,
-
         tags: List<PostTag>,
-
         image: File?
     ): Result<Post>
 
@@ -68,7 +65,7 @@ interface PostsRepository {
 
         parentCommentId: Int,
 
-        body : String
+        body: String
     ): Result<Comment>
 
     suspend fun updateComment(
