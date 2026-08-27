@@ -87,6 +87,8 @@ fun EventScreen() {
     var showParticipants    by remember { mutableStateOf(false) }
     var showHistoryDrawer   by remember { mutableStateOf(false) }
 
+    var showViewMode by remember { mutableStateOf(false) }
+
     var toastMessage        by remember { mutableStateOf<String?>(null) }
 
     val boxWidth  = remember { mutableStateOf(0) }
@@ -251,7 +253,8 @@ fun EventScreen() {
                 icon     = Icons.Default.Visibility,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 16.dp)
+                    .padding(start = 16.dp, bottom = 16.dp),
+                onClick  = { showViewMode = true }   // ← add this line
             )
         }
 
@@ -439,6 +442,24 @@ fun EventScreen() {
                         onUpdate  = { wasEditMode = true; viewModel.updateEvent() }
                     )
                 }
+
+            }
+        }
+
+        // ── VIEW MODE OVERLAY ─────────────────────────────────────────────────  ← ADD HERE
+        if (showViewMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(10f)
+            ) {
+                EventViewModeScreen(
+                    events       = filteredEvents,
+                    onBack       = { showViewMode = false },
+                    onRegister   = { },
+                    onNotify     = { },
+                    onOpenDetail = { showViewMode = false }
+                )
             }
         }
     }

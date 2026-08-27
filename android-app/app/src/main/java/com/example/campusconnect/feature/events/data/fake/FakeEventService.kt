@@ -26,7 +26,8 @@ class FakeEventService {
                 endTime = "04:00 PM",
                 createdBy = 1,
                 clubName = "CS Club",
-                isPoster = false,
+                isPoster = true,
+                posterUrl = "https://i.ibb.co/LdQvj8wc/Screenshot-2026-08-27-233817.png",
                 category = "Technology",
                 visibilityType = "Public",
                 visibilityValue = "All",
@@ -49,14 +50,15 @@ class FakeEventService {
                 endTime = "10:00 PM",
                 createdBy = 1,
                 clubName = "Beats Club",
-                isPoster = false,
+                isPoster = true,
+                posterUrl = "https://i.ibb.co/dhqWJxV/a5d40ead-a330-483c-a259-76a56a33d6b8.png",
                 category = "Cultural",
                 visibilityType = "Public",
                 visibilityValue = "All",
                 registrationRequired = false,
                 venue = "Open Air Stage",
                 enableChat = false,
-                status = EventStatus.LIVE
+                status = EventStatus.UPCOMING
             ),
 
             // ── PAST ─────────────────────────────────────────────────────────
@@ -81,7 +83,7 @@ class FakeEventService {
                 inAppRegistration = true,
                 venue = "Lab Block A",
                 enableChat = true,
-                status = EventStatus.PAST
+                status = EventStatus.LIVE
             ),
             Event(
                 id = 4,
