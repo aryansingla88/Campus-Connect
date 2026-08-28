@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -44,6 +45,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -130,16 +132,42 @@ fun EventViewModeScreen(
     // shown for any virtual page is `page % filtered.size`, which is what makes
     // this wrap seamlessly: swipe past the last real event and you land back on
     // the first one (and vice-versa going backwards).
-    val virtualCount  = if (filtered.isNotEmpty()) filtered.size * 999 else 1
-    val startPage     = if (filtered.isNotEmpty()) filtered.size * 499 else 0
-    val pagerState    = rememberPagerState(
+    val isCircular = filtered.size >= 2
+
+    val virtualCount = when {
+        filtered.isEmpty() -> 1
+        isCircular -> filtered.size * 999
+        else -> filtered.size
+    }
+
+    val startPage = when {
+        filtered.isEmpty() -> 0
+        isCircular -> filtered.size * 499
+        else -> 0
+    }
+
+    val pagerState = rememberPagerState(
         initialPage = startPage,
-        pageCount   = { virtualCount }
+        pageCount = { virtualCount }
     )
 
-    val currentEvent = if (filtered.isNotEmpty())
-        filtered[pagerState.currentPage % filtered.size]
-    else return
+    LaunchedEffect(filtered) {
+        if (filtered.isNotEmpty()) {
+            pagerState.scrollToPage(startPage)
+        }
+    }
+
+    val currentEvent = filtered.getOrNull(
+        if (filtered.isNotEmpty()) {
+            if (isCircular) {
+                pagerState.currentPage % filtered.size
+            } else {
+                pagerState.currentPage.coerceIn(0, filtered.lastIndex)
+            }
+        } else {
+            0
+        }
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -152,7 +180,9 @@ fun EventViewModeScreen(
         )
 
         // Layer 2: blurred poster of current event bleeds into bg
-        PosterBlurredBackground(event = currentEvent)
+        currentEvent?.let { event ->
+            PosterBlurredBackground(event = event)
+        }
 
         // Layer 3: soft white gradient overlay so content stays readable
         Box(
@@ -188,23 +218,92 @@ fun EventViewModeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 if (filtered.isEmpty()) {
-                    Text(
-                        "No events match \"$searchQuery\"",
-                        fontSize = 14.sp,
-                        color    = TextMuted,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+
+                            // Search icon
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(
+                                        color = Color(0xFFFFE4D6),
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SearchOff,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF4D00),
+                                    modifier = Modifier.size(34.dp)
+                                )
+                            }
+
+                            Spacer(Modifier.height(20.dp))
+
+                            Text(
+                                text = "No events found",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1A1A1A),
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Text(
+                                text = "We couldn't find any events matching",
+                                fontSize = 14.sp,
+                                color = TextMuted,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(Modifier.height(4.dp))
+
+                            Text(
+                                text = "\"$searchQuery\"",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFFF4D00),
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(Modifier.height(18.dp))
+
+                            Text(
+                                text = "Try searching for another event, club or category.",
+                                fontSize = 12.sp,
+                                color = TextMuted.copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                        }
+                    }
+
                 } else {
                     HorizontalPager(
                         state          = pagerState,
                         // Larger horizontal padding narrows each page slot so
                         // neighbours peek in from both edges.
-                        contentPadding = PaddingValues(horizontal = 72.dp),
                         // NEGATIVE spacing is what actually creates the overlap:
                         // it pulls adjacent page slots closer than their own
                         // width, so their drawn content overlaps in the shared
                         // region. zIndex below then decides who's on top.
-                        pageSpacing    = (-52).dp,
+                        contentPadding = PaddingValues(
+                            horizontal = if (isCircular) 72.dp else 24.dp
+                        ),
+                        pageSpacing = if (isCircular) (-52).dp else 0.dp,
                         modifier       = Modifier.fillMaxSize()
                     ) { page ->
                         val pageOffset = (pagerState.currentPage - page) +
@@ -224,6 +323,12 @@ fun EventViewModeScreen(
                             label         = "poster_alpha_$page"
                         )
 
+                        val actualIndex = if (isCircular) {
+                            page % filtered.size
+                        } else {
+                            page
+                        }
+
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight(0.78f)
@@ -239,43 +344,58 @@ fun EventViewModeScreen(
                                     // toward the center rather than away from
                                     // it — this is what previously had the
                                     // wrong sign and cancelled the overlap.
-                                    translationX = pageOffset * size.width * 0.34f
+                                    if (isCircular) {
+                                        translationX = pageOffset * size.width * 0.34f
+                                    }
                                 }
                                 // Center card (distance ~0) always paints last,
                                 // i.e. on top of both neighbours.
-                                .zIndex(2f - distance)
+                                .zIndex(if (isCircular) 2f - distance else 1f)
                                 .clip(RoundedCornerShape(24.dp))
                         ) {
                             // `page % filtered.size` is the wraparound: this is
                             // what makes the poster to the right of the last
                             // event be the first event again.
-                            PosterCard(event = filtered[page % filtered.size])
+                            PosterCard(event = filtered[actualIndex])
                         }
                     }
                 }
             }
 
             // ── BOTTOM ACTIONS ────────────────────────────────────────────────
-            BottomActions(
-                event       = currentEvent,
-                isRegistered = currentEvent.id in registeredIds,
-                isNotified   = currentEvent.id in notifiedIds,
-                onRegister  = {
-                    registeredIds = if (currentEvent.id in registeredIds)
-                        registeredIds - currentEvent.id
-                    else
-                        registeredIds + currentEvent.id
-                    onRegister(currentEvent)
-                },
-                onNotify    = {
-                    notifiedIds = if (currentEvent.id in notifiedIds)
-                        notifiedIds - currentEvent.id
-                    else
-                        notifiedIds + currentEvent.id
-                    onNotify(currentEvent)
-                },
-                onExpand    = { onOpenDetail(currentEvent) }
-            )
+            currentEvent?.let { event ->
+                BottomActions(
+                    event = event,
+                    isRegistered = event.id in registeredIds,
+                    isNotified = event.id in notifiedIds,
+
+                    onRegister = {
+                        registeredIds =
+                            if (event.id in registeredIds) {
+                                registeredIds - event.id
+                            } else {
+                                registeredIds + event.id
+                            }
+
+                        onRegister(event)
+                    },
+
+                    onNotify = {
+                        notifiedIds =
+                            if (event.id in notifiedIds) {
+                                notifiedIds - event.id
+                            } else {
+                                notifiedIds + event.id
+                            }
+
+                        onNotify(event)
+                    },
+
+                    onExpand = {
+                        onOpenDetail(event)
+                    }
+                )
+            }
 
             Spacer(Modifier.height(24.dp))
         }
