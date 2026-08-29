@@ -6,13 +6,13 @@ import com.example.campusconnect.feature.map.model.MapEventInfo
 object FakeMapEventInfoService {
 
     fun getEventInfo(
-        eventId: String,
-        fallbackTitle: String
+        eventId: Int,
+        fallbackTitle: String = "Campus Event"
     ): MapEventInfo {
         return when (eventId) {
 
-            // Event 1: Poster Card Variant
-            "event_1", "EVENT_1", "1" -> MapEventInfo(
+            // Event 1
+            1 -> MapEventInfo(
                 id = eventId,
                 title = "Dance Competition",
                 hostName = "Cultural Club",
@@ -20,11 +20,8 @@ object FakeMapEventInfoService {
                 time = "6:00 PM",
                 description = "A college dance competition is a high-energy event where students showcase choreography.",
                 venue = "Student Center Ballrooms",
-              //  posterUrl = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800",
-                posterUrl =null,
+                posterUrl = null,
                 posterResId = com.example.campusconnect.R.drawable.test_poster,
-               // posterUrl = "https://picsum.photos/600/800",
-                // Only Event 1 gets poster
                 isJoined = true,
                 hosts = listOf(
                     HostInfo(1, "Alex"),
@@ -34,8 +31,8 @@ object FakeMapEventInfoService {
                 )
             )
 
-            // Event 2: Normal Description Card Variant
-            "event_2", "EVENT_2", "2" -> MapEventInfo(
+            // Event 2
+            2 -> MapEventInfo(
                 id = eventId,
                 title = "Hackathon",
                 hostName = "Coding Club",
@@ -44,7 +41,7 @@ object FakeMapEventInfoService {
                 description = "A 24-hour coding event where students build creative tech solutions, collaborate in teams, and present their ideas.",
                 venue = "Main Auditorium",
                 posterUrl = null,
-                posterResId = null, // No poster = Normal Description Card
+                posterResId = null,
                 isJoined = true,
                 hosts = listOf(
                     HostInfo(1, "Rahul"),
@@ -52,17 +49,11 @@ object FakeMapEventInfoService {
                     HostInfo(3, "Amit"),
                     HostInfo(4, "Neha"),
                     HostInfo(5, "Karan"),
-                    HostInfo(6, "Sanya"),
-                    HostInfo(7, "Rahul"),
-                    HostInfo(8, "Priya"),
-                    HostInfo(9, "Amit"),
-                    HostInfo(10, "Neha"),
-                    HostInfo(11, "Karan"),
-                    HostInfo(12, "Sanya")
+                    HostInfo(6, "Sanya")
                 )
             )
 
-            // Default Fallback: Normal Description Card Variant
+            // Default Fallback
             else -> MapEventInfo(
                 id = eventId,
                 title = fallbackTitle,
@@ -73,7 +64,7 @@ object FakeMapEventInfoService {
                 venue = "Campus Complex",
                 posterUrl = null,
                 posterResId = null,
-                isJoined = false, // Fixed: Added missing parameter here
+                isJoined = false,
                 hosts = emptyList()
             )
         }

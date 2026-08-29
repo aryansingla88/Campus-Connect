@@ -37,7 +37,11 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/register",
                                 "/metadata/courses",
-                                "/navigation/**"
+                                "/navigation/**",
+                                "/poi/**",        // <-- MAP ENDPOINTS ADDED
+                                "/events/**",     // <-- MAP ENDPOINTS ADDED
+                                "/presence/**",   // <-- MAP ENDPOINTS ADDED
+                                "/shops/**"       // <-- MAP ENDPOINTS ADDED
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

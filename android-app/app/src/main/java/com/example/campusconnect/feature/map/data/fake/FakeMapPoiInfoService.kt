@@ -5,15 +5,12 @@ import com.example.campusconnect.feature.map.model.MapPoiInfo
 object FakeMapPoiInfoService {
 
     fun getPoiInfo(
-        poiId: String,
-        fallbackName: String
+        poiId: Int,
+        fallbackName: String = "Campus POI"
     ): MapPoiInfo {
         return when (poiId) {
 
-            "poi_main_gate",
-            "main_gate",
-            "poi_1",
-            "POI_1" -> MapPoiInfo(
+            1 -> MapPoiInfo(
                 id = poiId,
                 name = "Main Gate",
                 category = "ENTRY_GATE",
@@ -24,10 +21,7 @@ object FakeMapPoiInfoService {
                 sizeString = "LARGE"
             )
 
-            "poi_library",
-            "library",
-            "poi_2",
-            "POI_2" -> MapPoiInfo(
+            2 -> MapPoiInfo(
                 id = poiId,
                 name = "Library",
                 category = "ACADEMIC",

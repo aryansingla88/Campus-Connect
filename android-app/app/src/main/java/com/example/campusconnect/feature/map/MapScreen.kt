@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
@@ -31,7 +32,7 @@ import com.example.campusconnect.R
 import com.example.campusconnect.core.components.PanelSearchBar
 import com.example.campusconnect.feature.map.components.markerdialogs.*
 import com.example.campusconnect.feature.map.mapengine.*
-import androidx.compose.foundation.shape.CircleShape
+
 private enum class MapMode {
     POSTER,
     HOME,
@@ -101,7 +102,6 @@ fun MapScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -122,7 +122,7 @@ fun MapScreen(
                         "MapScreen received pixel: x=$x, y=$y"
                     )
                 },
-                initialFocusMarkerId = "shop_1",
+                initialFocusMarkerId = 1, // Fixed: Int ID instead of "shop_1"
                 initialZoom = 4.2f
             )
 
@@ -237,7 +237,6 @@ fun MapScreen(
         ) {
             lastSelectedMarker?.let { marker ->
                 when (marker.type) {
-
                     MarkerType.USER -> {
                         lastSelectedProfile?.let { profile ->
                             UserMarkerDialog(
@@ -641,7 +640,7 @@ private fun ModeBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp), // changed: bar height smaller
+            .height(56.dp),
         shape = RoundedCornerShape(28.dp),
         color = Color(0xFFEDEDED).copy(alpha = 0.78f),
         tonalElevation = 8.dp,
@@ -658,7 +657,7 @@ private fun ModeBar(
                 .padding(
                     start = 8.dp,
                     end = 8.dp,
-                    top = 4.dp,     // changed: top padding smaller
+                    top = 4.dp,
                     bottom = 4.dp
                 )
         ) {
@@ -715,7 +714,7 @@ private fun ModeBarItem(
     modifier: Modifier = Modifier
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1.02f else 1f, // changed: very little zoom
+        targetValue = if (selected) 1.02f else 1f,
         animationSpec = MapMotion.springSoft(),
         label = "mode_bar_item_scale"
     )
@@ -731,7 +730,7 @@ private fun ModeBarItem(
         Box(
             modifier = Modifier
                 .size(
-                    if (selected) 46.dp else 42.dp // changed: selected circle not too big
+                    if (selected) 46.dp else 42.dp
                 )
                 .graphicsLayer {
                     scaleX = scale
@@ -751,7 +750,7 @@ private fun ModeBarItem(
                 painter = painterResource(id = imageRes),
                 contentDescription = null,
                 modifier = Modifier.size(
-                    if (selected) 31.dp else 28.dp // changed: default icon smaller
+                    if (selected) 31.dp else 28.dp
                 ),
                 contentScale = ContentScale.Fit
             )

@@ -9,7 +9,7 @@ data class EventRegReq(
 
 data class EventRegAnswerReq(
     @SerializedName("fieldId")
-    val fieldId: String,
+    val fieldId: Int, // Changed String to Int
 
     @SerializedName("value")
     val value: String

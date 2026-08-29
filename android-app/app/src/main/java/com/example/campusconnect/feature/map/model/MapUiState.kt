@@ -8,7 +8,7 @@ data class MapUiState(
     val markers: List<MapMarker> = emptyList(),
     val renderData: List<MarkerRenderData> = emptyList(),
 
-    val selectedMarkerId: String? = null,
+    val selectedMarkerId: Int? = null,
     val selectedMarker: MarkerRenderData? = null,
 
     val selectedUserProfile: MapUserProfile? = null,

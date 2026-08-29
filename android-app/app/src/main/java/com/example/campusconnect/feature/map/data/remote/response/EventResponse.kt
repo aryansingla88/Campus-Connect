@@ -2,9 +2,9 @@ package com.example.campusconnect.feature.map.data.remote.response
 
 import com.google.gson.annotations.SerializedName
 
-data class EventMapRes(
+data class EventResponse(
     @SerializedName("id")
-    val id: String,
+    val id: Int,
 
     @SerializedName("title")
     val title: String,

@@ -9,45 +9,44 @@ import com.example.campusconnect.feature.map.model.MapUserProfile
 
 interface MapRepo {
 
-    // Filter-based Marker Fetching (Search parameter removed)
     suspend fun getMarkers(
         type: MarkerType? = null
     ): Result<List<MapMarker>>
 
-    // User Preview Card & Social Actions
+    // User Profile & Connections (Int IDs)
     suspend fun getUserProfile(
-        userId: String
+        userId: Int
     ): Result<MapUserProfile>
 
     suspend fun sendConnectionRequest(
-        userId: String
+        userId: Int
     ): Result<Unit>
 
-    // POI Card Details
+    // POI Card Details (Int ID)
     suspend fun getPoiInfo(
-        poiId: String,
+        poiId: Int,
         fallbackName: String = ""
     ): Result<MapPoiInfo>
 
-    // Event Card Details & Interactions
+    // Event Card Details & Interactions (Int IDs)
     suspend fun getEventInfo(
-        eventId: String
+        eventId: Int
     ): Result<MapEventInfo>
 
     suspend fun registerEvent(
-        eventId: String
+        eventId: Int
     ): Result<Unit>
 
     suspend fun enableEventReminder(
-        eventId: String
+        eventId: Int
     ): Result<Unit>
 
     suspend fun disableEventReminder(
-        eventId: String
+        eventId: Int
     ): Result<Unit>
 
-    // Shop Card Details
+    // Shop Card Details (Int ID)
     suspend fun getShopInfo(
-        shopId: String
+        shopId: Int
     ): Result<MapShopInfo>
 }

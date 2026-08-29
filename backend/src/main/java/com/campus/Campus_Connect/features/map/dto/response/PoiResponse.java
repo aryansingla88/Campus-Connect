@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class PoiResponse {
 
-    private String id;
+    private Integer id; // Mapped to DB Entity Integer ID directly
 
     private String name;
 
