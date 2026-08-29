@@ -1,11 +1,14 @@
 package com.example.campusconnect.feature.profile.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
+import com.example.campusconnect.feature.metadata.courses.CourseRepository
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
+import com.example.campusconnect.feature.profile.data.mapper.toPublicUserProfile
 import com.example.campusconnect.feature.profile.model.*
 
 class ApiProfileRepository(
-    private val api: ProfileApi = RetrofitClient.profileApi
+    private val api: ProfileApi = RetrofitClient.profileApi,
+    private val courseRepository: CourseRepository
 ) : ProfileRepository {
 
 
@@ -13,15 +16,62 @@ class ApiProfileRepository(
     // Profile-------------------------------------------------------------
 
     override suspend fun getMyProfile(): Result<PublicUserProfile> {
-        TODO()
+        return try {
+            val response = api.getMyProfile()
+
+            if (!response.isSuccessful) {
+                return Result.failure(
+                    Exception("Failed to fetch profile")
+                )
+            }
+
+            val profileResponse = response.body()?.data
+                ?: return Result.failure(
+                    Exception("Profile data is empty")
+                )
+
+            val profile = profileResponse.toPublicUserProfile(
+                courseRepository
+            )
+
+            Result.success(profile)
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
+    //------------
     override suspend fun getProfile(
-        userId: String
+        userId: Int
     ): Result<PublicUserProfile> {
-        TODO()
+
+        return try {
+            val response = api.getProfile(userId)
+
+            if (!response.isSuccessful) {
+                return Result.failure(
+                    Exception("Failed to fetch profile")
+                )
+            }
+
+            val profileResponse = response.body()?.data
+                ?: return Result.failure(
+                    Exception("Profile data is empty")
+                )
+
+            val profile = profileResponse.toPublicUserProfile(
+                courseRepository
+            )
+
+            Result.success(profile)
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
+    //------------
     override suspend fun updateProfile(
         profile: PublicUserProfile
     ): Result<PublicUserProfile> {
@@ -36,7 +86,7 @@ class ApiProfileRepository(
     }
 
     override suspend fun getUserStats(
-        userId: String
+        userId: Int
     ): Result<ProfileStats> {
         TODO()
     }
@@ -49,7 +99,7 @@ class ApiProfileRepository(
     }
 
     override suspend fun getUserConnections(
-        userId: String
+        userId: Int
     ): Result<List<Connection>> {
         TODO()
     }
@@ -59,19 +109,19 @@ class ApiProfileRepository(
     }
 
     override suspend fun sendConnectionRequest(
-        userId: String
+        userId: Int
     ): Result<Unit> {
         TODO()
     }
 
     override suspend fun acceptConnectionRequest(
-        userId: String
+        userId: Int
     ): Result<Unit> {
         TODO()
     }
 
     override suspend fun removeConnection(
-        userId: String
+        userId: Int
     ): Result<Unit> {
         TODO()
     }
@@ -84,7 +134,7 @@ class ApiProfileRepository(
     }
 
     override suspend fun getUserClubs(
-        userId: String
+        userId: Int
     ): Result<List<Club>> {
         TODO()
     }
@@ -130,9 +180,5 @@ class ApiProfileRepository(
         TODO()
     }
 
-    // Courses-------------------------------------------------------------
 
-    override suspend fun getCourses(): Result<List<Course>> {
-        TODO()
-    }
 }

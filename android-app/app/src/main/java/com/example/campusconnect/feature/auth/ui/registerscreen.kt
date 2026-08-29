@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.auth
+package com.example.campusconnect.feature.auth.ui
 
 
 import androidx.compose.foundation.background
@@ -30,6 +30,8 @@ import java.util.Calendar
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import com.example.campusconnect.feature.auth.viewmodel.RegisterViewModel
 import kotlinx.coroutines.launch
 /*
 below structure is called a modifier chain-
@@ -67,7 +69,7 @@ fun RegisterScreen(
     viewModel: RegisterViewModel = viewModel()
 ) {
     val context =
-        androidx.compose.ui.platform.LocalContext.current
+        LocalContext.current
 
     val username by viewModel.username.collectAsState()
 
@@ -285,7 +287,7 @@ fun RegisterScreen(
 
             DropdownField(
                 value =
-                    selectedCourse?.programname
+                    selectedCourse?.programName
                         ?: selectedCourse?.degree
                         ?: "",
 
@@ -293,7 +295,7 @@ fun RegisterScreen(
 
                 options =
                     courses.map { course ->
-                        course.programname
+                        course.programName
                             ?: course.degree
                     },
 
@@ -301,7 +303,7 @@ fun RegisterScreen(
 
                     courses
                         .firstOrNull { course ->
-                            (course.programname
+                            (course.programName
                                 ?: course.degree) == selectedName
                         }
                         ?.let { course ->
@@ -654,8 +656,7 @@ fun DobField(
     onDateSelected: (String) -> Unit
 ) {
 
-    val context = androidx.compose.ui.platform
-        .LocalContext.current
+    val context = LocalContext.current
 
     val calendar = Calendar.getInstance()
 

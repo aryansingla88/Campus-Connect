@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinKsp)
 }
 
 android {
@@ -86,5 +87,10 @@ dependencies {
     implementation("androidx.compose.foundation:foundation:1.6.x")
 
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+
+    ksp("androidx.room:room-compiler:2.6.1")
 }
 

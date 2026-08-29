@@ -26,9 +26,9 @@ private enum class ManageTab {
 fun ManageConnectionsPanel(
     incomingRequests: List<ConnectionRequest>,
     sentInvites: List<ConnectionRequest>,
-    onAccept: (String) -> Unit,
-    onDecline: (String) -> Unit,
-    onCancelInvite: (String) -> Unit
+    onAccept: (Int) -> Unit,
+    onDecline: (Int) -> Unit,
+    onCancelInvite: (Int) -> Unit
 ) {
     var selectedTab by remember {
         mutableStateOf(ManageTab.REQUESTS)

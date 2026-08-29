@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.splash
 
+import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
@@ -31,6 +31,12 @@ class SplashViewModel(application: Application) : AndroidViewModel(application) 
 
     fun startSplash() {
         viewModelScope.launch {
+
+            val courseRepository = CourseRepositoryProvider.getRepository(
+                    getApplication<Application>().applicationContext
+                )
+
+            courseRepository.ensureCoursesCached()
 
             // total delay ≈ animation + text delay
             delay(2000)

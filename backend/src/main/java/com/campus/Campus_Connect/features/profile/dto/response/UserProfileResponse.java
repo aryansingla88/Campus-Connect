@@ -15,14 +15,16 @@ public class UserProfileResponse {
     private String username;
     private String email;
 
-    // User Profile
+    // User Profile --Header
     private String fullName;
     private String bio;
     private String avatarUrl;
 
-    private CourseResponse course;
-
+    // User Profile --course
+    private Integer courseId;
     private Integer admissionYear;
+
+    //User Profile --others
     private String hostel;
     private String hometown;
     private String gender;

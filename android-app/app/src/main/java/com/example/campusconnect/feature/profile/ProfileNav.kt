@@ -15,7 +15,7 @@ object ProfileRoutes {
     const val MY_PROFILE   = "profile/me"
     const val VIEW_PROFILE = "profile/{userId}"
 
-    fun viewProfile(userId: String) = "profile/$userId"
+    fun viewProfile(userId: Int) = "profile/$userId"
 }
 
 // - Nav graph -----------------------------------------------------------------
@@ -40,9 +40,14 @@ fun NavGraphBuilder.ProfileNav(
         // -- View Another User's Profile -------------------------------------------
         composable(
             route     = ProfileRoutes.VIEW_PROFILE,
-            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            arguments = listOf(navArgument("userId") {
+                    type = NavType.IntType
+                })
         ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId").orEmpty()
+            val userId =
+                backStackEntry.arguments?.getInt("userId")
+                    ?: return@composable
+
             ViewProfileScreen(
                 userId = userId,
                 onBack = { navController.popBackStack() }

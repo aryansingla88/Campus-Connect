@@ -3,7 +3,8 @@ package com.example.campusconnect.feature.auth
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.example.campusconnect.feature.test.TestScreen
+import com.example.campusconnect.feature.auth.ui.LoginScreen
+import com.example.campusconnect.feature.auth.ui.RegisterScreen
 
 fun NavGraphBuilder.authNav(
     navController: NavController
