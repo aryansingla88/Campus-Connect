@@ -7,7 +7,7 @@ data class ConnectionResponse(
     // User -------------------------------------------------------------
 
     @SerializedName("user_id")
-    val userId: String,
+    val userId: Int,
 
     @SerializedName("username")
     val username: String,

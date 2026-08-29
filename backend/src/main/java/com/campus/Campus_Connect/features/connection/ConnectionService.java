@@ -337,8 +337,8 @@ public class ConnectionService {
 
         return CourseResponse.builder()
                 .courseId(course.getId())
-                .degree(course.getDegree())
-                .courseCode(course.getCourseCode())
+//                .degree(course.getDegree())
+//                .courseCode(course.getCourseCode())
                 .build();
 
     }

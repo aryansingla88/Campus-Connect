@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.auth
+package com.example.campusconnect.feature.auth.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

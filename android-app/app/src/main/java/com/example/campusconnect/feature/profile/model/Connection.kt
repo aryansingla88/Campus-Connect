@@ -7,7 +7,7 @@ enum class ConnectionStatus {
 }
 
 data class Connection(
-    val userId: String,
+    val userId: Int,
     val fullName: String,
     val course: String,
     val academicYear: Int,

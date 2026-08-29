@@ -47,7 +47,7 @@ enum class AvatarShape { CIRCLE, ROUNDED }
  */
 @Composable
 fun AppAvatar(
-    entityId    : String,
+    entityId    : Int,
     displayName : String,
     imageUrl    : String?   = null,
     size        : Dp        = 40.dp,

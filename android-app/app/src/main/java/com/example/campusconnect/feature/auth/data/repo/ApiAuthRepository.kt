@@ -4,7 +4,6 @@ import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.auth.data.remote.AuthApi
 import com.example.campusconnect.feature.auth.data.remote.request.RegisterRequest
 import com.example.campusconnect.feature.auth.data.remote.response.AuthResponse
-import com.example.campusconnect.feature.auth.domain.repository.AuthRepository
 
 class ApiAuthRepository(
     private val api: AuthApi = RetrofitClient.authApi

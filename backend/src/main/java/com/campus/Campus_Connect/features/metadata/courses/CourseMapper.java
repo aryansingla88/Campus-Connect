@@ -12,9 +12,7 @@ public class CourseMapper {
 
         return CourseResponse.builder()
                 .courseId(course.getId())
-                .degree(course.getDegree())
                 .programName(course.getProgram())
-                .courseCode(course.getCourseCode())
                 .build();
     }
 

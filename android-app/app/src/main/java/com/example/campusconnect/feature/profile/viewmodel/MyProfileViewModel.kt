@@ -1,12 +1,16 @@
 package com.example.campusconnect.feature.profile.viewmodel
 
+import android.app.Application
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 
+
 import com.example.campusconnect.feature.profile.model.*
 
-class MyProfileViewModel : BaseProfileViewModel() {
+class MyProfileViewModel(
+    application: Application
+) : BaseProfileViewModel(application) {
 
     override var profile by mutableStateOf(PublicUserProfile())
 
@@ -97,24 +101,25 @@ class MyProfileViewModel : BaseProfileViewModel() {
         }
     }
 
-    fun acceptRequest(userId: String) {
+    fun acceptRequest(userId: Int) {
 
         incomingRequests.removeAll {
             it.userId == userId
         }
     }
 
-    fun declineRequest(userId: String) {
+    fun declineRequest(userId: Int) {
 
         incomingRequests.removeAll {
             it.userId == userId
         }
     }
 
-    fun cancelInvite(userId: String) {
+    fun cancelInvite(userId: Int) {
 
         sentInvites.removeAll {
             it.userId == userId
         }
     }
+
 }

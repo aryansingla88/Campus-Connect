@@ -19,7 +19,7 @@ interface ProfileApi {
     // GET another user's profile
     @GET("users/{userId}")
     suspend fun getProfile(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<ProfileResponse>>
 
     // PATCH own profile fields (user_profile table)
@@ -35,7 +35,7 @@ interface ProfileApi {
     // GET another user's stats
     @GET("users/{userId}/stats")
     suspend fun getUserStats(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<ProfileStatsResponse>>
 
 
@@ -48,7 +48,7 @@ interface ProfileApi {
 
     @GET("users/{userId}/connections")
     suspend fun getUserConnections(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<List<ConnectionResponse>>>
 
     @GET("users/me/connections/requests")
@@ -57,17 +57,17 @@ interface ProfileApi {
 
     @POST("users/{userId}/connections/request")
     suspend fun sendConnectionRequest(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<Unit>>
 
     @POST("users/{userId}/connections/accept")
     suspend fun acceptConnectionRequest(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<Unit>>
 
     @DELETE("users/{userId}/connections")
     suspend fun removeConnection(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<Unit>>
 
     @GET("users/search")
@@ -84,7 +84,7 @@ interface ProfileApi {
 
     @GET("users/{userId}/clubs")
     suspend fun getUserClubs(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<List<ClubResponse>>>
 
     @POST("clubs/{clubId}/join")
@@ -105,7 +105,7 @@ interface ProfileApi {
 
     @GET("users/{userId}/honors")
     suspend fun getUserHonors(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<ProfileHonorsResponse>>
 
     @PATCH("users/me/honors/priority")
@@ -128,7 +128,7 @@ interface ProfileApi {
     // GET another user's interests
     @GET("users/{userId}/interests")
     suspend fun getUserInterests(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): Response<ApiResponse<List<InterestResponse>>>
 
     // POST add interest to own profile
@@ -144,11 +144,4 @@ interface ProfileApi {
     ): Response<ApiResponse<Unit>>
 
 
-
-
-    // Courses metadata (courses table)----------------------------------------------------------------
-
-    // GET full course catalogue — used in profile edit dropdown
-    @GET("courses")
-    suspend fun getCourses(): Response<ApiResponse<List<CourseResponse>>>
 }

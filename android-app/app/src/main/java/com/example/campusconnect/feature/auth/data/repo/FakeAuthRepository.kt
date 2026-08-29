@@ -1,6 +1,7 @@
-package com.example.campusconnect.feature.auth
+package com.example.campusconnect.feature.auth.data.repo
 
 import android.util.Log
+import com.example.campusconnect.feature.auth.data.VerifyOtpResult
 import kotlin.random.Random
 
 object FakeAuthRepository {

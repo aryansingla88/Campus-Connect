@@ -24,7 +24,7 @@ fun ConnectionsPanel(
     connections: List<Connection>,
     mode: ProfileMode,
     onStatusChange: (index: Int, newStatus: ConnectionStatus) -> Unit,
-    onConnectionClick: (userId: String) -> Unit = {}
+    onConnectionClick: (userId: Int) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
 

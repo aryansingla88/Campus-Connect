@@ -11,9 +11,6 @@ public class CourseResponse {
 
     private Integer courseId;
 
-    private String degree;
-
     private String programName;
-
-    private String courseCode;
+    
 }

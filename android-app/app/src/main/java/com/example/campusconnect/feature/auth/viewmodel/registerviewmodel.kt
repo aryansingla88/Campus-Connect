@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.auth
+package com.example.campusconnect.feature.auth.viewmodel
 
 import android.app.Application
 import android.content.Context
@@ -7,30 +7,29 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import com.example.campusconnect.feature.auth.data.remote.response.CourseResponse
-import com.example.campusconnect.feature.auth.data.repo.ApiCourseRepository
+import com.example.campusconnect.feature.metadata.courses.Course
+import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 import com.example.campusconnect.feature.auth.data.repo.ApiAuthRepository
-import com.example.campusconnect.feature.auth.domain.repository.AuthRepository
-import com.example.campusconnect.feature.auth.data.repo.CourseRepository
+import com.example.campusconnect.feature.auth.data.repo.AuthRepository
 import com.example.campusconnect.feature.auth.data.remote.request.RegisterRequest
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import com.example.campusconnect.feature.auth.data.google.GoogleEmailVerificationResult
 import com.example.campusconnect.feature.auth.data.google.GoogleEmailVerifier
+import kotlinx.coroutines.flow.asStateFlow
 
 class RegisterViewModel(application: Application)
     : AndroidViewModel(application) {
 
-    private val courseRepository: CourseRepository =
-        ApiCourseRepository()
+    private val courseRepository =
+        CourseRepositoryProvider.getRepository(
+            application.applicationContext
+        )
 
     private val authRepository: AuthRepository =
         ApiAuthRepository()
 
-    init {
-        loadCourses()
-    }
 
     // username
     /*
@@ -77,16 +76,20 @@ class RegisterViewModel(application: Application)
     // course
 
     private val _courses =
-        MutableStateFlow<List<CourseResponse>>(emptyList())
+        MutableStateFlow<List<Course>>(emptyList())
 
-    val courses: StateFlow<List<CourseResponse>> =
-        _courses
+    val courses =
+        _courses.asStateFlow()
 
     private val _selectedCourse =
-        MutableStateFlow<CourseResponse?>(null)
+        MutableStateFlow<Course?>(null)
 
-    val selectedCourse: StateFlow<CourseResponse?> =
-        _selectedCourse
+    val selectedCourse =
+        _selectedCourse.asStateFlow()
+
+    init {
+        loadCourses()
+    }
 
     // admission year
     private val _admissionYear = MutableStateFlow("")
@@ -121,22 +124,8 @@ class RegisterViewModel(application: Application)
     // =========================
 
     private fun loadCourses() {
-
         viewModelScope.launch {
-
-            courseRepository
-                .getCourses()
-                .onSuccess { courses ->
-
-                    _courses.value = courses
-                }
-                .onFailure { error ->
-
-                    _messageEvent.emit(
-                        error.message
-                            ?: "Failed to load courses"
-                    )
-                }
+            _courses.value = courseRepository.getAllCourses()
         }
     }
 
@@ -199,7 +188,7 @@ class RegisterViewModel(application: Application)
         _realName.value = filtered
     }
 
-    fun onCourseChange(value: CourseResponse) {
+    fun onCourseChange(value: Course){
         _selectedCourse.value = value
     }
 

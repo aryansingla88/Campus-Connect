@@ -7,29 +7,29 @@ interface ProfileRepository {
 
     suspend fun getMyProfile(): Result<PublicUserProfile>
 
-    suspend fun getProfile(userId: String): Result<PublicUserProfile>
+    suspend fun getProfile(userId: Int): Result<PublicUserProfile>
 
     suspend fun updateProfile(profile: PublicUserProfile): Result<PublicUserProfile>
 
     suspend fun getMyStats(): Result<ProfileStats>
 
-    suspend fun getUserStats(userId: String): Result<ProfileStats>
+    suspend fun getUserStats(userId: Int): Result<ProfileStats>
 
     suspend fun getMyConnections(): Result<List<Connection>>
 
-    suspend fun getUserConnections(userId: String): Result<List<Connection>>
+    suspend fun getUserConnections(userId: Int): Result<List<Connection>>
 
     suspend fun getConnectionRequests(): Result<List<ConnectionRequest>>
 
-    suspend fun sendConnectionRequest(userId: String): Result<Unit>
+    suspend fun sendConnectionRequest(userId: Int): Result<Unit>
 
-    suspend fun acceptConnectionRequest(userId: String): Result<Unit>
+    suspend fun acceptConnectionRequest(userId: Int): Result<Unit>
 
-    suspend fun removeConnection(userId: String): Result<Unit>
+    suspend fun removeConnection(userId: Int): Result<Unit>
 
     suspend fun getMyClubs(): Result<List<Club>>
 
-    suspend fun getUserClubs(userId: String): Result<List<Club>>
+    suspend fun getUserClubs(userId: Int): Result<List<Club>>
 
     suspend fun joinClub(clubId: String): Result<Unit>
 
@@ -45,5 +45,4 @@ interface ProfileRepository {
 
     suspend fun removeInterest(interestId: String): Result<Unit>
 
-    suspend fun getCourses(): Result<List<Course>>
 }

@@ -1,78 +1,46 @@
 package com.example.campusconnect.feature.profile.data.remote.response
 
-import com.google.gson.annotations.SerializedName
 
 data class ProfileResponse(
 
+    // User ----------------------------------------------------------
 
-    // Users table ----------------------------------------------------------
-
-    @SerializedName("user_id")
-    val userId: String,
-
-    @SerializedName("username")
+    val userId: Int,
     val username: String,
-
-    @SerializedName("email")
     val email: String,
 
 
-    // User Profile table----------------------------------------------------------
+    // Profile header -------------------------------------------------
 
-    @SerializedName("full_name")
     val fullName: String,
-
-    @SerializedName("bio")
     val bio: String?,
-
-    @SerializedName("avatar_url")
     val avatarUrl: String?,
 
-    @SerializedName("course_id")
-    val courseId: String,
 
-    @SerializedName("course_name")
-    val courseName: String,
+    // Academic -------------------------------------------------------
 
-    @SerializedName("branch")
-    val branch: String?,
-
-    @SerializedName("admission_year")
+    val courseId: Int,
     val admissionYear: Int,
 
-    @SerializedName("hostel")
+
+    // Other profile details ------------------------------------------
+
     val hostel: String,
-
-    @SerializedName("hometown")
     val hometown: String?,
-
-    @SerializedName("gender")
     val gender: String?,
-
-    @SerializedName("dob")
-    val dob: String?,              // yyyy-MM-dd
-
-    @SerializedName("phone")
+    val dob: String?,
     val phone: String?,
 
-    @SerializedName("github")
     val github: String?,
-
-    @SerializedName("linkedin")
     val linkedin: String?,
-
-    @SerializedName("instagram")
     val instagram: String?,
 
-    @SerializedName("member_since")
     val memberSince: String,
 
 
-    // Preferences affecting profile display----------------------------------------------------------
+    // Preferences ----------------------------------------------------
 
-    @SerializedName("show_phone")
     val showPhone: Boolean,
+    val showSocials: Boolean
 
-    @SerializedName("show_socials")
-    val showSocials: Boolean,
 )

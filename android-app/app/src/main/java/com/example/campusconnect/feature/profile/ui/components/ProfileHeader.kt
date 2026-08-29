@@ -27,7 +27,7 @@ import com.example.campusconnect.core.components.AppAvatar
 
 @Composable
 fun ProfileHeader(
-    entityId: String,
+    entityId: Int,
     avatarUrl: String?,
     displayName: String,
     username: String,

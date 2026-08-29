@@ -140,13 +140,16 @@ fun ProfileContent(
                 InfoRow(Icons.Outlined.Person, "FULL NAME", profile.fullName, isEditMode) { onValueChange(profile.copy(fullName = it)) }
                 SectionDivider()
             }
-            if (profile.course.isNotBlank() || isEditMode) {
-                InfoRow(Icons.Outlined.School, "COURSE", profile.course, isEditMode,
-                    inputType = InputType.Dropdown(COURSE_OPTIONS)) { onValueChange(profile.copy(course = it)) }
+            if (profile.programName.isNotBlank() || isEditMode) {
+                InfoRow(Icons.Outlined.School, "COURSE", profile.programName, isEditMode,
+                    inputType = InputType.Dropdown(COURSE_OPTIONS)) { onValueChange(profile.copy(programName = it)) }
                 SectionDivider()
             }
-            if (profile.academicYear.isNotBlank() || isEditMode) {
-                InfoRow(Icons.Outlined.CalendarToday, "YEAR (BATCH)", profile.academicYear, isEditMode,
+            if (profile.academicYear.isNotBlank() &&
+                profile.batch.isNotBlank() || isEditMode) {
+                InfoRow(Icons.Outlined.CalendarToday, "YEAR (BATCH)",
+                    "${profile.academicYear} (${profile.batch})",
+                    isEditMode,
                     inputType = InputType.Int("e.g. 2022")) { onValueChange(profile.copy(academicYear = it)) }
                 SectionDivider()
             }
