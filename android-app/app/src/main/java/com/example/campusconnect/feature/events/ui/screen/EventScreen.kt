@@ -49,6 +49,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.EventStatus
+import com.example.campusconnect.feature.events.ui.components.BackButton
 import com.example.campusconnect.feature.events.ui.components.CreateEventButton
 import com.example.campusconnect.feature.events.ui.components.EventMarker
 import com.example.campusconnect.feature.events.ui.components.MapViewButton
@@ -65,7 +66,10 @@ private enum class ToastType { CREATED, UPDATED, DELETED }
 
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
-fun EventScreen() {
+fun EventScreen(
+    onBack: () -> Unit
+) {
+
 
     val viewModel: EventViewModel = viewModel()
 
@@ -264,6 +268,13 @@ fun EventScreen() {
                     }
                 }
             }
+        }
+
+        if (!isSelectingLocation) {
+            BackButton (
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.TopStart)
+            )
         }
 
         // ── BOTTOM LEFT — View mode button ────────────────────────────────────

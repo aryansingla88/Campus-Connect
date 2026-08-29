@@ -15,7 +15,11 @@ fun NavGraphBuilder.eventNav(navController: NavController) {
     ) {
 
         composable("events_main") {
-            EventScreen()
+            EventScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
    //     composable("event_list") {
