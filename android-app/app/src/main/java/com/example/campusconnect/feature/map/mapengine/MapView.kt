@@ -37,9 +37,9 @@ private const val MAX_ZOOM = 5f
 fun MapView(
     modifier: Modifier = Modifier,
     markers: List<MarkerRenderData> = emptyList(),
-    onMarkerClick: (String) -> Unit = {},
+    onMarkerClick: (Int) -> Unit = {},
     onMapTap: (Float, Float) -> Unit = { _, _ -> },
-    initialFocusMarkerId: String? = null,
+    initialFocusMarkerId: Int? = null,
     initialZoom: Float = 2.2f
 ) {
     var scale by remember { mutableStateOf(1f) }
@@ -791,8 +791,8 @@ private fun DrawScope.drawHighPriorityEventPin(
     isSelected: Boolean,
     priority: Int
 ) {
-    val eventColor = Color(0xFFE63100) // changed: dark orange
-    val innerCircleColor = Color.White // changed: heart ki jagah white circle
+    val eventColor = Color(0xFFE63100)
+    val innerCircleColor = Color.White
 
     val pinRadius = radius * 1.12f
     val circleCenterY = y - pinRadius * 0.18f
@@ -835,7 +835,6 @@ private fun DrawScope.drawHighPriorityEventPin(
         color = eventColor
     )
 
-    // changed: heart remove karke white circle add kiya
     drawCircle(
         color = innerCircleColor,
         radius = pinRadius * 0.36f,
@@ -912,36 +911,4 @@ private fun DrawScope.drawEventAreaHalo(
         center = Offset(x, y),
         style = Stroke(width = 4.5f)
     )
-}
-
-private fun createHeartPath(
-    centerX: Float,
-    centerY: Float,
-    size: Float
-): Path {
-    val top = centerY - size * 0.25f
-
-    return Path().apply {
-        moveTo(centerX, centerY + size * 0.55f)
-
-        cubicTo(
-            centerX - size * 1.05f,
-            centerY - size * 0.05f,
-            centerX - size * 0.75f,
-            top - size * 0.55f,
-            centerX,
-            top
-        )
-
-        cubicTo(
-            centerX + size * 0.75f,
-            top - size * 0.55f,
-            centerX + size * 1.05f,
-            centerY - size * 0.05f,
-            centerX,
-            centerY + size * 0.55f
-        )
-
-        close()
-    }
 }

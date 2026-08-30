@@ -10,22 +10,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.app.Application
+import androidx.compose.ui.platform.LocalContext
+
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.model.StatPanel
 import com.example.campusconnect.feature.profile.ui.components.*
-import com.example.campusconnect.feature.profile.ui.panels.clubs.ClubsPanel
 import com.example.campusconnect.feature.profile.ui.panels.connections.ConnectionsPanel
 import com.example.campusconnect.feature.profile.ui.panels.honor.HonorPanel
+import com.example.campusconnect.feature.profile.ui.panels.clubs.ClubsPanel
 import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.ViewProfileViewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewProfileScreen(
-    userId: String = "demo",
-    onBack: () -> Unit = {},
-    vm: ViewProfileViewModel = viewModel(factory = ViewProfileViewModel.factory(userId))
+    userId: Int = 22,
+    onBack: () -> Unit = {}
 ) {
+
+    val application =
+        LocalContext.current.applicationContext as Application
+
+    val vm: ViewProfileViewModel =
+        viewModel(
+            factory = ViewProfileViewModel.factory(
+                application = application,
+                userId = userId
+            )
+        )
     Scaffold(
         containerColor = PageBg,
         topBar = {

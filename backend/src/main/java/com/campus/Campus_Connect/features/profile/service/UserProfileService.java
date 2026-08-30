@@ -9,8 +9,6 @@ import com.campus.Campus_Connect.features.connection.entity.ConnectionStatus;
 import com.campus.Campus_Connect.features.connection.repository.ConnectionRepository;
 import com.campus.Campus_Connect.features.honor.repository.UserHonorRepository;
 import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
-import com.campus.Campus_Connect.features.metadata.courses.dto.CourseResponse;
-import com.campus.Campus_Connect.features.metadata.courses.entity.Course;
 import com.campus.Campus_Connect.features.profile.dto.request.UpdateUserProfileRequest;
 import com.campus.Campus_Connect.features.profile.dto.response.UserProfileResponse;
 import com.campus.Campus_Connect.features.profile.dto.response.ProfileStatsResponse;
@@ -158,23 +156,15 @@ public class UserProfileService {
         return createdAt.format(formatter);
     }
     //-------------------
+    // TODO: Move showPhone/showSocials privacy enforcement to the backend.
+    // Currently filtered on the frontend.
+
     private UserProfileResponse buildUserProfileResponse(
             UserProfile profile,
             UserPreference preference
     ) {
 
         User user = profile.getUser();
-
-        Course course = courseRepository.findById(profile.getCourseId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Course not found."));
-
-        CourseResponse courseResponse = CourseResponse.builder()
-                .courseId(course.getId())
-                .degree(course.getDegree())
-                .programName(course.getProgram())
-                .courseCode(course.getCourseCode())
-                .build();
 
         return UserProfileResponse.builder()
                 // User
@@ -186,7 +176,7 @@ public class UserProfileService {
                 .fullName(profile.getFullName())
                 .bio(profile.getBio())
                 .avatarUrl(profile.getAvatarUrl())
-                .course(courseResponse)
+                .courseId(profile.getCourseId())
                 .admissionYear(profile.getAdmissionYear())
                 .hostel(profile.getHostel())
                 .hometown(profile.getHometown())

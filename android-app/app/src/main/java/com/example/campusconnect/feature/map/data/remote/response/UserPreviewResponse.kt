@@ -32,20 +32,19 @@ data class UserPreviewRes(
     val mutualConnectionsCount: Int? = 0
 )
 
-// UI Model (MapUserProfile) mein map karne ke liye extension function
 fun UserPreviewRes.toMapUserProfile(): MapUserProfile {
     val endCalculatedYear = admissionYear + 4
     val formattedCourse = if (courseCode.isNotBlank()) "$courseName ($courseCode)" else courseName
 
     return MapUserProfile(
-        id = userId.toString(),
+        id = userId, // Directly pass Int (removed .toString())
         fullName = fullName,
         course = formattedCourse,
         startYear = admissionYear,
         endYear = endCalculatedYear,
         description = bio ?: "",
-        badges = emptyList(), // Instructions ke mutabiq badges excluded hain
-        medals = emptyList(),  // Instructions ke mutabiq medals excluded hain
+        badges = emptyList(),
+        medals = emptyList(),
         mutualFriendsCount = mutualConnectionsCount ?: 0
     )
 }

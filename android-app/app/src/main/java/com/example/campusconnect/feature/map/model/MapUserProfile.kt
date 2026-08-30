@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.map.model
 
 data class MapUserProfile(
-    val id: String,
+    val id: Int,
     val fullName: String,
     val course: String,
     val startYear: Int,

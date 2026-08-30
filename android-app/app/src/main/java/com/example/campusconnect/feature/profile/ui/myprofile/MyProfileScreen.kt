@@ -30,7 +30,7 @@ fun MyProfileScreen(
     onBack: () -> Unit = {},
     onSettings: () -> Unit = {},
     onEditProfile: () -> Unit = {},
-    onNavigateToProfile: (String) -> Unit = {},
+    onNavigateToProfile: (Int) -> Unit = {},
     vm: MyProfileViewModel = viewModel()
 ) {
 

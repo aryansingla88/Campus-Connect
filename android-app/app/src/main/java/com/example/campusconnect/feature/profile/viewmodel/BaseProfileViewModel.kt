@@ -1,17 +1,26 @@
 package com.example.campusconnect.feature.profile.viewmodel
 
 import androidx.compose.runtime.*
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import com.example.campusconnect.feature.profile.model.*
 import com.example.campusconnect.feature.profile.data.repo.*
+import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 
 
-abstract class BaseProfileViewModel : ViewModel() {
+abstract class BaseProfileViewModel(
+    application: Application
+) : AndroidViewModel(application) {
 
     protected open val repository: ProfileRepository =
-        FakeProfileRepository()
+        ApiProfileRepository(
+            courseRepository =
+                CourseRepositoryProvider.getRepository(
+                    application.applicationContext
+                )
+        )
 
     abstract var profile: PublicUserProfile
 

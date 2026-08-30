@@ -6,7 +6,7 @@ enum class RequestType {
 }
 
 data class ConnectionRequest(
-    val userId: String,
+    val userId: Int,
     val fullName: String,
     val course: String,
     val academicYear: Int,

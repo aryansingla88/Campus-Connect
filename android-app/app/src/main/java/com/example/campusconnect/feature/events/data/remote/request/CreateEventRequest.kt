@@ -1,73 +1,49 @@
 package com.example.campusconnect.feature.events.data.remote.request
 
-import com.google.gson.annotations.SerializedName
-
-/**
- * Body for POST /events.
- * Mirrors Event.kt exactly — id and createdBy are excluded
- * (id is server-generated, createdBy comes from the auth token).
- */
 data class CreateEventRequest(
-    @SerializedName("title")
-    val title                 : String,
 
-    @SerializedName("description")
-    val description           : String? = null,
+    // =========================
+    // Backend supported fields
+    // =========================
 
-    @SerializedName("latitude")
-    val latitude              : Double,
+    val title: String,
 
-    @SerializedName("longitude")
-    val longitude             : Double,
+    val description: String? = null,
 
-    @SerializedName("x_ratio")
-    val xRatio                : Float = 0.5f,
+    val latitude: Double,
 
-    @SerializedName("y_ratio")
-    val yRatio                : Float = 0.5f,
+    val longitude: Double,
 
-    @SerializedName("date")
-    val date                  : String = "",
+    val startTime: String,
 
-    @SerializedName("start_time")
-    val startTime             : String = "",
+    val endTime: String? = null,
 
-    @SerializedName("end_time")
-    val endTime               : String? = null,
+    val clubId: Int? = null,
 
-    @SerializedName("club_name")
-    val clubName              : String = "",
+    val hostName: String? = null,
 
-    @SerializedName("is_poster")
-    val isPoster              : Boolean = false,
+    val venue: String? = null,
 
-    @SerializedName("poster_url")
-    val posterUrl             : String? = null,
+    val visibilityType: String,
 
-    @SerializedName("category")
-    val category              : String = "",
+    val visibilityValue: String? = null,
 
-    @SerializedName("visibility_type")
-    val visibilityType        : String = "",
+    val registrationType: String,
 
-    @SerializedName("visibility_value")
-    val visibilityValue       : String = "",
+    val registrationLink: String? = null,
 
-    @SerializedName("registration_required")
-    val registrationRequired  : Boolean = false,
+    val priority: Int = 1,
 
-    @SerializedName("registration_link")
-    val registrationLink      : String = "",
 
-    @SerializedName("in_app_registration")
-    val inAppRegistration     : Boolean = false,
+    // =========================
+    // TODO: Backend support
+    // =========================
 
-    @SerializedName("venue")
-    val venue                 : String = "",
+    // TODO: Add posterUrl to backend Event/CreateEventRequest later
+    val posterUrl: String? = null,
 
-    @SerializedName("enable_chat")
-    val enableChat            : Boolean = false,
+    // TODO: Add category to backend later
+    val category: String? = null,
 
-    @SerializedName("status")
-    val status                : String = "UPCOMING"   // EventStatus enum as string: LIVE | PAST | UPCOMING
+    //TODO: add registration link
 )

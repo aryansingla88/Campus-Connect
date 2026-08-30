@@ -13,6 +13,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "events")
@@ -153,6 +155,19 @@ public class Event {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    // ------------------------------------------------------------------------
+    // Category
+    // ------------------------------------------------------------------------
+
+    @Builder.Default
+    @ManyToMany
+    @JoinTable(
+            name = "event_category_map",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<EventCategory> categories=new HashSet<>();
 }
 
 

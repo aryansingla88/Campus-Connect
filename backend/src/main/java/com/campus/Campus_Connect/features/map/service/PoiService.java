@@ -132,7 +132,7 @@ public class PoiService {
     private PoiResponse mapToResponse(Poi poi) {
 
         return PoiResponse.builder()
-                .id(String.valueOf(poi.getId()))
+                .id(poi.getId())
                 .name(poi.getName())
                 .category(poi.getCategory().name())
                 .description(poi.getDescription())

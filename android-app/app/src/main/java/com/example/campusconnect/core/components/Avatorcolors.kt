@@ -27,7 +27,7 @@ private val AVATAR_PALETTE = listOf(
 )
 
 
-fun avatarColorsFor(entityId: String): AvatarColors {
+fun avatarColorsFor(entityId: Int): AvatarColors {
     val index = (entityId.hashCode() and Int.MAX_VALUE) % AVATAR_PALETTE.size
     return AVATAR_PALETTE[index]
 }

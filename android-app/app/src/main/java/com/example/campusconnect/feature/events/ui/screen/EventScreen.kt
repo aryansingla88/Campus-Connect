@@ -19,10 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddLocation
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -49,9 +49,11 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.EventStatus
+import com.example.campusconnect.feature.events.ui.components.BackButton
+import com.example.campusconnect.feature.events.ui.components.CreateEventButton
 import com.example.campusconnect.feature.events.ui.components.EventMarker
+import com.example.campusconnect.feature.events.ui.components.MapViewButton
 import com.example.campusconnect.feature.events.ui.components.ModeToggle
-import com.example.campusconnect.feature.events.ui.components.ToolIcon
 import com.example.campusconnect.feature.events.ui.dialog.EventAccessDialog
 import com.example.campusconnect.feature.events.ui.dialog.EventCreateDialog
 import com.example.campusconnect.feature.events.ui.drawer.EventHistoryDrawer
@@ -64,7 +66,10 @@ private enum class ToastType { CREATED, UPDATED, DELETED }
 
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
-fun EventScreen() {
+fun EventScreen(
+    onBack: () -> Unit
+) {
+
 
     val viewModel: EventViewModel = viewModel()
 
@@ -86,6 +91,8 @@ fun EventScreen() {
 
     var showParticipants    by remember { mutableStateOf(false) }
     var showHistoryDrawer   by remember { mutableStateOf(false) }
+
+    var showViewMode by remember { mutableStateOf(false) }
 
     var toastMessage        by remember { mutableStateOf<String?>(null) }
 
@@ -132,6 +139,7 @@ fun EventScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFFE0E0E0))
             .onSizeChanged { boxWidth.value = it.width; boxHeight.value = it.height }
             .pointerInput(isSelectingLocation) {
                 if (isSelectingLocation) {
@@ -192,20 +200,37 @@ fun EventScreen() {
             Row(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(top = 16.dp)
+                    .shadow(
+                        elevation = 5.dp,
+                        shape = RoundedCornerShape(30.dp),
+                        ambientColor = Color.Black.copy(alpha = 0.20f),
+                        spotColor = Color.Black.copy(alpha = 0.20f)
+                    )
+                    .clip(RoundedCornerShape(30.dp))
+                    .background(Color.White)
+                    .padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+
                 ModeToggle(
-                    text     = "Self",
-                    icon     = Icons.Default.Person,
+                    text = "Mine",
+                    icon = Icons.Default.Person,
                     selected = selectedMode == "self",
-                    onClick  = { selectedMode = if (selectedMode == "self") null else "self" }
+                    onClick = {
+                        selectedMode =
+                            if (selectedMode == "self") null else "self"
+                    }
                 )
+
                 ModeToggle(
-                    text     = "Shared",
-                    icon     = Icons.Default.Group,
+                    text = "Shared",
+                    icon = Icons.Default.Group,
                     selected = selectedMode == "shared",
-                    onClick  = { selectedMode = if (selectedMode == "shared") null else "shared" }
+                    onClick = {
+                        selectedMode =
+                            if (selectedMode == "shared") null else "shared"
+                    }
                 )
             }
 
@@ -217,7 +242,7 @@ fun EventScreen() {
                         .padding(top = 16.dp, end = 16.dp)
                         .size(46.dp)
                         .background(
-                            color = Color(0xFFFF6F00),
+                            color = Color(0xFFFF4D00),
                             shape = RoundedCornerShape(14.dp)
                         )
                         .clickable(
@@ -245,24 +270,34 @@ fun EventScreen() {
             }
         }
 
+        if (!isSelectingLocation) {
+            BackButton (
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.TopStart)
+            )
+        }
+
         // ── BOTTOM LEFT — View mode button ────────────────────────────────────
         if (!isSelectingLocation) {
-            ToolIcon(
-                icon     = Icons.Default.Visibility,
+            MapViewButton(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 16.dp)
+                    .padding(start = 16.dp, bottom = 16.dp),
+                onClick = {
+                    showViewMode = true
+                }
             )
         }
 
         // ── BOTTOM RIGHT — Create event button ────────────────────────────────
         if (!isSelectingLocation) {
-            ToolIcon(
-                icon     = Icons.Default.AddLocation,
+            CreateEventButton(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 16.dp, bottom = 16.dp),
-                onClick  = { isSelectingLocation = true }
+                onClick = {
+                    isSelectingLocation = true
+                }
             )
         }
 
@@ -439,6 +474,24 @@ fun EventScreen() {
                         onUpdate  = { wasEditMode = true; viewModel.updateEvent() }
                     )
                 }
+
+            }
+        }
+
+        // ── VIEW MODE OVERLAY ─────────────────────────────────────────────────  ← ADD HERE
+        if (showViewMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(10f)
+            ) {
+                EventViewModeScreen(
+                    events       = filteredEvents,
+                    onBack       = { showViewMode = false },
+                    onRegister   = { },
+                    onNotify     = { },
+                    onOpenDetail = { showViewMode = false }
+                )
             }
         }
     }

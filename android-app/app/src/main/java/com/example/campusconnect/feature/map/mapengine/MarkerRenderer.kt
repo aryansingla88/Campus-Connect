@@ -4,7 +4,7 @@ class MarkerRenderer {
 
     fun buildMarkerRenderData(
         markers: List<MapMarker>,
-        selectedMarkerId: String? = null
+        selectedMarkerId: Int? = null
     ): List<MarkerRenderData> {
 
         return markers.map { marker ->

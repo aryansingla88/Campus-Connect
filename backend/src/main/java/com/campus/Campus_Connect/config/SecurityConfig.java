@@ -32,14 +32,24 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
+//                .authorizeHttpRequests(auth -> auth
+//                        .requestMatchers(
+//                                "/auth/login",
+//                                "/auth/register",
+//                                "/metadata/courses",
+//                                "/navigation/**",
+//                                "/metadata/courses/details"
+//                                "/navigation/**",
+//                                "/poi/**",        // <-- MAP ENDPOINTS ADDED
+//                                "/events/**",     // <-- MAP ENDPOINTS ADDED
+//                                "/presence/**",   // <-- MAP ENDPOINTS ADDED
+//                                "/shops/**"       // <-- MAP ENDPOINTS ADDED
+//                        ).permitAll()
+//                        .anyRequest().authenticated()
+//                )
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/auth/login",
-                                "/auth/register",
-                                "/metadata/courses",
-                                "/navigation/**"
-                        ).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
 
                 .addFilterBefore(

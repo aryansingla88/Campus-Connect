@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.map.model
 
 data class MapPoiInfo(
-    val id: String,
+    val id: Int,                         // Strict Int ID
     val name: String,
     val category: String,
     val description: String? = null,

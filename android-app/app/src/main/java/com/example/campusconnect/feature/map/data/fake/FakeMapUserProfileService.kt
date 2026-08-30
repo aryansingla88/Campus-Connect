@@ -4,10 +4,10 @@ import com.example.campusconnect.feature.map.model.MapUserProfile
 
 class FakeMapUserProfileService {
 
-    fun getProfileByMarkerId(markerId: String): MapUserProfile {
+    fun getProfileByMarkerId(markerId: Int): MapUserProfile {
         return when (markerId) {
-            "user_1" -> MapUserProfile(
-                id = "user_1",
+            1 -> MapUserProfile(
+                id = 1,
                 fullName = "Aryan Sharma",
                 course = "MCA",
                 startYear = 2023,
@@ -18,8 +18,8 @@ class FakeMapUserProfileService {
                 mutualFriendsCount = 4
             )
 
-            "user_2" -> MapUserProfile(
-                id = "user_2",
+            2 -> MapUserProfile(
+                id = 2,
                 fullName = "Priya Singh",
                 course = "MCA",
                 startYear = 2023,

@@ -189,6 +189,22 @@ public class EventMapper {
 
                 .priority(event.getBasePriorityLevel())
 
+                .categoryId(
+                        event.getCategories()
+                                .stream()
+                                .findFirst()
+                                .map(category -> category.getId())
+                                .orElse(null)
+                )
+
+                .categoryName(
+                        event.getCategories()
+                                .stream()
+                                .findFirst()
+                                .map(category -> category.getName())
+                                .orElse(null)
+                )
+
                 .build();
     }
 }

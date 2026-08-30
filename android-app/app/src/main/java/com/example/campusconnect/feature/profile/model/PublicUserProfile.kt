@@ -5,15 +5,14 @@ import com.example.campusconnect.core.utils.toInitials
 data class PublicUserProfile(
 
     // Identity
-    val userId: String = "",
+    val userId: Int = 0,
     val fullName: String = "",
     val username: String = "",
     val bio: String = "",
     val avatarUrl: String? = null,
 
     // Academic
-    val course: String = "",
-    val branch: String = "",
+    val programName: String = "",
     val academicYear: String = "",
     val batch: String = "",
     val hostel: String = "",
