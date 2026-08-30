@@ -49,4 +49,8 @@ public class EventResponse {
     private EventState eventState;
 
     private Integer priority;
+
+    private Integer categoryId;
+
+    private String categoryName;
 }
