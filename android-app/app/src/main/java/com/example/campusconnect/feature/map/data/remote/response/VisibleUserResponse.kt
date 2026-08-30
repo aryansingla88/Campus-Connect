@@ -27,8 +27,8 @@ data class UserMapRes(
 
 fun UserMapRes.toMarker(): MapMarker {
     return MapMarker(
-        id = "USER_$userId",
-        sourceId = userId.toString(),
+        id = userId,
+        sourceId = userId,
         type = MarkerType.USER,
         latitude = latitude,
         longitude = longitude,

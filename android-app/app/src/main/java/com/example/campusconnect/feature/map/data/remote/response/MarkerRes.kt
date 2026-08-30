@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class MarkerRes(
     @SerializedName("entityId")
-    val entityId: String,
+    val entityId: Int, // Changed String to Int
 
     @SerializedName("type")
     val type: String,

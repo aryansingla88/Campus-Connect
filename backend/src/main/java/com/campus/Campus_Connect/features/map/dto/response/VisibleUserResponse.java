@@ -18,4 +18,6 @@ public class VisibleUserResponse {
     private Double longitude;
 
     private Boolean insideCampus;
+
+    private String gender;
 }

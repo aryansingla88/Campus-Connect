@@ -2,7 +2,7 @@ package com.example.campusconnect.feature.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.feature.map.data.repo.FakeMapRepo
+import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
 import com.example.campusconnect.feature.map.data.repo.MapRepo
 import com.example.campusconnect.feature.map.mapengine.*
 import com.example.campusconnect.feature.map.model.*
@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class MapViewModel(
-    private val repository: MapRepo = FakeMapRepo()
+    private val repository: MapRepo = ApiMapRepo()
 ) : ViewModel() {
 
     private val markerRenderer = MarkerRenderer()
@@ -25,7 +25,6 @@ class MapViewModel(
         loadMarkers()
     }
 
-    // Modified: Removed 'search' parameter to align with updated MapRepo
     private fun loadMarkers(
         type: MarkerType? = null
     ) {
@@ -66,10 +65,10 @@ class MapViewModel(
         }
     }
 
-    fun selectMarker(markerId: String) {
+    fun selectMarker(markerId: Int) {
         val selectedMarker = _uiState.value.renderData.firstOrNull { marker ->
             marker.id == markerId
-        } ?: return
+        }
 
         updateState(
             markers = _uiState.value.markers,
@@ -83,7 +82,9 @@ class MapViewModel(
             detailErrorMessage = null
         )
 
-        loadSelectedMarkerDetails(selectedMarker)
+        if (selectedMarker != null) {
+            loadSelectedMarkerDetails(selectedMarker)
+        }
     }
 
     private fun loadSelectedMarkerDetails(
@@ -91,7 +92,6 @@ class MapViewModel(
     ) {
         viewModelScope.launch {
             when (marker.type) {
-
                 MarkerType.USER -> {
                     repository.getUserProfile(marker.id)
                         .onSuccess { profile ->
@@ -145,14 +145,8 @@ class MapViewModel(
                                 selectedEventInfo = null
                             )
                         }
-                        .onFailure {
-                            _uiState.value = _uiState.value.copy(
-                                isDetailLoading = false,
-                                detailErrorMessage = null,
-                                selectedUserProfile = null,
-                                selectedPoiInfo = null,
-                                selectedEventInfo = null
-                            )
+                        .onFailure { error ->
+                            updateDetailError(error)
                         }
                 }
             }
@@ -173,30 +167,35 @@ class MapViewModel(
         )
     }
 
-    // Modified: Passing only 'type' parameter
     fun setFilter(type: MarkerType?) {
         loadMarkers(type = type)
     }
 
-    fun sendConnectionRequest(userId: String) {
+    fun sendConnectionRequest(userId: Int) {
         viewModelScope.launch {
             repository.sendConnectionRequest(userId)
         }
     }
 
-    fun registerEvent(eventId: String) {
+    fun registerEvent(eventId: Int) {
         viewModelScope.launch {
             repository.registerEvent(eventId)
+                .onSuccess {
+                    // Success logic
+                }
+                .onFailure { error ->
+                    updateDetailError(error)
+                }
         }
     }
 
-    fun enableEventReminder(eventId: String) {
+    fun enableEventReminder(eventId: Int) {
         viewModelScope.launch {
             repository.enableEventReminder(eventId)
         }
     }
 
-    fun disableEventReminder(eventId: String) {
+    fun disableEventReminder(eventId: Int) {
         viewModelScope.launch {
             repository.disableEventReminder(eventId)
         }
@@ -227,7 +226,7 @@ class MapViewModel(
 
     private fun updateState(
         markers: List<MapMarker> = _uiState.value.markers,
-        selectedMarkerId: String? = _uiState.value.selectedMarkerId,
+        selectedMarkerId: Int? = _uiState.value.selectedMarkerId,
         activeFilter: MarkerType? = _uiState.value.activeFilter,
 
         selectedMarkerOverride: MarkerRenderData? = _uiState.value.selectedMarker,
@@ -251,7 +250,7 @@ class MapViewModel(
 
         val renderData = markerRenderer.buildMarkerRenderData(
             markers = visibleMarkers,
-            selectedMarkerId = selectedMarkerId
+            selectedMarkerId = selectedMarkerId // Fixed: Passed Int? directly (removed .toString())
         )
 
         val selectedMarker = selectedMarkerOverride

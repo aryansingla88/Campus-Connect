@@ -32,6 +32,12 @@ data class EventPreviewRes(
     @SerializedName("longitude")
     val longitude: Double? = null,
 
+    @SerializedName("registrationType")
+    val registrationType: String? = null,
+
+    @SerializedName("registrationLink")
+    val registrationLink: String? = null,
+
     @SerializedName("isJoined")
     val isJoined: Boolean? = null,
 
@@ -42,20 +48,20 @@ data class EventPreviewRes(
     val priority: Int? = null,
 
     @SerializedName("hosts")
-    val hosts: List<EventHostRes>? = null
+    val hosts: List<EventHostResponse>? = null
 )
 
 fun EventPreviewRes.toMapEventInfo(): MapEventInfo {
     val hostList = hosts?.map {
         HostInfo(
-            id = it.userId.toIntOrNull() ?: 0,
+            id = it.userId, // No mismatch now (Int -> Int)
             name = it.fullName,
             avatarUrl = it.avatarUrl
         )
     } ?: emptyList()
 
     return MapEventInfo(
-        id = id.toString(),
+        id = id,
         title = title,
         hostName = hostList.firstOrNull()?.name ?: "Campus Team",
         date = startTime ?: "TBA",

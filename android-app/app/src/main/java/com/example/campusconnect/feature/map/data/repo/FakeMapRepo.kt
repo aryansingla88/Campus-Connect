@@ -16,13 +16,11 @@ class FakeMapRepo : MapRepo {
     private val fakeMapService = FakeMapService()
     private val fakeUserProfileService = FakeMapUserProfileService()
 
-    // Modified: Only 'search' parameter removed from signature & body
     override suspend fun getMarkers(
         type: MarkerType?
     ): Result<List<MapMarker>> {
         var markers = fakeMapService.getMarkers()
 
-        // Shops sirf dedicated SHOP mode me dikhenge
         markers = if (type == MarkerType.SHOP) {
             markers.filter { it.type == MarkerType.SHOP }
         } else {
@@ -36,37 +34,33 @@ class FakeMapRepo : MapRepo {
         return Result.success(markers)
     }
 
-    // Preserved: User preview card data
     override suspend fun getUserProfile(
-        userId: String
+        userId: Int
     ): Result<MapUserProfile> {
         return Result.success(
             fakeUserProfileService.getProfileByMarkerId(userId)
         )
     }
 
-    // Preserved: Connection request action
     override suspend fun sendConnectionRequest(
-        userId: String
+        userId: Int
     ): Result<Unit> {
         return Result.success(Unit)
     }
 
-    // Preserved: POI bottom sheet details
     override suspend fun getPoiInfo(
-        poiId: String,
+        poiId: Int,
         fallbackName: String
     ): Result<MapPoiInfo> {
         return Result.success(
             FakeMapPoiInfoService.getPoiInfo(
                 poiId = poiId,
-                fallbackName = if (fallbackName.isBlank()) "Campus POI" else fallbackName
+                fallbackName = fallbackName.ifBlank { "Campus POI" }
             )
         )
     }
 
-    // Preserved: Event bottom sheet details
-    override suspend fun getEventInfo(eventId: String): Result<MapEventInfo> {
+    override suspend fun getEventInfo(eventId: Int): Result<MapEventInfo> {
         return runCatching {
             FakeMapEventInfoService.getEventInfo(
                 eventId = eventId,
@@ -75,28 +69,26 @@ class FakeMapRepo : MapRepo {
         }
     }
 
-    // Preserved: Event actions
     override suspend fun registerEvent(
-        eventId: String
+        eventId: Int
     ): Result<Unit> {
         return Result.success(Unit)
     }
 
     override suspend fun enableEventReminder(
-        eventId: String
+        eventId: Int
     ): Result<Unit> {
         return Result.success(Unit)
     }
 
     override suspend fun disableEventReminder(
-        eventId: String
+        eventId: Int
     ): Result<Unit> {
         return Result.success(Unit)
     }
 
-    // Preserved: Shop bottom sheet details
     override suspend fun getShopInfo(
-        shopId: String
+        shopId: Int
     ): Result<MapShopInfo> {
         return Result.success(
             MapShopInfo(
