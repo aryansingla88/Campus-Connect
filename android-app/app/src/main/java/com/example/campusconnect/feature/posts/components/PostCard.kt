@@ -41,7 +41,11 @@ fun PostCard(
 
     commentCount: Int,
 
-    onClick: () -> Unit
+    onClick: () -> Unit,
+
+    onUpvoteClick: () -> Unit,
+
+    onDownvoteClick: () -> Unit
 ) {
 
     ElevatedCard(
@@ -276,13 +280,9 @@ fun PostCard(
 
                     userVote = post.userVote,
 
-                    onUpvoteClick = {
+                    onUpvoteClick = onUpvoteClick,
 
-                    },
-
-                    onDownvoteClick = {
-
-                    }
+                    onDownvoteClick = onDownvoteClick
                 )
 
                 Text(

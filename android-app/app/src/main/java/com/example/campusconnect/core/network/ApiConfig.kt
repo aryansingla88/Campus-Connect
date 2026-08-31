@@ -2,7 +2,7 @@ package com.example.campusconnect.core.network
 
 object ApiConfig {
 
-    const val BASE_URL    = "http://192.168.1.40:8000/"
+    const val BASE_URL    = "http://10.127.205.87:8000/"
     
     const val TIMEOUT_SEC = 30L
 

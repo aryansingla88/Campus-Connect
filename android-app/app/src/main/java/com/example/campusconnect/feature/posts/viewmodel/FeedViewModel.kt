@@ -29,4 +29,25 @@ class FeedViewModel(
 
         return repository.getTags()
     }
+
+    suspend fun upvotePost(
+        postId: Int
+    ): Result<Unit> {
+
+        return repository.upvotePost(postId)
+    }
+
+    suspend fun downvotePost(
+        postId: Int
+    ): Result<Unit> {
+
+        return repository.downvotePost(postId)
+    }
+
+    suspend fun removePostVote(
+        postId: Int
+    ): Result<Unit> {
+
+        return repository.removePostVote(postId)
+    }
 }
