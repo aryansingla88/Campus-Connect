@@ -27,4 +27,10 @@ public interface EventService {
             Integer eventId
     );
 
+    ApiResponse<List<EventResponse>> getMyEvents();
+
+    ApiResponse<List<EventResponse>> getSharedEvents();
+
+    ApiResponse<List<EventResponse>> getManagedEvents();
+
 }

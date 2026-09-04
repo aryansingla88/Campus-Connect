@@ -53,4 +53,6 @@ public class EventResponse {
     private Integer categoryId;
 
     private String categoryName;
+
+    private String posterUrl;
 }

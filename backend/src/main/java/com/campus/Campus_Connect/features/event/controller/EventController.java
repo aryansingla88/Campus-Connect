@@ -57,6 +57,26 @@ public class EventController {
         return eventService.deleteEvent(eventId);
     }
 
+    @GetMapping("/mine")
+    public ApiResponse<List<EventResponse>> getMyEvents() {
+        return eventService.getMyEvents();
+    }
+
+    // GET /events/shared
+    // Events where current user is ADMIN
+    @GetMapping("/shared")
+    public ApiResponse<List<EventResponse>> getSharedEvents() {
+        return eventService.getSharedEvents();
+    }
+
+    // GET /events/managed
+    // Events where current user is CREATOR or ADMIN
+    @GetMapping("/managed")
+    public ApiResponse<List<EventResponse>> getManagedEvents() {
+        return eventService.getManagedEvents();
+    }
+
+
     // GET /api/events/feed
     @GetMapping("/feed")
     public ApiResponse<List<EventResponse>> getEventFeed() {

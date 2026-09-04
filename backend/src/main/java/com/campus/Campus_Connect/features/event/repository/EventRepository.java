@@ -1,12 +1,17 @@
 package com.campus.Campus_Connect.features.event.repository;
 
 import com.campus.Campus_Connect.features.event.entity.Event;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
 
 public interface EventRepository extends JpaRepository<Event, Integer> {
+
+    @Override
+    @EntityGraph(attributePaths = {"posters"})
+    List<Event> findAll();
 
     List<Event> findByCreator_Id(
             Integer creatorId

@@ -5,6 +5,7 @@ import com.campus.Campus_Connect.features.event.dto.request.CreateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.request.UpdateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.response.EventResponse;
 import com.campus.Campus_Connect.features.event.entity.Event;
+import com.campus.Campus_Connect.features.event.entity.EventPoster;
 import com.campus.Campus_Connect.features.event.entity.enums.ApprovalStatus;
 import com.campus.Campus_Connect.features.event.entity.enums.EventState;
 import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
@@ -202,6 +203,14 @@ public class EventMapper {
                                 .stream()
                                 .findFirst()
                                 .map(category -> category.getName())
+                                .orElse(null)
+                )
+
+                .posterUrl(
+                        event.getPosters()
+                                .stream()
+                                .findFirst()
+                                .map(EventPoster::getPosterUrl)
                                 .orElse(null)
                 )
 

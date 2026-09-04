@@ -68,6 +68,60 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    public ApiResponse<List<EventResponse>> getMyEvents() {
+
+        User currentUser = SecurityUtils.getCurrentUser();
+
+        List<EventResponse> events =
+                eventMemberRepository
+                        .findMyEvents(currentUser.getId())
+                        .stream()
+                        .map(eventMapper::toResponse)
+                        .toList();
+
+        return ApiResponse.success(
+                events,
+                "My events fetched successfully."
+        );
+    }
+
+    @Override
+    public ApiResponse<List<EventResponse>> getSharedEvents() {
+
+        User currentUser = SecurityUtils.getCurrentUser();
+
+        List<EventResponse> events =
+                eventMemberRepository
+                        .findSharedEvents(currentUser.getId())
+                        .stream()
+                        .map(eventMapper::toResponse)
+                        .toList();
+
+        return ApiResponse.success(
+                events,
+                "Shared events fetched successfully."
+        );
+    }
+
+    @Override
+    public ApiResponse<List<EventResponse>> getManagedEvents() {
+
+        User currentUser = SecurityUtils.getCurrentUser();
+
+        List<EventResponse> events =
+                eventMemberRepository
+                        .findManagedEvents(currentUser.getId())
+                        .stream()
+                        .map(eventMapper::toResponse)
+                        .toList();
+
+        return ApiResponse.success(
+                events,
+                "Managed events fetched successfully."
+        );
+    }
+
+    @Override
     public ApiResponse<EventResponse> getEvent(
             Integer eventId
     ) {
