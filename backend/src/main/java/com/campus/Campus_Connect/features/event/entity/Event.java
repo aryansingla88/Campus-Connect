@@ -13,6 +13,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -180,7 +181,8 @@ public class Event {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-    private List<EventPoster> posters;
+    @Builder.Default
+    private List<EventPoster> posters = new ArrayList<>();
 }
 
 

@@ -42,18 +42,9 @@ data class EventResponse(
 
     val priority: Int,
 
-
-    // =========================
-    // TODO: Backend support
-    // =========================
-
-
-
-    // TODO: Add posterUrl to backend EventResponse later
     val posterUrl: String? = null,
 
-    // TODO: Add category to backend EventResponse later
-    val category: String? = null,
+    val categoryId: Int?,
 
-    //TODO: add registration link
+    val categoryName: String?
 )

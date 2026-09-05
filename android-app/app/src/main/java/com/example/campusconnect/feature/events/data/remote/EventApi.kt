@@ -32,6 +32,18 @@ interface EventsApi {
     suspend fun getEvents():
             Response<ApiResponse<List<EventResponse>>>
 
+    @GET("events/mine")
+    suspend fun getMyEvents():
+            Response<ApiResponse<List<EventResponse>>>
+
+    @GET("events/shared")
+    suspend fun getSharedEvents():
+            Response<ApiResponse<List<EventResponse>>>
+
+    @GET("events/managed")
+    suspend fun getManagedEvents():
+            Response<ApiResponse<List<EventResponse>>>
+
     @GET("events/{eventId}")
     suspend fun getEvent(
         @Path("eventId") eventId: Int

@@ -7,10 +7,7 @@ import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.dto.request.CreateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.request.UpdateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.response.EventResponse;
-import com.campus.Campus_Connect.features.event.entity.Event;
-import com.campus.Campus_Connect.features.event.entity.EventCategory;
-import com.campus.Campus_Connect.features.event.entity.EventMember;
-import com.campus.Campus_Connect.features.event.entity.EventMemberId;
+import com.campus.Campus_Connect.features.event.entity.*;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.event.mapper.EventMapper;
 import com.campus.Campus_Connect.features.event.repository.EventCategoryRepository;
@@ -18,12 +15,16 @@ import com.campus.Campus_Connect.features.event.repository.EventMemberRepository
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.event.service.EventService;
 import com.campus.Campus_Connect.features.event.security.EventPermissionService;
+import com.campus.Campus_Connect.features.event.service.PosterStorageService;
 import com.campus.Campus_Connect.features.honor.service.BadgeEvaluatorService;
 import com.campus.Campus_Connect.features.honor.enums.StatisticType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -36,6 +37,7 @@ public class EventServiceImpl implements EventService {
     private final EventPermissionService permissionService;
     private final EventCategoryRepository eventCategoryRepository;
     private final BadgeEvaluatorService badgeEvaluatorService;
+    private final PosterStorageService posterStorageService;
 
     @Override
     public ApiResponse<List<EventResponse>> getEventFeed() {
@@ -140,7 +142,8 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public ApiResponse<EventResponse> createEvent(
-            CreateEventRequest request
+            CreateEventRequest request,
+            MultipartFile poster
     ) {
 
         User creator = SecurityUtils.getCurrentUser();
@@ -159,6 +162,24 @@ public class EventServiceImpl implements EventService {
                                 ));
 
         event.getCategories().add(category);
+
+        if (poster != null && !poster.isEmpty()) {
+
+            try {
+                String posterUrl = posterStorageService.store(poster);
+
+                EventPoster eventPoster = EventPoster.builder()
+                        .event(event)
+                        .posterUrl(posterUrl)
+                        .uploadedAt(Instant.now())
+                        .build();
+
+                event.getPosters().add(eventPoster);
+
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to store event poster.", e);
+            }
+        }
 
         event = eventRepository.save(event);
 
@@ -201,7 +222,8 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public ApiResponse<EventResponse> updateEvent(
             Integer eventId,
-            UpdateEventRequest request
+            UpdateEventRequest request,
+            MultipartFile poster
     ) {
 
         Event event = eventRepository.findById(eventId)
@@ -214,6 +236,33 @@ public class EventServiceImpl implements EventService {
                 event,
                 request
         );
+
+        if (poster != null && !poster.isEmpty()) {
+
+            try {
+                if (event.getPosters() != null && !event.getPosters().isEmpty()) {
+
+                    EventPoster oldPoster = event.getPosters().get(0);
+
+                    posterStorageService.delete(oldPoster.getPosterUrl());
+
+                    event.getPosters().remove(oldPoster);
+                }
+
+                String posterUrl = posterStorageService.store(poster);
+
+                EventPoster newPoster = EventPoster.builder()
+                        .event(event)
+                        .posterUrl(posterUrl)
+                        .uploadedAt(Instant.now())
+                        .build();
+
+                event.getPosters().add(newPoster);
+
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to update event poster.", e);
+            }
+        }
 
         event = eventRepository.save(event);
 

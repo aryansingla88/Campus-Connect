@@ -8,6 +8,7 @@ import com.campus.Campus_Connect.features.event.service.EventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,23 +31,29 @@ public class EventController {
         return eventService.getEvent(eventId);
     }
 
-    @PostMapping
+    @PostMapping(consumes = "multipart/form-data")
     public ApiResponse<EventResponse> createEvent(
             @Valid
-            @RequestBody CreateEventRequest request
+            @RequestPart("event") CreateEventRequest request,
+            @RequestPart(value = "poster", required = false) MultipartFile poster
     ) {
-        return eventService.createEvent(request);
+        return eventService.createEvent(request, poster);
     }
 
-    @PatchMapping("/{eventId}")
+    @PatchMapping(
+            value = "/{eventId}",
+            consumes = "multipart/form-data"
+    )
     public ApiResponse<EventResponse> updateEvent(
             @PathVariable Integer eventId,
             @Valid
-            @RequestBody UpdateEventRequest request
+            @RequestPart("event") UpdateEventRequest request,
+            @RequestPart(value = "poster", required = false) MultipartFile poster
     ) {
         return eventService.updateEvent(
                 eventId,
-                request
+                request,
+                poster
         );
     }
 
