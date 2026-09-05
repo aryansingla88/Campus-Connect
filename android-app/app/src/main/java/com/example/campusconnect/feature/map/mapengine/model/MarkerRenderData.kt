@@ -1,7 +1,13 @@
-package com.example.campusconnect.feature.map.mapengine
+package com.example.campusconnect.feature.map.mapengine.model
+
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 
 data class MarkerRenderData(
+    // Internal UI/map identifier
     val id: String,
+
+    // Actual backend/database identifier
+    val sourceId: Int,
     val x: Float,
     val y: Float,
     val radius: Float,

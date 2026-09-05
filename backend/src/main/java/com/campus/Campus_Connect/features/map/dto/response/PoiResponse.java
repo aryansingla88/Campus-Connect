@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class PoiResponse {
 
-    private String id;
+    private Integer id;
 
     private String name;
 

@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.map.components.markerdialogs
 
 import androidx.compose.runtime.Composable
-import com.example.campusconnect.feature.map.mapengine.MarkerRenderData
+import com.example.campusconnect.feature.map.mapengine.model.MarkerRenderData
 
 @Composable
 fun ShopMarkerDialog(

@@ -5,6 +5,7 @@ import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.google.gson.annotations.SerializedName
 
 data class EventPreviewRes(
+
     @SerializedName("id")
     val id: Int,
 
@@ -32,6 +33,12 @@ data class EventPreviewRes(
     @SerializedName("longitude")
     val longitude: Double? = null,
 
+    @SerializedName("registrationType")
+    val registrationType: String? = null,
+
+    @SerializedName("registrationLink")
+    val registrationLink: String? = null,
+
     @SerializedName("isJoined")
     val isJoined: Boolean? = null,
 
@@ -46,25 +53,30 @@ data class EventPreviewRes(
 )
 
 fun EventPreviewRes.toMapEventInfo(): MapEventInfo {
-    val hostList = hosts?.map {
+
+    val hostList = hosts?.map { host ->
         HostInfo(
-            id = it.userId.toIntOrNull() ?: 0,
-            name = it.fullName,
-            avatarUrl = it.avatarUrl
+            id = host.userId,
+            name = host.fullName,
+            avatarUrl = host.avatarUrl
         )
     } ?: emptyList()
 
     return MapEventInfo(
-        id = id.toString(),
+        id = id,
         title = title,
         hostName = hostList.firstOrNull()?.name ?: "Campus Team",
         date = startTime ?: "TBA",
-        time = if (startTime != null && endTime != null) "$startTime - $endTime" else "TBA",
+        time = if (startTime != null && endTime != null) {
+            "$startTime - $endTime"
+        } else {
+            "TBA"
+        },
         description = description ?: "",
         venue = venue ?: "Campus Complex",
         posterUrl = posterUrl,
         posterResId = null,
-        isJoined = isJoined ?: false,
-        hosts = hostList
+        hosts = hostList,
+        isJoined = isJoined ?: false
     )
 }

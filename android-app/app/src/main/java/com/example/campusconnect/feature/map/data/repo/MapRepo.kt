@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.map.data.repo
 
-import com.example.campusconnect.feature.map.mapengine.MapMarker
-import com.example.campusconnect.feature.map.mapengine.MarkerType
+import com.example.campusconnect.feature.map.mapengine.model.MapMarker
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.map.model.MapPoiInfo
 import com.example.campusconnect.feature.map.model.MapShopInfo
@@ -9,45 +9,50 @@ import com.example.campusconnect.feature.map.model.MapUserProfile
 
 interface MapRepo {
 
-    // Filter-based Marker Fetching (Search parameter removed)
     suspend fun getMarkers(
         type: MarkerType? = null
     ): Result<List<MapMarker>>
 
-    // User Preview Card & Social Actions
+    // Backend user ID
     suspend fun getUserProfile(
-        userId: String
+        userId: Int
     ): Result<MapUserProfile>
 
-    suspend fun sendConnectionRequest(
-        userId: String
-    ): Result<Unit>
-
-    // POI Card Details
+    // Backend POI ID
     suspend fun getPoiInfo(
-        poiId: String,
+        poiId: Int,
         fallbackName: String = ""
     ): Result<MapPoiInfo>
 
-    // Event Card Details & Interactions
+    // Backend event ID
     suspend fun getEventInfo(
-        eventId: String
+        eventId: Int
     ): Result<MapEventInfo>
 
-    suspend fun registerEvent(
-        eventId: String
-    ): Result<Unit>
-
-    suspend fun enableEventReminder(
-        eventId: String
-    ): Result<Unit>
-
-    suspend fun disableEventReminder(
-        eventId: String
-    ): Result<Unit>
-
-    // Shop Card Details
+    // Temporary shop ID
     suspend fun getShopInfo(
-        shopId: String
+        shopId: Int
     ): Result<MapShopInfo>
+
+    // Backend user ID
+    suspend fun sendConnectionRequest(
+        userId: Int
+    ): Result<Unit>
+
+    // Backend event ID
+    suspend fun registerEvent(
+        eventId: Int
+    ): Result<Unit>
+
+    // Backend event ID
+    suspend fun enableEventReminder(
+        eventId: Int
+    ): Result<Unit>
+
+    // Backend event ID
+    suspend fun disableEventReminder(
+        eventId: Int
+    ): Result<Unit>
+
+
 }

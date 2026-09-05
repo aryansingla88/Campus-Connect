@@ -1,8 +1,8 @@
 package com.example.campusconnect.feature.map.data.remote.response
 
-import com.example.campusconnect.feature.map.mapengine.MapMarker
-import com.example.campusconnect.feature.map.mapengine.MarkerSize
-import com.example.campusconnect.feature.map.mapengine.MarkerType
+import com.example.campusconnect.feature.map.mapengine.model.MapMarker
+import com.example.campusconnect.feature.map.mapengine.model.MarkerSize
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.google.gson.annotations.SerializedName
 
 data class UserMapRes(
@@ -28,7 +28,7 @@ data class UserMapRes(
 fun UserMapRes.toMarker(): MapMarker {
     return MapMarker(
         id = "USER_$userId",
-        sourceId = userId.toString(),
+        sourceId = userId,
         type = MarkerType.USER,
         latitude = latitude,
         longitude = longitude,

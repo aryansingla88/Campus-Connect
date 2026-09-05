@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.map.model
 
 data class MapShopInfo(
-    val id: String,
+    val id: Int,
     val name: String,
     val category: String,             // Replaced 'type' with 'category' to match Backend & POI standards
     val description: String? = null,  // Made nullable for safe JSON parsing

@@ -1,5 +1,10 @@
 package com.example.campusconnect.feature.map.mapengine
 
+import com.example.campusconnect.feature.map.mapengine.model.MapMarker
+import com.example.campusconnect.feature.map.mapengine.model.MarkerRenderData
+import com.example.campusconnect.feature.map.mapengine.model.MarkerSize
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
+
 class MarkerRenderer {
 
     fun buildMarkerRenderData(
@@ -13,6 +18,7 @@ class MarkerRenderer {
 
             MarkerRenderData(
                 id = marker.id,
+                sourceId = marker.sourceId,
                 x = marker.x,
                 y = marker.y,
                 radius = getRadius(marker, isSelected),

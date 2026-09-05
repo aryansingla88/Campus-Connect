@@ -4,15 +4,14 @@ import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.map.data.remote.MapApi
 import com.example.campusconnect.feature.map.data.remote.request.EventRegReq
 import com.example.campusconnect.feature.map.data.remote.response.EventMapRes
-import com.example.campusconnect.feature.map.data.remote.response.PoiRes
-import com.example.campusconnect.feature.map.data.remote.response.ShopRes
+//import com.example.campusconnect.feature.map.data.remote.response.ShopRes
 import com.example.campusconnect.feature.map.data.remote.response.toMarker
 import com.example.campusconnect.feature.map.data.remote.response.toPoiInfo
 import com.example.campusconnect.feature.map.data.remote.response.toMapUserProfile
 import com.example.campusconnect.feature.map.data.remote.response.toMapEventInfo
-import com.example.campusconnect.feature.map.mapengine.MapMarker
-import com.example.campusconnect.feature.map.mapengine.MarkerSize
-import com.example.campusconnect.feature.map.mapengine.MarkerType
+import com.example.campusconnect.feature.map.mapengine.model.MapMarker
+import com.example.campusconnect.feature.map.mapengine.model.MarkerSize
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.map.model.MapPoiInfo
 import com.example.campusconnect.feature.map.model.MapShopInfo
@@ -45,9 +44,7 @@ class ApiMapRepo(
                     response.data.map { it.toMapMarker() }
                 }
                 MarkerType.SHOP -> {
-                    val response = api.getShops()
-                    if (!response.success || response.data == null) throw Exception(response.message ?: "Unable to load shops")
-                    response.data.map { it.toMapMarker() }
+                    temporaryShopMarkers()
                 }
                 null -> coroutineScope {
                     val usersDeferred = async { runCatching { api.getVisibleUsers() }.getOrNull()?.data?.map { it.toMarker() } ?: emptyList() }
@@ -65,11 +62,11 @@ class ApiMapRepo(
     }
 
     override suspend fun getUserProfile(
-        userId: String
+        userId: Int
     ): Result<MapUserProfile> {
         return runCatching {
-            val numericUserId = userId.replace("USER_", "").toIntOrNull() ?: 1
-            val response = api.getUserProfile(numericUserId)
+
+            val response = api.getUserProfile(userId)
 
             if (!response.success || response.data == null) {
                 throw Exception(response.message ?: "Unable to load user profile")
@@ -80,7 +77,7 @@ class ApiMapRepo(
     }
 
     override suspend fun getPoiInfo(
-        poiId: String,
+        poiId: Int,
         fallbackName: String
     ): Result<MapPoiInfo> {
         return runCatching {
@@ -99,41 +96,34 @@ class ApiMapRepo(
     }
 
     override suspend fun getEventInfo(
-        eventId: String
+        eventId: Int
     ): Result<MapEventInfo> {
         return runCatching {
-            val numericId = eventId.replace("EVENT_", "").replace("event_", "").toIntOrNull() ?: 1
-            val response = api.getEventPreview(numericId)
+
+            val response = api.getEventPreview(eventId)
 
             if (!response.success || response.data == null) {
-                throw Exception(response.message ?: "Unable to load event preview")
+                throw Exception(
+                    response.message ?: "Unable to load event preview"
+                )
             }
 
-            val eventData = response.data.toMapEventInfo()
-
-            // Testing ke liye hardcode test URL inject karein
-            eventData.copy(
-                posterUrl = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800"
-            )
+            response.data.toMapEventInfo()
         }
     }
 
     override suspend fun getShopInfo(
-        shopId: String
+        shopId: Int
     ): Result<MapShopInfo> {
+
         return runCatching {
-            val response = api.getShopInfo(shopId)
 
-            if (!response.success || response.data == null) {
-                throw Exception(response.message ?: "Unable to load shop")
-            }
-
-            response.data.toMapShopInfo()
+            temporaryShopInfo(shopId)
         }
     }
 
     override suspend fun sendConnectionRequest(
-        userId: String
+        userId: Int
     ): Result<Unit> {
         return runCatching {
             val response = api.sendConnectionRequest(userId)
@@ -147,7 +137,7 @@ class ApiMapRepo(
     }
 
     override suspend fun registerEvent(
-        eventId: String
+        eventId: Int
     ): Result<Unit> {
         return runCatching {
             val response = api.registerEvent(
@@ -164,7 +154,7 @@ class ApiMapRepo(
     }
 
     override suspend fun enableEventReminder(
-        eventId: String
+        eventId: Int
     ): Result<Unit> {
         return runCatching {
             val response = api.enableEventReminder(eventId)
@@ -178,7 +168,7 @@ class ApiMapRepo(
     }
 
     override suspend fun disableEventReminder(
-        eventId: String
+        eventId: Int
     ): Result<Unit> {
         return runCatching {
             val response = api.disableEventReminder(eventId)
@@ -206,27 +196,130 @@ private fun EventMapRes.toMapMarker(): MapMarker {
     )
 }
 
-private fun ShopRes.toMapMarker(): MapMarker {
-    return MapMarker(
-        id = "SHOP_$id",
-        sourceId = id,
-        type = MarkerType.SHOP,
-        latitude = latitude ?: 0.0,
-        longitude = longitude ?: 0.0,
-        label = name,
-        size = MarkerSize.MEDIUM
+//private fun ShopRes.toMapMarker(): MapMarker {
+//    return MapMarker(
+//        id = "SHOP_$id",
+//        sourceId = id,
+//        type = MarkerType.SHOP,
+//        latitude = latitude ?: 0.0,
+//        longitude = longitude ?: 0.0,
+//        label = name,
+//        size = MarkerSize.MEDIUM
+//    )
+//}
+//
+//private fun ShopRes.toMapShopInfo(): MapShopInfo {
+//    return MapShopInfo(
+//        id = id,
+//        name = name,
+//        category = category ?: type ?: "RETAIL",
+//        description = description,
+//        openingTime = openingTime,
+//        closingTime = closingTime,
+//        isOpen = isOpen ?: true,
+//        contactNumber = phone
+//    )
+//}
+/*
+|--------------------------------------------------------------------------
+| TEMPORARY SHOP DATA
+|--------------------------------------------------------------------------
+|
+| TODO:
+| Replace with backend API integration when Shop APIs become available.
+|
+| These temporary models preserve the same architecture:
+|
+| marker.id       -> String internal map ID
+| marker.sourceId -> Int temporary/backend-compatible ID
+|
+*/
+
+private fun temporaryShopMarkers(): List<MapMarker> {
+
+    return listOf(
+
+        MapMarker(
+            id = "SHOP_1",
+            sourceId = 1,
+            type = MarkerType.SHOP,
+            latitude = 29.945000,
+            longitude = 76.816000,
+            label = "Campus Cafe",
+            size = MarkerSize.MEDIUM
+        ),
+
+        MapMarker(
+            id = "SHOP_2",
+            sourceId = 2,
+            type = MarkerType.SHOP,
+            latitude = 29.946000,
+            longitude = 76.817000,
+            label = "Stationery Store",
+            size = MarkerSize.MEDIUM
+        ),
+
+        MapMarker(
+            id = "SHOP_3",
+            sourceId = 3,
+            type = MarkerType.SHOP,
+            latitude = 29.947000,
+            longitude = 76.816500,
+            label = "Campus Mart",
+            size = MarkerSize.MEDIUM
+        )
     )
 }
 
-private fun ShopRes.toMapShopInfo(): MapShopInfo {
-    return MapShopInfo(
-        id = id,
-        name = name,
-        category = category ?: type ?: "RETAIL",
-        description = description,
-        openingTime = openingTime,
-        closingTime = closingTime,
-        isOpen = isOpen ?: true,
-        contactNumber = phone
-    )
+
+private fun temporaryShopInfo(
+    shopId: Int
+): MapShopInfo {
+
+    return when (shopId) {
+
+        1 -> MapShopInfo(
+            id = 1,
+            name = "Campus Cafe",
+            category = "FOOD",
+            description = "Temporary shop data until backend integration is available.",
+            openingTime = "09:00 AM",
+            closingTime = "08:00 PM",
+            isOpen = true,
+            contactNumber = "+91 9876543210"
+        )
+
+        2 -> MapShopInfo(
+            id = 2,
+            name = "Stationery Store",
+            category = "STATIONERY",
+            description = "Temporary shop data until backend integration is available.",
+            openingTime = "09:00 AM",
+            closingTime = "06:00 PM",
+            isOpen = true,
+            contactNumber = "+91 9876543211"
+        )
+
+        3 -> MapShopInfo(
+            id = 3,
+            name = "Campus Mart",
+            category = "GENERAL",
+            description = "Temporary shop data until backend integration is available.",
+            openingTime = "10:00 AM",
+            closingTime = "09:00 PM",
+            isOpen = true,
+            contactNumber = "+91 9876543212"
+        )
+
+        else -> MapShopInfo(
+            id = shopId,
+            name = "Campus Shop",
+            category = "GENERAL",
+            description = "Temporary shop data until backend integration is available.",
+            openingTime = null,
+            closingTime = null,
+            isOpen = true,
+            contactNumber = null
+        )
+    }
 }

@@ -26,6 +26,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntSize
 import com.example.campusconnect.R
+import com.example.campusconnect.feature.map.mapengine.model.MarkerRenderData
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import kotlin.math.pow
 
 private const val MAP_IMAGE_WIDTH = 3000f

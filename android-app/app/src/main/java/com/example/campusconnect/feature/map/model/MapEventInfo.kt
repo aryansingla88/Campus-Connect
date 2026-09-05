@@ -7,7 +7,7 @@ data class HostInfo(
 )
 
 data class MapEventInfo(
-    val id: String,
+    val id: Int,
     val title: String,
     val hostName: String,
     val date: String,

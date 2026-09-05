@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.map.mapengine
+package com.example.campusconnect.feature.map.mapengine.model
 
 enum class MarkerType {
     USER,

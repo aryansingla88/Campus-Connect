@@ -38,7 +38,7 @@ fun UserPreviewRes.toMapUserProfile(): MapUserProfile {
     val formattedCourse = if (courseCode.isNotBlank()) "$courseName ($courseCode)" else courseName
 
     return MapUserProfile(
-        id = userId.toString(),
+        id = userId,
         fullName = fullName,
         course = formattedCourse,
         startYear = admissionYear,

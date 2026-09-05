@@ -2,9 +2,12 @@ package com.example.campusconnect.feature.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.feature.map.data.repo.FakeMapRepo
+import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
 import com.example.campusconnect.feature.map.data.repo.MapRepo
 import com.example.campusconnect.feature.map.mapengine.*
+import com.example.campusconnect.feature.map.mapengine.model.MapMarker
+import com.example.campusconnect.feature.map.mapengine.model.MarkerRenderData
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class MapViewModel(
-    private val repository: MapRepo = FakeMapRepo()
+    private val repository: MapRepo = ApiMapRepo()
 ) : ViewModel() {
 
     private val markerRenderer = MarkerRenderer()
@@ -90,11 +93,14 @@ class MapViewModel(
         marker: MarkerRenderData
     ) {
         viewModelScope.launch {
+
             when (marker.type) {
 
                 MarkerType.USER -> {
-                    repository.getUserProfile(marker.id)
+
+                    repository.getUserProfile(marker.sourceId)
                         .onSuccess { profile ->
+
                             updateSelectedDetails(
                                 selectedUserProfile = profile,
                                 selectedPoiInfo = null,
@@ -107,8 +113,13 @@ class MapViewModel(
                 }
 
                 MarkerType.POI -> {
-                    repository.getPoiInfo(marker.id)
+
+                    repository.getPoiInfo(
+                        poiId = marker.sourceId,
+                        fallbackName = marker.label
+                    )
                         .onSuccess { poi ->
+
                             updateSelectedDetails(
                                 selectedUserProfile = null,
                                 selectedPoiInfo = poi,
@@ -121,8 +132,10 @@ class MapViewModel(
                 }
 
                 MarkerType.EVENT -> {
-                    repository.getEventInfo(marker.id)
+
+                    repository.getEventInfo(marker.sourceId)
                         .onSuccess { event ->
+
                             updateSelectedDetails(
                                 selectedUserProfile = null,
                                 selectedPoiInfo = null,
@@ -135,8 +148,10 @@ class MapViewModel(
                 }
 
                 MarkerType.SHOP -> {
-                    repository.getShopInfo(marker.id)
-                        .onSuccess { shop ->
+
+                    repository.getShopInfo(marker.sourceId)
+                        .onSuccess {
+
                             _uiState.value = _uiState.value.copy(
                                 isDetailLoading = false,
                                 detailErrorMessage = null,
@@ -145,14 +160,9 @@ class MapViewModel(
                                 selectedEventInfo = null
                             )
                         }
-                        .onFailure {
-                            _uiState.value = _uiState.value.copy(
-                                isDetailLoading = false,
-                                detailErrorMessage = null,
-                                selectedUserProfile = null,
-                                selectedPoiInfo = null,
-                                selectedEventInfo = null
-                            )
+                        .onFailure { error ->
+
+                            updateDetailError(error)
                         }
                 }
             }
@@ -178,25 +188,25 @@ class MapViewModel(
         loadMarkers(type = type)
     }
 
-    fun sendConnectionRequest(userId: String) {
+    fun sendConnectionRequest(userId: Int) {
         viewModelScope.launch {
             repository.sendConnectionRequest(userId)
         }
     }
 
-    fun registerEvent(eventId: String) {
+    fun registerEvent(eventId: Int) {
         viewModelScope.launch {
             repository.registerEvent(eventId)
         }
     }
 
-    fun enableEventReminder(eventId: String) {
+    fun enableEventReminder(eventId: Int) {
         viewModelScope.launch {
             repository.enableEventReminder(eventId)
         }
     }
 
-    fun disableEventReminder(eventId: String) {
+    fun disableEventReminder(eventId: Int) {
         viewModelScope.launch {
             repository.disableEventReminder(eventId)
         }

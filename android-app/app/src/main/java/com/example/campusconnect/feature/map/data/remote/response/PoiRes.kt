@@ -1,13 +1,13 @@
 package com.example.campusconnect.feature.map.data.remote.response
 
-import com.example.campusconnect.feature.map.mapengine.MapMarker
-import com.example.campusconnect.feature.map.mapengine.MarkerSize
-import com.example.campusconnect.feature.map.mapengine.MarkerType
+import com.example.campusconnect.feature.map.mapengine.model.MapMarker
+import com.example.campusconnect.feature.map.mapengine.model.MarkerSize
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.MapPoiInfo
 import com.google.gson.annotations.SerializedName
 
 data class PoiRes(
-    @SerializedName("id") val id: Long,
+    @SerializedName("id") val id: Int,
     @SerializedName("name") val name: String,
     @SerializedName("category") val category: String? = null,
     @SerializedName("description") val description: String? = null,
@@ -25,7 +25,7 @@ fun PoiRes.toMarker(): MapMarker {
 
     return MapMarker(
         id = "POI_$id",
-        sourceId = id.toString(),
+        sourceId = id,
         type = MarkerType.POI,
         latitude = latitude ?: 0.0,
         longitude = longitude ?: 0.0,
@@ -41,7 +41,7 @@ fun PoiRes.toPoiInfo(): MapPoiInfo {
     val derivedSizeString = if (poiPriority > 5) "LARGE" else "MEDIUM"
 
     return MapPoiInfo(
-        id = id.toString(),
+        id = id,
         name = name,
         category = category ?: "GENERAL",
         description = description,

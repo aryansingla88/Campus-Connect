@@ -7,7 +7,7 @@ import com.example.campusconnect.feature.map.data.remote.response.EventHostRes
 import com.example.campusconnect.feature.map.data.remote.response.EventMapRes
 import com.example.campusconnect.feature.map.data.remote.response.EventPreviewRes
 import com.example.campusconnect.feature.map.data.remote.response.PoiRes
-import com.example.campusconnect.feature.map.data.remote.response.ShopRes
+//import com.example.campusconnect.feature.map.data.remote.response.ShopRes
 import com.example.campusconnect.feature.map.data.remote.response.UserMapRes
 import com.example.campusconnect.feature.map.data.remote.response.UserPreviewRes
 import retrofit2.http.Body
@@ -29,8 +29,8 @@ interface MapApi {
     @GET("events")
     suspend fun getEvents(): ApiResponse<List<EventMapRes>>
 
-    @GET("shops")
-    suspend fun getShops(): ApiResponse<List<ShopRes>>
+   // @GET("shops") //todo
+   // suspend fun getShops(): ApiResponse<List<ShopRes>>
 
 
     // User Marker & Preview Card Endpoints -------------------------------------
@@ -42,7 +42,7 @@ interface MapApi {
 
     @POST("users/{userId}/connections/request")
     suspend fun sendConnectionRequest(
-        @Path("userId") userId: String
+        @Path("userId") userId: Int
     ): ApiResponse<Unit>
 
 
@@ -50,7 +50,7 @@ interface MapApi {
 
     @GET("poi/{poiId}")
     suspend fun getPoiInfo(
-        @Path("poiId") poiId: String
+        @Path("poiId") poiId: Int
     ): ApiResponse<PoiRes>
 
 
@@ -63,28 +63,28 @@ interface MapApi {
 
     @GET("events/{eventId}")
     suspend fun getEventInfo(
-        @Path("eventId") eventId: String
+        @Path("eventId") eventId: Int
     ): ApiResponse<EventMapRes>
 
     @GET("events/{eventId}/hosts")
     suspend fun getEventHosts(
-        @Path("eventId") eventId: String
+        @Path("eventId") eventId: Int
     ): ApiResponse<List<EventHostRes>>
 
     @POST("events/{eventId}/register")
     suspend fun registerEvent(
-        @Path("eventId") eventId: String,
+        @Path("eventId") eventId: Int,
         @Body request: EventRegReq = EventRegReq()
     ): ApiResponse<Unit>
 
     @POST("events/{eventId}/reminders")
     suspend fun enableEventReminder(
-        @Path("eventId") eventId: String
+        @Path("eventId") eventId: Int
     ): ApiResponse<Unit>
 
     @DELETE("events/{eventId}/reminders")
     suspend fun disableEventReminder(
-        @Path("eventId") eventId: String
+        @Path("eventId") eventId: Int
     ): ApiResponse<Unit>
 
 
@@ -97,10 +97,20 @@ interface MapApi {
     suspend fun getShopCategories(): ApiResponse<List<CategoryRes>>
 
 
-    // Shop Marker Card ---------------------------------------------------------
+    // Shop ------------------------------------------------
 
-    @GET("shops/{shopId}")
-    suspend fun getShopInfo(
-        @Path("shopId") shopId: String
-    ): ApiResponse<ShopRes>
+    /*
+     * TODO:
+     * Shop backend APIs are not available yet.
+     *
+     * When backend support is added, expected APIs can be added here:
+     *
+     * @GET("shops")
+     * suspend fun getShops(): ApiResponse<List<ShopRes>>
+     *
+     * @GET("shops/{shopId}")
+     * suspend fun getShopInfo(
+     *     @Path("shopId") shopId: Int
+     * ): ApiResponse<ShopRes>
+     */
 }

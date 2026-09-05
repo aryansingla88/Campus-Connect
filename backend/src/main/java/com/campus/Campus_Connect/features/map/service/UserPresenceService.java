@@ -237,12 +237,18 @@ public class UserPresenceService {
     // ---------------------------------------------------------
 
     private VisibleUserResponse mapToVisibleUserResponse(UserPresence presence) {
+        UserProfile profile = presence.getUser().getProfile();
+
         return VisibleUserResponse.builder()
                 .userId(presence.getUser().getId())
                 .username(presence.getUser().getUsername())
                 .latitude(presence.getLatitude())
                 .longitude(presence.getLongitude())
-                .insideCampus(isInsideCampus(presence.getLatitude(), presence.getLongitude()))
+                .insideCampus(isInsideCampus(
+                        presence.getLatitude(),
+                        presence.getLongitude()
+                ))
+                .gender(profile != null ? profile.getGender() : null)
                 .build();
     }
 

@@ -32,6 +32,8 @@ import com.example.campusconnect.core.components.PanelSearchBar
 import com.example.campusconnect.feature.map.components.markerdialogs.*
 import com.example.campusconnect.feature.map.mapengine.*
 import androidx.compose.foundation.shape.CircleShape
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
+
 private enum class MapMode {
     POSTER,
     HOME,

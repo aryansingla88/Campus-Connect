@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class EventHostRes(
     @SerializedName("userId")
-    val userId: String,
+    val userId: Int,
 
     @SerializedName("fullName")
     val fullName: String,

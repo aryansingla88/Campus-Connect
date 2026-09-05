@@ -1,8 +1,10 @@
-package com.example.campusconnect.feature.map.mapengine
+package com.example.campusconnect.feature.map.mapengine.model
+
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 
 data class MapMarker(
     val id: String,
-    val sourceId: String? = null,
+    val sourceId: Int,
     val type: MarkerType,
     val latitude: Double,
     val longitude: Double,
