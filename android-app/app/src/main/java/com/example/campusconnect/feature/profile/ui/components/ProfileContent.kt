@@ -32,7 +32,6 @@ import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.material3.LocalTextStyle
 import java.time.LocalDate
 import java.time.Period

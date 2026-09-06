@@ -19,12 +19,12 @@ public class ClubController {
         return clubService.getClubs();
     }
 
-    @GetMapping("/users/me/clubs")
+    @GetMapping("/users/me")
     public ApiResponse<List<ClubResponse>> getMyClubs() {
         return clubService.getMyClubs();
     }
 
-    @GetMapping("/users/{userId}/clubs")
+    @GetMapping("/users/{userId}")
     public ApiResponse<List<ClubResponse>> getUserClubs(
             @PathVariable Integer userId
     ) {

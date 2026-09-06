@@ -5,7 +5,6 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 
-
 import com.example.campusconnect.feature.profile.model.*
 
 class MyProfileViewModel(
@@ -16,6 +15,8 @@ class MyProfileViewModel(
 
     var stats by mutableStateOf(ProfileStats())
         private set
+
+    val allClubs = mutableStateListOf<Club>()
 
     var editableProfile by mutableStateOf(PublicUserProfile())
         private set
@@ -31,9 +32,11 @@ class MyProfileViewModel(
     val sentInvites = mutableStateListOf<ConnectionRequest>()
 
     init {
+        loadMyData()
+        loadConnectionRequests()
+    }
 
-        loadData()
-
+    private fun loadMyData() {
         viewModelScope.launch {
 
             repository.getMyProfile()
@@ -49,22 +52,35 @@ class MyProfileViewModel(
                     stats = it
                 }
 
-            repository.getConnectionRequests()
+            repository.getMyConnections()
                 .getOrNull()
-                ?.let { requests ->
-
-                    incomingRequests.addAll(
-                        requests.filter {
-                            it.type == RequestType.INCOMING
-                        }
-                    )
-
-                    sentInvites.addAll(
-                        requests.filter {
-                            it.type == RequestType.OUTGOING
-                        }
-                    )
+                ?.let {
+                    connections.clear()
+                    connections.addAll(it)
                 }
+
+            refreshClubs()
+
+            repository.getProfileHonors()
+                .getOrNull()
+                ?.let { honors ->
+                    honorRank = honors.honorRank
+
+                    badges.clear()
+                    badges.addAll(honors.badges)
+
+                    medals.clear()
+                    medals.addAll(honors.medals)
+                }
+
+            repository.getSelectedInterests()
+                .getOrNull()
+                ?.let {
+                    interests.clear()
+                    interests.addAll(it)
+                }
+
+            loadAllInterests()
         }
     }
 
@@ -101,25 +117,173 @@ class MyProfileViewModel(
         }
     }
 
-    fun acceptRequest(userId: Int) {
+    fun sendConnectionRequest(userId: Int) {
+        viewModelScope.launch {
+            repository
+                .sendConnectionRequest(userId)
+                .onSuccess {
+                    val index = connections.indexOfFirst {
+                        it.userId == userId
+                    }
 
-        incomingRequests.removeAll {
-            it.userId == userId
+                    if (index != -1) {
+                        connections[index] = connections[index].copy(
+                            status = ConnectionStatus.PENDING
+                        )
+                    }
+                }
+                .onFailure {
+                    // Use your existing error handling here
+                }
+        }
+    }
+
+    fun removeConnection(userId: Int) {
+        viewModelScope.launch {
+            repository
+                .removeConnection(userId)
+                .onSuccess {
+                    val index = connections.indexOfFirst {
+                        it.userId == userId
+                    }
+
+                    if (index != -1) {
+                        connections[index] = connections[index].copy(
+                            status = ConnectionStatus.NOT_CONNECTED
+                        )
+                    }
+                }
+                .onFailure {
+                    // Use your existing error handling here
+                }
+        }
+    }
+
+    fun acceptRequest(userId: Int) {
+        viewModelScope.launch {
+            repository
+                .acceptConnectionRequest(userId)
+                .onSuccess {
+                    incomingRequests.removeAll {
+                        it.userId == userId
+                    }
+
+                    loadConnections()
+                    loadConnectionRequests()
+                }
+                .onFailure {
+                    // Use your existing error handling here
+                }
         }
     }
 
     fun declineRequest(userId: Int) {
+        viewModelScope.launch {
+            repository
+                .removeConnectionRequest(userId)
+                .onSuccess {
+                    incomingRequests.removeAll {
+                        it.userId == userId
+                    }
 
-        incomingRequests.removeAll {
-            it.userId == userId
+                    loadConnectionRequests()
+                }
+                .onFailure {
+                    // Use your existing error handling here
+                }
         }
     }
 
     fun cancelInvite(userId: Int) {
+        viewModelScope.launch {
+            repository
+                .removeConnectionRequest(userId)
+                .onSuccess {
+                    sentInvites.removeAll {
+                        it.userId == userId
+                    }
 
-        sentInvites.removeAll {
-            it.userId == userId
+                    loadConnectionRequests()
+                }
+                .onFailure {
+                    // Use your existing error handling here
+                }
         }
     }
 
+    fun joinClub(clubId: Int) {
+        viewModelScope.launch {
+            repository
+                .joinClub(clubId)
+                .onSuccess {
+                    refreshClubs()
+                }
+        }
+    }
+
+    fun leaveClub(clubId: Int) {
+        viewModelScope.launch {
+            repository
+                .leaveClub(clubId)
+                .onSuccess {
+                    refreshClubs()
+                }
+        }
+    }
+
+    private fun loadConnections() {
+        viewModelScope.launch {
+            repository
+                .getMyConnections()
+                .onSuccess { result ->
+                    connections.clear()
+                    connections.addAll(result)
+                }
+                .onFailure {
+                    // Use your existing error handling here
+                }
+        }
+    }
+
+    private fun loadConnectionRequests() {
+        viewModelScope.launch {
+            repository
+                .getConnectionRequests()
+                .onSuccess { requests ->
+
+                    incomingRequests.clear()
+                    incomingRequests.addAll(
+                        requests.filter {
+                            it.type == RequestType.INCOMING
+                        }
+                    )
+
+                    sentInvites.clear()
+                    sentInvites.addAll(
+                        requests.filter {
+                            it.type == RequestType.OUTGOING
+                        }
+                    )
+                }
+                .onFailure {
+                    // Use your existing error handling here
+                }
+        }
+    }
+
+    private suspend fun refreshClubs() {
+        repository
+            .getMyClubs()
+            .onSuccess { result ->
+                clubs.clear()
+                clubs.addAll(result)
+            }
+
+        repository
+            .getAllClubs()
+            .onSuccess { result ->
+                allClubs.clear()
+                allClubs.addAll(result)
+            }
+    }
 }

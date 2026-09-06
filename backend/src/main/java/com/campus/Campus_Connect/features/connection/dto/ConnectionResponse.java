@@ -1,6 +1,5 @@
 package com.campus.Campus_Connect.features.connection.dto;
 
-import com.campus.Campus_Connect.features.metadata.courses.dto.CourseResponse;
 import lombok.*;
 
 @Getter
@@ -18,9 +17,9 @@ public class ConnectionResponse {
 
     private String avatarUrl;
 
-    private CourseResponse course;
+    private Integer courseId;
 
-    private Integer academicYear;
+    private Integer admissionYear;
 
     private ConnectionRelationshipStatus status;
 }

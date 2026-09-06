@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.ui.myprofile
+package com.example.campusconnect.feature.profile.ui.screen
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.feature.profile.model.ClubStatus
+import com.example.campusconnect.feature.profile.model.ConnectionStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.model.StatPanel
 import com.example.campusconnect.feature.profile.ui.components.*
@@ -214,10 +215,19 @@ fun MyProfileScreen(
                         )
 
                     panel == StatPanel.CONNECTIONS -> ConnectionsPanel(
-                        connections    = vm.connections,
-                        mode           = ProfileMode.OWN,
-                        onStatusChange = { idx, status -> vm.connections[idx] = vm.connections[idx].copy(status = status) },
-                        onConnectionClick = { userId -> onNavigateToProfile(userId) }
+                        connections = vm.connections,
+                        mode = ProfileMode.OWN,
+                        onStatusChange = { userId, status ->
+                            if (status == ConnectionStatus.PENDING) {
+                                vm.sendConnectionRequest(userId)
+                            }
+                        },
+                        onRemoveConnection = { userId ->
+                            vm.removeConnection(userId)
+                        },
+                        onConnectionClick = { userId ->
+                            onNavigateToProfile(userId)
+                        }
                     )
                     panel == StatPanel.HONOR -> HonorPanel(
                         honorRank    = vm.honorRank,
@@ -226,10 +236,16 @@ fun MyProfileScreen(
                         mode         = ProfileMode.OWN
                     )
                     panel == StatPanel.CLUBS -> ClubsPanel(
-                        clubs          = vm.clubs,
-                        mode           = ProfileMode.OWN,
-                        onStatusChange = { idx, status ->
-                            vm.clubs[idx] = vm.clubs[idx].copy(status = status)
+                        clubs = vm.clubs,
+                        mode = ProfileMode.OWN,
+                        allClubs = vm.allClubs,
+
+                        onJoinClub = { clubId ->
+                            vm.joinClub(clubId)
+                        },
+
+                        onLeaveClub = { clubId ->
+                            vm.leaveClub(clubId)
                         }
                     )
                     panel == StatPanel.INTERESTS -> InterestsPanel(
