@@ -150,10 +150,16 @@ fun EventScreen(
                 if (isSelectingLocation) {
                     detectTapGestures { offset ->
 
+                        val mapX =
+                            offset.x / boxWidth.value.toFloat() * MAP_IMAGE_WIDTH
+
+                        val mapY =
+                            offset.y / boxHeight.value.toFloat() * MAP_IMAGE_HEIGHT
+
                         val (latitude, longitude) =
                             MapCalibration.converter.pointToLatLng(
-                                offset.x,
-                                offset.y
+                                mapX,
+                                mapY
                             )
 
                         viewModel.setLocation(
@@ -179,6 +185,11 @@ fun EventScreen(
             val mapPoint = MapCalibration.converter.latLngToPoint(
                 lat = event.latitude,
                 lng = event.longitude
+            )
+
+            android.util.Log.d(
+                "EVENT_MARKER",
+                "id=${event.id} title=${event.title} lat=${event.latitude} lng=${event.longitude} x=${mapPoint.x} y=${mapPoint.y}"
             )
 
             val xRatio = mapPoint.x / MAP_IMAGE_WIDTH
