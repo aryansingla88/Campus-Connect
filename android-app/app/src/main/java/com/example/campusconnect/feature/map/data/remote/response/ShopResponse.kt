@@ -2,7 +2,7 @@ package com.example.campusconnect.feature.map.data.remote.response
 
 import com.google.gson.annotations.SerializedName
 
-data class ShopRes(
+data class ShopResponse(
     @SerializedName("id")
     val id: String,
 

@@ -7,23 +7,15 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PoiResponse {
+public class EventMarkerResponse {
 
     private Integer id;
 
-    private String name;
-
-    private String category;
-
-    private String description;
+    private String title;
 
     private Double latitude;
 
     private Double longitude;
-
-    private String iconType;
-
-    private String visibility;
 
     private Integer priority;
 }

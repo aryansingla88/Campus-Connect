@@ -5,9 +5,11 @@ import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.event.entity.EventMember;
+import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.event.repository.EventMemberRepository;
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
+import com.campus.Campus_Connect.features.map.dto.response.EventMarkerResponse;
 import com.campus.Campus_Connect.features.map.dto.response.EventPreviewResponse;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.profile.repository.UserProfileRepository;
@@ -90,9 +92,11 @@ public class MapEventService {
                 .startTime(event.getStartTime())
                 .endTime(event.getEndTime())
                 .venue(event.getVenue())
-                .latitude(event.getLatitude())
-                .longitude(event.getLongitude())
-                .registrationType(event.getRegistrationType() != null ? event.getRegistrationType().name() : "FREE")
+                .registrationType(
+                        event.getRegistrationType() != null
+                                ? event.getRegistrationType()
+                                : RegistrationType.NONE
+                )
                 .registrationLink(event.getRegistrationLink())
                 .isJoined(isJoined)
                 .isReminderEnabled(isReminderEnabled)
@@ -103,6 +107,31 @@ public class MapEventService {
         return ApiResponse.success(
                 preview,
                 "Event preview fetched successfully."
+        );
+    }
+
+    public ApiResponse<List<EventMarkerResponse>> getEventMarkers() {
+
+        List<Event> events = eventRepository.findAll();
+
+        List<EventMarkerResponse> markers = events.stream()
+                .filter(event ->
+                        event.getLatitude() != null
+                                && event.getLongitude() != null
+                )
+                .map(event -> EventMarkerResponse.builder()
+                        .id(event.getId())
+                        .title(event.getTitle())
+                        .latitude(event.getLatitude())
+                        .longitude(event.getLongitude())
+                        .priority(1)
+                        .build()
+                )
+                .toList();
+
+        return ApiResponse.success(
+                markers,
+                "Event markers fetched successfully."
         );
     }
 }

@@ -1,10 +1,13 @@
 package com.campus.Campus_Connect.features.map.dto.response;
 
+import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.time.Instant;
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,11 +29,7 @@ public class EventPreviewResponse {
 
     private String venue;
 
-    private Double latitude;
-
-    private Double longitude;
-
-    private String registrationType;
+    private RegistrationType registrationType;
 
     private String registrationLink;
 
@@ -41,6 +40,7 @@ public class EventPreviewResponse {
     private Integer priority;
 
     private List<HostPreview> hosts;
+
 
     @Getter
     @Setter

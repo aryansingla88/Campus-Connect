@@ -35,7 +35,7 @@ fun UserMapRes.toMarker(): MapMarker {
         label = username,
         userId = userId,
         insideCampus = insideCampus,
-        gender = gender,
+        gender = gender?.lowercase(),
         size = MarkerSize.MEDIUM
     )
 }

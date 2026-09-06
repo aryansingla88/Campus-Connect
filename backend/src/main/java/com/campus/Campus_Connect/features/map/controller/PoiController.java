@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/poi")
+@RequestMapping("/map/poi")
 @RequiredArgsConstructor
 public class PoiController {
 

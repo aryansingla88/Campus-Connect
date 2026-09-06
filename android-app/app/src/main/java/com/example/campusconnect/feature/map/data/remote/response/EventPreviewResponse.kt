@@ -4,7 +4,7 @@ import com.example.campusconnect.feature.map.model.HostInfo
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.google.gson.annotations.SerializedName
 
-data class EventPreviewRes(
+data class EventPreviewResponse(
 
     @SerializedName("id")
     val id: Int,
@@ -27,12 +27,6 @@ data class EventPreviewRes(
     @SerializedName("venue")
     val venue: String? = null,
 
-    @SerializedName("latitude")
-    val latitude: Double? = null,
-
-    @SerializedName("longitude")
-    val longitude: Double? = null,
-
     @SerializedName("registrationType")
     val registrationType: String? = null,
 
@@ -49,11 +43,10 @@ data class EventPreviewRes(
     val priority: Int? = null,
 
     @SerializedName("hosts")
-    val hosts: List<EventHostRes>? = null
+    val hosts: List<EventHostResponse>? = null
 )
 
-fun EventPreviewRes.toMapEventInfo(): MapEventInfo {
-
+fun EventPreviewResponse.toMapEventInfo(): MapEventInfo {
     val hostList = hosts?.map { host ->
         HostInfo(
             id = host.userId,
@@ -80,3 +73,4 @@ fun EventPreviewRes.toMapEventInfo(): MapEventInfo {
         isJoined = isJoined ?: false
     )
 }
+

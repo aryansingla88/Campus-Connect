@@ -12,8 +12,6 @@ import com.campus.Campus_Connect.features.map.entity.CampusBoundaryPoint;
 import com.campus.Campus_Connect.features.map.entity.UserPresence;
 import com.campus.Campus_Connect.features.map.repository.CampusBoundaryRepository;
 import com.campus.Campus_Connect.features.map.repository.UserPresenceRepository;
-import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
-import com.campus.Campus_Connect.features.metadata.courses.entity.Course;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.profile.repository.UserProfileRepository;
 import com.campus.Campus_Connect.features.settings.entity.UserPreference;
@@ -24,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.Year;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +38,7 @@ public class UserPresenceService {
     private final UserPreferenceRepository userPreferenceRepository;
     private final CampusBoundaryRepository campusBoundaryRepository;
     private final UserProfileRepository userProfileRepository;
-    private final CourseRepository courseRepository;
+
 
     // Movement threshold in meters (e.g., don't update DB if movement is < 2 meters)
     private static final double MOVEMENT_THRESHOLD_METERS = 2.0;
@@ -181,45 +179,39 @@ public class UserPresenceService {
 
     public ApiResponse<UserPreviewResponse> getUserPreview(Integer userId) {
         User targetUser = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+                .orElseThrow(() ->
+                        new RuntimeException("User not found with ID: " + userId)
+                );
 
-        UserProfile profile = userProfileRepository.findById(userId).orElse(null);
+        UserProfile profile = userProfileRepository
+                .findById(userId)
+                .orElse(null);
 
-        String fullName = (profile != null && profile.getFullName() != null && !profile.getFullName().isBlank())
-                ? profile.getFullName()
-                : targetUser.getUsername();
+        String fullName =
+                (profile != null
+                        && profile.getFullName() != null
+                        && !profile.getFullName().isBlank())
+                        ? profile.getFullName()
+                        : targetUser.getUsername();
 
-        String courseName = null;
-        String courseCode = null;
+        Integer courseId =
+                profile != null ? profile.getCourseId() : null;
 
-        // Fetch Course entity via profile.getCourseId() without altering UserProfile entity
-        if (profile != null && profile.getCourseId() != null) {
-            Course course = courseRepository.findById(profile.getCourseId()).orElse(null);
-            if (course != null) {
-                courseName = course.getProgram();
-                courseCode = course.getCourseCode();
-            }
-        }
+        Integer admissionYear =
+                profile != null ? profile.getAdmissionYear() : null;
 
-        Integer admissionYear = (profile != null) ? profile.getAdmissionYear() : null;
+        String avatarUrl =
+                profile != null ? profile.getAvatarUrl() : null;
 
-        // Dynamically calculate current course year from admissionYear
-        Integer courseYear = null;
-        if (admissionYear != null) {
-            int currentYear = Year.now().getValue();
-            courseYear = Math.max(1, currentYear - admissionYear + 1);
-        }
+        String bio =
+                profile != null ? profile.getBio() : null;
 
-        String avatarUrl = (profile != null) ? profile.getAvatarUrl() : null;
-        String bio = (profile != null) ? profile.getBio() : null;
-        Integer mutualConnectionsCount = 0; // Connections module placeholder
+        Integer mutualConnectionsCount = 0;
 
         UserPreviewResponse preview = UserPreviewResponse.builder()
                 .userId(targetUser.getId())
                 .fullName(fullName)
-                .courseName(courseName)
-                .courseCode(courseCode)
-                .courseYear(courseYear)
+                .courseId(courseId)
                 .admissionYear(admissionYear)
                 .avatarUrl(avatarUrl)
                 .bio(bio)
@@ -267,12 +259,26 @@ public class UserPresenceService {
             visibility = preference.getShowPresence().name();
         }
 
+        UserProfile profile = userProfileRepository
+                .findById(presence.getUser().getId())
+                .orElse(null);
+
+        String gender = profile != null
+                ? profile.getGender()
+                : null;
+
         return PresenceResponse.builder()
                 .latitude(presence.getLatitude())
                 .longitude(presence.getLongitude())
-                .insideCampus(isInsideCampus(presence.getLatitude(), presence.getLongitude()))
+                .insideCampus(
+                        isInsideCampus(
+                                presence.getLatitude(),
+                                presence.getLongitude()
+                        )
+                )
                 .visibility(visibility)
                 .lastUpdated(presence.getLastUpdated())
+                .gender(gender)
                 .build();
     }
 

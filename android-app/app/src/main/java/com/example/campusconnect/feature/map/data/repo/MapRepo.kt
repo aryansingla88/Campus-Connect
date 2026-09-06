@@ -39,10 +39,6 @@ interface MapRepo {
         userId: Int
     ): Result<Unit>
 
-    // Backend event ID
-    suspend fun registerEvent(
-        eventId: Int
-    ): Result<Unit>
 
     // Backend event ID
     suspend fun enableEventReminder(

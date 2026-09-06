@@ -2,9 +2,8 @@ package com.example.campusconnect.feature.map.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.map.data.remote.MapApi
-import com.example.campusconnect.feature.map.data.remote.request.EventRegReq
-import com.example.campusconnect.feature.map.data.remote.response.EventMapRes
-//import com.example.campusconnect.feature.map.data.remote.response.ShopRes
+import com.example.campusconnect.feature.map.data.remote.response.EventMarkerResponse
+//import com.example.campusconnect.feature.map.data.remote.response.ShopResponse
 import com.example.campusconnect.feature.map.data.remote.response.toMarker
 import com.example.campusconnect.feature.map.data.remote.response.toPoiInfo
 import com.example.campusconnect.feature.map.data.remote.response.toMapUserProfile
@@ -20,7 +19,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
 class ApiMapRepo(
-    private val api: MapApi = RetrofitClient.mapApi
+    private val api: MapApi = RetrofitClient.mapApi,
+    private val courseRepository: CourseRepository
 ) : MapRepo {
 
     override suspend fun getMarkers(
@@ -39,8 +39,12 @@ class ApiMapRepo(
                     response.data.map { it.toMarker() }
                 }
                 MarkerType.EVENT -> {
-                    val response = api.getEvents()
-                    if (!response.success || response.data == null) throw Exception(response.message ?: "Unable to load events")
+                    val response = api.getEventMarkers()
+
+                    if (!response.success || response.data == null) {
+                        throw Exception(response.message ?: "Unable to load events")
+                    }
+
                     response.data.map { it.toMapMarker() }
                 }
                 MarkerType.SHOP -> {
@@ -49,8 +53,11 @@ class ApiMapRepo(
                 null -> coroutineScope {
                     val usersDeferred = async { runCatching { api.getVisibleUsers() }.getOrNull()?.data?.map { it.toMarker() } ?: emptyList() }
                     val poisDeferred = async { runCatching { api.getPois() }.getOrNull()?.data?.map { it.toMarker() } ?: emptyList() }
-                    val eventsDeferred = async { runCatching { api.getEvents() }.getOrNull()?.data?.map { it.toMapMarker() } ?: emptyList() }
-
+                    val eventsDeferred = async {
+                        runCatching {
+                            api.getEventMarkers()
+                        }.getOrNull()?.data?.map { it.toMapMarker() } ?: emptyList()
+                    }
                     val users = usersDeferred.await()
                     val pois = poisDeferred.await()
                     val events = eventsDeferred.await()
@@ -72,7 +79,11 @@ class ApiMapRepo(
                 throw Exception(response.message ?: "Unable to load user profile")
             }
 
-            response.data.toMapUserProfile()
+            val userData = response.data
+
+            val courseData = courseRepository.getCourseById(userData.courseId)
+
+            userData.toMapUserProfile(courseData)
         }
     }
 
@@ -136,22 +147,7 @@ class ApiMapRepo(
         }
     }
 
-    override suspend fun registerEvent(
-        eventId: Int
-    ): Result<Unit> {
-        return runCatching {
-            val response = api.registerEvent(
-                eventId = eventId,
-                request = EventRegReq()
-            )
 
-            if (!response.success) {
-                throw Exception(response.message ?: "Unable to register event")
-            }
-
-            Unit
-        }
-    }
 
     override suspend fun enableEventReminder(
         eventId: Int
@@ -184,7 +180,7 @@ class ApiMapRepo(
 
 // Extension functions for DTO mappings
 
-private fun EventMapRes.toMapMarker(): MapMarker {
+private fun EventMarkerResponse.toMapMarker(): MapMarker {
     return MapMarker(
         id = "EVENT_$id",
         sourceId = id,
@@ -192,11 +188,12 @@ private fun EventMapRes.toMapMarker(): MapMarker {
         latitude = latitude ?: 0.0,
         longitude = longitude ?: 0.0,
         label = title,
+        priority = priority ?: 0,
         size = MarkerSize.MEDIUM
     )
 }
 
-//private fun ShopRes.toMapMarker(): MapMarker {
+//private fun ShopResponse.toMapMarker(): MapMarker {
 //    return MapMarker(
 //        id = "SHOP_$id",
 //        sourceId = id,
@@ -208,7 +205,7 @@ private fun EventMapRes.toMapMarker(): MapMarker {
 //    )
 //}
 //
-//private fun ShopRes.toMapShopInfo(): MapShopInfo {
+//private fun ShopResponse.toMapShopInfo(): MapShopInfo {
 //    return MapShopInfo(
 //        id = id,
 //        name = name,

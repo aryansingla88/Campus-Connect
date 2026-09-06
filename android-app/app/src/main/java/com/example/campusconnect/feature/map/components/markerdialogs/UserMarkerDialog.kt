@@ -124,7 +124,7 @@ fun UserMarkerDialog(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = "${profile.course} • ${profile.startYear}-${profile.endYear}",
+                                text = "${profile.course} • ${profile.batch}",
                                 color = TextDark,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
