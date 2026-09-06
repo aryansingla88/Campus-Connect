@@ -60,9 +60,12 @@ import com.example.campusconnect.feature.events.ui.drawer.EventHistoryDrawer
 import com.example.campusconnect.feature.events.ui.drawer.EventParticipantsDrawer
 import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
+import com.example.campusconnect.feature.map.mapengine.MapCalibration
 import kotlinx.coroutines.delay
 
 private enum class ToastType { CREATED, UPDATED, DELETED }
+private const val MAP_IMAGE_WIDTH = 3000f
+private const val MAP_IMAGE_HEIGHT = 3000f
 
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
@@ -99,10 +102,12 @@ fun EventScreen(
     val boxWidth  = remember { mutableStateOf(0) }
     val boxHeight = remember { mutableStateOf(0) }
 
+
     // Only non-past events appear in the preview pager
     val filteredEvents = remember(events) {
         events.filter { it.status != EventStatus.PAST }
     }
+
 
     val filteredActiveIndex = remember(activeIndex, filteredEvents, events) {
         val activeEvent = events.getOrNull(activeIndex)
@@ -144,10 +149,18 @@ fun EventScreen(
             .pointerInput(isSelectingLocation) {
                 if (isSelectingLocation) {
                     detectTapGestures { offset ->
-                        viewModel.setScreenLocation(
-                            offset.x / size.width,
-                            offset.y / size.height
+
+                        val (latitude, longitude) =
+                            MapCalibration.converter.pointToLatLng(
+                                offset.x,
+                                offset.y
+                            )
+
+                        viewModel.setLocation(
+                            lat = latitude,
+                            lng = longitude
                         )
+
                         isSelectingLocation = false
                         showDialog = true
                     }
@@ -160,17 +173,29 @@ fun EventScreen(
 
         // ── MARKERS ───────────────────────────────────────────────────────────
         events.forEachIndexed { index, event ->
+
             val isPast = event.status == EventStatus.PAST
+
+            val mapPoint = MapCalibration.converter.latLngToPoint(
+                lat = event.latitude,
+                lng = event.longitude
+            )
+
+            val xRatio = mapPoint.x / MAP_IMAGE_WIDTH
+            val yRatio = mapPoint.y / MAP_IMAGE_HEIGHT
+
             EventMarker(
-                event    = event,
+                event = event,
                 isActive = index == activeIndex && !isPast,
-                onClick  = {
-                    if (!isSelectingLocation && !isPast) viewModel.onMarkerTapped(index)
+                onClick = {
+                    if (!isSelectingLocation && !isPast) {
+                        viewModel.onMarkerTapped(index)
+                    }
                 },
                 modifier = Modifier.offset {
                     IntOffset(
-                        x = (event.xRatio * boxWidth.value).toInt(),
-                        y = (event.yRatio * boxHeight.value).toInt()
+                        x = (xRatio * boxWidth.value).toInt(),
+                        y = (yRatio * boxHeight.value).toInt()
                     )
                 }
             )
