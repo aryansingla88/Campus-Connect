@@ -182,19 +182,6 @@ fun EventScreen(
 
             val isPast = event.status == EventStatus.PAST
 
-            val mapPoint = MapCalibration.converter.latLngToPoint(
-                lat = event.latitude,
-                lng = event.longitude
-            )
-
-            android.util.Log.d(
-                "EVENT_MARKER",
-                "id=${event.id} title=${event.title} lat=${event.latitude} lng=${event.longitude} x=${mapPoint.x} y=${mapPoint.y}"
-            )
-
-            val xRatio = mapPoint.x / MAP_IMAGE_WIDTH
-            val yRatio = mapPoint.y / MAP_IMAGE_HEIGHT
-
             EventMarker(
                 event = event,
                 isActive = index == activeIndex && !isPast,
@@ -205,8 +192,8 @@ fun EventScreen(
                 },
                 modifier = Modifier.offset {
                     IntOffset(
-                        x = (xRatio * boxWidth.value).toInt(),
-                        y = (yRatio * boxHeight.value).toInt()
+                        x = (event.xRatio * boxWidth.value).toInt(),
+                        y = (event.yRatio * boxHeight.value).toInt()
                     )
                 }
             )
@@ -497,8 +484,8 @@ fun EventScreen(
                         onEndTimeChange          = viewModel::updateEndTime,
                         onPosterToggle           = viewModel::updatePosterEnabled,
                         onPosterUrlChange        = viewModel::updatePosterUrl,
-                        onClubNameChange         = viewModel::updateClubName,
-                        onCategoryChange         = viewModel::updateCategory,
+                        onClubChange             = viewModel::updateClub,
+                        onCategoryChange         = { name, id -> viewModel.updateCategory(name, id) },
                         onVisibilityTypeChange   = viewModel::updateVisibilityType,
                         onVisibilityValueChange  = viewModel::updateVisibilityValue,
                         onRegistrationTypeChange = viewModel::updateRegistrationType,

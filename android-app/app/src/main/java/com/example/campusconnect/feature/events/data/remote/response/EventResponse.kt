@@ -18,7 +18,7 @@ data class EventResponse(
 
     val startTime: String,
 
-    val endTime: String,
+    val endTime: String?,
 
     val createdBy: Int,
 

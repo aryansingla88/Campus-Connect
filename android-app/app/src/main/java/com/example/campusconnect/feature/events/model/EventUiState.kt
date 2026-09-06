@@ -17,7 +17,10 @@ data class EventUiState(
     val endTime: String = "",
 
     val clubName: String = "",
+    val selectedClubId: Int? = null,
+
     val category: String = "",
+    val selectedCategoryId: Int? = null,
 
     val visibilityType: String = "",
     val visibilityValue: String = "",
