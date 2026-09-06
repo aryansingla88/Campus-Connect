@@ -200,12 +200,31 @@ public class GlobalExceptionHandler {
             DataIntegrityViolationException ex
     ) {
 
+        ex.printStackTrace();
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        ApiResponse.failure(
+                                "Database integrity error: " +
+                                        ex.getMostSpecificCause().getMessage()
+                        )
+                );
+    }
+
+    /*
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex
+    ) {
+
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(
                         ApiResponse.failure("Resource already exists.")
                 );
     }
+    */
 
 // ------------------------------------------------------------
 // 413 Payload Too Large
