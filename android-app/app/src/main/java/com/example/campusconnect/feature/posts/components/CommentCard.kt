@@ -94,7 +94,7 @@ fun CommentCard(
             )
 
             Text(
-                text = comment.text
+                text = comment.body
             )
 
             Spacer(

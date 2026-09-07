@@ -9,7 +9,7 @@ import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 class FeedViewModel(
 
-    private val repository: PostsRepository = FakePostsRepository()
+    private val repository: PostsRepository = ApiPostsRepository()
 
 ) : ViewModel() {
 

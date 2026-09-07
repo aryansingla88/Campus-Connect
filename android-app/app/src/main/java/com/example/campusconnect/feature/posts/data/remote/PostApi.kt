@@ -26,7 +26,7 @@ interface PostsApi {
     suspend fun getPosts():
             Response<ApiResponse<List<Post>>>
 
-    @GET("post-tags")
+    @GET("posts/tags")
     suspend fun getTags():
 
             Response<ApiResponse<List<PostTag>>>
@@ -45,6 +45,9 @@ interface PostsApi {
     @POST("posts")
     suspend fun createPost(
 
+        @Part("postType")
+        postType: RequestBody,
+
         @Part("title")
         title: RequestBody,
 
@@ -56,7 +59,8 @@ interface PostsApi {
 
         @Part("tags")
         tags: List<RequestBody>
-    ) : Response<ApiResponse<Post>>
+
+    ): Response<ApiResponse<Post>>
 
     @PUT("posts/{postId}")
     suspend fun updatePost(
@@ -111,7 +115,7 @@ DELETE https://myserver.com/posts/5
 
     ): Response<ApiResponse<Comment>>
 
-    @PUT("comments/{commentId}")
+    @PUT("posts/comments/{commentId}")
     suspend fun updateComment(
 
         @Path("commentId")
@@ -122,7 +126,7 @@ DELETE https://myserver.com/posts/5
 
     ): Response<ApiResponse<Comment>>
 
-    @DELETE("comments/{commentId}")
+    @DELETE("posts/comments/{commentId}")
     suspend fun deleteComment(
 
         @Path("commentId")
