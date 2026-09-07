@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +34,8 @@ import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
+import com.example.campusconnect.feature.posts.models.VoteType
+import kotlinx.coroutines.launch
 
 //@OptIn means ->"I know I'm using an experimental Material 3 API, and I accept that it may change in future versions."
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +46,8 @@ fun GeneralFeedScreen(
 ) {    var posts by remember {
     mutableStateOf<List<Post>>(emptyList())
 }
+
+    val coroutineScope = rememberCoroutineScope()
 
     var tags by remember {
         mutableStateOf<List<PostTag>>(emptyList())
@@ -73,6 +78,134 @@ fun GeneralFeedScreen(
             }
 
         isLoading = false
+    }
+
+
+    suspend fun handleUpvote(post: Post) {
+
+        val result =
+
+            if (post.userVote == VoteType.UPVOTE) {
+
+                viewModel.removePostVote(post.id)
+
+            } else {
+
+                viewModel.upvotePost(post.id)
+            }
+
+        result.onSuccess {
+
+            posts = posts.map { currentPost ->
+
+                if (currentPost.id != post.id) {
+
+                    currentPost
+
+                } else {
+
+                    when (post.userVote) {
+
+                        VoteType.UPVOTE ->
+
+                            currentPost.copy(
+
+                                upvotes =
+                                    (currentPost.upvotes - 1)
+                                        .coerceAtLeast(0),
+
+                                userVote = null
+                            )
+
+                        VoteType.DOWNVOTE ->
+
+                            currentPost.copy(
+
+                                upvotes = currentPost.upvotes + 1,
+
+                                downvotes =
+                                    (currentPost.downvotes - 1)
+                                        .coerceAtLeast(0),
+
+                                userVote = VoteType.UPVOTE
+                            )
+
+                        null ->
+
+                            currentPost.copy(
+
+                                upvotes = currentPost.upvotes + 1,
+
+                                userVote = VoteType.UPVOTE
+                            )
+                    }
+                }
+            }
+        }
+    }
+
+
+    suspend fun handleDownvote(post: Post) {
+
+        val result =
+
+            if (post.userVote == VoteType.DOWNVOTE) {
+
+                viewModel.removePostVote(post.id)
+
+            } else {
+
+                viewModel.downvotePost(post.id)
+            }
+
+        result.onSuccess {
+
+            posts = posts.map { currentPost ->
+
+                if (currentPost.id != post.id) {
+
+                    currentPost
+
+                } else {
+
+                    when (post.userVote) {
+
+                        VoteType.DOWNVOTE ->
+
+                            currentPost.copy(
+
+                                downvotes =
+                                    (currentPost.downvotes - 1)
+                                        .coerceAtLeast(0),
+
+                                userVote = null
+                            )
+
+                        VoteType.UPVOTE ->
+
+                            currentPost.copy(
+
+                                upvotes =
+                                    (currentPost.upvotes - 1)
+                                        .coerceAtLeast(0),
+
+                                downvotes = currentPost.downvotes + 1,
+
+                                userVote = VoteType.DOWNVOTE
+                            )
+
+                        null ->
+
+                            currentPost.copy(
+
+                                downvotes = currentPost.downvotes + 1,
+
+                                userVote = VoteType.DOWNVOTE
+                            )
+                    }
+                }
+            }
+        }
     }
 
 
@@ -277,7 +410,23 @@ fun GeneralFeedScreen(
                                     onClick = {
 
                                         onPostClick(post.id)
+                                    },
+                                    onUpvoteClick = {
+
+                                        coroutineScope.launch {
+
+                                            handleUpvote(post)
+                                        }
+                                    },
+
+                                    onDownvoteClick = {
+
+                                        coroutineScope.launch {
+
+                                            handleDownvote(post)
+                                        }
                                     }
+
                                 )
                             }
                         }

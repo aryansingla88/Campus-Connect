@@ -45,6 +45,10 @@ interface PostsRepository {
         postId: Int
     ): Result<Unit>
 
+    // In kotlin suspend functions Result<Unit> is the generic return type,
+    //that returns a successful execution with no return type
+    // or a failure containing a throwable exception.
+
 
     // Comments -------------------------------------------------------------
 

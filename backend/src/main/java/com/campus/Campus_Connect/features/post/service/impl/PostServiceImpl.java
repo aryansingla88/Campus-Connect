@@ -45,9 +45,11 @@ public class PostServiceImpl implements PostService {
     @Override
     public List<PostResponse> getAllPosts() {
 
+        Integer currentUserId = SecurityUtils.getCurrentUserId();
+
         return postRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(post -> postMapper.toPostResponse(post, null))
+                .map(post -> postMapper.toPostResponse(post, currentUserId))
                 .toList();
     }
 
@@ -59,7 +61,7 @@ public class PostServiceImpl implements PostService {
                         new PostNotFoundException("Post not found with id: " + postId)
                 );
 
-        return postMapper.toPostResponse(post, null);
+        return postMapper.toPostResponse(post, SecurityUtils.getCurrentUserId());
     }
     @Override
     public List<PostTagResponse> getAllTags() {
