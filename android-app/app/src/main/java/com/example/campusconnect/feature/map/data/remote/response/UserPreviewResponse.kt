@@ -2,6 +2,7 @@ package com.example.campusconnect.feature.map.data.remote.response
 
 import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.map.model.MapUserProfile
+import com.example.campusconnect.feature.metadata.courses.Course
 import com.google.gson.annotations.SerializedName
 
 data class UserPreviewResponse(
@@ -37,12 +38,17 @@ fun UserPreviewResponse.toMapUserProfile(
         AcademicUtils.getCourseName(it)
     } ?: "Unknown Course"
 
-    val batch = courseData?.let {
+    val batch = if (
+        courseData != null &&
+        admissionYear != null
+    ) {
         AcademicUtils.getBatch(
             admissionYear = admissionYear,
-            durationYears = it.durationYears
+            durationYears = courseData.durationYears
         )
-    } ?: "Unknown Batch"
+    } else {
+        "Unknown Batch"
+    }
 
     return MapUserProfile(
         id = userId,

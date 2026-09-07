@@ -295,12 +295,17 @@ fun MapScreen(
                                     )
                                 },
                                 onRegisterClick = {
-                                    viewModel.registerEvent(eventInfo.id)
 
                                     Log.d(
                                         "MAP_EVENT",
                                         "Register clicked: ${eventInfo.id}"
                                     )
+
+                                    // TODO:
+                                    // Handle event.registrationType:
+                                    // NONE
+                                    // THROUGH_APP -> navigate to in-app registration form
+                                    // THROUGH_LINK -> open registrationLink
                                 }
                             )
                         }

@@ -1,6 +1,6 @@
 package com.example.campusconnect.feature.map
 
-import androidx.lifecycle.ViewModel
+
 import androidx.lifecycle.viewModelScope
 import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
 import com.example.campusconnect.feature.map.data.repo.MapRepo
@@ -13,11 +13,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
+import android.util.Log
 class MapViewModel(
-    private val repository: MapRepo = ApiMapRepo()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
 
+    private val courseRepository =
+        CourseRepositoryProvider.getRepository(
+            application.applicationContext
+        )
+
+    private val repository: MapRepo =
+        ApiMapRepo(
+            courseRepository = courseRepository
+        )
     private val markerRenderer = MarkerRenderer()
     private val coordinateConverter = MapCalibration.converter
 
@@ -25,14 +37,19 @@ class MapViewModel(
     val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
 
     init {
+        Log.d("MAP_DEBUG", "MapViewModel INIT called")
         loadMarkers()
+
     }
 
     // Modified: Removed 'search' parameter to align with updated MapRepo
     private fun loadMarkers(
+
         type: MarkerType? = null
     ) {
+        Log.d("MAP_DEBUG", "loadMarkers CALLED")
         viewModelScope.launch {
+            Log.d("MAP_DEBUG", "Starting API calls")
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 errorMessage = null
@@ -40,7 +57,15 @@ class MapViewModel(
 
             repository.getMarkers(type = type)
                 .onSuccess { markers ->
+                    Log.d(
+                        "MAP_DEBUG",
+                        "SUCCESS: Received ${markers.size} markers"
+                    )
                     val positionedMarkers = markers.map { marker ->
+                        Log.d(
+                            "MAP_DEBUG",
+                            "Marker: id=${marker.id}, lat=${marker.latitude}, lng=${marker.longitude}"
+                        )
                         val point = coordinateConverter.latLngToPoint(
                             lat = marker.latitude,
                             lng = marker.longitude
@@ -59,8 +84,14 @@ class MapViewModel(
                         isLoading = false,
                         errorMessage = null
                     )
+                    Log.d("MAP_DEBUG", "UI State updated successfully")
                 }
                 .onFailure { error ->
+                    Log.e(
+                        "MAP_DEBUG",
+                        "FAILED loading markers",
+                        error
+                    )
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = error.message ?: "Unable to load map markers"
@@ -191,12 +222,6 @@ class MapViewModel(
     fun sendConnectionRequest(userId: Int) {
         viewModelScope.launch {
             repository.sendConnectionRequest(userId)
-        }
-    }
-
-    fun registerEvent(eventId: Int) {
-        viewModelScope.launch {
-            repository.registerEvent(eventId)
         }
     }
 

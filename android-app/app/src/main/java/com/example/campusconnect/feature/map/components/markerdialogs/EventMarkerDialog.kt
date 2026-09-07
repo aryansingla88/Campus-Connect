@@ -167,7 +167,7 @@ private fun EventDescriptionCard(
                     )
 
                     Text(
-                        text = event.venue ?: getEventLocation(event.id),
+                        text = event.venue ?: "Location TBA",
                         color = TextDark,
                         fontSize = 14.sp,
                         lineHeight = 17.sp,
@@ -686,10 +686,3 @@ private fun NotifyButton(
     }
 }
 
-private fun getEventLocation(eventId: String): String {
-    return when (eventId) {
-        "event_1", "EVENT_1" -> "Student Center Ballrooms"
-        "event_2", "EVENT_2" -> "Coding Lab"
-        else -> "Campus Auditorium"
-    }
-}

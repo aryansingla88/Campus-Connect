@@ -15,9 +15,10 @@ import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.map.model.MapPoiInfo
 import com.example.campusconnect.feature.map.model.MapShopInfo
 import com.example.campusconnect.feature.map.model.MapUserProfile
+import com.example.campusconnect.feature.metadata.courses.CourseRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-
+import android.util.Log
 class ApiMapRepo(
     private val api: MapApi = RetrofitClient.mapApi,
     private val courseRepository: CourseRepository
@@ -27,42 +28,255 @@ class ApiMapRepo(
         type: MarkerType?
     ): Result<List<MapMarker>> {
         return runCatching {
+
+            Log.d("MAP_API", "========================================")
+            Log.d("MAP_API", "getMarkers STARTED | filter = $type")
+
             when (type) {
+
                 MarkerType.USER -> {
+
+                    Log.d("MAP_API", "Calling API: map/presence")
+
                     val response = api.getVisibleUsers()
-                    if (!response.success || response.data == null) throw Exception(response.message ?: "Unable to load users")
-                    response.data.map { it.toMarker() }
-                }
-                MarkerType.POI -> {
-                    val response = api.getPois()
-                    if (!response.success || response.data == null) throw Exception(response.message ?: "Unable to load POIs")
-                    response.data.map { it.toMarker() }
-                }
-                MarkerType.EVENT -> {
-                    val response = api.getEventMarkers()
+
+                    Log.d(
+                        "MAP_API",
+                        "map/presence response | success=${response.success}, dataSize=${response.data?.size}, message=${response.message}"
+                    )
 
                     if (!response.success || response.data == null) {
-                        throw Exception(response.message ?: "Unable to load events")
+                        Log.e(
+                            "MAP_API",
+                            "map/presence FAILED"
+                        )
+                        throw Exception(
+                            response.message ?: "Unable to load users"
+                        )
                     }
 
-                    response.data.map { it.toMapMarker() }
+                    Log.d(
+                        "MAP_API",
+                        "map/presence SUCCESS | mapping ${response.data.size} users"
+                    )
+
+                    response.data.map {
+                        it.toMarker()
+                    }
                 }
+
+
+                MarkerType.POI -> {
+
+                    Log.d("MAP_API", "Calling API: map/poi")
+
+                    val response = api.getPois()
+
+                    Log.d(
+                        "MAP_API",
+                        "map/poi response | success=${response.success}, dataSize=${response.data?.size}, message=${response.message}"
+                    )
+
+                    if (!response.success || response.data == null) {
+
+                        Log.e(
+                            "MAP_API",
+                            "map/poi FAILED"
+                        )
+
+                        throw Exception(
+                            response.message ?: "Unable to load POIs"
+                        )
+                    }
+
+                    Log.d(
+                        "MAP_API",
+                        "map/poi SUCCESS | mapping ${response.data.size} POIs"
+                    )
+
+                    response.data.map {
+                        it.toMarker()
+                    }
+                }
+
+
+                MarkerType.EVENT -> {
+
+                    Log.d("MAP_API", "Calling API: map/events")
+
+                    val response = api.getEventMarkers()
+
+                    Log.d(
+                        "MAP_API",
+                        "map/events response | success=${response.success}, dataSize=${response.data?.size}, message=${response.message}"
+                    )
+
+                    if (!response.success || response.data == null) {
+
+                        Log.e(
+                            "MAP_API",
+                            "map/events FAILED"
+                        )
+
+                        throw Exception(
+                            response.message ?: "Unable to load events"
+                        )
+                    }
+
+                    Log.d(
+                        "MAP_API",
+                        "map/events SUCCESS | mapping ${response.data.size} events"
+                    )
+
+                    response.data.map {
+                        it.toMapMarker()
+                    }
+                }
+
+
                 MarkerType.SHOP -> {
+
+                    Log.d(
+                        "MAP_API",
+                        "Using TEMPORARY SHOP markers"
+                    )
+
                     temporaryShopMarkers()
                 }
+
+
                 null -> coroutineScope {
-                    val usersDeferred = async { runCatching { api.getVisibleUsers() }.getOrNull()?.data?.map { it.toMarker() } ?: emptyList() }
-                    val poisDeferred = async { runCatching { api.getPois() }.getOrNull()?.data?.map { it.toMarker() } ?: emptyList() }
-                    val eventsDeferred = async {
-                        runCatching {
-                            api.getEventMarkers()
-                        }.getOrNull()?.data?.map { it.toMapMarker() } ?: emptyList()
+
+                    Log.d(
+                        "MAP_API",
+                        "ALL MARKERS requested - starting parallel API calls"
+                    )
+
+
+                    val usersDeferred = async {
+
+                        Log.d(
+                            "MAP_API",
+                            "Calling API: map/presence"
+                        )
+
+                        val result = runCatching {
+                            api.getVisibleUsers()
+                        }
+
+                        if (result.isFailure) {
+
+                            Log.e(
+                                "MAP_API",
+                                "map/presence NETWORK/API ERROR",
+                                result.exceptionOrNull()
+                            )
+                        }
+
+                        val response = result.getOrNull()
+
+                        Log.d(
+                            "MAP_API",
+                            "map/presence response | success=${response?.success}, dataSize=${response?.data?.size}, message=${response?.message}"
+                        )
+
+                        response?.data?.map {
+                            it.toMarker()
+                        } ?: emptyList()
                     }
+
+
+                    val poisDeferred = async {
+
+                        Log.d(
+                            "MAP_API",
+                            "Calling API: map/poi"
+                        )
+
+                        val result = runCatching {
+                            api.getPois()
+                        }
+
+                        if (result.isFailure) {
+
+                            Log.e(
+                                "MAP_API",
+                                "map/poi NETWORK/API ERROR",
+                                result.exceptionOrNull()
+                            )
+                        }
+
+                        val response = result.getOrNull()
+
+                        Log.d(
+                            "MAP_API",
+                            "map/poi response | success=${response?.success}, dataSize=${response?.data?.size}, message=${response?.message}"
+                        )
+
+                        response?.data?.map {
+                            it.toMarker()
+                        } ?: emptyList()
+                    }
+
+
+                    val eventsDeferred = async {
+
+                        Log.d(
+                            "MAP_API",
+                            "Calling API: map/events"
+                        )
+
+                        val result = runCatching {
+                            api.getEventMarkers()
+                        }
+
+                        if (result.isFailure) {
+
+                            Log.e(
+                                "MAP_API",
+                                "map/events NETWORK/API ERROR",
+                                result.exceptionOrNull()
+                            )
+                        }
+
+                        val response = result.getOrNull()
+
+                        Log.d(
+                            "MAP_API",
+                            "map/events response | success=${response?.success}, dataSize=${response?.data?.size}, message=${response?.message}"
+                        )
+
+                        response?.data?.map {
+                            it.toMapMarker()
+                        } ?: emptyList()
+                    }
+
+
                     val users = usersDeferred.await()
                     val pois = poisDeferred.await()
                     val events = eventsDeferred.await()
 
-                    users + pois + events
+
+                    Log.d(
+                        "MAP_API",
+                        "RESULTS | users=${users.size}, pois=${pois.size}, events=${events.size}"
+                    )
+
+
+                    val finalMarkers = users + pois + events
+
+
+                    Log.d(
+                        "MAP_API",
+                        "FINAL TOTAL MARKERS = ${finalMarkers.size}"
+                    )
+
+                    Log.d(
+                        "MAP_API",
+                        "========================================"
+                    )
+
+                    finalMarkers
                 }
             }
         }
@@ -81,7 +295,9 @@ class ApiMapRepo(
 
             val userData = response.data
 
-            val courseData = courseRepository.getCourseById(userData.courseId)
+            val courseData = userData.courseId?.let { courseId ->
+                courseRepository.getCourseById(courseId)
+            }
 
             userData.toMapUserProfile(courseData)
         }

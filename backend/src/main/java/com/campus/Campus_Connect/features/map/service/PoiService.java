@@ -140,7 +140,7 @@ public class PoiService {
                 .longitude(poi.getLongitude())
                 .iconType(poi.getIconType())
                 .visibility(poi.getVisibility())
-                .priority(poi.getPriority())
+//                .priority(poi.getPriority())
                 .build();
     }
 }

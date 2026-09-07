@@ -38,7 +38,8 @@ public class SecurityConfig {
                                 "/auth/register",
                                 "/metadata/courses",
                                 "/navigation/**",
-                                "/metadata/courses/details"
+                                "/metadata/courses/details",
+                                "map/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
