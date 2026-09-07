@@ -74,6 +74,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.events.model.EventUiState
+import com.example.campusconnect.feature.metadata.clubs.Club
 import java.util.Calendar
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
@@ -322,11 +323,33 @@ private fun LabeledDropdown(
                 modifier     = Modifier.menuAnchor().fillMaxWidth().height(54.dp)
             )
             if (!locked) {
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier
+                        .background(
+                            color = Color.White,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = OrangePrimary,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                ) {
                     options.forEach { opt ->
                         DropdownMenuItem(
-                            text    = { Text(opt, fontSize = 14.sp) },
-                            onClick = { onSelect(opt); expanded = false }
+                            text = {
+                                Text(
+                                    text = opt,
+                                    fontSize = 14.sp,
+                                    color = Color.Black
+                                )
+                            },
+                            onClick = {
+                                onSelect(opt)
+                                expanded = false
+                            }
                         )
                     }
                 }
@@ -409,7 +432,7 @@ fun EventCreateDialog(
     onCreate: () -> Unit,
     onUpdate: () -> Unit = {},
 
-    clubOptions: List<String> = emptyList(),
+    clubOptions: List<Club> = emptyList(),
     categoryOptions: List<String> = emptyList(),
     visibilityTypeOptions: List<String>  = listOf("Public", "Private", "Club"),
     visibilityValueOptions: List<String> = listOf("All", "Members Only")
@@ -434,7 +457,6 @@ fun EventCreateDialog(
 
     // Title / club / category only validated in create mode
     val titleError    = submitted && !isEditMode && state.title.isBlank()
-    val clubNameError = submitted && !isEditMode && state.clubName.isBlank()
     val categoryError = submitted && !isEditMode && state.category.isBlank()
 
     fun validate(): Boolean {
@@ -768,14 +790,28 @@ fun EventCreateDialog(
                     ) {
                         LabeledDropdown(
                             label = "Club Name",
-                            required = !isEditMode,
-                            hasError = clubNameError,
+                            required = false,
                             locked = clubNameLocked,
                             value = state.clubName,
                             placeholder = "Select Club",
-                            options = clubOptions,
+                            options = if (state.clubName.isNotBlank()) {
+                                listOf("Unselect") + clubOptions.map { it.name }
+                            } else {
+                                clubOptions.map { it.name }
+                            },
                             onSelect = { selectedName ->
-                                onClubChange(selectedName, null)
+                                if (selectedName == "Unselect") {
+                                    onClubChange("", null)
+                                } else {
+                                    val selectedClub = clubOptions.find {
+                                        it.name == selectedName
+                                    }
+
+                                    onClubChange(
+                                        selectedName,
+                                        selectedClub?.clubId
+                                    )
+                                }
                             },
                             leadingIcon = Icons.Default.Image,
                             modifier = Modifier.weight(1f)

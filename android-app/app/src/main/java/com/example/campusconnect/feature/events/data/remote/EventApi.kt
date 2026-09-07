@@ -6,7 +6,6 @@ import com.example.campusconnect.feature.events.data.remote.request.CreateRegist
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
 import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
 import com.example.campusconnect.feature.events.data.remote.request.RevokeAccessRequest
-import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.data.remote.response.EventResponse
 import com.example.campusconnect.feature.events.data.remote.response.MedalAwardResponse
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantTeamResponse
@@ -62,7 +61,7 @@ interface EventsApi {
     @PATCH("events/{eventId}")
     suspend fun updateEvent(
         @Path("eventId") eventId: Int,
-        @Part("event") event: UpdateEventRequest,
+        @Part event: MultipartBody.Part,
         @Part poster: MultipartBody.Part?
     ): Response<ApiResponse<EventResponse>>
 

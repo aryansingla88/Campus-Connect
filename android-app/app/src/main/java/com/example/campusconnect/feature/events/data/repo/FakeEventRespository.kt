@@ -7,6 +7,7 @@ import com.example.campusconnect.feature.events.data.fake.FakeMedalService
 import com.example.campusconnect.feature.events.data.fake.FakeParticipantsService
 import com.example.campusconnect.feature.events.data.fake.FakeUserAccessService
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
+import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
@@ -47,12 +48,13 @@ class FakeEventRepository : EventRepository {
     }
 
     override suspend fun updateEvent(
-        event: Event
+        eventId: Int,
+        request: UpdateEventRequest,
+        poster: MultipartBody.Part?
     ): Result<Event> {
-
-        eventService.updateEvent(event)
-
-        return Result.success(event)
+        return Result.failure(
+            UnsupportedOperationException("Fake updateEvent is no longer used")
+        )
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
