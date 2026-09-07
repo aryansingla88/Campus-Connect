@@ -1,3 +1,14 @@
+import java.util.Properties
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use {
+        localProperties.load(it)
+    }
+}
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -14,6 +25,16 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        val apiBaseUrl =
+            localProperties.getProperty("API_BASE_URL")
+                ?: "http://10.0.2.2:8000/"
+
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"$apiBaseUrl\""
+        )
     }
 
     buildTypes {
@@ -29,12 +50,12 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
-
 
     kotlinOptions {
         jvmTarget = "11"
