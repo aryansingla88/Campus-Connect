@@ -2,7 +2,6 @@ package com.example.campusconnect.feature.events.data.remote
 
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
-import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
 import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
@@ -14,13 +13,16 @@ import com.example.campusconnect.feature.events.data.remote.response.Participant
 import com.example.campusconnect.feature.events.data.remote.response.RegistrationResponse
 import com.example.campusconnect.feature.events.data.remote.response.SoloParticipantResponse
 import com.example.campusconnect.feature.events.data.remote.response.UserAccessResponse
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HTTP
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -32,20 +34,36 @@ interface EventsApi {
     suspend fun getEvents():
             Response<ApiResponse<List<EventResponse>>>
 
+    @GET("events/mine")
+    suspend fun getMyEvents():
+            Response<ApiResponse<List<EventResponse>>>
+
+    @GET("events/shared")
+    suspend fun getSharedEvents():
+            Response<ApiResponse<List<EventResponse>>>
+
+    @GET("events/managed")
+    suspend fun getManagedEvents():
+            Response<ApiResponse<List<EventResponse>>>
+
     @GET("events/{eventId}")
     suspend fun getEvent(
         @Path("eventId") eventId: Int
     ): Response<ApiResponse<EventResponse>>
 
+    @Multipart
     @POST("events")
     suspend fun createEvent(
-        @Body body: CreateEventRequest
+        @Part event: MultipartBody.Part,
+        @Part poster: MultipartBody.Part?
     ): Response<ApiResponse<EventResponse>>
 
+    @Multipart
     @PATCH("events/{eventId}")
     suspend fun updateEvent(
         @Path("eventId") eventId: Int,
-        @Body body: UpdateEventRequest
+        @Part("event") event: UpdateEventRequest,
+        @Part poster: MultipartBody.Part?
     ): Response<ApiResponse<EventResponse>>
 
     @DELETE("events/{eventId}")

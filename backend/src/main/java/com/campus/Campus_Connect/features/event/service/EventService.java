@@ -4,6 +4,7 @@ import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.features.event.dto.request.CreateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.request.UpdateEventRequest;
 import com.campus.Campus_Connect.features.event.dto.response.EventResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -15,16 +16,24 @@ public interface EventService {
     ApiResponse<EventResponse> getEvent(Integer eventId);
 
     ApiResponse<EventResponse> createEvent(
-            CreateEventRequest request
+            CreateEventRequest request,
+            MultipartFile poster
     );
 
     ApiResponse<EventResponse> updateEvent(
             Integer eventId,
-            UpdateEventRequest request
+            UpdateEventRequest request,
+            MultipartFile poster
     );
 
     ApiResponse<Void> deleteEvent(
             Integer eventId
     );
+
+    ApiResponse<List<EventResponse>> getMyEvents();
+
+    ApiResponse<List<EventResponse>> getSharedEvents();
+
+    ApiResponse<List<EventResponse>> getManagedEvents();
 
 }

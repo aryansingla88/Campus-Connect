@@ -2,11 +2,11 @@ package com.example.campusconnect.core.network
 
 import com.example.campusconnect.core.session.SessionManager
 import com.example.campusconnect.feature.auth.data.remote.AuthApi
-import com.example.campusconnect.feature.map.data.remote.MapApi
 import com.example.campusconnect.feature.events.data.remote.EventsApi
-import com.example.campusconnect.feature.profile.data.remote.ProfileApi
-import com.example.campusconnect.feature.posts.data.remote.PostsApi
+import com.example.campusconnect.feature.map.data.remote.MapApi
 import com.example.campusconnect.feature.metadata.courses.remote.CourseApi
+import com.example.campusconnect.feature.posts.data.remote.PostsApi
+import com.example.campusconnect.feature.profile.data.remote.ProfileApi
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit
 
 
 object RetrofitClient {
+
+
 
     // Interceptors ---------------------------------------------
     private val authInterceptor = Interceptor { chain ->
@@ -29,10 +31,10 @@ object RetrofitClient {
             )
         }
 
-        builder.addHeader(
+    /*    builder.addHeader(
             ApiConfig.HEADER_CONTENT_TYPE,
             "application/json"
-        )
+        ) */
 
         builder.addHeader(
             ApiConfig.HEADER_ACCEPT,
