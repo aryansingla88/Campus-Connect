@@ -4,6 +4,7 @@ import com.example.campusconnect.core.session.SessionManager
 import com.example.campusconnect.feature.auth.data.remote.AuthApi
 import com.example.campusconnect.feature.events.data.remote.EventsApi
 import com.example.campusconnect.feature.map.data.remote.MapApi
+import com.example.campusconnect.feature.metadata.clubs.remote.ClubApi
 import com.example.campusconnect.feature.metadata.courses.remote.CourseApi
 import com.example.campusconnect.feature.posts.data.remote.PostsApi
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
@@ -76,4 +77,5 @@ object RetrofitClient {
     val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
 
     val courseApi: CourseApi = retrofit.create(CourseApi::class.java)
+    val clubApi: ClubApi = retrofit.create(ClubApi::class.java)
 }

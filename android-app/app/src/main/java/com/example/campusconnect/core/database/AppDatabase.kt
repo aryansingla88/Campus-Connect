@@ -6,15 +6,22 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.campusconnect.feature.metadata.courses.local.CourseDao
 import com.example.campusconnect.feature.metadata.courses.local.CourseEntity
+import com.example.campusconnect.feature.metadata.clubs.local.ClubDao
+import com.example.campusconnect.feature.metadata.clubs.local.ClubEntity
 
 @Database(
-    entities = [CourseEntity::class],
-    version = 2,
+    entities = [
+            CourseEntity::class,
+            ClubEntity::class
+               ],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun courseDao(): CourseDao
+
+    abstract fun clubDao(): ClubDao
 
     companion object {
 

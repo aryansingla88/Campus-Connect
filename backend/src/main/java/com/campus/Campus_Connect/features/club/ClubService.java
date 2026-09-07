@@ -211,24 +211,6 @@ public class ClubService {
         );
     }
 
-    //------------------------------------------------------
-    @Transactional(readOnly = true)
-    public ApiResponse<List<ClubOptionResponse>> getClubOptions() {
-
-        List<ClubOptionResponse> response = clubRepository.findAll()
-                .stream()
-                .map(club -> ClubOptionResponse.builder()
-                        .clubId(club.getId())
-                        .name(club.getName())
-                        .build())
-                .toList();
-
-        return ApiResponse.success(
-                response,
-                "Club options fetched successfully."
-        );
-    }
-
 
     //------------------------------------------------------
     private ClubMember getMembership(                          //getClubs(),getClub(),leaveClub(),getUserClubs()

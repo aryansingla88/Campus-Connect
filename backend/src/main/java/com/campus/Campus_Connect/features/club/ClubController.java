@@ -45,11 +45,6 @@ public class ClubController {
         return clubService.leaveClub(clubId);
     }
 
-    @GetMapping("/options")
-    public ApiResponse<List<ClubOptionResponse>> getClubOptions() {
-        return clubService.getClubOptions();
-    }
-
     @GetMapping("/{clubId}")
     public ApiResponse<ClubDetailResponse> getClub(
             @PathVariable Integer clubId
