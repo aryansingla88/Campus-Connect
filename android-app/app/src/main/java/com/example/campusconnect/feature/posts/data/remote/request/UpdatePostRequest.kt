@@ -6,5 +6,5 @@ data class UpdatePostRequest(
 
     val body: String,
 
-    val tags: List<String>
+    val tags: List<Int>
 )

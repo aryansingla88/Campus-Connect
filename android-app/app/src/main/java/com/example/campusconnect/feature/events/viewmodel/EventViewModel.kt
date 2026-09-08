@@ -4,8 +4,9 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
+import com.example.campusconnect.feature.events.data.repo.ApiEventRepository
 import com.example.campusconnect.feature.events.data.repo.EventRepository
-import com.example.campusconnect.feature.events.data.repo.FakeEventRepository
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.EventStatus
 import com.example.campusconnect.feature.events.model.EventUiState
@@ -21,7 +22,7 @@ import kotlinx.coroutines.launch
 class EventViewModel : ViewModel() {
 
     private val repository: EventRepository =
-        FakeEventRepository()
+        ApiEventRepository()
 
     private val _uiState = MutableStateFlow(EventUiState())
     val uiState: StateFlow<EventUiState> = _uiState
@@ -174,9 +175,16 @@ class EventViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            _events.value =
-                repository.getEvents()
-                    .getOrDefault(emptyList())
+            val result = repository.getEvents()
+
+            result.onSuccess { events ->
+                println("EVENT API SUCCESS: ${events.size} events")
+                _events.value = events
+            }.onFailure { error ->
+                println("EVENT API ERROR: ${error.message}")
+                error.printStackTrace()
+                _events.value = emptyList()
+            }
         }
     }
 
@@ -255,8 +263,8 @@ class EventViewModel : ViewModel() {
             id = id,
             title = state.title,
             description = state.description,
-            latitude = 0.0,
-            longitude = 0.0,
+            latitude = state.selectedLocation?.first ?: 0.0,
+            longitude = state.selectedLocation?.second ?: 0.0,
             xRatio = state.selectedRatio?.first ?: 0.5f,
             yRatio = state.selectedRatio?.second ?: 0.5f,
             date = state.date,
@@ -333,6 +341,26 @@ class EventViewModel : ViewModel() {
     fun updatePosterUrl(value: String)   { _uiState.value = _uiState.value.copy(posterUrl = value) }
     fun updateClubName(value: String)    { _uiState.value = _uiState.value.copy(clubName = value) }
     fun updateCategory(value: String)    { _uiState.value = _uiState.value.copy(category = value) }
+
+    fun updateClub(
+        name: String,
+        id: Int?
+    ) {
+        _uiState.value = _uiState.value.copy(
+            clubName = name,
+            selectedClubId = id
+        )
+    }
+
+    fun updateCategory(
+        name: String,
+        id: Int?
+    ) {
+        _uiState.value = _uiState.value.copy(
+            category = name,
+            selectedCategoryId = id
+        )
+    }
     fun updateVisibilityType(value: String)  { _uiState.value = _uiState.value.copy(visibilityType = value) }
     fun updateVisibilityValue(value: String) { _uiState.value = _uiState.value.copy(visibilityValue = value) }
     fun updateEnableChat(value: Boolean) { _uiState.value = _uiState.value.copy(enableChat = value) }
@@ -379,35 +407,38 @@ class EventViewModel : ViewModel() {
         val registrationRequired = state.registrationType != "No"
         val inAppRegistration    = state.registrationType == "In-App"
 
-        val event = Event(
-            id = 0,
+        val request = CreateEventRequest(
             title = state.title,
             description = state.description,
-            latitude = 0.0,
-            longitude = 0.0,
-            xRatio = state.selectedRatio?.first ?: 0.5f,
-            yRatio = state.selectedRatio?.second ?: 0.5f,
-            date = state.date,
+            latitude = state.selectedLocation?.first ?: 0.0,
+            longitude = state.selectedLocation?.second ?: 0.0,
             startTime = state.startTime,
             endTime = if (state.endTime.isBlank()) null else state.endTime,
-            createdBy = createdBy,
-            clubName = state.clubName,
-            isPoster = state.isPoster,
-            posterUrl = if (state.posterUrl.isBlank()) null else state.posterUrl,
-            category = state.category,
-            visibilityType = state.visibilityType,
-            visibilityValue = state.visibilityValue,
-            registrationRequired = registrationRequired,
-            registrationLink = state.registrationLink,
-            inAppRegistration = inAppRegistration,
+            clubId = state.selectedClubId,
+            hostName = state.clubName,
             venue = state.venue,
-            enableChat = state.enableChat,
-            status = EventStatus.LIVE
+            visibilityType = state.visibilityType,
+            visibilityValue = state.visibilityValue.ifBlank { null },
+            registrationType = when (state.registrationType) {
+                "In-App" -> "THROUGH_APP"
+                "Link" -> "THROUGH_LINK"
+                else -> "NONE"
+            },
+            registrationLink = state.registrationLink.ifBlank { null },
+            priority = 0,
+            categoryId = state.selectedCategoryId
+                ?: run {
+                    _uiState.value = state.copy(error = "Category required")
+                    return
+                }
         )
 
         viewModelScope.launch {
 
-            repository.createEvent(event)
+            repository.createEvent(
+                request = request,
+                poster = null
+            )
 
             _events.value =
                 repository.getEvents()
@@ -416,6 +447,6 @@ class EventViewModel : ViewModel() {
             _uiState.value = EventUiState(success = true)
         }
 
-        println("CreateEvent called: $event")
+        println("CreateEvent called: $request")
     }
 }

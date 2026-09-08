@@ -8,6 +8,7 @@ import com.campus.Campus_Connect.features.event.service.EventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,23 +31,29 @@ public class EventController {
         return eventService.getEvent(eventId);
     }
 
-    @PostMapping
+    @PostMapping(consumes = "multipart/form-data")
     public ApiResponse<EventResponse> createEvent(
             @Valid
-            @RequestBody CreateEventRequest request
+            @RequestPart("event") CreateEventRequest request,
+            @RequestPart(value = "poster", required = false) MultipartFile poster
     ) {
-        return eventService.createEvent(request);
+        return eventService.createEvent(request, poster);
     }
 
-    @PatchMapping("/{eventId}")
+    @PatchMapping(
+            value = "/{eventId}",
+            consumes = "multipart/form-data"
+    )
     public ApiResponse<EventResponse> updateEvent(
             @PathVariable Integer eventId,
             @Valid
-            @RequestBody UpdateEventRequest request
+            @RequestPart("event") UpdateEventRequest request,
+            @RequestPart(value = "poster", required = false) MultipartFile poster
     ) {
         return eventService.updateEvent(
                 eventId,
-                request
+                request,
+                poster
         );
     }
 
@@ -56,6 +63,26 @@ public class EventController {
     ) {
         return eventService.deleteEvent(eventId);
     }
+
+    @GetMapping("/mine")
+    public ApiResponse<List<EventResponse>> getMyEvents() {
+        return eventService.getMyEvents();
+    }
+
+    // GET /events/shared
+    // Events where current user is ADMIN
+    @GetMapping("/shared")
+    public ApiResponse<List<EventResponse>> getSharedEvents() {
+        return eventService.getSharedEvents();
+    }
+
+    // GET /events/managed
+    // Events where current user is CREATOR or ADMIN
+    @GetMapping("/managed")
+    public ApiResponse<List<EventResponse>> getManagedEvents() {
+        return eventService.getManagedEvents();
+    }
+
 
     // GET /api/events/feed
     @GetMapping("/feed")

@@ -10,7 +10,7 @@ data class Connection(
     val userId: Int,
     val fullName: String,
     val course: String,
-    val academicYear: Int,
+    val academicYear: String,
     val avatarUrl: String? = null,
     val status: ConnectionStatus
 )

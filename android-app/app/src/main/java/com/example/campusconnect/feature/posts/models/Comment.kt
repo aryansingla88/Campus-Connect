@@ -10,7 +10,9 @@ data class Comment(
 
     val username: String,
 
-    val text: String,
+    val body: String,
 
-    val createdAt: String
+    val createdAt: String,
+
+    val replies: List<Comment> = emptyList()
 )

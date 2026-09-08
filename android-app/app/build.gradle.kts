@@ -1,3 +1,14 @@
+import java.util.Properties
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use {
+        localProperties.load(it)
+    }
+}
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -14,6 +25,16 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        val apiBaseUrl =
+            localProperties.getProperty("API_BASE_URL")
+                ?: "http://10.0.2.2:8000/"
+
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"$apiBaseUrl\""
+        )
     }
 
     buildTypes {
@@ -29,6 +50,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -88,10 +110,10 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:2.7.0")
 
+
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 
     ksp("androidx.room:room-compiler:2.6.1")
-
 }
 

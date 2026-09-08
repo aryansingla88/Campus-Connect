@@ -18,42 +18,194 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.campusconnect.core.ui.theme.*
 import com.example.campusconnect.feature.posts.components.FeedTopBar
-import com.example.campusconnect.feature.posts.models.dummyPosts
-import com.example.campusconnect.feature.posts.components.TopicChipsRow
-import com.example.campusconnect.feature.posts.models.dummyTags
-import com.example.campusconnect.feature.posts.models.dummyComments
-import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.viewmodel.compose.viewModel
-
 import com.example.campusconnect.feature.posts.models.Post
+import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
+import com.example.campusconnect.feature.posts.components.TopicChipsRow
+import com.example.campusconnect.feature.posts.models.VoteType
+import kotlinx.coroutines.launch
 
 //@OptIn means ->"I know I'm using an experimental Material 3 API, and I accept that it may change in future versions."
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
-    val viewModel: FeedViewModel = viewModel()
+fun GeneralFeedScreen(
+    onPostClick: (Int) -> Unit,
+    viewModel: FeedViewModel = FeedViewModel()
+) {    var posts by remember {
+    mutableStateOf<List<Post>>(emptyList())
+}
 
-    var posts by remember {
+    val coroutineScope = rememberCoroutineScope()
 
-        mutableStateOf<List<Post>>(emptyList())
+    var tags by remember {
+        mutableStateOf<List<PostTag>>(emptyList())
+    }
+
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf<String?>(null)
     }
 
     LaunchedEffect(Unit) {
+        isLoading = true
 
-        posts = viewModel
-            .getPosts()
-            .getOrDefault(emptyList())
+        viewModel.getPosts()
+            .onSuccess {
+                posts = it
+            }
+            .onFailure {
+                errorMessage = it.message ?: "Failed to load posts"
+            }
+
+        viewModel.getTags()
+            .onSuccess {
+                tags = it
+            }
+
+        isLoading = false
+    }
+
+
+    suspend fun handleUpvote(post: Post) {
+
+        val result =
+
+            if (post.userVote == VoteType.UPVOTE) {
+
+                viewModel.removePostVote(post.id)
+
+            } else {
+
+                viewModel.upvotePost(post.id)
+            }
+
+        result.onSuccess {
+
+            posts = posts.map { currentPost ->
+
+                if (currentPost.id != post.id) {
+
+                    currentPost
+
+                } else {
+
+                    when (post.userVote) {
+
+                        VoteType.UPVOTE ->
+
+                            currentPost.copy(
+
+                                upvotes =
+                                    (currentPost.upvotes - 1)
+                                        .coerceAtLeast(0),
+
+                                userVote = null
+                            )
+
+                        VoteType.DOWNVOTE ->
+
+                            currentPost.copy(
+
+                                upvotes = currentPost.upvotes + 1,
+
+                                downvotes =
+                                    (currentPost.downvotes - 1)
+                                        .coerceAtLeast(0),
+
+                                userVote = VoteType.UPVOTE
+                            )
+
+                        null ->
+
+                            currentPost.copy(
+
+                                upvotes = currentPost.upvotes + 1,
+
+                                userVote = VoteType.UPVOTE
+                            )
+                    }
+                }
+            }
+        }
+    }
+
+
+    suspend fun handleDownvote(post: Post) {
+
+        val result =
+
+            if (post.userVote == VoteType.DOWNVOTE) {
+
+                viewModel.removePostVote(post.id)
+
+            } else {
+
+                viewModel.downvotePost(post.id)
+            }
+
+        result.onSuccess {
+
+            posts = posts.map { currentPost ->
+
+                if (currentPost.id != post.id) {
+
+                    currentPost
+
+                } else {
+
+                    when (post.userVote) {
+
+                        VoteType.DOWNVOTE ->
+
+                            currentPost.copy(
+
+                                downvotes =
+                                    (currentPost.downvotes - 1)
+                                        .coerceAtLeast(0),
+
+                                userVote = null
+                            )
+
+                        VoteType.UPVOTE ->
+
+                            currentPost.copy(
+
+                                upvotes =
+                                    (currentPost.upvotes - 1)
+                                        .coerceAtLeast(0),
+
+                                downvotes = currentPost.downvotes + 1,
+
+                                userVote = VoteType.DOWNVOTE
+                            )
+
+                        null ->
+
+                            currentPost.copy(
+
+                                downvotes = currentPost.downvotes + 1,
+
+                                userVote = VoteType.DOWNVOTE
+                            )
+                    }
+                }
+            }
+        }
     }
 
 
@@ -206,7 +358,7 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
                         // only posts matching the selected topic to be displayed.
                         TopicChipsRow(
 
-                            tags = dummyTags,
+                            tags = tags,
 
                             selectedTopic = selectedTopic,
 
@@ -247,12 +399,7 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
 
                             items(filteredPosts) { post ->
 
-                                val commentCount =
-
-                                    dummyComments.count {
-
-                                        it.postId == post.id
-                                    }
+                                val commentCount = 0
 
                                 com.example.campusconnect.feature.posts.components.PostCard(
 
@@ -263,7 +410,23 @@ fun GeneralFeedScreen(onPostClick: (Int) -> Unit) {
                                     onClick = {
 
                                         onPostClick(post.id)
+                                    },
+                                    onUpvoteClick = {
+
+                                        coroutineScope.launch {
+
+                                            handleUpvote(post)
+                                        }
+                                    },
+
+                                    onDownvoteClick = {
+
+                                        coroutineScope.launch {
+
+                                            handleDownvote(post)
+                                        }
                                     }
+
                                 )
                             }
                         }

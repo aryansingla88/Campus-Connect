@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.campusconnect.feature.profile.model.ClubStatus
+import com.example.campusconnect.feature.profile.model.ConnectionStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.model.StatPanel
 import com.example.campusconnect.feature.profile.ui.panels.clubs.ClubsPanel
@@ -79,14 +80,22 @@ fun ProfilePanelSection(
 
                 // -- Stat panels --------------------------------
                 panel == StatPanel.CONNECTIONS -> ConnectionsPanel(
-                    connections       = vm.connections,
-                    mode              = mode,
-                    onStatusChange    = { idx, status ->
-                        vm.connections[idx] = vm.connections[idx].copy(status = status)
+                    connections = vm.connections,
+                    mode = mode,
+                    onStatusChange = { userId, status ->
+                        if (
+                            mode == ProfileMode.OWN &&
+                            status == ConnectionStatus.PENDING
+                        ) {
+                            myVm?.sendConnectionRequest(userId)
+                        }
                     },
-                    onConnectionClick = { userId ->
-                        // ViewProfile handles navigation externally via header lambda
-                    }
+                    onRemoveConnection = { userId ->
+                        if (mode == ProfileMode.OWN) {
+                            myVm?.removeConnection(userId)
+                        }
+                    },
+                    onConnectionClick = { }
                 )
 
                 panel == StatPanel.HONOR -> HonorPanel(
@@ -97,10 +106,17 @@ fun ProfilePanelSection(
                 )
 
                 panel == StatPanel.CLUBS -> ClubsPanel(
-                    clubs          = vm.clubs,
-                    mode           = mode,
-                    onStatusChange = { idx, status ->
-                        vm.clubs[idx] = vm.clubs[idx].copy(status = status)
+                    clubs = vm.clubs,
+                    mode = mode,
+
+                    allClubs = myVm?.allClubs ?: emptyList(),
+
+                    onJoinClub = { clubId ->
+                        myVm?.joinClub(clubId)
+                    },
+
+                    onLeaveClub = { clubId ->
+                        myVm?.leaveClub(clubId)
                     }
                 )
 

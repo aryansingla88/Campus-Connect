@@ -36,7 +36,7 @@ fun VoteSection(
             text = "⬆ $upvotes",
 
             color =
-                if (userVote == VoteType.UPVOTED)
+                if (userVote == VoteType.UPVOTE)
                     OrangePrimary
                 else
                     Color.Unspecified,
@@ -52,7 +52,7 @@ fun VoteSection(
             text = "⬇ $downvotes",
 
             color =
-                if (userVote == VoteType.DOWNVOTED)
+                if (userVote == VoteType.DOWNVOTE)
                     OrangePrimary
                 else
                     Color.Unspecified,

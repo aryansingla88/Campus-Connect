@@ -1,14 +1,11 @@
 package com.example.campusconnect.feature.profile.viewmodel
 
-import androidx.compose.runtime.*
 import android.app.Application
+import androidx.compose.runtime.*
 import androidx.lifecycle.AndroidViewModel
 import com.example.campusconnect.feature.profile.model.*
 import com.example.campusconnect.feature.profile.data.repo.*
 import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
-
 
 abstract class BaseProfileViewModel(
     application: Application
@@ -29,57 +26,33 @@ abstract class BaseProfileViewModel(
     val clubs = mutableStateListOf<Club>()
 
     var honorRank by mutableIntStateOf(0)
-        private set
+        protected set
 
     val badges = mutableStateListOf<ProfileHonor>()
 
     val medals = mutableStateListOf<ProfileHonor>()
 
-
     val interests = mutableStateListOf<Interest>()
+
     var allInterests by mutableStateOf<List<Interest>>(emptyList())
         private set
-
 
     var activePanel by mutableStateOf<StatPanel?>(null)
         private set
 
-    protected fun loadData(){
-
-        viewModelScope.launch {
-
-            repository.getMyConnections()
-                .getOrNull()
-                ?.let { connections.addAll(it) }
-
-            repository.getMyClubs()
-                .getOrNull()
-                ?.let { clubs.addAll(it) }
-
-            repository.getProfileHonors()
-                .getOrNull()
-                ?.let { honors ->
-
-                    honorRank = honors.honorRank
-
-                    badges.addAll(honors.badges)
-
-                    medals.addAll(honors.medals)
-                }
-
-            repository.getSelectedInterests()
-                .getOrNull()
-                ?.let { interests.addAll(it) }
-
-            allInterests =
-                repository
-                    .getAllInterests()
-                    .getOrDefault(emptyList())
-        }
+    protected suspend fun loadAllInterests() {
+        allInterests =
+            repository
+                .getAllInterests()
+                .getOrDefault(emptyList())
     }
 
     fun togglePanel(panel: StatPanel) {
-        activePanel = if (activePanel == panel) null else panel
+        activePanel = if (activePanel == panel) {
+            null
+        } else {
+            panel
+        }
     }
 
     fun moveBadgeUp(index: Int) {
@@ -110,9 +83,7 @@ abstract class BaseProfileViewModel(
         medals.add(index + 1, item)
     }
 
-
     fun addInterest(interest: Interest) {
-
         if (interest !in interests) {
             interests.add(interest)
         }
@@ -126,12 +97,9 @@ abstract class BaseProfileViewModel(
         from: Int,
         to: Int
     ) {
+        if (badges.isEmpty()) return
 
-        val targetIndex =
-            to.coerceIn(
-                0,
-                badges.lastIndex
-            )
+        val targetIndex = to.coerceIn(0, badges.lastIndex)
 
         if (from == targetIndex) return
 
@@ -143,12 +111,9 @@ abstract class BaseProfileViewModel(
         from: Int,
         to: Int
     ) {
+        if (medals.isEmpty()) return
 
-        val targetIndex =
-            to.coerceIn(
-                0,
-                medals.lastIndex
-            )
+        val targetIndex = to.coerceIn(0, medals.lastIndex)
 
         if (from == targetIndex) return
 

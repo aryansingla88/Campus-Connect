@@ -5,6 +5,7 @@ import com.example.campusconnect.feature.profile.model.*
 
 interface ProfileRepository {
 
+//    ---- Profile
     suspend fun getMyProfile(): Result<PublicUserProfile>
 
     suspend fun getProfile(userId: Int): Result<PublicUserProfile>
@@ -14,6 +15,8 @@ interface ProfileRepository {
     suspend fun getMyStats(): Result<ProfileStats>
 
     suspend fun getUserStats(userId: Int): Result<ProfileStats>
+
+//    ----- Connections
 
     suspend fun getMyConnections(): Result<List<Connection>>
 
@@ -25,15 +28,22 @@ interface ProfileRepository {
 
     suspend fun acceptConnectionRequest(userId: Int): Result<Unit>
 
+
+    suspend fun removeConnectionRequest(userId: Int): Result<Unit>
+
     suspend fun removeConnection(userId: Int): Result<Unit>
+
+    suspend fun searchUsers(query: String): Result<List<Connection>>
+
+    suspend fun getAllClubs(): Result<List<Club>>
 
     suspend fun getMyClubs(): Result<List<Club>>
 
     suspend fun getUserClubs(userId: Int): Result<List<Club>>
 
-    suspend fun joinClub(clubId: String): Result<Unit>
+    suspend fun joinClub(clubId: Int): Result<Unit>
 
-    suspend fun leaveClub(clubId: String): Result<Unit>
+    suspend fun leaveClub(clubId: Int): Result<Unit>
 
     suspend fun getProfileHonors(): Result<ProfileHonors>
 

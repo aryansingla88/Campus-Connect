@@ -23,13 +23,10 @@ interface PostsRepository {
     // Posts -------------------------------------------------------------
 
     suspend fun createPost(
-
+        postType: String,
         title: String,
-
         body: String,
-
         tags: List<PostTag>,
-
         image: File?
     ): Result<Post>
 
@@ -47,6 +44,10 @@ interface PostsRepository {
     suspend fun deletePost(
         postId: Int
     ): Result<Unit>
+
+    // In kotlin suspend functions Result<Unit> is the generic return type,
+    //that returns a successful execution with no return type
+    // or a failure containing a throwable exception.
 
 
     // Comments -------------------------------------------------------------
@@ -68,7 +69,7 @@ interface PostsRepository {
 
         parentCommentId: Int,
 
-        body : String
+        body: String
     ): Result<Comment>
 
     suspend fun updateComment(

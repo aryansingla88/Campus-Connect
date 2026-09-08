@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.profile.ui.viewprofile
+package com.example.campusconnect.feature.profile.ui.screen
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
@@ -92,11 +92,10 @@ fun ViewProfileScreen(
             ) { panel: StatPanel? ->
                 when (panel) {
                     StatPanel.CONNECTIONS -> ConnectionsPanel(
-                        connections    = vm.connections,
-                        mode           = ProfileMode.VIEW,
-                        onStatusChange = { idx, status ->
-                            vm.connections[idx] = vm.connections[idx].copy(status = status)
-                        }
+                        connections = vm.connections,
+                        mode = ProfileMode.VIEW,
+                        onStatusChange = { _, _ -> },
+                        onRemoveConnection = { _ -> }
                     )
                     StatPanel.HONOR -> HonorPanel(
                         honorRank    = vm.honorRank,
@@ -105,11 +104,8 @@ fun ViewProfileScreen(
                         mode = ProfileMode.VIEW
                     )
                     StatPanel.CLUBS -> ClubsPanel(
-                        clubs          = vm.clubs,
-                        mode           = ProfileMode.VIEW,
-                        onStatusChange = { idx, status ->
-                            vm.clubs[idx] = vm.clubs[idx].copy(status = status)
-                        }
+                        clubs = vm.clubs,
+                        mode = ProfileMode.VIEW
                     )
                     StatPanel.INTERESTS -> InterestsPanel(
                         interests = vm.interests,

@@ -41,14 +41,16 @@ class FakePostsRepository : PostsRepository {
 
     override suspend fun createPost(
 
+        postType: String,
+
         title: String,
 
-        body : String,
+        body: String,
 
         tags: List<PostTag>,
 
         image: File?
-    ): Result<Post> {
+    ): Result<Post>{
 
         TODO("Will implement after Create Post UI")
     }

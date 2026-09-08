@@ -1,6 +1,17 @@
 package com.example.campusconnect.feature.profile.model
 
-enum class ClubStatus {  NOT_JOINED, PENDING, JOINED }
+
+enum class ClubStatus {
+    NOT_JOINED,
+    PENDING,
+    JOINED
+}
+
+enum class ClubMemberRole {
+    MEMBER,
+    ADMIN,
+    PRESIDENT
+}
 
 data class Club(
     val clubId: Int,

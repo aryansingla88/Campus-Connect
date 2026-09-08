@@ -10,9 +10,6 @@ import com.campus.Campus_Connect.features.connection.dto.ConnectionResponse;
 import com.campus.Campus_Connect.features.connection.entity.ConnectionStatus;
 import com.campus.Campus_Connect.features.connection.entity.UserConnection;
 import com.campus.Campus_Connect.features.connection.repository.ConnectionRepository;
-import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
-import com.campus.Campus_Connect.features.metadata.courses.dto.CourseResponse;
-import com.campus.Campus_Connect.features.metadata.courses.entity.Course;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,7 +26,6 @@ import java.util.Optional;
 public class ConnectionService {
 
     private final ConnectionRepository connectionRepository;
-    private final CourseRepository courseRepository;
     private final UserRepository userRepository;
 
     public ApiResponse<List<ConnectionResponse>> getMyConnections() {
@@ -295,22 +291,21 @@ public class ConnectionService {
         return connection.getSender();
     }
 //---------------------
-    private ConnectionResponse buildConnectionResponse(
-            User user,
-            ConnectionRelationshipStatus status
-    ) {
-        UserProfile profile = user.getProfile();
-        Course course = getCourse(profile.getCourseId());
+private ConnectionResponse buildConnectionResponse(
+        User user,
+        ConnectionRelationshipStatus status
+) {
+    UserProfile profile = user.getProfile();
 
-        return ConnectionResponse.builder()
-                .userId(user.getId())
-                .username(user.getUsername())
-                .fullName(profile.getFullName())
-                .avatarUrl(profile.getAvatarUrl())
-                .course(buildCourseResponse(course))
-                .academicYear(getAcademicYear(profile.getAdmissionYear()))
-                .status(status)
-                .build();
+    return ConnectionResponse.builder()
+            .userId(user.getId())
+            .username(user.getUsername())
+            .fullName(profile.getFullName())
+            .avatarUrl(profile.getAvatarUrl())
+            .courseId(profile.getCourseId())
+            .admissionYear(profile.getAdmissionYear())
+            .status(status)
+            .build();
     }
 //---------------------
     private Integer getAcademicYear(Integer admissionYear) {
@@ -325,23 +320,7 @@ public class ConnectionService {
 
         return academicYear;
     }
-//---------------------
-    private Course getCourse(Integer courseId) {
 
-        return courseRepository.findById(courseId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Course not found"));
-    }
-
-    private CourseResponse buildCourseResponse(Course course) {
-
-        return CourseResponse.builder()
-                .courseId(course.getId())
-//                .degree(course.getDegree())
-//                .courseCode(course.getCourseCode())
-                .build();
-
-    }
 //---------------------
     private ConnectionRelationshipStatus getRelationshipStatus(
             Integer currentUserId,

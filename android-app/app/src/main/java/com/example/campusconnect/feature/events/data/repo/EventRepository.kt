@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.events.data.repo
 
+import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
@@ -7,6 +8,7 @@ import com.example.campusconnect.feature.events.model.ParticipantTeam
 import com.example.campusconnect.feature.events.model.SoloParticipant
 import com.example.campusconnect.feature.events.model.UserAccess
 import com.example.campusconnect.feature.events.registrations.model.Registration
+import okhttp3.MultipartBody
 
 interface EventRepository {
 
@@ -19,7 +21,8 @@ interface EventRepository {
     ): Result<Event>
 
     suspend fun createEvent(
-        event: Event
+        request: CreateEventRequest,
+        poster: MultipartBody.Part?
     ): Result<Event>
 
     suspend fun updateEvent(
@@ -29,6 +32,14 @@ interface EventRepository {
     suspend fun deleteEvent(
         eventId: Int
     ): Result<Unit>
+
+    suspend fun getEventFeed(): Result<List<Event>>
+
+    suspend fun getMyEvents(): Result<List<Event>>
+
+    suspend fun getSharedEvents(): Result<List<Event>>
+
+    suspend fun getManagedEvents(): Result<List<Event>>
 
 
     // Registration -------------------------------------------------------

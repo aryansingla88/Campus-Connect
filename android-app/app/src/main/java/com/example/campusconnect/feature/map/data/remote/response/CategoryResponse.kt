@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class CategoryResponse(
     @SerializedName("id")
-    val id: String,
+    val id: Int, // Changed String to Int
 
     @SerializedName("name")
     val name: String

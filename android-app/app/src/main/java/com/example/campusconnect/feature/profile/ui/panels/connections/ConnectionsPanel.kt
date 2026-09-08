@@ -1,6 +1,5 @@
 package com.example.campusconnect.feature.profile.ui.panels.connections
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,17 +12,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.core.components.PanelSearchBar
+import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.profile.model.Connection
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.ui.components.*
-import com.example.campusconnect.core.components.AppAvatar
 
 @Composable
 fun ConnectionsPanel(
     connections: List<Connection>,
     mode: ProfileMode,
-    onStatusChange: (index: Int, newStatus: ConnectionStatus) -> Unit,
+    onStatusChange: (userId: Int, newStatus: ConnectionStatus) -> Unit,
+    onRemoveConnection: (userId: Int) -> Unit = {},
     onConnectionClick: (userId: Int) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
@@ -36,35 +36,61 @@ fun ConnectionsPanel(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         PanelSearchBar(
-            value            = query,
-            onValueChange    = { query = it },
-            placeholder      = if (mode == ProfileMode.OWN) "Search people to connect…" else "Search connections…",
+            value = query,
+            onValueChange = { query = it },
+            placeholder =
+                if (mode == ProfileMode.OWN) {
+                    "Search people to connect…"
+                } else {
+                    "Search connections…"
+                },
             showEmbeddedPlus = mode == ProfileMode.OWN
         )
 
         connections
-            .filter { query.isBlank() || it.fullName.contains(query, ignoreCase = true) }
-            .forEachIndexed { index, c ->
+            .filter {
+                query.isBlank() ||
+                        it.fullName.contains(query, ignoreCase = true)
+            }
+            .forEach { connection ->
+
                 ProfileListCard(
-                    title = c.fullName,
-                    subtitle = "${c.course} • Year ${c.academicYear}",
-                    onClick  = { onConnectionClick(c.userId) },
+                    title = connection.fullName,
+                    subtitle =
+                        "${connection.course} • ${connection.academicYear}",
+                    onClick = {
+                        onConnectionClick(connection.userId)
+                    },
                     leadingContent = {
                         AppAvatar(
-                            entityId = c.userId,
-                            displayName = c.fullName,
-                            imageUrl = c.avatarUrl,
+                            entityId = connection.userId,
+                            displayName = connection.fullName,
+                            imageUrl = connection.avatarUrl,
                             size = 38.dp
-                        )},
+                        )
+                    },
                     trailingContent = {
                         ConnectionButton(
-                            status  = c.status,
-                            mode    = mode,
+                            status = connection.status,
+                            mode = mode,
                             onClick = {
-                                when (c.status) {
-                                    ConnectionStatus.NOT_CONNECTED       -> onStatusChange(index, ConnectionStatus.PENDING)
-                                    ConnectionStatus.PENDING   -> Unit
-                                    ConnectionStatus.CONNECTED -> Unit
+                                when (connection.status) {
+                                    ConnectionStatus.NOT_CONNECTED -> {
+                                        onStatusChange(
+                                            connection.userId,
+                                            ConnectionStatus.PENDING
+                                        )
+                                    }
+
+                                    ConnectionStatus.PENDING -> {
+                                        // No action for now
+                                    }
+
+                                    ConnectionStatus.CONNECTED -> {
+                                        if (mode == ProfileMode.OWN) {
+                                            onRemoveConnection(connection.userId)
+                                        }
+                                    }
                                 }
                             }
                         )
@@ -81,33 +107,47 @@ private fun ConnectionButton(
     onClick: () -> Unit
 ) {
     val containerColor = when (status) {
-        ConnectionStatus.NOT_CONNECTED       -> Orange
-        ConnectionStatus.PENDING   -> OrangeLight
+        ConnectionStatus.NOT_CONNECTED -> Orange
+        ConnectionStatus.PENDING -> OrangeLight
         ConnectionStatus.CONNECTED -> Color.Transparent
     }
+
     val contentColor = when (status) {
-        ConnectionStatus.NOT_CONNECTED       -> Color.White
-        ConnectionStatus.PENDING   -> OrangeDark
+        ConnectionStatus.NOT_CONNECTED -> Color.White
+        ConnectionStatus.PENDING -> OrangeDark
         ConnectionStatus.CONNECTED -> TextMuted
     }
+
     val label = when {
-        status == ConnectionStatus.NOT_CONNECTED     -> "Add"
+        status == ConnectionStatus.NOT_CONNECTED -> "Add"
         status == ConnectionStatus.PENDING -> "Pending"
-        mode   == ProfileMode.OWN         -> "Remove"
-        else                               -> "Connected"
+        mode == ProfileMode.OWN -> "Remove"
+        else -> "Connected"
     }
 
     Button(
-        onClick        = onClick,
-        modifier       = Modifier.height(28.dp),
-        shape          = RoundedCornerShape(8.dp),
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-        colors         = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            contentColor   = contentColor
+        onClick = onClick,
+        modifier = Modifier.height(28.dp),
+        shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(
+            horizontal = 10.dp,
+            vertical = 0.dp
         ),
-        border = if (status == ConnectionStatus.CONNECTED) ButtonDefaults.outlinedButtonBorder else null
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        ),
+        border =
+            if (status == ConnectionStatus.CONNECTED) {
+                ButtonDefaults.outlinedButtonBorder
+            } else {
+                null
+            }
     ) {
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

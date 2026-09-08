@@ -1,8 +1,8 @@
 package com.example.campusconnect.feature.posts.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.example.campusconnect.feature.posts.data.repo.ApiPostsRepository
 
-import com.example.campusconnect.feature.posts.data.repo.FakePostsRepository
 import com.example.campusconnect.feature.posts.data.repo.PostsRepository
 
 import com.example.campusconnect.feature.posts.models.Comment
@@ -33,7 +33,7 @@ public class FeedViewModel extends ViewModel {
 
 class PostDetailViewModel(
 
-    private val repository: PostsRepository = FakePostsRepository()
+    private val repository: PostsRepository = ApiPostsRepository()
 
 ) : ViewModel() {
 

@@ -1,7 +1,6 @@
 package com.campus.Campus_Connect.features.profile.dto.request;
 
 import lombok.*;
-import java.time.LocalDate;
 
 @Builder
 @Getter
@@ -10,23 +9,13 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class UpdateUserProfileRequest {
 
-    private String fullName;
-
     private String bio;
 
     private String avatarUrl;
 
-    private Integer courseId;
-
-    private Integer admissionYear;
-
     private String hostel;
 
     private String hometown;
-
-    private String gender;
-
-    private LocalDate dob;
 
     private String phone;
 
