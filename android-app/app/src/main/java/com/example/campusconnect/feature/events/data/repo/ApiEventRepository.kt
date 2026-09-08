@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.events.data.repo
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.events.data.remote.EventsApi
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
+import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.mapper.toEvent
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
@@ -160,8 +161,44 @@ class ApiEventRepository(
     }
 
     override suspend fun updateEvent(
-        event: Event
-    ): Result<Event> = TODO()
+        eventId: Int,
+        request: UpdateEventRequest,
+        poster: MultipartBody.Part?
+    ): Result<Event> {
+        return try {
+            val json = Gson().toJson(request)
+
+            val eventPart = MultipartBody.Part.createFormData(
+                "event",
+                "event.json",
+                json.toRequestBody("application/json".toMediaType())
+            )
+
+            val response = api.updateEvent(
+                eventId = eventId,
+                event = eventPart,
+                poster = poster
+            )
+
+            if (response.isSuccessful) {
+                val eventResponse = response.body()?.data
+
+                if (eventResponse != null) {
+                    Result.success(eventResponse.toEvent())
+                } else {
+                    Result.failure(
+                        Exception("Failed to update event: empty response")
+                    )
+                }
+            } else {
+                Result.failure(
+                    Exception("Failed to update event: ${response.code()}")
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun deleteEvent(
         eventId: Int

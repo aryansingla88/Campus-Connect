@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.events.data.repo
 
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
+import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
@@ -26,7 +27,9 @@ interface EventRepository {
     ): Result<Event>
 
     suspend fun updateEvent(
-        event: Event
+        eventId: Int,
+        request: UpdateEventRequest,
+        poster: MultipartBody.Part?
     ): Result<Event>
 
     suspend fun deleteEvent(
