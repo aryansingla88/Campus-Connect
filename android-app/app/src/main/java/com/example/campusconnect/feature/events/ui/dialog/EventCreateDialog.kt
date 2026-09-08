@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.events.model.EventUiState
 import com.example.campusconnect.feature.metadata.clubs.Club
+import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
 import java.util.Calendar
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
@@ -433,7 +434,7 @@ fun EventCreateDialog(
     onUpdate: () -> Unit = {},
 
     clubOptions: List<Club> = emptyList(),
-    categoryOptions: List<String> = emptyList(),
+    categoryOptions: List<EventCategory> = emptyList(),
     visibilityTypeOptions: List<String>  = listOf("Public", "Private", "Club"),
     visibilityValueOptions: List<String> = listOf("All", "Members Only")
 ) {
@@ -824,9 +825,24 @@ fun EventCreateDialog(
                             locked = categoryLocked,
                             value = state.category,
                             placeholder = "Select Category",
-                            options = categoryOptions,
+                            options = if (state.category.isNotBlank()) {
+                                listOf("Unselect") + categoryOptions.map { it.name }
+                            } else {
+                                categoryOptions.map { it.name }
+                            },
                             onSelect = { selectedName ->
-                                onCategoryChange(selectedName, null)
+                                if (selectedName == "Unselect") {
+                                    onCategoryChange("", null)
+                                } else {
+                                    val selectedCategory = categoryOptions.find {
+                                        it.name == selectedName
+                                    }
+
+                                    onCategoryChange(
+                                        selectedName,
+                                        selectedCategory?.id
+                                    )
+                                }
                             },
                             leadingIcon = Icons.Default.List,
                             modifier = Modifier.weight(1f)

@@ -103,6 +103,7 @@ fun EventScreen(
     val boxHeight = remember { mutableStateOf(0) }
 
     val clubs by viewModel.clubs.collectAsState()
+    val categories by viewModel.categories.collectAsState()
 
 
     // Only non-past events appear in the preview pager
@@ -488,6 +489,7 @@ fun EventScreen(
                         onPosterUrlChange        = viewModel::updatePosterUrl,
                         onClubChange             = viewModel::updateClub,
                         clubOptions = clubs,
+                        categoryOptions = categories,
                         onCategoryChange         = { name, id -> viewModel.updateCategory(name, id) },
                         onVisibilityTypeChange   = viewModel::updateVisibilityType,
                         onVisibilityValueChange  = viewModel::updateVisibilityValue,
