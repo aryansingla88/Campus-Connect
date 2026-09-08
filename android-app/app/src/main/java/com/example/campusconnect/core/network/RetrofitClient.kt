@@ -6,6 +6,7 @@ import com.example.campusconnect.feature.events.data.remote.EventsApi
 import com.example.campusconnect.feature.map.data.remote.MapApi
 import com.example.campusconnect.feature.metadata.clubs.remote.ClubApi
 import com.example.campusconnect.feature.metadata.courses.remote.CourseApi
+import com.example.campusconnect.feature.metadata.eventcategories.remote.EventCategoryApi
 import com.example.campusconnect.feature.posts.data.remote.PostsApi
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
 import okhttp3.Interceptor
@@ -78,4 +79,6 @@ object RetrofitClient {
 
     val courseApi: CourseApi = retrofit.create(CourseApi::class.java)
     val clubApi: ClubApi = retrofit.create(ClubApi::class.java)
+    val eventCategoryApi: EventCategoryApi =
+        retrofit.create(EventCategoryApi::class.java)
 }

@@ -3,6 +3,8 @@ package com.example.campusconnect.feature.metadata.eventcategories
 import android.content.Context
 import com.example.campusconnect.core.database.AppDatabase
 import com.example.campusconnect.core.network.RetrofitClient
+import com.example.campusconnect.feature.metadata.eventcategories.local.EventCategoryDao
+import com.example.campusconnect.feature.metadata.eventcategories.remote.EventCategoryApi
 
 object EventCategoryRepositoryProvider {
 
@@ -12,14 +14,13 @@ object EventCategoryRepositoryProvider {
     fun getRepository(context: Context): EventCategoryRepository {
         return INSTANCE ?: synchronized(this) {
             INSTANCE ?: EventCategoryRepository(
-                eventCategoryApi = RetrofitClient.eventCategoryApi,
-                eventCategoryDao = AppDatabase
+                RetrofitClient.eventCategoryApi,
+                AppDatabase
                     .getDatabase(context)
                     .eventCategoryDao(),
-                eventCategoryCacheManager =
-                    EventCategoryCacheManager(
-                        context.applicationContext
-                    )
+                EventCategoryCacheManager(
+                    context.applicationContext
+                )
             ).also {
                 INSTANCE = it
             }
