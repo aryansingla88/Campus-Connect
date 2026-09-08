@@ -26,8 +26,8 @@ import com.example.campusconnect.feature.profile.viewmodel.ViewProfileViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewProfileScreen(
-    userId: Int = 22,
-    onBack: () -> Unit = {}
+    userId: Int,
+    onBack: () -> Unit
 ) {
 
     val application =

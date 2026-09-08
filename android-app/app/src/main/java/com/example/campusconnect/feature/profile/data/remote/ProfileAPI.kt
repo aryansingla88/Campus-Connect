@@ -142,13 +142,13 @@ interface ProfileApi {
     // POST add interest to own profile
     @POST("users/me/interests/{interestId}")
     suspend fun addInterest(
-        @Path("interestId") interestId: String
+        @Path("interestId") interestId: Int
     ): Response<ApiResponse<Unit>>
 
     // DELETE remove interest from own profile
     @DELETE("users/me/interests/{interestId}")
     suspend fun removeInterest(
-        @Path("interestId") interestId: String
+        @Path("interestId") interestId: Int
     ): Response<ApiResponse<Unit>>
 
 

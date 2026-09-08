@@ -7,6 +7,7 @@ import com.example.campusconnect.feature.profile.model.*
 import com.example.campusconnect.feature.profile.data.repo.*
 import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 
+
 abstract class BaseProfileViewModel(
     application: Application
 ) : AndroidViewModel(application) {
@@ -25,99 +26,78 @@ abstract class BaseProfileViewModel(
 
     val clubs = mutableStateListOf<Club>()
 
+    // Keep only this declaration
+    val allClubs = mutableStateListOf<Club>()
+
     var honorRank by mutableIntStateOf(0)
         protected set
 
     val badges = mutableStateListOf<ProfileHonor>()
-
     val medals = mutableStateListOf<ProfileHonor>()
-
     val interests = mutableStateListOf<Interest>()
 
-    var allInterests by mutableStateOf<List<Interest>>(emptyList())
-        private set
+    var isLoading by mutableStateOf(false)
+        protected set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        protected set
 
     var activePanel by mutableStateOf<StatPanel?>(null)
         private set
 
+    val allInterests = mutableStateListOf<Interest>()
+
+    var clubSearchQuery by mutableStateOf("")
+        private set
+
+    val filteredClubs: List<Club>
+        get() {
+            if (clubSearchQuery.isBlank()) {
+                return allClubs
+            }
+
+            return allClubs.filter { club ->
+                club.name.contains(
+                    other = clubSearchQuery,
+                    ignoreCase = true
+                )
+            }
+        }
+
     protected suspend fun loadAllInterests() {
-        allInterests =
-            repository
-                .getAllInterests()
-                .getOrDefault(emptyList())
+        repository
+            .getAllInterests()
+            .onSuccess { result ->
+                allInterests.clear()
+                allInterests.addAll(result)
+            }
+            .onFailure {
+                errorMessage = it.message
+            }
+    }
+
+    protected suspend fun loadAllClubs() {
+        repository
+            .getAllClubs()
+            .onSuccess { result ->
+                allClubs.clear()
+                allClubs.addAll(result)
+            }
+            .onFailure {
+                errorMessage = it.message
+            }
+    }
+
+    fun updateClubSearchQuery(query: String) {
+        clubSearchQuery = query
     }
 
     fun togglePanel(panel: StatPanel) {
-        activePanel = if (activePanel == panel) {
-            null
-        } else {
-            panel
-        }
-    }
-
-    fun moveBadgeUp(index: Int) {
-        if (index <= 0) return
-
-        val item = badges.removeAt(index)
-        badges.add(index - 1, item)
-    }
-
-    fun moveBadgeDown(index: Int) {
-        if (index >= badges.lastIndex) return
-
-        val item = badges.removeAt(index)
-        badges.add(index + 1, item)
-    }
-
-    fun moveMedalUp(index: Int) {
-        if (index <= 0) return
-
-        val item = medals.removeAt(index)
-        medals.add(index - 1, item)
-    }
-
-    fun moveMedalDown(index: Int) {
-        if (index >= medals.lastIndex) return
-
-        val item = medals.removeAt(index)
-        medals.add(index + 1, item)
-    }
-
-    fun addInterest(interest: Interest) {
-        if (interest !in interests) {
-            interests.add(interest)
-        }
-    }
-
-    fun removeInterest(interest: Interest) {
-        interests.remove(interest)
-    }
-
-    fun moveBadgeTo(
-        from: Int,
-        to: Int
-    ) {
-        if (badges.isEmpty()) return
-
-        val targetIndex = to.coerceIn(0, badges.lastIndex)
-
-        if (from == targetIndex) return
-
-        val item = badges.removeAt(from)
-        badges.add(targetIndex, item)
-    }
-
-    fun moveMedalTo(
-        from: Int,
-        to: Int
-    ) {
-        if (medals.isEmpty()) return
-
-        val targetIndex = to.coerceIn(0, medals.lastIndex)
-
-        if (from == targetIndex) return
-
-        val item = medals.removeAt(from)
-        medals.add(targetIndex, item)
+        activePanel =
+            if (activePanel == panel) {
+                null
+            } else {
+                panel
+            }
     }
 }

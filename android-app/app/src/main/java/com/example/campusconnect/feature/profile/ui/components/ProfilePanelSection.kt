@@ -61,21 +61,26 @@ fun ProfilePanelSection(
                         )
                     }
                 managePanel == StatPanel.HONOR ->
-                    ManageCollectionPanel(
-                        badges = vm.badges,
-                        medals = vm.medals,
-                        onBadgeMoveUp = vm::moveBadgeUp,
-                        onBadgeMoveDown = vm::moveBadgeDown,
-                        onMedalMoveUp = vm::moveMedalUp,
-                        onMedalMoveDown = vm::moveMedalDown,
-                        onBadgeMoveTo = vm::moveBadgeTo,
-                        onMedalMoveTo = vm::moveMedalTo
-                    )
+                    myVm?.let {
+                        ManageCollectionPanel(
+                            badges = it.badges,
+                            medals = it.medals,
+
+                            onBadgeMoveUp = it::moveBadgeUp,
+                            onBadgeMoveDown = it::moveBadgeDown,
+
+                            onMedalMoveUp = it::moveMedalUp,
+                            onMedalMoveDown = it::moveMedalDown,
+
+                            onBadgeMoveTo = it::moveBadgeTo,
+                            onMedalMoveTo = it::moveMedalTo
+                        )
+                    }
                 managePanel == StatPanel.INTERESTS ->
                     ManageInterestsPanel(
                         interests = vm.interests,
                         allInterests = vm.allInterests,
-                        onAddInterest = vm::addInterest
+                        onAddInterest = myVm!!::addInterest
                     )
 
                 // -- Stat panels --------------------------------
@@ -88,11 +93,6 @@ fun ProfilePanelSection(
                             status == ConnectionStatus.PENDING
                         ) {
                             myVm?.sendConnectionRequest(userId)
-                        }
-                    },
-                    onRemoveConnection = { userId ->
-                        if (mode == ProfileMode.OWN) {
-                            myVm?.removeConnection(userId)
                         }
                     },
                     onConnectionClick = { }
@@ -109,7 +109,7 @@ fun ProfilePanelSection(
                     clubs = vm.clubs,
                     mode = mode,
 
-                    allClubs = myVm?.allClubs ?: emptyList(),
+                    allClubs = vm.filteredClubs,
 
                     onJoinClub = { clubId ->
                         myVm?.joinClub(clubId)
@@ -121,10 +121,16 @@ fun ProfilePanelSection(
                 )
 
                 panel == StatPanel.INTERESTS -> InterestsPanel(
-                    interests  = vm.interests,
-                    mode       = mode,
-                    onRemove   = { if (mode == ProfileMode.OWN) vm.interests.remove(it) },
-                    onAddClick = { myVm?.openManagePanel(StatPanel.INTERESTS) }
+                    interests = vm.interests,
+                    mode = mode,
+                    onRemove = { interest ->
+                        if (mode == ProfileMode.OWN) {
+                            myVm?.removeInterest(interest)
+                        }
+                    },
+                    onAddClick = {
+                        myVm?.openManagePanel(StatPanel.INTERESTS)
+                    }
                 )
 
                 // -- Default: profile content --------------------------------

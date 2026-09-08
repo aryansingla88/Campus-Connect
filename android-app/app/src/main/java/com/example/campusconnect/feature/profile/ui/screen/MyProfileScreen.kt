@@ -251,7 +251,9 @@ fun MyProfileScreen(
                     panel == StatPanel.INTERESTS -> InterestsPanel(
                         interests  = vm.interests,
                         mode       = ProfileMode.OWN,
-                        onRemove   = { vm.interests.remove(it) },
+                        onRemove = { interest ->
+                            vm.removeInterest(interest)
+                        },
                         onAddClick = { vm.openManagePanel(StatPanel.INTERESTS) }
                     )
                     else -> ProfileContent(
