@@ -36,33 +36,101 @@ class ApiMapRepo(
 
                 MarkerType.USER -> {
 
-                    Log.d("MAP_API", "Calling API: map/presence")
+                    Log.d("USER_MARKER", "========================================")
+                    Log.d("USER_MARKER", "USER MARKERS REQUESTED")
+                    Log.d("USER_MARKER", "Calling API: GET map/presence")
 
-                    val response = api.getVisibleUsers()
+                    val response = try {
+                        api.getVisibleUsers()
+                    } catch (e: Exception) {
+                        Log.e(
+                            "USER_MARKER",
+                            "map/presence NETWORK/API ERROR",
+                            e
+                        )
+                        throw e
+                    }
 
                     Log.d(
-                        "MAP_API",
-                        "map/presence response | success=${response.success}, dataSize=${response.data?.size}, message=${response.message}"
+                        "USER_MARKER",
+                        "API RESPONSE | success=${response.success}, message=${response.message}"
+                    )
+
+                    Log.d(
+                        "USER_MARKER",
+                        "RAW USER COUNT = ${response.data?.size ?: 0}"
                     )
 
                     if (!response.success || response.data == null) {
+
                         Log.e(
-                            "MAP_API",
-                            "map/presence FAILED"
+                            "USER_MARKER",
+                            "API FAILED | message=${response.message}"
                         )
+
                         throw Exception(
                             response.message ?: "Unable to load users"
                         )
                     }
 
+                    response.data.forEachIndexed { index, user ->
+
+                        Log.d(
+                            "USER_MARKER",
+                            """
+            USER [$index]
+            id=${user.userId}
+            name=${user.username}
+            latitude=${user.latitude}
+            longitude=${user.longitude}
+            gender=${user.gender}
+            """.trimIndent()
+                        )
+                    }
+
+                    val markers = response.data.mapIndexed { index, user ->
+
+                        try {
+
+                            val marker = user.toMarker()
+
+                            Log.d(
+                                "USER_MARKER",
+                                """
+            MAPPED MARKER [$index]
+            id=${marker.id}
+            sourceId=${marker.sourceId}
+            type=${marker.type}
+            latitude=${marker.latitude}
+            longitude=${marker.longitude}
+            label=${marker.label}
+            gender=${marker.gender}
+            insideCampus=${marker.insideCampus}
+            """.trimIndent()
+                            )
+
+                            marker
+
+                        } catch (e: Exception) {
+
+                            Log.e(
+                                "USER_MARKER",
+                                "FAILED TO MAP USER [$index]",
+                                e
+                            )
+
+                            throw e
+                        }
+                    }
+
                     Log.d(
-                        "MAP_API",
-                        "map/presence SUCCESS | mapping ${response.data.size} users"
+                        "USER_MARKER",
+                        "FINAL USER MARKER COUNT = ${markers.size}"
                     )
 
-                    response.data.map {
-                        it.toMarker()
-                    }
+                    Log.d("USER_MARKER", "========================================")
+
+                    markers
                 }
 
 
@@ -156,8 +224,13 @@ class ApiMapRepo(
                     val usersDeferred = async {
 
                         Log.d(
-                            "MAP_API",
-                            "Calling API: map/presence"
+                            "USER_MARKER",
+                            "========================================"
+                        )
+
+                        Log.d(
+                            "USER_MARKER",
+                            "INITIAL MAP LOAD - Calling API: map/presence"
                         )
 
                         val result = runCatching {
@@ -167,7 +240,7 @@ class ApiMapRepo(
                         if (result.isFailure) {
 
                             Log.e(
-                                "MAP_API",
+                                "USER_MARKER",
                                 "map/presence NETWORK/API ERROR",
                                 result.exceptionOrNull()
                             )
@@ -176,13 +249,77 @@ class ApiMapRepo(
                         val response = result.getOrNull()
 
                         Log.d(
-                            "MAP_API",
-                            "map/presence response | success=${response?.success}, dataSize=${response?.data?.size}, message=${response?.message}"
+                            "USER_MARKER",
+                            "API RESPONSE | success=${response?.success}, message=${response?.message}"
                         )
 
-                        response?.data?.map {
-                            it.toMarker()
+                        Log.d(
+                            "USER_MARKER",
+                            "RAW USER COUNT = ${response?.data?.size ?: 0}"
+                        )
+
+                        response?.data?.forEachIndexed { index, user ->
+
+                            Log.d(
+                                "USER_MARKER",
+                                """
+            RAW USER [$index]
+            id=${user.userId}
+            username=${user.username}
+            latitude=${user.latitude}
+            longitude=${user.longitude}
+            gender=${user.gender}
+            insideCampus=${user.insideCampus}
+            """.trimIndent()
+                            )
+                        }
+
+                        val markers = response?.data?.mapIndexed { index, user ->
+
+                            try {
+
+                                val marker = user.toMarker()
+
+                                Log.d(
+                                    "USER_MARKER",
+                                    """
+                MAPPED USER MARKER [$index]
+                id=${marker.id}
+                sourceId=${marker.sourceId}
+                type=${marker.type}
+                latitude=${marker.latitude}
+                longitude=${marker.longitude}
+                label=${marker.label}
+                gender=${marker.gender}
+                """.trimIndent()
+                                )
+
+                                marker
+
+                            } catch (e: Exception) {
+
+                                Log.e(
+                                    "USER_MARKER",
+                                    "FAILED TO MAP USER [$index]",
+                                    e
+                                )
+
+                                throw e
+                            }
+
                         } ?: emptyList()
+
+                        Log.d(
+                            "USER_MARKER",
+                            "FINAL USER MARKER COUNT = ${markers.size}"
+                        )
+
+                        Log.d(
+                            "USER_MARKER",
+                            "========================================"
+                        )
+
+                        markers
                     }
 
 

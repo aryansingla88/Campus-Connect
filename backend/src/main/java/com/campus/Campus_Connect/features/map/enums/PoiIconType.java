@@ -1,13 +1,12 @@
 package com.campus.Campus_Connect.features.map.enums;
 
 /**
- * General categories for Points of Interest (POIs) within
- * educational campuses such as colleges, universities and institutes.
+ * Visual classification for Points of Interest.
  *
- * Categories represent the primary function of a location rather than
- * its specific name or sub-type.
+ * Currently mirrors PoiCategory so that backend data remains
+ * consistent while the frontend maps each type to its visual marker.
  */
-public enum PoiCategory {
+public enum PoiIconType {
 
     // Academic & Learning
     ACADEMIC,

@@ -25,5 +25,5 @@ public class PoiResponse {
 
     private String visibility;
 
-    private Integer priority;
+    //private Integer priority;
 }
