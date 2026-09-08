@@ -5,27 +5,27 @@ data class ProfileResponse(
 
     // User ----------------------------------------------------------
 
-    val userId: Int,
-    val username: String,
-    val email: String,
+    val userId: Int?,
+    val username: String?,
+    val email: String?,
 
 
     // Profile header -------------------------------------------------
 
-    val fullName: String,
+    val fullName: String?,
     val bio: String?,
     val avatarUrl: String?,
 
 
     // Academic -------------------------------------------------------
 
-    val courseId: Int,
-    val admissionYear: Int,
+    val courseId: Int?,
+    val admissionYear: Int?,
 
 
     // Other profile details ------------------------------------------
 
-    val hostel: String,
+    val hostel: String?,
     val hometown: String?,
     val gender: String?,
     val dob: String?,
@@ -35,12 +35,12 @@ data class ProfileResponse(
     val linkedin: String?,
     val instagram: String?,
 
-    val memberSince: String,
+    val memberSince: String?,
 
 
     // Preferences ----------------------------------------------------
 
-    val showPhone: Boolean,
-    val showSocials: Boolean
+    val showPhone: Boolean?,
+    val showSocials: Boolean?
 
 )

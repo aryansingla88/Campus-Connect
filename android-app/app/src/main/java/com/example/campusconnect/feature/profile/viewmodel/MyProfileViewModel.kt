@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 import com.example.campusconnect.feature.profile.model.*
 
@@ -15,8 +17,6 @@ class MyProfileViewModel(
 
     var stats by mutableStateOf(ProfileStats())
         private set
-
-    val allClubs = mutableStateListOf<Club>()
 
     var editableProfile by mutableStateOf(PublicUserProfile())
         private set
@@ -38,51 +38,105 @@ class MyProfileViewModel(
 
     private fun loadMyData() {
         viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
 
-            repository.getMyProfile()
-                .getOrNull()
-                ?.let {
-                    profile = it
-                    editableProfile = it.copy()
+            try {
+                coroutineScope {
+
+                    val profileRequest = async {
+                        repository.getMyProfile()
+                    }
+
+                    val statsRequest = async {
+                        repository.getMyStats()
+                    }
+
+                    val connectionsRequest = async {
+                        repository.getMyConnections()
+                    }
+
+                    val clubsRequest = async {
+                        repository.getMyClubs()
+                    }
+
+                    val allClubsRequest = async {
+                        repository.getAllClubs()
+                    }
+
+                    val honorsRequest = async {
+                        repository.getProfileHonors()
+                    }
+
+                    val interestsRequest = async {
+                        repository.getSelectedInterests()
+                    }
+
+                    val allInterestsRequest = async {
+                        repository.getAllInterests()
+                    }
+
+                    profileRequest.await()
+                        .onSuccess {
+                            profile = it
+                            editableProfile = it.copy()
+                        }
+                        .onFailure {
+                            errorMessage = it.message
+                        }
+
+                    statsRequest.await()
+                        .onSuccess {
+                            stats = it
+                        }
+
+                    connectionsRequest.await()
+                        .onSuccess {
+                            connections.clear()
+                            connections.addAll(it)
+                        }
+
+                    clubsRequest.await()
+                        .onSuccess {
+                            clubs.clear()
+                            clubs.addAll(it)
+                        }
+
+                    allClubsRequest.await()
+                        .onSuccess {
+                            allClubs.clear()
+                            allClubs.addAll(it)
+                        }
+
+                    honorsRequest.await()
+                        .onSuccess { honors ->
+                            honorRank = honors.honorRank
+
+                            badges.clear()
+                            badges.addAll(honors.badges)
+
+                            medals.clear()
+                            medals.addAll(honors.medals)
+                        }
+
+                    interestsRequest.await()
+                        .onSuccess {
+                            interests.clear()
+                            interests.addAll(it)
+                        }
+
+                    allInterestsRequest.await()
+                        .onSuccess {
+                            allInterests.clear()
+                            allInterests.addAll(it)
+                        }
                 }
-
-            repository.getMyStats()
-                .getOrNull()
-                ?.let {
-                    stats = it
-                }
-
-            repository.getMyConnections()
-                .getOrNull()
-                ?.let {
-                    connections.clear()
-                    connections.addAll(it)
-                }
-
-            refreshClubs()
-
-            repository.getProfileHonors()
-                .getOrNull()
-                ?.let { honors ->
-                    honorRank = honors.honorRank
-
-                    badges.clear()
-                    badges.addAll(honors.badges)
-
-                    medals.clear()
-                    medals.addAll(honors.medals)
-                }
-
-            repository.getSelectedInterests()
-                .getOrNull()
-                ?.let {
-                    interests.clear()
-                    interests.addAll(it)
-                }
-
-            loadAllInterests()
+            } finally {
+                isLoading = false
+            }
         }
     }
+
 
     fun openManagePanel(panel: StatPanel) {
         activeManagePanel = panel
@@ -279,11 +333,92 @@ class MyProfileViewModel(
                 clubs.addAll(result)
             }
 
-        repository
-            .getAllClubs()
-            .onSuccess { result ->
-                allClubs.clear()
-                allClubs.addAll(result)
+    }
+
+    fun addInterest(interest: Interest) {
+        if (interest in interests) return
+
+        viewModelScope.launch {
+            repository.addInterest(interest.interestId)
+                .onSuccess {
+                    interests.add(interest)
+                }
+        }
+    }
+
+    fun removeInterest(interest: Interest) {
+        viewModelScope.launch {
+            repository.removeInterest(interest.interestId)
+                .onSuccess {
+                    interests.remove(interest)
+                }
+        }
+    }
+
+    // ----------------------------------------------------
+// Honor collection reordering
+// ----------------------------------------------------
+
+    fun moveBadgeUp(index: Int) {
+        moveBadgeTo(index, index - 1)
+    }
+
+    fun moveBadgeDown(index: Int) {
+        moveBadgeTo(index, index + 1)
+    }
+
+    fun moveBadgeTo(fromIndex: Int, toIndex: Int) {
+        if (fromIndex !in badges.indices) return
+        if (toIndex !in badges.indices) return
+        if (fromIndex == toIndex) return
+
+        val updated = badges.toMutableList()
+        val item = updated.removeAt(fromIndex)
+        updated.add(toIndex, item)
+
+        badges.clear()
+        badges.addAll(updated)
+
+        saveHonorPriorities()
+    }
+
+    fun moveMedalUp(index: Int) {
+        moveMedalTo(index, index - 1)
+    }
+
+    fun moveMedalDown(index: Int) {
+        moveMedalTo(index, index + 1)
+    }
+
+    fun moveMedalTo(fromIndex: Int, toIndex: Int) {
+        if (fromIndex !in medals.indices) return
+        if (toIndex !in medals.indices) return
+        if (fromIndex == toIndex) return
+
+        val updated = medals.toMutableList()
+        val item = updated.removeAt(fromIndex)
+        updated.add(toIndex, item)
+
+        medals.clear()
+        medals.addAll(updated)
+
+        saveHonorPriorities()
+    }
+
+    private fun saveHonorPriorities() {
+        viewModelScope.launch {
+            val reorderedHonors = badges + medals
+
+            reorderedHonors.forEachIndexed { index, honor ->
+                repository
+                    .updateHonorPriority(
+                        honorId = honor.honorId,
+                        priority = index
+                    )
+                    .onFailure {
+                        errorMessage = it.message
+                    }
             }
+        }
     }
 }

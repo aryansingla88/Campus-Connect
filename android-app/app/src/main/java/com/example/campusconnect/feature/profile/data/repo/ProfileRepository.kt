@@ -47,12 +47,21 @@ interface ProfileRepository {
 
     suspend fun getProfileHonors(): Result<ProfileHonors>
 
+    suspend fun getUserHonors(userId: Int): Result<ProfileHonors>
+
+    suspend fun updateHonorPriority(
+        honorId: Int,
+        priority: Int
+    ): Result<Unit>
+
     suspend fun getSelectedInterests(): Result<List<Interest>>
+
+    suspend fun getUserInterests(userId: Int): Result<List<Interest>>
 
     suspend fun getAllInterests(): Result<List<Interest>>
 
-    suspend fun addInterest(interestId: String): Result<Unit>
+    suspend fun addInterest(interestId: Int): Result<Unit>
 
-    suspend fun removeInterest(interestId: String): Result<Unit>
+    suspend fun removeInterest(interestId: Int): Result<Unit>
 
 }

@@ -6,9 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 import com.example.campusconnect.feature.profile.model.PublicUserProfile
 import com.example.campusconnect.feature.profile.model.ProfileStats
+import kotlinx.coroutines.async
 
 class ViewProfileViewModel(
     application: Application,
@@ -27,38 +30,98 @@ class ViewProfileViewModel(
 
     private fun loadViewedProfile() {
         viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
 
-            repository
-                .getProfile(userId)
-                .getOrNull()
-                ?.let {
-                    profile = it
+            try {
+                coroutineScope {
+
+                    val profileRequest = async {
+                        repository.getProfile(userId)
+                    }
+
+                    val statsRequest = async {
+                        repository.getUserStats(userId)
+                    }
+
+                    val connectionsRequest = async {
+                        repository.getUserConnections(userId)
+                    }
+
+                    val clubsRequest = async {
+                        repository.getUserClubs(userId)
+                    }
+
+                    val interestsRequest = async {
+                        repository.getUserInterests(userId)
+                    }
+
+                    val honorsRequest = async {
+                        repository.getUserHonors(userId)
+                    }
+
+                    val allClubsRequest = async {
+                        repository.getAllClubs()
+                    }
+
+                    val allInterestsRequest = async {
+                        repository.getAllInterests()
+                    }
+
+                    profileRequest.await()
+                        .onSuccess {
+                            profile = it
+                        }
+
+                    statsRequest.await()
+                        .onSuccess {
+                            stats = it
+                        }
+
+                    connectionsRequest.await()
+                        .onSuccess {
+                            connections.clear()
+                            connections.addAll(it)
+                        }
+
+                    clubsRequest.await()
+                        .onSuccess {
+                            clubs.clear()
+                            clubs.addAll(it)
+                        }
+
+                    interestsRequest.await()
+                        .onSuccess {
+                            interests.clear()
+                            interests.addAll(it)
+                        }
+
+                    honorsRequest.await()
+                        .onSuccess { honors ->
+                            honorRank = honors.honorRank
+
+                            badges.clear()
+                            badges.addAll(honors.badges)
+
+                            medals.clear()
+                            medals.addAll(honors.medals)
+                        }
+
+                    allClubsRequest.await()
+                        .onSuccess {
+                            allClubs.clear()
+                            allClubs.addAll(it)
+                        }
+
+                    allInterestsRequest.await()
+                        .onSuccess {
+                            allInterests.clear()
+                            allInterests.addAll(it)
+                        }
                 }
-
-            repository
-                .getUserStats(userId)
-                .getOrNull()
-                ?.let {
-                    stats = it
-                }
-
-            repository
-                .getUserConnections(userId)
-                .getOrNull()
-                ?.let {
-                    connections.clear()
-                    connections.addAll(it)
-                }
-
-            repository
-                .getUserClubs(userId)
-                .getOrNull()
-                ?.let {
-                    clubs.clear()
-                    clubs.addAll(it)
-                }
-
-            loadAllInterests()
+            } finally {
+                isLoading = false
+            }
         }
     }
 
