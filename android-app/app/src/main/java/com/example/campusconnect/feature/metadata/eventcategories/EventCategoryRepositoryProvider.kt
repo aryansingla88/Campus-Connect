@@ -3,8 +3,6 @@ package com.example.campusconnect.feature.metadata.eventcategories
 import android.content.Context
 import com.example.campusconnect.core.database.AppDatabase
 import com.example.campusconnect.core.network.RetrofitClient
-import com.example.campusconnect.feature.metadata.eventcategories.local.EventCategoryDao
-import com.example.campusconnect.feature.metadata.eventcategories.remote.EventCategoryApi
 
 object EventCategoryRepositoryProvider {
 

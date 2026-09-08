@@ -18,6 +18,8 @@ import com.example.campusconnect.feature.events.model.SoloParticipant
 import com.example.campusconnect.feature.events.model.UserAccess
 import com.example.campusconnect.feature.metadata.clubs.Club
 import com.example.campusconnect.feature.metadata.clubs.ClubRepositoryProvider
+import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
+import com.example.campusconnect.feature.metadata.eventcategories.EventCategoryRepositoryProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -30,10 +32,18 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     private val clubRepository =
         ClubRepositoryProvider.getRepository(application)
 
+    private val categoryRepository =
+        EventCategoryRepositoryProvider.getRepository(application)
+
     private val _clubs =
         MutableStateFlow<List<Club>>(emptyList())
 
     val clubs: StateFlow<List<Club>> = _clubs
+
+    private val _categories =
+        MutableStateFlow<List<EventCategory>>(emptyList())
+
+    val categories: StateFlow<List<EventCategory>> = _categories
 
     private val _uiState = MutableStateFlow(EventUiState())
     val uiState: StateFlow<EventUiState> = _uiState
@@ -210,6 +220,23 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                 e.printStackTrace()
 
                 _clubs.value = emptyList()
+            }
+
+            println("EVENT VIEWMODEL INIT STARTED")
+
+            try {
+                println("CATEGORY LOAD STARTED")
+
+                _categories.value =
+                    categoryRepository.getAllEventCategories()
+
+                println(
+                    "CATEGORY API SUCCESS: ${_categories.value.size} categories"
+                )
+            } catch (e: Exception) {
+                println("CATEGORY API ERROR: ${e.message}")
+                e.printStackTrace()
+                _categories.value = emptyList()
             }
         }
     }
