@@ -202,7 +202,23 @@ class ApiEventRepository(
 
     override suspend fun deleteEvent(
         eventId: Int
-    ): Result<Unit> = TODO()
+    ): Result<Unit> {
+        return try {
+            val response = api.deleteEvent(eventId)
+
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to delete event: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
 
     override suspend fun getRegistration(
