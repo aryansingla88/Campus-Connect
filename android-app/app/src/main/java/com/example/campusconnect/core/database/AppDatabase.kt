@@ -8,13 +8,16 @@ import com.example.campusconnect.feature.metadata.courses.local.CourseDao
 import com.example.campusconnect.feature.metadata.courses.local.CourseEntity
 import com.example.campusconnect.feature.metadata.clubs.local.ClubDao
 import com.example.campusconnect.feature.metadata.clubs.local.ClubEntity
+import com.example.campusconnect.feature.metadata.eventcategories.local.EventCategoryDao
+import com.example.campusconnect.feature.metadata.eventcategories.local.EventCategoryEntity
 
 @Database(
     entities = [
-            CourseEntity::class,
-            ClubEntity::class
-               ],
-    version = 3,
+        CourseEntity::class,
+        ClubEntity::class,
+        EventCategoryEntity::class
+    ],
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,6 +25,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun courseDao(): CourseDao
 
     abstract fun clubDao(): ClubDao
+
+    abstract fun eventCategoryDao(): EventCategoryDao
 
     companion object {
 

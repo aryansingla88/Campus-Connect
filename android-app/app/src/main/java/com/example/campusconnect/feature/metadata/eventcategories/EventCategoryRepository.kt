@@ -79,6 +79,6 @@ class EventCategoryRepository(
     }
 
     companion object {
-        private const val CACHE_DURATION_MS = 24 * 60 * 60 * 1000L
+        private const val CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000L
     }
 }
