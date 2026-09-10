@@ -159,9 +159,13 @@ class PasswordResetViewModel : ViewModel() {
 
                 } else {
 
+                    val errorMessage =
+                        response.errorBody()?.string()
+
                     _warning.value =
-                        response.body()?.message
-                            ?: "Failed to send OTP"
+                        errorMessage
+                            ?: response.body()?.message
+                                    ?: "Failed to send OTP. HTTP ${response.code()}"
                 }
 
             } catch (e: Exception) {
