@@ -2,8 +2,6 @@ package com.example.campusconnect.feature.map.components.markerdialogs
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,10 +25,13 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.campusconnect.feature.map.model.HostInfo
 import com.example.campusconnect.feature.map.model.MapEventInfo
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 
 private val OrangePrimary = Color(0xFFFF6F00)
 private val DarkOrange = Color(0xFFE65100)
 private val TextDark = Color(0xFF202020)
+private val TextMuted = Color(0xFF6F7682)
 private val BorderOrange = Color(0xFFFFCC80)
 
 @Composable
@@ -38,8 +39,8 @@ fun EventMarkerDialog(
     event: MapEventInfo,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit = {},
-    onNavigateClick: (eventId: Int) -> Unit = {},  // Strictly Int
-    onRegisterClick: (eventId: Int) -> Unit = {}   // Strictly Int
+    onNavigateClick: () -> Unit = {},
+    onRegisterClick: () -> Unit = {}
 ) {
     println("DEBUG_LOG: Event Poster URL = ${event.posterUrl}")
     println("DEBUG_LOG: Event Poster ResId = ${event.posterResId}")
@@ -55,17 +56,18 @@ fun EventMarkerDialog(
                 .clickable { onDismiss() }
         )
 
+        // Poster Variant loads if local posterResId or remote/test posterUrl is present
         if (event.posterResId != null || !event.posterUrl.isNullOrBlank()) {
             EventPosterCard(
                 event = event,
-                onNavigateClick = { onNavigateClick(event.id) },
-                onRegisterClick = { onRegisterClick(event.id) }
+                onNavigateClick = onNavigateClick,
+                onRegisterClick = onRegisterClick
             )
         } else {
             EventDescriptionCard(
                 event = event,
-                onNavigateClick = { onNavigateClick(event.id) },
-                onRegisterClick = { onRegisterClick(event.id) }
+                onNavigateClick = onNavigateClick,
+                onRegisterClick = onRegisterClick
             )
         }
     }
@@ -165,7 +167,7 @@ private fun EventDescriptionCard(
                     )
 
                     Text(
-                        text = event.venue ?: getEventLocation(event.id),
+                        text = event.venue ?: "Location TBA",
                         color = TextDark,
                         fontSize = 14.sp,
                         lineHeight = 17.sp,
@@ -357,7 +359,9 @@ private fun EventTimelineSection(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TimelineIcon(text = "⏰")
+            TimelineIcon(
+                text = "⏰"
+            )
 
             Box(
                 modifier = Modifier
@@ -366,7 +370,9 @@ private fun EventTimelineSection(
                     .background(OrangePrimary)
             )
 
-            TimelineIcon(text = "📅")
+            TimelineIcon(
+                text = "📅"
+            )
         }
 
         Spacer(modifier = Modifier.width(12.dp))
@@ -406,7 +412,9 @@ private fun EventTimelineSection(
 }
 
 @Composable
-private fun TimelineIcon(text: String) {
+private fun TimelineIcon(
+    text: String
+) {
     Box(
         modifier = Modifier
             .size(44.dp)
@@ -425,7 +433,9 @@ private fun TimelineIcon(text: String) {
 }
 
 @Composable
-private fun HostsSection(hosts: List<HostInfo>) {
+private fun HostsSection(
+    hosts: List<HostInfo>
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.End
@@ -448,12 +458,15 @@ private fun HostsSection(hosts: List<HostInfo>) {
             Color(0xFFF8BBD0)
         )
 
+        // -------------------------------------------------------------
+        // Shrink Window Container (Left side cut/limit)
+        // -------------------------------------------------------------
         Box(
             modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.CenterEnd
+            contentAlignment = Alignment.CenterEnd // Keeps list stuck to the right edge
         ) {
             LazyRow(
-                modifier = Modifier.fillMaxWidth(0.55f),
+                modifier = Modifier.fillMaxWidth(0.55f), // Shrinks window: Occupies only 70% width from right
                 horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -673,11 +686,3 @@ private fun NotifyButton(
     }
 }
 
-// Fixed: Modified parameter type to Int
-private fun getEventLocation(eventId: Int): String {
-    return when (eventId) {
-        1 -> "Student Center Ballrooms"
-        2 -> "Coding Lab"
-        else -> "Campus Auditorium"
-    }
-}

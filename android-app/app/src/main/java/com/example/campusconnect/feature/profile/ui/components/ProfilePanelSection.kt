@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.campusconnect.feature.profile.model.ClubStatus
+import com.example.campusconnect.feature.profile.model.ConnectionStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.model.StatPanel
 import com.example.campusconnect.feature.profile.ui.panels.clubs.ClubsPanel
@@ -60,33 +61,41 @@ fun ProfilePanelSection(
                         )
                     }
                 managePanel == StatPanel.HONOR ->
-                    ManageCollectionPanel(
-                        badges = vm.badges,
-                        medals = vm.medals,
-                        onBadgeMoveUp = vm::moveBadgeUp,
-                        onBadgeMoveDown = vm::moveBadgeDown,
-                        onMedalMoveUp = vm::moveMedalUp,
-                        onMedalMoveDown = vm::moveMedalDown,
-                        onBadgeMoveTo = vm::moveBadgeTo,
-                        onMedalMoveTo = vm::moveMedalTo
-                    )
+                    myVm?.let {
+                        ManageCollectionPanel(
+                            badges = it.badges,
+                            medals = it.medals,
+
+                            onBadgeMoveUp = it::moveBadgeUp,
+                            onBadgeMoveDown = it::moveBadgeDown,
+
+                            onMedalMoveUp = it::moveMedalUp,
+                            onMedalMoveDown = it::moveMedalDown,
+
+                            onBadgeMoveTo = it::moveBadgeTo,
+                            onMedalMoveTo = it::moveMedalTo
+                        )
+                    }
                 managePanel == StatPanel.INTERESTS ->
                     ManageInterestsPanel(
                         interests = vm.interests,
                         allInterests = vm.allInterests,
-                        onAddInterest = vm::addInterest
+                        onAddInterest = myVm!!::addInterest
                     )
 
                 // -- Stat panels --------------------------------
                 panel == StatPanel.CONNECTIONS -> ConnectionsPanel(
-                    connections       = vm.connections,
-                    mode              = mode,
-                    onStatusChange    = { idx, status ->
-                        vm.connections[idx] = vm.connections[idx].copy(status = status)
+                    connections = vm.connections,
+                    mode = mode,
+                    onStatusChange = { userId, status ->
+                        if (
+                            mode == ProfileMode.OWN &&
+                            status == ConnectionStatus.PENDING
+                        ) {
+                            myVm?.sendConnectionRequest(userId)
+                        }
                     },
-                    onConnectionClick = { userId ->
-                        // ViewProfile handles navigation externally via header lambda
-                    }
+                    onConnectionClick = { }
                 )
 
                 panel == StatPanel.HONOR -> HonorPanel(
@@ -97,18 +106,31 @@ fun ProfilePanelSection(
                 )
 
                 panel == StatPanel.CLUBS -> ClubsPanel(
-                    clubs          = vm.clubs,
-                    mode           = mode,
-                    onStatusChange = { idx, status ->
-                        vm.clubs[idx] = vm.clubs[idx].copy(status = status)
+                    clubs = vm.clubs,
+                    mode = mode,
+
+                    allClubs = vm.filteredClubs,
+
+                    onJoinClub = { clubId ->
+                        myVm?.joinClub(clubId)
+                    },
+
+                    onLeaveClub = { clubId ->
+                        myVm?.leaveClub(clubId)
                     }
                 )
 
                 panel == StatPanel.INTERESTS -> InterestsPanel(
-                    interests  = vm.interests,
-                    mode       = mode,
-                    onRemove   = { if (mode == ProfileMode.OWN) vm.interests.remove(it) },
-                    onAddClick = { myVm?.openManagePanel(StatPanel.INTERESTS) }
+                    interests = vm.interests,
+                    mode = mode,
+                    onRemove = { interest ->
+                        if (mode == ProfileMode.OWN) {
+                            myVm?.removeInterest(interest)
+                        }
+                    },
+                    onAddClick = {
+                        myVm?.openManagePanel(StatPanel.INTERESTS)
+                    }
                 )
 
                 // -- Default: profile content --------------------------------

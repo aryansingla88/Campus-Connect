@@ -13,11 +13,7 @@ public class UserPreviewResponse {
 
     private String fullName;
 
-    private String courseName;
-
-    private String courseCode;
-
-    private Integer courseYear;
+    private Integer courseId;
 
     private Integer admissionYear;
 

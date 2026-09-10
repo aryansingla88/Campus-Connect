@@ -13,7 +13,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -168,11 +170,24 @@ public class Event {
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<EventCategory> categories=new HashSet<>();
+
+    // ------------------------------------------------------------------------
+    // Event Poster
+    // ------------------------------------------------------------------------
+
+    @OneToMany(
+            mappedBy = "event",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private List<EventPoster> posters = new ArrayList<>();
 }
 
 
 
-;
+
 
 
 

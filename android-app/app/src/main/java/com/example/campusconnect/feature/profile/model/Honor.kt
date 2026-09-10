@@ -6,7 +6,7 @@ enum class HonorType {
 }
 
 data class ProfileHonor(
-    val honorId: String,
+    val honorId: Int,
     val type: HonorType,
     val title: String,
     val subtitle: String?,

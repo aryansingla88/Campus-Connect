@@ -20,4 +20,6 @@ public class PresenceResponse {
     private String visibility;
 
     private LocalDateTime lastUpdated;
+
+    private String gender;
 }

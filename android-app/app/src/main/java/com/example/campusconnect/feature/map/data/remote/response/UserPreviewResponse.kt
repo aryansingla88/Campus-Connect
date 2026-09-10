@@ -1,48 +1,61 @@
 package com.example.campusconnect.feature.map.data.remote.response
 
+import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.map.model.MapUserProfile
+import com.example.campusconnect.feature.metadata.courses.Course
 import com.google.gson.annotations.SerializedName
 
-data class UserPreviewRes(
+data class UserPreviewResponse(
+
     @SerializedName("userId")
     val userId: Int,
 
     @SerializedName("fullName")
     val fullName: String,
 
-    @SerializedName("courseName")
-    val courseName: String,
-
-    @SerializedName("courseCode")
-    val courseCode: String,
-
-    @SerializedName("courseYear")
-    val courseYear: Int,
+    @SerializedName("courseId")
+    val courseId: Int?,
 
     @SerializedName("admissionYear")
-    val admissionYear: Int,
+    val admissionYear: Int?,
 
     @SerializedName("avatarUrl")
-    val avatarUrl: String? = null,
+    val avatarUrl: String?,
 
     @SerializedName("bio")
-    val bio: String? = null,
+    val bio: String?,
 
     @SerializedName("mutualConnectionsCount")
-    val mutualConnectionsCount: Int? = 0
+    val mutualConnectionsCount: Int?
 )
 
-fun UserPreviewRes.toMapUserProfile(): MapUserProfile {
-    val endCalculatedYear = admissionYear + 4
-    val formattedCourse = if (courseCode.isNotBlank()) "$courseName ($courseCode)" else courseName
+// UI Model (MapUserProfile) mein map karne ke liye extension function
+fun UserPreviewResponse.toMapUserProfile(
+    courseData: Course?
+): MapUserProfile {
+
+    val courseName = courseData?.let {
+        AcademicUtils.getCourseName(it)
+    } ?: "Unknown Course"
+
+    val batch = if (
+        courseData != null &&
+        admissionYear != null
+    ) {
+        AcademicUtils.getBatch(
+            admissionYear = admissionYear,
+            durationYears = courseData.durationYears
+        )
+    } else {
+        "Unknown Batch"
+    }
 
     return MapUserProfile(
-        id = userId, // Directly pass Int (removed .toString())
+        id = userId,
         fullName = fullName,
-        course = formattedCourse,
-        startYear = admissionYear,
-        endYear = endCalculatedYear,
-        description = bio ?: "",
+        course = courseName,
+        batch = batch,
+        description = bio.orEmpty(),
         badges = emptyList(),
         medals = emptyList(),
         mutualFriendsCount = mutualConnectionsCount ?: 0

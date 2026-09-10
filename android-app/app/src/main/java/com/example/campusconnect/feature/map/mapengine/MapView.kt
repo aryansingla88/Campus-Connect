@@ -26,6 +26,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntSize
 import com.example.campusconnect.R
+import com.example.campusconnect.feature.map.mapengine.model.MarkerRenderData
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import kotlin.math.pow
 
 private const val MAP_IMAGE_WIDTH = 3000f
@@ -37,9 +39,9 @@ private const val MAX_ZOOM = 5f
 fun MapView(
     modifier: Modifier = Modifier,
     markers: List<MarkerRenderData> = emptyList(),
-    onMarkerClick: (Int) -> Unit = {},
+    onMarkerClick: (String) -> Unit = {},
     onMapTap: (Float, Float) -> Unit = { _, _ -> },
-    initialFocusMarkerId: Int? = null,
+    initialFocusMarkerId: String? = null,
     initialZoom: Float = 2.2f
 ) {
     var scale by remember { mutableStateOf(1f) }

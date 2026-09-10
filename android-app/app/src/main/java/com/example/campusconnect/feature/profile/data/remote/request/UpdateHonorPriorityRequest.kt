@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class UpdateHonorPriorityRequest(
 
     @SerializedName("honor_id")
-    val honorId: String,
+    val honorId: Int,
 
     @SerializedName("priority")
     val priority: Int,

@@ -12,6 +12,7 @@ import com.example.campusconnect.feature.profile.ProfileNav
 import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
 import com.example.campusconnect.feature.events.registrations.RegisterationNav
 import com.example.campusconnect.feature.events.registrations.navigateToFormBuilder
+import com.example.campusconnect.feature.profile.ProfileRoutes
 
 @Composable
 fun AppNavHost() {
@@ -49,7 +50,9 @@ fun AppNavHost() {
                 onPosts = { navController.navigate("general_feed") },
                 onEvents = { navController.navigate("events_root") },
                 onMap = { navController.navigate("map") },
-                onProfile = { navController.navigate("profile")},
+                onProfile = {
+                    navController.navigate(ProfileRoutes.viewProfile(1))
+                },
                 onSplash={navController.navigate("splash")},
                 onFormBuilder = { navController.navigateToFormBuilder(1) }
             )

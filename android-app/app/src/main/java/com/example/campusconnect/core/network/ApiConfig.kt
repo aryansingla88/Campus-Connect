@@ -1,9 +1,9 @@
 package com.example.campusconnect.core.network
 
+import com.example.campusconnect.BuildConfig
 object ApiConfig {
 
-    const val BASE_URL    = "http://10.127.205.87:8000/"
-    
+    const val BASE_URL    = BuildConfig.API_BASE_URL
     const val TIMEOUT_SEC = 30L
 
     const val HEADER_AUTH         = "Authorization"

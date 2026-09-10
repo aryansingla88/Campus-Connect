@@ -6,5 +6,8 @@ public enum VisibilityType {
     PUBLIC,
     CLUB,
     CONNECTIONS,
-    PRIVATE
+    COURSE,
+    ACADEMIC_YEAR,
+    BATCH,
+    HOSTEL,
 }

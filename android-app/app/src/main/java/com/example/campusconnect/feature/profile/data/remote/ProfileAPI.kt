@@ -53,7 +53,7 @@ interface ProfileApi {
 
     @GET("users/me/connections/requests")
     suspend fun getConnectionRequests():
-            Response<ApiResponse<List<ConnectionRequestResponse>>>
+            Response<ApiResponse<List<ConnectionResponse>>>
 
     @POST("users/{userId}/connections/request")
     suspend fun sendConnectionRequest(
@@ -62,6 +62,11 @@ interface ProfileApi {
 
     @POST("users/{userId}/connections/accept")
     suspend fun acceptConnectionRequest(
+        @Path("userId") userId: Int
+    ): Response<ApiResponse<Unit>>
+
+    @DELETE("users/{userId}/connections/request")
+    suspend fun removeConnectionRequest(
         @Path("userId") userId: Int
     ): Response<ApiResponse<Unit>>
 
@@ -79,23 +84,26 @@ interface ProfileApi {
 
     // Clubs (clubs + club_members tables)----------------------------------------------------------------
 
-    @GET("users/me/clubs")
+    @GET("clubs")
+    suspend fun getAllClubs(): Response<ApiResponse<List<ClubResponse>>>
+
+    @GET("clubs/users/me")
     suspend fun getMyClubs(): Response<ApiResponse<List<ClubResponse>>>
 
-    @GET("users/{userId}/clubs")
+    @GET("clubs/users/{userId}")
     suspend fun getUserClubs(
         @Path("userId") userId: Int
     ): Response<ApiResponse<List<ClubResponse>>>
 
     @POST("clubs/{clubId}/join")
     suspend fun joinClub(
-        @Path("clubId") clubId: String
-    ): Response<ApiResponse<Unit>>
+        @Path("clubId") clubId: Int
+    ): Response<ApiResponse<ClubMembershipResponse>>
 
     @DELETE("clubs/{clubId}/leave")
     suspend fun leaveClub(
-        @Path("clubId") clubId: String
-    ): Response<ApiResponse<Unit>>
+        @Path("clubId") clubId: Int
+    ): Response<ApiResponse<ClubMembershipResponse>>
 
     // Honor (user_honor + honor_items + honor_points tables)----------------------------------------------------------------
 
@@ -134,13 +142,13 @@ interface ProfileApi {
     // POST add interest to own profile
     @POST("users/me/interests/{interestId}")
     suspend fun addInterest(
-        @Path("interestId") interestId: String
+        @Path("interestId") interestId: Int
     ): Response<ApiResponse<Unit>>
 
     // DELETE remove interest from own profile
     @DELETE("users/me/interests/{interestId}")
     suspend fun removeInterest(
-        @Path("interestId") interestId: String
+        @Path("interestId") interestId: Int
     ): Response<ApiResponse<Unit>>
 
 

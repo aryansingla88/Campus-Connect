@@ -5,60 +5,77 @@ import com.example.campusconnect.feature.metadata.courses.CourseRepository
 import com.example.campusconnect.feature.profile.data.remote.response.ProfileResponse
 import com.example.campusconnect.feature.profile.model.PublicUserProfile
 
-suspend fun ProfileResponse.toPublicUserProfile(
-    courseRepository: CourseRepository
-): PublicUserProfile {
+object ProfileMapper {
 
-    val course =
-        courseRepository.getCourseById(courseId)
+    suspend fun toPublicUserProfile(
+        response: ProfileResponse,
+        courseRepository: CourseRepository
+    ): PublicUserProfile {
 
-    val programName =
-        course?.programName.orEmpty()
+        val course = response.courseId?.let { courseId ->
+            courseRepository.getCourseById(courseId)
+        }
 
-    val academicYear =
-        course?.let {
-            AcademicUtils.getAcademicStatus(
-                admissionYear = admissionYear,
-                durationYears = it.durationYears
-            )
+        val programName = course?.programName.orEmpty()
+
+        val academicYear = course?.let { courseData ->
+            response.admissionYear?.let { admissionYear ->
+                AcademicUtils.getAcademicStatus(
+                    admissionYear = admissionYear,
+                    durationYears = courseData.durationYears
+                )
+            }
         }.orEmpty()
 
-    val batch =
-        course?.let {
-            AcademicUtils.getBatch(
-                admissionYear = admissionYear,
-                durationYears = it.durationYears
-            )
+        val batch = course?.let {
+            response.admissionYear?.let { admissionYear ->
+                AcademicUtils.getBatch(
+                    admissionYear = admissionYear,
+                    durationYears = it.durationYears
+                )
+            }
         }.orEmpty()
 
-    return PublicUserProfile(
-        userId = userId,
-        username = username,
-        email = email,
+        return PublicUserProfile(
+            // Identity
+            userId = response.userId ?: 0,
+            username = response.username.orEmpty(),
+            email = response.email.orEmpty(),
 
-        fullName = fullName,
-        bio = bio.orEmpty(),
-        avatarUrl = avatarUrl.orEmpty(),
+            // Profile header
+            fullName = response.fullName.orEmpty(),
+            bio = response.bio.orEmpty(),
 
-        programName = programName,
-        academicYear = academicYear,
-        batch = batch,
+            // Keep null so AppAvatar can show initials
+            avatarUrl = response.avatarUrl,
 
-        hostel = hostel,
-        hometown = hometown.orEmpty(),
+            // Academic
+            programName = programName,
+            academicYear = academicYear,
+            batch = batch,
 
-        gender = gender.orEmpty(),
-        dob = dob.orEmpty(),
+            // Other profile details
+            hostel = response.hostel.orEmpty(),
+            hometown = response.hometown.orEmpty(),
 
-        phone = phone.orEmpty(),
+            // Personal
+            gender = response.gender.orEmpty(),
+            dob = response.dob.orEmpty(),
 
-        github = github.orEmpty(),
-        linkedin = linkedin.orEmpty(),
-        instagram = instagram.orEmpty(),
+            // Contact
+            phone = response.phone.orEmpty(),
 
-        memberSince = memberSince,
+            // Social
+            github = response.github.orEmpty(),
+            linkedin = response.linkedin.orEmpty(),
+            instagram = response.instagram.orEmpty(),
 
-        showPhone = showPhone,
-        showSocials = showSocials
-    )
+            // Metadata
+            memberSince = response.memberSince.orEmpty(),
+
+            // Visibility
+            showPhone = response.showPhone ?: false,
+            showSocials = response.showSocials ?: true
+        )
+    }
 }

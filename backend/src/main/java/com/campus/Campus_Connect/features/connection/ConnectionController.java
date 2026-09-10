@@ -14,6 +14,8 @@ public class ConnectionController {
 
     private final ConnectionService connectionService;
 
+
+
     @GetMapping("/me/connections")
     public ApiResponse<List<ConnectionResponse>> getMyConnections() {
         return connectionService.getMyConnections();
@@ -61,7 +63,7 @@ public class ConnectionController {
 
     @GetMapping("/search")
     public ApiResponse<List<ConnectionResponse>> searchUsers(
-            @RequestParam String query
+            @RequestParam("q") String query
     ) {
         return connectionService.searchUsers(query);
     }

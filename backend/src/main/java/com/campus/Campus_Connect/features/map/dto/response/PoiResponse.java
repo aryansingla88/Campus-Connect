@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class PoiResponse {
 
-    private Integer id; // Mapped to DB Entity Integer ID directly
+    private Integer id;
 
     private String name;
 
@@ -24,4 +24,6 @@ public class PoiResponse {
     private String iconType;
 
     private String visibility;
+
+    //private Integer priority;
 }

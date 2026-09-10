@@ -6,11 +6,14 @@ import com.example.campusconnect.feature.events.data.fake.FakeEventService
 import com.example.campusconnect.feature.events.data.fake.FakeMedalService
 import com.example.campusconnect.feature.events.data.fake.FakeParticipantsService
 import com.example.campusconnect.feature.events.data.fake.FakeUserAccessService
+import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
+import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
 import com.example.campusconnect.feature.events.registrations.data.FakeRegistrationService
 import com.example.campusconnect.feature.events.registrations.model.Registration
+import okhttp3.MultipartBody
 
 class FakeEventRepository : EventRepository {
 
@@ -32,22 +35,26 @@ class FakeEventRepository : EventRepository {
             .first { it.id == eventId }
     )
 
+
     override suspend fun createEvent(
-        event: Event
+        request: CreateEventRequest,
+        poster: MultipartBody.Part?
     ): Result<Event> {
-
-        eventService.createEvent(event)
-
-        return Result.success(event)
+        return Result.failure(
+            UnsupportedOperationException(
+                "Fake createEvent is no longer used. Use ApiEventRepository."
+            )
+        )
     }
 
     override suspend fun updateEvent(
-        event: Event
+        eventId: Int,
+        request: UpdateEventRequest,
+        poster: MultipartBody.Part?
     ): Result<Event> {
-
-        eventService.updateEvent(event)
-
-        return Result.success(event)
+        return Result.failure(
+            UnsupportedOperationException("Fake updateEvent is no longer used")
+        )
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
@@ -58,6 +65,22 @@ class FakeEventRepository : EventRepository {
         eventService.deleteEvent(eventId)
 
         return Result.success(Unit)
+    }
+
+    override suspend fun getEventFeed(): Result<List<Event>> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getMyEvents(): Result<List<Event>> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getSharedEvents(): Result<List<Event>> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getManagedEvents(): Result<List<Event>> {
+        TODO("Not yet implemented")
     }
 
 

@@ -4,8 +4,7 @@ data class MapUserProfile(
     val id: Int,
     val fullName: String,
     val course: String,
-    val startYear: Int,
-    val endYear: Int,
+    val batch: String,
     val description: String,
     val badges: List<String>,
     val medals: List<Int>,
@@ -13,13 +12,13 @@ data class MapUserProfile(
 )
 
 data class MapBadge(
-    val id: String,
+    val id: Int,
     val label: String,
     val emoji: String
 )
 
 data class MapMedal(
-    val id: String,
+    val id: Int,
     val label: String,
     val rank: Int
 )

@@ -7,7 +7,7 @@ data class HonorResponse(
     // Honor Item -------------------------------------------------------
 
     @SerializedName("honor_id")
-    val honorId: String,
+    val honorId: Int,
 
     @SerializedName("type")
     val type: String,                 // badge | medal

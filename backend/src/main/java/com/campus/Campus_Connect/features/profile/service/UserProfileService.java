@@ -196,68 +196,41 @@ public class UserProfileService {
     }
 //---------------
 private void applyUpdates(
-        UserProfile profile,
-        UpdateUserProfileRequest request
-) {
-
-    if (request.getFullName() != null) {
-        profile.setFullName(request.getFullName());
-    }
-
-    if (request.getBio() != null) {
-        profile.setBio(request.getBio());
-    }
-
-    if (request.getAvatarUrl() != null) {
-        profile.setAvatarUrl(request.getAvatarUrl());
-    }
-
-    if (request.getCourseId() != null) {
-
-        if (!courseRepository.existsById(request.getCourseId())) {
-            throw new ResourceNotFoundException("Course not found.");
+            UserProfile profile,
+            UpdateUserProfileRequest request
+    ) {
+        if (request.getBio() != null) {
+            profile.setBio(request.getBio());
         }
 
-        profile.setCourseId(request.getCourseId());
-    }
+        if (request.getAvatarUrl() != null) {
+            profile.setAvatarUrl(request.getAvatarUrl());
+        }
 
-    if (request.getAdmissionYear() != null) {
-        profile.setAdmissionYear(request.getAdmissionYear());
-    }
+        if (request.getHostel() != null) {
+            profile.setHostel(request.getHostel());
+        }
 
-    if (request.getHostel() != null) {
-        profile.setHostel(request.getHostel());
-    }
+        if (request.getHometown() != null) {
+            profile.setHometown(request.getHometown());
+        }
 
-    if (request.getHometown() != null) {
-        profile.setHometown(request.getHometown());
-    }
+        if (request.getPhone() != null) {
+            profile.setPhone(request.getPhone());
+        }
 
-    if (request.getGender() != null) {
-        profile.setGender(request.getGender());
-    }
+        if (request.getGithub() != null) {
+            profile.setGithub(request.getGithub());
+        }
 
-    if (request.getDob() != null) {
-        profile.setDob(request.getDob());
-    }
+        if (request.getLinkedin() != null) {
+            profile.setLinkedin(request.getLinkedin());
+        }
 
-    if (request.getPhone() != null) {
-        profile.setPhone(request.getPhone());
+        if (request.getInstagram() != null) {
+            profile.setInstagram(request.getInstagram());
+        }
     }
-
-    if (request.getGithub() != null) {
-        profile.setGithub(request.getGithub());
-    }
-
-    if (request.getLinkedin() != null) {
-        profile.setLinkedin(request.getLinkedin());
-    }
-
-    if (request.getInstagram() != null) {
-        profile.setInstagram(request.getInstagram());
-    }
-}
-
 //------------------------------------------------------------------------------------
 private ProfileStatsResponse buildProfileStats(Integer userId) {
 

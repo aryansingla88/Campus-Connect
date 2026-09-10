@@ -6,8 +6,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
-import com.example.campusconnect.feature.profile.ui.myprofile.MyProfileScreen
-import com.example.campusconnect.feature.profile.ui.viewprofile.ViewProfileScreen
+import com.example.campusconnect.feature.profile.ui.screen.MyProfileScreen
+import com.example.campusconnect.feature.profile.ui.screen.ViewProfileScreen
 
 // --- Route constants -----------------------------------------------------------------
 object ProfileRoutes {
