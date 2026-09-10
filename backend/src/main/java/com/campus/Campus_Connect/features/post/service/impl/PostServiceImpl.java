@@ -49,7 +49,11 @@ public class PostServiceImpl implements PostService {
 
         return postRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(post -> postMapper.toPostResponse(post, currentUserId))
+                .map(post -> postMapper.toPostResponse(
+                        post,
+                currentUserId,
+                        commentRepository.countByPost(post)
+                ))
                 .toList();
     }
 
@@ -60,8 +64,11 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() ->
                         new PostNotFoundException("Post not found with id: " + postId)
                 );
-
-        return postMapper.toPostResponse(post, SecurityUtils.getCurrentUserId());
+        return postMapper.toPostResponse(
+                post,
+                SecurityUtils.getCurrentUserId(),
+                commentRepository.countByPost(post)
+        );
     }
     @Override
     public List<PostTagResponse> getAllTags() {
@@ -125,7 +132,8 @@ public class PostServiceImpl implements PostService {
 
         return postMapper.toPostResponse(
                 savedPost,
-                SecurityUtils.getCurrentUserId()
+                SecurityUtils.getCurrentUserId(),
+                commentRepository.countByPost(savedPost)
         );
     }
     @Transactional
@@ -159,7 +167,8 @@ public class PostServiceImpl implements PostService {
 
         return postMapper.toPostResponse(
                 updatedPost,
-                SecurityUtils.getCurrentUserId()
+                SecurityUtils.getCurrentUserId(),
+                commentRepository.countByPost(updatedPost)
         );
     }
     @Transactional

@@ -399,13 +399,11 @@ fun GeneralFeedScreen(
 
                             items(filteredPosts) { post ->
 
-                                val commentCount = 0
-
                                 com.example.campusconnect.feature.posts.components.PostCard(
 
                                     post = post,
 
-                                    commentCount = commentCount,
+                                    commentCount = post.commentCount,
 
                                     onClick = {
 

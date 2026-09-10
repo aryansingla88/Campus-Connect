@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 import com.example.campusconnect.core.ui.theme.*
+import com.example.campusconnect.core.util.formatBackendDateTime
 import com.example.campusconnect.feature.posts.models.Comment
 
 @Composable
@@ -82,7 +83,7 @@ fun CommentCard(
 
                     Text(
 
-                        text = comment.createdAt,
+                        text = formatBackendDateTime(comment.createdAt),
 
                         style = MaterialTheme.typography.labelSmall
                     )

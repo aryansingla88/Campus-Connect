@@ -13,7 +13,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 42,
         downvotes = 3,
-        createdAt = "2h"
+        createdAt = "2h",
+        commentCount = 20
     ),
 
     Post(
@@ -27,7 +28,9 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 31,
         downvotes = 1,
-        createdAt = "5h"
+        createdAt = "5h",
+        commentCount = 20
+
     ),
 
     Post(
@@ -41,7 +44,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 67,
         downvotes = 2,
-        createdAt = "1d"
+        createdAt = "1d",
+        commentCount = 20
     ),
 
     Post(
@@ -55,7 +59,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 89,
         downvotes = 1,
-        createdAt = "8h"
+        createdAt = "8h",
+        commentCount = 20
     ),
 
     Post(
@@ -69,7 +74,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 56,
         downvotes = 0,
-        createdAt = "3h"
+        createdAt = "3h",
+        commentCount = 20
     ),
 
     Post(
@@ -83,7 +89,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 38,
         downvotes = 0,
-        createdAt = "6h"
+        createdAt = "6h",
+        commentCount = 20
     ),
 
     Post(
@@ -97,7 +104,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 74,
         downvotes = 4,
-        createdAt = "4h"
+        createdAt = "4h",
+        commentCount = 20
     ),
 
     Post(
@@ -111,7 +119,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 22,
         downvotes = 1,
-        createdAt = "1d"
+        createdAt = "1d",
+        commentCount = 20
     ),
 
     Post(
@@ -125,7 +134,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 63,
         downvotes = 5,
-        createdAt = "7h"
+        createdAt = "7h",
+        commentCount = 20
     ),
 
     Post(
@@ -139,7 +149,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 45,
         downvotes = 2,
-        createdAt = "9h"
+        createdAt = "9h",
+        commentCount = 20
     ),
 
     Post(
@@ -153,7 +164,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 28,
         downvotes = 0,
-        createdAt = "3h"
+        createdAt = "3h",
+        commentCount = 20
     ),
 
     Post(
@@ -167,7 +179,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 35,
         downvotes = 1,
-        createdAt = "1h"
+        createdAt = "1h",
+        commentCount = 20
     ),
 
     Post(
@@ -181,7 +194,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 58,
         downvotes = 2,
-        createdAt = "5h"
+        createdAt = "5h",
+        commentCount = 20
     ),
 
     Post(
@@ -195,7 +209,8 @@ val dummyPosts = listOf(
         imageUrl = "https://picsum.photos/600/400",
         upvotes = 41,
         downvotes = 1,
-        createdAt = "12h"
+        createdAt = "12h",
+        commentCount = 20
     ),
 
     Post(
@@ -209,7 +224,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 66,
         downvotes = 3,
-        createdAt = "6h"
+        createdAt = "6h",
+        commentCount = 20
     ),
 
     Post(
@@ -223,7 +239,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 29,
         downvotes = 0,
-        createdAt = "1d"
+        createdAt = "1d",
+        commentCount = 20
     ),
 
     Post(
@@ -237,7 +254,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 53,
         downvotes = 1,
-        createdAt = "10h"
+        createdAt = "10h",
+        commentCount = 20
     ),
 
     Post(
@@ -251,7 +269,8 @@ val dummyPosts = listOf(
         imageUrl = "https://picsum.photos/600/401",
         upvotes = 72,
         downvotes = 2,
-        createdAt = "8h"
+        createdAt = "8h",
+        commentCount = 20
     ),
 
     Post(
@@ -265,7 +284,8 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 24,
         downvotes = 0,
-        createdAt = "2d"
+        createdAt = "2d",
+        commentCount = 20
     ),
 
     Post(
@@ -279,6 +299,7 @@ val dummyPosts = listOf(
         imageUrl = null,
         upvotes = 37,
         downvotes = 1,
-        createdAt = "18h"
+        createdAt = "18h",
+        commentCount = 20
     )
 )
