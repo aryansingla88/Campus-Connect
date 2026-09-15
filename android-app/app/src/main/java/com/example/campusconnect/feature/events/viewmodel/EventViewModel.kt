@@ -22,6 +22,7 @@ import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
 import com.example.campusconnect.feature.metadata.eventcategories.EventCategoryRepositoryProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class EventViewModel(application: Application) : AndroidViewModel(application) {
@@ -380,17 +381,33 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     @RequiresApi(Build.VERSION_CODES.N)
     fun confirmDelete() {
         val event = _pendingDeleteEvent.value ?: return
+
         viewModelScope.launch {
 
-            repository.deleteEvent(event.id)
+            val result = repository.deleteEvent(event.id)
 
-            _events.value =
-                repository.getEvents()
-                    .getOrDefault(emptyList())
+            if (result.isSuccess) {
+
+                _events.value =
+                    repository.getEvents()
+                        .getOrDefault(emptyList())
+
+                _deleteSuccess.value = true
+                _pendingDeleteEvent.value = null
+                closePreview()
+
+            } else {
+
+                _uiState.update {
+                    it.copy(
+                        error = result.exceptionOrNull()?.message
+                            ?: "Failed to delete event"
+                    )
+                }
+
+                _pendingDeleteEvent.value = null
+            }
         }
-        _pendingDeleteEvent.value = null
-        _deleteSuccess.value = true   // trigger toast in EventScreen
-        closePreview()
     }
 
     /** User cancelled deletion. */
