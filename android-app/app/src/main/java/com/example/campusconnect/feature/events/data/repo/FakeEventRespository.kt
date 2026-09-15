@@ -162,4 +162,18 @@ class FakeEventRepository : EventRepository {
     ) = Result.success(
         FakeUserAccessService.search(query)
     )
+
+    override suspend fun grantAccess(
+        eventId: Int,
+        userId: Int
+    ): Result<Unit> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun revokeAccess(
+        eventId: Int,
+        userId: Int
+    ): Result<Unit> {
+        TODO("Not yet implemented")
+    }
 }

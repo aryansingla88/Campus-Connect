@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/events")
+@RequestMapping("/events")
 public class EventAccessController {
 
     private final EventAccessService eventAccessService;
