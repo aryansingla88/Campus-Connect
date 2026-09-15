@@ -8,6 +8,7 @@ import com.campus.Campus_Connect.features.profile.dto.response.UserProfileRespon
 import com.campus.Campus_Connect.features.profile.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/users")
@@ -29,11 +30,15 @@ public class UserProfileController {
         return userProfileService.getUserProfile(userId);
     }
 
-    @PatchMapping("/me")
+    @PatchMapping(
+            value = "/me",
+            consumes = "multipart/form-data"
+    )
     public ApiResponse<UserProfileResponse> updateMyProfile(
-            @RequestBody UpdateUserProfileRequest request
-    ){
-        return userProfileService.updateMyProfile(request);
+            @RequestPart("profile") UpdateUserProfileRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) {
+        return userProfileService.updateMyProfile(request, image);
     }
 
     @GetMapping("/me/stats")

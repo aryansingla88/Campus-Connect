@@ -6,8 +6,15 @@ import com.example.campusconnect.core.session.SessionManager
 
 class CampusConnectApplication : Application() {
 
+    companion object {
+        lateinit var instance: CampusConnectApplication
+            private set
+    }
+
     override fun onCreate() {
         super.onCreate()
+
+        instance = this
 
         SessionManager.initialize(this)
 

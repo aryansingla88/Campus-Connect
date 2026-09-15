@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.auth.data
+package com.example.campusconnect.feature.auth.data.google
 
 sealed class VerifyOtpResult {
 

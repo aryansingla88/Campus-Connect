@@ -1,7 +1,8 @@
 package com.campus.Campus_Connect.features.post.service.impl;
 
 import com.campus.Campus_Connect.common.security.SecurityUtils;
-import com.campus.Campus_Connect.common.service.FileStorageService;
+import com.campus.Campus_Connect.common.storage.MediaStorageService;
+import com.campus.Campus_Connect.common.storage.MediaType;
 import com.campus.Campus_Connect.features.post.dto.request.CreateCommentRequest;
 import com.campus.Campus_Connect.features.post.dto.request.CreatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.request.UpdateCommentRequest;
@@ -29,7 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 
-    private final FileStorageService fileStorageService;
+    private final MediaStorageService mediaStorageService;
 
     private final PostRepository postRepository;
 
@@ -116,7 +117,10 @@ public class PostServiceImpl implements PostService {
         if (request.getImage() != null && !request.getImage().isEmpty()) {
 
             String imagePath =
-                    fileStorageService.storePostImage(request.getImage());
+                    mediaStorageService.store(
+                            request.getImage(),
+                            MediaType.POST_IMAGE
+                    );
 
             PostImage postImage = PostImage.builder()
                     .post(savedPost)

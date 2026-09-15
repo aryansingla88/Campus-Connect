@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.profile.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
@@ -31,9 +32,16 @@ class MyProfileViewModel(
 
     val sentInvites = mutableStateListOf<ConnectionRequest>()
 
+    var selectedAvatarUri by mutableStateOf<Uri?>(null)
+        private set
+
     init {
         loadMyData()
         loadConnectionRequests()
+    }
+
+    fun updateAvatar(uri: Uri) {
+        selectedAvatarUri = uri
     }
 
     private fun loadMyData() {
@@ -163,10 +171,18 @@ class MyProfileViewModel(
     fun saveProfileChanges() {
         viewModelScope.launch {
             repository
-                .updateProfile(editableProfile)
+                .updateProfile(
+                    profile = editableProfile,
+                    imageUri = selectedAvatarUri
+                )
                 .onSuccess {
                     profile = it
+                    editableProfile = it.copy()
+                    selectedAvatarUri = null
                     isEditMode = false
+                }
+                .onFailure {
+                    errorMessage = it.message
                 }
         }
     }

@@ -15,7 +15,8 @@ import com.campus.Campus_Connect.features.event.repository.EventMemberRepository
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.event.service.EventService;
 import com.campus.Campus_Connect.features.event.security.EventPermissionService;
-import com.campus.Campus_Connect.features.event.service.PosterStorageService;
+import com.campus.Campus_Connect.common.storage.MediaStorageService;
+import com.campus.Campus_Connect.common.storage.MediaType;
 import com.campus.Campus_Connect.features.honor.service.BadgeEvaluatorService;
 import com.campus.Campus_Connect.features.honor.enums.StatisticType;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,7 @@ public class EventServiceImpl implements EventService {
     private final EventPermissionService permissionService;
     private final EventCategoryRepository eventCategoryRepository;
     private final BadgeEvaluatorService badgeEvaluatorService;
-    private final PosterStorageService posterStorageService;
+    private final MediaStorageService mediaStorageService;
 
     @Override
     public ApiResponse<List<EventResponse>> getEventFeed() {
@@ -165,20 +166,19 @@ public class EventServiceImpl implements EventService {
 
         if (poster != null && !poster.isEmpty()) {
 
-            try {
-                String posterUrl = posterStorageService.store(poster);
+            String posterUrl =
+                    mediaStorageService.store(
+                            poster,
+                            MediaType.EVENT_POSTER
+                    );
 
-                EventPoster eventPoster = EventPoster.builder()
-                        .event(event)
-                        .posterUrl(posterUrl)
-                        .uploadedAt(Instant.now())
-                        .build();
+            EventPoster eventPoster = EventPoster.builder()
+                    .event(event)
+                    .posterUrl(posterUrl)
+                    .uploadedAt(Instant.now())
+                    .build();
 
-                event.getPosters().add(eventPoster);
-
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to store event poster.", e);
-            }
+            event.getPosters().add(eventPoster);
         }
 
         event = eventRepository.save(event);
@@ -239,29 +239,32 @@ public class EventServiceImpl implements EventService {
 
         if (poster != null && !poster.isEmpty()) {
 
-            try {
-                if (event.getPosters() != null && !event.getPosters().isEmpty()) {
+            if (event.getPosters() != null && !event.getPosters().isEmpty()) {
 
-                    EventPoster oldPoster = event.getPosters().get(0);
+                EventPoster oldPoster =
+                        event.getPosters().get(0);
 
-                    posterStorageService.delete(oldPoster.getPosterUrl());
+                mediaStorageService.delete(
+                        oldPoster.getPosterUrl()
+                );
 
-                    event.getPosters().remove(oldPoster);
-                }
-
-                String posterUrl = posterStorageService.store(poster);
-
-                EventPoster newPoster = EventPoster.builder()
-                        .event(event)
-                        .posterUrl(posterUrl)
-                        .uploadedAt(Instant.now())
-                        .build();
-
-                event.getPosters().add(newPoster);
-
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to update event poster.", e);
+                event.getPosters().remove(oldPoster);
             }
+
+            String posterUrl =
+                    mediaStorageService.store(
+                            poster,
+                            MediaType.EVENT_POSTER
+                    );
+
+            EventPoster newPoster =
+                    EventPoster.builder()
+                            .event(event)
+                            .posterUrl(posterUrl)
+                            .uploadedAt(Instant.now())
+                            .build();
+
+            event.getPosters().add(newPoster);
         }
 
         event = eventRepository.save(event);

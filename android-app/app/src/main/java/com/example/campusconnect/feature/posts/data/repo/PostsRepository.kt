@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.posts.data.repo
 
 
-import java.io.File
+import android.net.Uri
 
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
@@ -27,7 +27,7 @@ interface PostsRepository {
         title: String,
         body: String,
         tags: List<PostTag>,
-        image: File?
+        image: Uri?
     ): Result<Post>
 
     suspend fun updatePost(

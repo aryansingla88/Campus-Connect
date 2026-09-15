@@ -4,8 +4,6 @@ data class UpdateProfileRequest(
 
     val bio: String?,
 
-    val avatarUrl: String?,
-
     val hostel: String?,
 
     val hometown: String?,

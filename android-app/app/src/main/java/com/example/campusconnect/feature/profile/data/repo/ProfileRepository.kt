@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.profile.data.repo
 
 
+import android.net.Uri
 import com.example.campusconnect.feature.profile.model.*
 
 interface ProfileRepository {
@@ -10,7 +11,10 @@ interface ProfileRepository {
 
     suspend fun getProfile(userId: Int): Result<PublicUserProfile>
 
-    suspend fun updateProfile(profile: PublicUserProfile): Result<PublicUserProfile>
+    suspend fun updateProfile(
+        profile: PublicUserProfile,
+        imageUri: Uri? = null
+    ): Result<PublicUserProfile>
 
     suspend fun getMyStats(): Result<ProfileStats>
 

@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.map.components.markerdialogs
+package com.example.campusconnect.feature.map.components
 
 import androidx.compose.runtime.Composable
 import com.example.campusconnect.feature.map.mapengine.model.MarkerRenderData

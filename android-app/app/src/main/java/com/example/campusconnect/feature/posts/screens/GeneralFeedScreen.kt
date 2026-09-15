@@ -34,6 +34,7 @@ import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
+import com.example.campusconnect.feature.posts.data.repo.ApiPostsRepository
 import com.example.campusconnect.feature.posts.models.VoteType
 import kotlinx.coroutines.launch
 
@@ -41,9 +42,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralFeedScreen(
+
     onPostClick: (Int) -> Unit,
     viewModel: FeedViewModel = FeedViewModel()
-) {    var posts by remember {
+) {
+    var posts by remember {
     mutableStateOf<List<Post>>(emptyList())
 }
 

@@ -29,9 +29,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.R
 import com.example.campusconnect.core.components.PanelSearchBar
-import com.example.campusconnect.feature.map.components.markerdialogs.*
 import com.example.campusconnect.feature.map.mapengine.*
 import androidx.compose.foundation.shape.CircleShape
+import com.example.campusconnect.feature.map.components.EventMarkerDialog
+import com.example.campusconnect.feature.map.components.PoiMarkerDialog
+import com.example.campusconnect.feature.map.components.UserMarkerDialog
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 
 private enum class MapMode {

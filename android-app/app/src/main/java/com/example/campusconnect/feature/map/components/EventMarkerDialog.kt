@@ -1,13 +1,32 @@
-package com.example.campusconnect.feature.map.components.markerdialogs
+package com.example.campusconnect.feature.map.components
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,8 +44,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.campusconnect.feature.map.model.HostInfo
 import com.example.campusconnect.feature.map.model.MapEventInfo
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 
 private val OrangePrimary = Color(0xFFFF6F00)
 private val DarkOrange = Color(0xFFE65100)
@@ -37,7 +54,7 @@ private val BorderOrange = Color(0xFFFFCC80)
 @Composable
 fun EventMarkerDialog(
     event: MapEventInfo,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier.Companion,
     onDismiss: () -> Unit = {},
     onNavigateClick: () -> Unit = {},
     onRegisterClick: () -> Unit = {}
@@ -88,7 +105,7 @@ private fun EventDescriptionCard(
                 color = BorderOrange.copy(alpha = 0.85f),
                 shape = RoundedCornerShape(28.dp)
             ),
-        shape = RoundedCornerShape(28.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),
@@ -209,9 +226,9 @@ private fun EventPosterCard(
                 .border(
                     width = 1.dp,
                     color = BorderOrange.copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
                 ),
-            shape = RoundedCornerShape(28.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White
             ),
@@ -277,12 +294,12 @@ private fun SmallNotifyButton() {
         modifier = Modifier
             .padding(top = 4.dp)
             .size(38.dp)
-            .clip(RoundedCornerShape(13.dp))
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(13.dp))
             .background(Color.White)
             .border(
                 width = 1.dp,
                 color = BorderOrange,
-                shape = RoundedCornerShape(13.dp)
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(13.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -350,7 +367,7 @@ private fun NavigateTopButton(
 private fun EventTimelineSection(
     time: String,
     date: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.Companion
 ) {
     Row(
         modifier = modifier.height(128.dp),
@@ -556,7 +573,7 @@ private fun RegisterNowButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(50.dp)
-            .clip(RoundedCornerShape(28.dp))
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(28.dp))
             .background(OrangePrimary)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -577,7 +594,7 @@ private fun EventActionButtons(
     isJoined: Boolean,
     onNavigateClick: () -> Unit,
     onRegisterClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.Companion
 ) {
     Row(
         modifier = modifier
@@ -590,7 +607,7 @@ private fun EventActionButtons(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(25.dp))
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(25.dp))
                 .background(OrangePrimary)
                 .clickable { onNavigateClick() },
             contentAlignment = Alignment.Center
@@ -627,12 +644,12 @@ private fun EventActionButtons(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(25.dp))
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(25.dp))
                 .background(Color.White.copy(alpha = 0.95f))
                 .border(
                     width = 1.dp,
                     color = BorderOrange,
-                    shape = RoundedCornerShape(25.dp)
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(25.dp)
                 )
                 .clickable { onRegisterClick() },
             contentAlignment = Alignment.Center
@@ -663,17 +680,17 @@ private fun EventActionButtons(
 
 @Composable
 private fun NotifyButton(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.Companion
 ) {
     Box(
         modifier = modifier
             .size(45.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
             .background(Color.White.copy(alpha = 0.96f))
             .border(
                 width = 1.dp,
                 color = BorderOrange,
-                shape = RoundedCornerShape(14.dp)
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -685,4 +702,3 @@ private fun NotifyButton(
         )
     }
 }
-

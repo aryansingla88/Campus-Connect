@@ -1,5 +1,6 @@
 package com.example.campusconnect.core.components
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -19,9 +20,24 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.campusconnect.core.network.ApiConfig
 import com.example.campusconnect.core.utils.toInitials
 
 
+object ApiUrlResolver {
+
+    fun resolve(path: String?): String? {
+        if (path.isNullOrBlank()) return null
+
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            return path
+        }
+
+        return ApiConfig.BASE_URL.trimEnd('/') +
+                "/" +
+                path.trimStart('/')
+    }
+}
 
 enum class AvatarShape { CIRCLE, ROUNDED }
 
@@ -75,10 +91,10 @@ fun AppAvatar(
     if (!imageUrl.isNullOrBlank()) {
         // Image avatar
         AsyncImage(
-            model             = imageUrl,
+            model              = ApiUrlResolver.resolve(imageUrl),
             contentDescription = displayName,
-            contentScale      = ContentScale.Crop,
-            modifier          = modifier,
+            contentScale       = ContentScale.Crop,
+            modifier           = modifier,
         )
     } else {
         // Initials fallback

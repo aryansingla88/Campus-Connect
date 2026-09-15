@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.profile.ui.components
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -18,17 +19,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 
 import com.example.campusconnect.core.components.AppAvatar
+import com.example.campusconnect.core.components.avatarColorsFor
 
 @Composable
 fun ProfileHeader(
     entityId: Int,
     avatarUrl: String?,
+    avatarUri: Uri? = null,
     displayName: String,
     username: String,
     bio: String,
@@ -66,14 +71,26 @@ fun ProfileHeader(
                 contentAlignment = Alignment.Center
             ) {
 
-                AppAvatar(
-                    entityId = entityId,
-                    displayName = displayName,
-                    imageUrl = avatarUrl,
-                    size = 82.dp,
-                    showBorder = true,
-                    borderWidth = 3.dp
-                )
+                if (avatarUri != null) {
+                    AsyncImage(
+                        model = avatarUri,
+                        contentDescription = displayName,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(82.dp)
+                            .clip(CircleShape)
+                            .border(3.dp, avatarColorsFor(entityId).foreground, CircleShape)
+                    )
+                } else {
+                    AppAvatar(
+                        entityId = entityId,
+                        displayName = displayName,
+                        imageUrl = avatarUrl,
+                        size = 82.dp,
+                        showBorder = true,
+                        borderWidth = 3.dp
+                    )
+                }
 
                 avatarOverlay?.invoke(this)
 

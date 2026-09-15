@@ -1,26 +1,28 @@
 package com.example.campusconnect.feature.posts.data.repo
 
-import java.io.File
+import android.content.Context
+import android.net.Uri
 
+import com.example.campusconnect.CampusConnectApplication
+
+import com.example.campusconnect.core.utils.Image.ImageConverter
 import com.example.campusconnect.core.network.RetrofitClient
 
 import com.example.campusconnect.feature.posts.data.remote.PostsApi
 import com.example.campusconnect.feature.posts.data.remote.request.CreateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdatePostRequest
-
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
+
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaType
+
 
 class ApiPostsRepository(
-
+    private val context: Context = CampusConnectApplication.instance,
     private val api: PostsApi = RetrofitClient.postsApi
-
 ) : PostsRepository {
 
     // Feed -------------------------------------------------------------
@@ -128,48 +130,33 @@ class ApiPostsRepository(
 
     override suspend fun createPost(
         postType: String,
-
         title: String,
-
         body: String,
-
         tags: List<PostTag>,
-
-        image: File?
-
+        image: Uri?
     ): Result<Post> {
 
         return try {
 
             val titleBody = title.toRequestBody(
-
                 "text/plain".toMediaType()
             )
 
             val bodyBody = body.toRequestBody(
-
                 "text/plain".toMediaType()
             )
 
             val tagBodies = tags.map {
-
                 it.id.toString().toRequestBody(
-
                     "text/plain".toMediaType()
                 )
             }
 
             val imagePart = image?.let {
-
-                MultipartBody.Part.createFormData(
-
-                    name = "image",
-
-                    filename = it.name,
-
-                    body = it.asRequestBody(
-                        "image/*".toMediaType()
-                    )
+                ImageConverter.uriToMultipart(
+                    context = context,
+                    uri = it,
+                    partName = "image"
                 )
             }
 
@@ -178,15 +165,10 @@ class ApiPostsRepository(
             )
 
             val response = api.createPost(
-
                 postType = postTypeBody,
-
                 title = titleBody,
-
                 body = bodyBody,
-
                 image = imagePart,
-
                 tags = tagBodies
             )
 
@@ -194,18 +176,12 @@ class ApiPostsRepository(
                 response.isSuccessful &&
                 response.body()?.data != null
             ) {
-
                 Result.success(
-
                     response.body()!!.data!!
                 )
-
             } else {
-
                 Result.failure(
-
                     Exception(
-
                         response.body()?.message
                             ?: "Failed to create post"
                     )
@@ -213,7 +189,6 @@ class ApiPostsRepository(
             }
 
         } catch (e: Exception) {
-
             Result.failure(e)
         }
     }

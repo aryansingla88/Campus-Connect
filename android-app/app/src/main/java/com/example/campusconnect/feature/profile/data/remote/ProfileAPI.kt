@@ -3,6 +3,8 @@ package com.example.campusconnect.feature.profile.data.remote
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.profile.data.remote.request.*
 import com.example.campusconnect.feature.profile.data.remote.response.*
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -23,9 +25,11 @@ interface ProfileApi {
     ): Response<ApiResponse<ProfileResponse>>
 
     // PATCH own profile fields (user_profile table)
+    @Multipart
     @PATCH("users/me")
     suspend fun updateProfile(
-        @Body body: UpdateProfileRequest
+        @Part("profile") profile: RequestBody,
+        @Part image: MultipartBody.Part?
     ): Response<ApiResponse<ProfileResponse>>
 
     // GET own stats — connection/club/interest/honor counts

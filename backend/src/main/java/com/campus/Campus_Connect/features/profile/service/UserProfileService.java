@@ -18,6 +18,10 @@ import com.campus.Campus_Connect.features.settings.entity.UserPreference;
 import com.campus.Campus_Connect.features.settings.repository.UserPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.campus.Campus_Connect.common.storage.MediaStorageService;
+import com.campus.Campus_Connect.common.storage.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+
 
 import com.campus.Campus_Connect.features.club.repository.ClubMemberRepository;
 import com.campus.Campus_Connect.features.metadata.interest.repo.UserInterestRepository;
@@ -37,6 +41,8 @@ public class UserProfileService {
     private final UserHonorRepository userHonorRepository;
     private final UserInterestRepository userInterestRepository;
     private final ConnectionRepository connectionRepository;
+
+    private final MediaStorageService mediaStorageService;
 
 
     public ApiResponse<UserProfileResponse> getMyProfile() {
@@ -73,26 +79,44 @@ public class UserProfileService {
     }
 
 
-    public ApiResponse<UserProfileResponse> updateMyProfile(UpdateUserProfileRequest request) {
+    public ApiResponse<UserProfileResponse> updateMyProfile(
+            UpdateUserProfileRequest request,
+            MultipartFile image
+    ) {
 
         User currentUser = SecurityUtils.getCurrentUser();
 
-        UserProfile profile = getUserProfileEntity(currentUser.getId());
+        UserProfile profile =
+                getUserProfileEntity(currentUser.getId());
 
-        applyUpdates(profile,request);
+        applyUpdates(profile, request);
+
+        if (image != null && !image.isEmpty()) {
+
+            String avatarUrl =
+                    mediaStorageService.store(
+                            image,
+                            MediaType.PROFILE_IMAGE
+                    );
+
+            profile.setAvatarUrl(avatarUrl);
+        }
 
         userProfileRepository.save(profile);
 
-        UserPreference preference = getUserPreference(currentUser.getId());
+        UserPreference preference =
+                getUserPreference(currentUser.getId());
 
-        UserProfileResponse response = buildUserProfileResponse(profile, preference);
+        UserProfileResponse response =
+                buildUserProfileResponse(
+                        profile,
+                        preference
+                );
 
         return ApiResponse.success(
                 response,
                 "Profile Updated successfully."
         );
-
-
     }
 
     public ApiResponse<ProfileStatsResponse> getMyProfileStats() {

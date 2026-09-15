@@ -1,12 +1,18 @@
 package com.example.campusconnect.feature.profile.data.repo
 
+import com.example.campusconnect.CampusConnectApplication
 import com.example.campusconnect.core.network.RetrofitClient
+import com.example.campusconnect.core.utils.Image.ImageConverter
 import com.example.campusconnect.feature.metadata.courses.CourseRepository
 import com.example.campusconnect.feature.profile.data.mapper.*
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
 import com.example.campusconnect.feature.profile.data.remote.request.UpdateHonorPriorityRequest
 import com.example.campusconnect.feature.profile.data.remote.request.UpdateProfileRequest
 import com.example.campusconnect.feature.profile.model.*
+import android.net.Uri
+import com.google.gson.Gson
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 class ApiProfileRepository(
     private val api: ProfileApi = RetrofitClient.profileApi,
     private val courseRepository: CourseRepository
@@ -76,28 +82,43 @@ class ApiProfileRepository(
 
     //------------
     override suspend fun updateProfile(
-        profile: PublicUserProfile
+        profile: PublicUserProfile,
+        imageUri: Uri?
     ): Result<PublicUserProfile> {
 
-        val request = UpdateProfileRequest(
-            bio = profile.bio,
-            avatarUrl = profile.avatarUrl,
-            hostel = profile.hostel,
-            hometown = profile.hometown,
-            phone = profile.phone,
-            github = profile.github,
-            linkedin = profile.linkedin,
-            instagram = profile.instagram
-        )
-
         return try {
-            val response = api.updateProfile(request)
+            val profileRequest = UpdateProfileRequest(
+                bio = profile.bio,
+                hostel = profile.hostel,
+                hometown = profile.hometown,
+                phone = profile.phone,
+                github = profile.github,
+                linkedin = profile.linkedin,
+                instagram = profile.instagram
+            )
+
+            val profileJson = Gson().toJson(profileRequest)
+
+            val profilePart = profileJson.toRequestBody(
+                "application/json".toMediaType()
+            )
+
+            val imagePart = imageUri?.let {
+                ImageConverter.uriToMultipart(
+                    context = CampusConnectApplication.instance,
+                    uri = it,
+                    partName = "image"
+                )
+            }
+
+            val response = api.updateProfile(
+                profile = profilePart,
+                image = imagePart
+            )
 
             if (!response.isSuccessful) {
                 return Result.failure(
-                    Exception(
-                        "Failed to update profile: ${response.code()}"
-                    )
+                    Exception("Failed to update profile: ${response.code()}")
                 )
             }
 

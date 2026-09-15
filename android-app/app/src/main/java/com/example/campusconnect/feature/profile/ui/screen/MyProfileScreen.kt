@@ -23,7 +23,9 @@ import com.example.campusconnect.feature.profile.ui.panels.honor.ManageCollectio
 import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.ui.panels.interests.ManageInterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.MyProfileViewModel
-import com.example.campusconnect.core.utils.rememberImagePicker
+import com.example.campusconnect.core.utils.Image.rememberImagePicker
+import com.example.campusconnect.core.utils.Image.ImagePickerSheet
+import com.example.campusconnect.core.utils.Image.ImageSource
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,11 +46,26 @@ fun MyProfileScreen(
         else
             vm.profile
 
+    var showImagePicker by remember { mutableStateOf(false) }
+
     val pickImage = rememberImagePicker { uri ->
-        // Temporary: just confirm the selected image.
-        scope.launch {
-            snackbarHostState.showSnackbar("Image selected: $uri")
-        }
+        vm.updateAvatar(uri)
+    }
+
+    if (showImagePicker) {
+        ImagePickerSheet(
+            onDismiss = {
+                showImagePicker = false
+            },
+            onCameraClick = {
+                showImagePicker = false
+                pickImage(ImageSource.CAMERA)
+            },
+            onGalleryClick = {
+                showImagePicker = false
+                pickImage(ImageSource.GALLERY)
+            }
+        )
     }
 
 
@@ -159,6 +176,7 @@ fun MyProfileScreen(
             ProfileHeader(
                 entityId = currentProfile.userId,
                 avatarUrl = currentProfile.avatarUrl,
+                avatarUri = vm.selectedAvatarUri,
                 displayName   = currentProfile.fullName,
                 username      = currentProfile.username,
                 bio           = currentProfile.bio,
@@ -166,7 +184,9 @@ fun MyProfileScreen(
                 medalColors = emptyList(),
 
                 isEditMode    = vm.isEditMode,
-                onEditAvatar = pickImage,
+                onEditAvatar = {
+                    showImagePicker = true
+                },
                 onBioChange   = { newBio ->
                     vm.updateEditableProfile(currentProfile.copy(bio = newBio))
                 }
