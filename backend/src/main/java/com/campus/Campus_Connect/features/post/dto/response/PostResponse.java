@@ -34,4 +34,5 @@ public class PostResponse {
     private VoteType userVote;
 
     private LocalDateTime createdAt;
+    private long commentCount;
 }

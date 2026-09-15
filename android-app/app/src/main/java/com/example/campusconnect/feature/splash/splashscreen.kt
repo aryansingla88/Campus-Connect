@@ -21,7 +21,7 @@ import com.example.campusconnect.R
 
 @Composable
 fun SplashScreen(
-    onNavigateToMain: () -> Unit,
+    onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
     viewModel: SplashViewModel = viewModel()
 ) {
@@ -68,9 +68,16 @@ navController.navigate(...)
     // Navigation trigger
     LaunchedEffect(destination) {
         when (destination) {
-            SplashDestination.Main -> onNavigateToMain()
-            SplashDestination.Login -> onNavigateToLogin()
-            null -> {}
+
+            SplashDestination.Home -> {
+                onNavigateToHome()
+            }
+
+            SplashDestination.Login -> {
+                onNavigateToLogin()
+            }
+
+            null -> Unit
         }
     }
 

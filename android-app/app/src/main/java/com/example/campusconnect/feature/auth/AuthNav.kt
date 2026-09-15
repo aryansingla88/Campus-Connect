@@ -18,7 +18,7 @@ fun NavGraphBuilder.authNav(
             onLoginSuccess = {
 
                 // TEMP: navigate to test/main screen
-                navController.navigate("test") {
+                navController.navigate("test2") {
 
                     // remove login from backstack
                     popUpTo("login") {

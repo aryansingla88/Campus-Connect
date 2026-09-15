@@ -2,6 +2,7 @@ package com.example.campusconnect.feature.posts.components
 
 /*This line imports the clickable modifier from Compose Foundation library.*/
 import androidx.compose.foundation.background
+import com.example.campusconnect.core.util.formatBackendDateTime
 import androidx.compose.foundation.clickable
 
 /*below import helps us use-
@@ -144,7 +145,7 @@ fun PostCard(
 
                         Text(
 
-                            text = post.createdAt,
+                            text = formatBackendDateTime(post.createdAt),
 
                             style = MaterialTheme.typography.bodySmall,
 

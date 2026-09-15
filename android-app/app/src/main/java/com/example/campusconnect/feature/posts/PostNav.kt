@@ -7,36 +7,28 @@ import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
 import com.example.campusconnect.feature.posts.screens.PostDetailScreen
 
 const val POSTS_FEED_ROUTE = "posts"
-
 const val POST_DETAIL_ROUTE = "post_detail/{postId}"
 
 fun NavGraphBuilder.postNav(
     navController: NavController
-){
+) {
     composable(POSTS_FEED_ROUTE) {
-
         GeneralFeedScreen(
             onPostClick = { postId ->
-
                 navController.navigate("post_detail/$postId")
             }
-
-
         )
     }
-    composable(
-        route = POST_DETAIL_ROUTE
-    ) { backStackEntry ->
 
-        val postId =
-            backStackEntry.arguments
-                ?.getString("postId")
-                ?.toIntOrNull()
+    composable(POST_DETAIL_ROUTE) { backStackEntry ->
 
-        postId?.let {
+        val postId = backStackEntry.arguments
+            ?.getString("postId")
+            ?.toIntOrNull()
 
+        if (postId != null) {
             PostDetailScreen(
-                postId = it,
+                postId = postId,
                 onBackClick = {
                     navController.popBackStack()
                 }

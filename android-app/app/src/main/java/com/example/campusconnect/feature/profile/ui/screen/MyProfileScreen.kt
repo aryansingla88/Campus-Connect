@@ -23,6 +23,7 @@ import com.example.campusconnect.feature.profile.ui.panels.honor.ManageCollectio
 import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.ui.panels.interests.ManageInterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.MyProfileViewModel
+import com.example.campusconnect.core.utils.rememberImagePicker
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +43,13 @@ fun MyProfileScreen(
             vm.editableProfile
         else
             vm.profile
+
+    val pickImage = rememberImagePicker { uri ->
+        // Temporary: just confirm the selected image.
+        scope.launch {
+            snackbarHostState.showSnackbar("Image selected: $uri")
+        }
+    }
 
 
     Scaffold(
@@ -158,11 +166,7 @@ fun MyProfileScreen(
                 medalColors = emptyList(),
 
                 isEditMode    = vm.isEditMode,
-                onEditAvatar  = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Image picker after backend and firebase")
-                    }
-                },
+                onEditAvatar = pickImage,
                 onBioChange   = { newBio ->
                     vm.updateEditableProfile(currentProfile.copy(bio = newBio))
                 }

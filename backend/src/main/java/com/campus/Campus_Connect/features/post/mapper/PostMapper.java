@@ -33,7 +33,11 @@ public class PostMapper {
                 .toList();
     }
 
-    public PostResponse toPostResponse(Post post, Integer currentUserId) {
+    public PostResponse toPostResponse(
+            Post post,
+            Integer currentUserId,
+            long commentCount
+    ) {
 
         String imageUrl = post.getImages()
                 .stream()
@@ -69,6 +73,7 @@ public class PostMapper {
                 .upvotes(upvotes)
                 .downvotes(downvotes)
                 .userVote(userVote)
+                .commentCount(commentCount)
                 .createdAt(post.getCreatedAt())
                 .build();
     }
