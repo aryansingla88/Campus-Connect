@@ -43,6 +43,9 @@ public class Poi {
     @Column(name = "visibility", nullable = false)
     private String visibility;
 
+    @Column(name = "priority", nullable = false)
+    private Integer priority;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -50,4 +53,5 @@ public class Poi {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
 }
