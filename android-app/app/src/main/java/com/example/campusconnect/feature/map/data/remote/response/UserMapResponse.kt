@@ -6,22 +6,17 @@ import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.google.gson.annotations.SerializedName
 
 data class UserMapRes(
-    @SerializedName("userId")
+
     val userId: Int,
 
-    @SerializedName("username")
     val username: String,
 
-    @SerializedName("latitude")
     val latitude: Double,
 
-    @SerializedName("longitude")
     val longitude: Double,
 
-    @SerializedName("insideCampus")
     val insideCampus: Boolean? = null,
 
-    @SerializedName("gender")
     val gender: String? = null
 )
 

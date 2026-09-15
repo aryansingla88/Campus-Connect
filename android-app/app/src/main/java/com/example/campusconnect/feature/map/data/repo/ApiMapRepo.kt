@@ -19,6 +19,9 @@ import com.example.campusconnect.feature.metadata.courses.CourseRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import android.util.Log
+import com.example.campusconnect.feature.map.data.remote.response.EventCategoryResponse
+import com.example.campusconnect.feature.map.model.EventFilter
+
 class ApiMapRepo(
     private val api: MapApi = RetrofitClient.mapApi,
     private val courseRepository: CourseRepository
@@ -527,6 +530,23 @@ class ApiMapRepo(
             }
 
             Unit
+        }
+    }
+
+    override suspend fun getEventCategories(): Result<List<EventFilter>> {
+        return runCatching {
+            val response = api.getEventCategories()
+
+            if (!response.success || response.data == null) {
+                throw Exception(response.message ?: "Unable to load event categories")
+            }
+
+            response.data.map { category ->
+                EventFilter(
+                    id = category.id,
+                    name = category.name
+                )
+            }
         }
     }
 }

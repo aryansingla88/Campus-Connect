@@ -7,25 +7,18 @@ import com.google.gson.annotations.SerializedName
 
 data class UserPreviewResponse(
 
-    @SerializedName("userId")
     val userId: Int,
 
-    @SerializedName("fullName")
     val fullName: String,
 
-    @SerializedName("courseId")
     val courseId: Int?,
 
-    @SerializedName("admissionYear")
     val admissionYear: Int?,
 
-    @SerializedName("avatarUrl")
     val avatarUrl: String?,
 
-    @SerializedName("bio")
     val bio: String?,
 
-    @SerializedName("mutualConnectionsCount")
     val mutualConnectionsCount: Int?
 )
 
