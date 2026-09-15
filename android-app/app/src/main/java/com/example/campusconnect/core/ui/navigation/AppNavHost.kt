@@ -48,9 +48,7 @@ fun AppNavHost() {
                 },
 
                 onProfile = {
-                    navController.navigate(
-                        ProfileRoutes.viewProfile(1)
-                    )
+                    navController.navigate(ProfileRoutes.MY_PROFILE)
                 },
 
                 onSplash = {
@@ -83,9 +81,7 @@ fun AppNavHost() {
                 },
 
                 onProfile = {
-                    navController.navigate(
-                        ProfileRoutes.viewProfile(1)
-                    )
+                    navController.navigate(ProfileRoutes.MY_PROFILE)
                 },
 
                 onFormBuilder = {
