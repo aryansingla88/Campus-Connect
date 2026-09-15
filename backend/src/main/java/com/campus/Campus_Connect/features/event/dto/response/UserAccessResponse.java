@@ -14,10 +14,11 @@ public class UserAccessResponse {
 
     private String name;
 
-    private String subtitle;
+    private Integer courseId;
+
+    private Integer admissionYear;
 
     private EventMemberRole role;
 
     private Boolean hasAccess;
-
 }

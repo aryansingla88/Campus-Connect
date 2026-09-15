@@ -5,7 +5,6 @@ import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRe
 import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
 import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
-import com.example.campusconnect.feature.events.data.remote.request.RevokeAccessRequest
 import com.example.campusconnect.feature.events.data.remote.response.EventResponse
 import com.example.campusconnect.feature.events.data.remote.response.MedalAwardResponse
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantTeamResponse
@@ -146,13 +145,9 @@ interface EventsApi {
         @Body body: GrantAccessRequest
     ): Response<ApiResponse<Unit>>
 
-    @HTTP(
-        method = "DELETE",
-        path = "events/{eventId}/access",
-        hasBody = true
-    )
+    @DELETE("events/{eventId}/access/{userId}")
     suspend fun revokeAccess(
         @Path("eventId") eventId: Int,
-        @Body body: RevokeAccessRequest
+        @Path("userId") userId: Int
     ): Response<ApiResponse<Unit>>
 }

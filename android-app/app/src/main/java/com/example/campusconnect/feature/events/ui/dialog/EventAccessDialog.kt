@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,8 +55,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.UserAccess
+import com.example.campusconnect.feature.metadata.courses.Course
+import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 private val OrangePrimary  = Color(0xFFFF6F00)
@@ -79,8 +83,10 @@ fun EventAccessDialog(
     users: List<UserAccess>,
     searchResults: List<UserAccess>,
     onSearch: (String) -> Unit,
+    onGrantAccess: (Int) -> Unit,
+    onRevokeAccess: (Int) -> Unit,
     onDismiss: () -> Unit
-){
+) {
     var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(searchQuery) {
@@ -94,6 +100,30 @@ fun EventAccessDialog(
     }
 
     var pendingRemove by remember { mutableStateOf<UserAccess?>(null) }
+
+    val context = LocalContext.current
+
+    val courseRepository = remember {
+        CourseRepositoryProvider.getRepository(context)
+    }
+
+    var courseMap by remember {
+        mutableStateOf<Map<Int, Course>>(emptyMap())
+    }
+
+    LaunchedEffect(users, searchResults) {
+        val courseIds = (users + searchResults)
+            .mapNotNull { it.courseId }
+            .distinct()
+
+        val courses = courseIds.mapNotNull { courseId ->
+            courseRepository.getCourseById(courseId)?.let { course ->
+                courseId to course
+            }
+        }
+
+        courseMap = courses.toMap()
+    }
 
     // ── Remove confirmation ───────────────────────────────────────────────────
     pendingRemove?.let { user ->
@@ -131,6 +161,7 @@ fun EventAccessDialog(
                 Button(
                     onClick = {
                         addedUsers.remove(user)
+                        onRevokeAccess(user.id)
                         pendingRemove = null
                     },
                     shape  = RoundedCornerShape(12.dp),
@@ -227,7 +258,21 @@ fun EventAccessDialog(
                                     },
                                     key = { it.id }
                                 ) { user ->
-                                    AccessUserCard(user = user) {
+                                    AccessUserCard(
+                                        user = user,
+                                        subtitle = if (
+                                            user.courseId != null &&
+                                            user.admissionYear != null &&
+                                            courseMap[user.courseId] != null
+                                        ) {
+                                            AcademicUtils.buildSubtitle(
+                                                course = courseMap[user.courseId]!!,
+                                                admissionYear = user.admissionYear
+                                            )
+                                        } else {
+                                            ""
+                                        }
+                                    ) {
                                         Button(
                                             onClick = {
                                                 addedUsers.add(user)
@@ -269,7 +314,22 @@ fun EventAccessDialog(
                                     )
                                 }
                                 items(addedUsers, key = { it.id }) { user ->
-                                    AccessUserCard(user = user) {
+                                    AccessUserCard(
+                                        user = user,
+                                        subtitle = if (
+                                            user.courseId != null &&
+                                            user.admissionYear != null
+                                        ) {
+                                            courseMap[user.courseId]?.let { course ->
+                                                AcademicUtils.buildSubtitle(
+                                                    course = course,
+                                                    admissionYear = user.admissionYear
+                                                )
+                                            } ?: ""
+                                        } else {
+                                            ""
+                                        }
+                                    ) {
                                         OutlinedButton(
                                             onClick        = { pendingRemove = user },
                                             shape          = RoundedCornerShape(10.dp),
@@ -293,7 +353,14 @@ fun EventAccessDialog(
                     HorizontalDivider(color = DividerColor)
                     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp)) {
                         Button(
-                            onClick  = onDismiss,
+                            onClick = {
+                                addedUsers.forEach { user ->
+                                    if (!users.any { it.id == user.id }) {
+                                        onGrantAccess(user.id)
+                                    }
+                                }
+                                onDismiss()
+                            },
                             modifier = Modifier.fillMaxWidth().height(46.dp),
                             shape    = RoundedCornerShape(12.dp),
                             colors   = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
@@ -367,6 +434,7 @@ private fun AccessSearchBar(
 @Composable
 private fun AccessUserCard(
     user            : UserAccess,
+    subtitle        : String,
     trailingContent : @Composable () -> Unit
 ) {
     Card(
@@ -375,15 +443,25 @@ private fun AccessUserCard(
         elevation = CardDefaults.cardElevation(1.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Box(
-                modifier         = Modifier.size(38.dp).clip(CircleShape).background(OrangeLight),
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(OrangeLight),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = user.initials, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = OrangePrimary)
+                Text(
+                    text       = user.initials,
+                    fontSize   = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = OrangePrimary
+                )
             }
 
             Column(modifier = Modifier.weight(1f)) {
@@ -395,7 +473,12 @@ private fun AccessUserCard(
                     maxLines   = 1,
                     overflow   = TextOverflow.Ellipsis
                 )
-                Text(text = user.subtitle, fontSize = 11.sp, color = TextMuted)
+
+                Text(
+                    text     = subtitle,
+                    fontSize = 11.sp,
+                    color   = TextMuted
+                )
             }
 
             trailingContent()

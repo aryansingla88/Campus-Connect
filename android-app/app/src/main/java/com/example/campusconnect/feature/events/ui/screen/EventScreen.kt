@@ -457,14 +457,32 @@ fun EventScreen(
         if (showAccessDialog && accessEvent != null) {
             EventAccessDialog(
                 event = accessEvent!!,
+
                 users = viewModel.accessUsers.collectAsState().value,
+
                 searchResults = viewModel.searchResults.collectAsState().value,
+
                 onSearch = { query ->
                     viewModel.searchAccessUsers(
                         accessEvent!!.id,
                         query
                     )
                 },
+
+                onGrantAccess = { userId ->
+                    viewModel.grantAccess(
+                        eventId = accessEvent!!.id,
+                        userId = userId
+                    )
+                },
+
+                onRevokeAccess = { userId ->
+                    viewModel.revokeAccess(
+                        eventId = accessEvent!!.id,
+                        userId = userId
+                    )
+                },
+
                 onDismiss = {
                     showAccessDialog = false
                     accessEvent = null

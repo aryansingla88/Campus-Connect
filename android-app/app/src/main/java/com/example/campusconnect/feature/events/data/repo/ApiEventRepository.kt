@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.events.data.repo
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.events.data.remote.EventsApi
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
+import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.mapper.toEvent
 import com.example.campusconnect.feature.events.model.Event
@@ -252,10 +253,113 @@ class ApiEventRepository(
 
     override suspend fun getUsersWithAccess(
         eventId: Int
-    ): Result<List<UserAccess>> = TODO()
+    ): Result<List<UserAccess>> {
+        return try {
+            val response = api.getUsersWithAccess(eventId)
+
+            if (response.isSuccessful) {
+                Result.success(
+                    response.body()?.data?.map {
+                        UserAccess(
+                            id = it.id,
+                            name = it.name,
+                            courseId = it.courseId,
+                            admissionYear = it.admissionYear
+                        )
+                    } ?: emptyList()
+                )
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to get users with access: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun searchUsers(
         eventId: Int,
         query: String
-    ): Result<List<UserAccess>> = TODO()
+    ): Result<List<UserAccess>> {
+        return try {
+            val response = api.searchUsers(
+                eventId = eventId,
+                query = query
+            )
+
+            if (response.isSuccessful) {
+                Result.success(
+                    response.body()?.data?.map {
+                        UserAccess(
+                            id = it.id,
+                            name = it.name,
+                            courseId = it.courseId,
+                            admissionYear = it.admissionYear
+                        )
+                    } ?: emptyList()
+                )
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to search users: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun grantAccess(
+        eventId: Int,
+        userId: Int
+    ): Result<Unit> {
+        return try {
+            val response = api.grantAccess(
+                eventId = eventId,
+                body = GrantAccessRequest(
+                    userId = userId
+                )
+            )
+
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to grant access: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun revokeAccess(
+        eventId: Int,
+        userId: Int
+    ): Result<Unit> {
+        return try {
+            val response = api.revokeAccess(
+                eventId = eventId,
+                userId = userId
+            )
+
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to revoke access: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

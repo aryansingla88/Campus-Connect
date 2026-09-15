@@ -93,4 +93,14 @@ interface EventRepository {
         eventId: Int,
         query: String
     ): Result<List<UserAccess>>
+
+    suspend fun grantAccess(
+        eventId: Int,
+        userId: Int
+    ): Result<Unit>
+
+    suspend fun revokeAccess(
+        eventId: Int,
+        userId: Int
+    ): Result<Unit>
 }

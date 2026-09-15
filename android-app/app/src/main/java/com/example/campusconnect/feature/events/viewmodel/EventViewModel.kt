@@ -119,6 +119,54 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun grantAccess(
+        eventId: Int,
+        userId: Int
+    ) {
+        viewModelScope.launch {
+
+            val result = repository.grantAccess(
+                eventId = eventId,
+                userId = userId
+            )
+
+            result.onSuccess {
+                println("GRANT ACCESS SUCCESS: event=$eventId user=$userId")
+
+                loadAccessUsers(eventId)
+            }
+
+            result.onFailure { error ->
+                println("GRANT ACCESS ERROR: ${error.message}")
+                error.printStackTrace()
+            }
+        }
+    }
+
+    fun revokeAccess(
+        eventId: Int,
+        userId: Int
+    ) {
+        viewModelScope.launch {
+
+            val result = repository.revokeAccess(
+                eventId = eventId,
+                userId = userId
+            )
+
+            result.onSuccess {
+                println("REVOKE ACCESS SUCCESS: event=$eventId user=$userId")
+
+                loadAccessUsers(eventId)
+            }
+
+            result.onFailure { error ->
+                println("REVOKE ACCESS ERROR: ${error.message}")
+                error.printStackTrace()
+            }
+        }
+    }
+
     private val _medals =
         MutableStateFlow<List<MedalAward>>(emptyList())
 
