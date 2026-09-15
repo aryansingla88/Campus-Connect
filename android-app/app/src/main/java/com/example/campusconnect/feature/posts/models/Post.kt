@@ -21,5 +21,7 @@ data class Post(
 
     val userVote: VoteType? = null,
 
-    val createdAt: String
+    val createdAt: String,
+
+    val commentCount: Int,
 )

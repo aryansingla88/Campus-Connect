@@ -32,18 +32,55 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.R
 import com.example.campusconnect.feature.auth.viewmodel.LoginViewModel
+import com.example.campusconnect.feature.auth.viewmodel.PasswordResetViewModel
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+    viewModel: LoginViewModel = viewModel(),
+    passwordResetViewModel: PasswordResetViewModel = viewModel()
 ) {
 //collectAsState means that donot collect a static value, collect as state, i.e. update as state changes
     val username by viewModel.username.collectAsState()
     val password by viewModel.password.collectAsState()
     val warning by viewModel.warning.collectAsState()
     val loginSuccess by viewModel.loginSuccess.collectAsState()
+    val resetStep by
+    passwordResetViewModel
+        .currentStep
+        .collectAsState()
+
+    val resetEmail by
+    passwordResetViewModel
+        .email
+        .collectAsState()
+
+    val resetOtp by
+    passwordResetViewModel
+        .otp
+        .collectAsState()
+
+    val newPassword by
+    passwordResetViewModel
+        .newPassword
+        .collectAsState()
+
+    val confirmPassword by
+    passwordResetViewModel
+        .confirmPassword
+        .collectAsState()
+
+    val resetWarning by
+    passwordResetViewModel
+        .warning
+        .collectAsState()
+
+    val resetLoading by
+    passwordResetViewModel
+        .isLoading
+        .collectAsState()
+
 
     // navigation trigger
     LaunchedEffect(loginSuccess) {
@@ -157,6 +194,16 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            Text(
+                text = "Forgot Password?",
+                color = Color.White,
+                modifier = Modifier.clickable {
+                    passwordResetViewModel.startPasswordReset()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
             // Button
             Button(
                 onClick = { viewModel.login() },
@@ -192,6 +239,121 @@ fun LoginScreen(
                     color = Color(0xFFFFE6E6),
                     fontSize = 14.sp
                 )
+            }
+        }
+        when (resetStep) {
+
+            PasswordResetViewModel.ResetStep.EMAIL -> {
+
+                RequestPasswordResetDialog(
+
+                    email = resetEmail,
+
+                    warning = resetWarning,
+
+                    isLoading = resetLoading,
+
+                    onEmailChange =
+                        passwordResetViewModel::onEmailChange,
+
+                    onSendOtp =
+                        passwordResetViewModel::requestOtp,
+
+                    onDismiss =
+                        passwordResetViewModel::closePasswordReset
+                )
+            }
+
+
+            PasswordResetViewModel.ResetStep.OTP -> {
+
+                VerifyOtpDialog(
+
+                    email = resetEmail,
+
+                    otp = resetOtp,
+
+                    warning = resetWarning,
+
+                    isLoading = resetLoading,
+
+                    onOtpChange =
+                        passwordResetViewModel::onOtpChange,
+
+                    onVerifyOtp =
+                        passwordResetViewModel::verifyOtp,
+
+                    onDismiss =
+                        passwordResetViewModel::closePasswordReset
+                )
+            }
+
+
+            PasswordResetViewModel.ResetStep.NEW_PASSWORD -> {
+
+                ResetPasswordDialog(
+
+                    newPassword = newPassword,
+
+                    confirmPassword = confirmPassword,
+
+                    warning = resetWarning,
+
+                    isLoading = resetLoading,
+
+                    onNewPasswordChange =
+                        passwordResetViewModel::onNewPasswordChange,
+
+                    onConfirmPasswordChange =
+                        passwordResetViewModel::onConfirmPasswordChange,
+
+                    onResetPassword =
+                        passwordResetViewModel::resetPassword,
+
+                    onDismiss =
+                        passwordResetViewModel::closePasswordReset
+                )
+            }
+
+
+            PasswordResetViewModel.ResetStep.SUCCESS -> {
+
+                AlertDialog(
+
+                    onDismissRequest = {},
+
+                    title = {
+                        Text("Password Reset Successful")
+                    },
+
+                    text = {
+                        Text(
+                            "Your password has been reset successfully. Please login with your new password."
+                        )
+                    },
+
+                    confirmButton = {
+
+                        Button(
+
+                            onClick = {
+
+                                passwordResetViewModel
+                                    .closePasswordReset()
+                            }
+
+                        ) {
+
+                            Text("Back to Login")
+                        }
+                    }
+                )
+            }
+
+
+            PasswordResetViewModel.ResetStep.CLOSED -> {
+
+                // Nothing displayed
             }
         }
     }

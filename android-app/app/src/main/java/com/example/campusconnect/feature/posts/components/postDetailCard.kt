@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
 import com.example.campusconnect.core.ui.theme.*
+import com.example.campusconnect.core.util.formatBackendDateTime
 import com.example.campusconnect.feature.posts.models.Post
 
 @Composable
@@ -91,7 +92,7 @@ fun PostDetailCard(
 
                     Text(
 
-                        text = post.createdAt,
+                        text = formatBackendDateTime(post.createdAt),
 
                         style = MaterialTheme.typography.bodySmall,
 
