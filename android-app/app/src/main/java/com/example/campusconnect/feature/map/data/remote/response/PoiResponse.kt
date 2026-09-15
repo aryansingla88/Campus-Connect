@@ -4,24 +4,30 @@ import com.example.campusconnect.feature.map.mapengine.model.MapMarker
 import com.example.campusconnect.feature.map.mapengine.model.MarkerSize
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.MapPoiInfo
-import com.google.gson.annotations.SerializedName
 
-data class PoiRes(
-    @SerializedName("id") val id: Int,
-    @SerializedName("name") val name: String,
-    @SerializedName("category") val category: String? = null,
-    @SerializedName("description") val description: String? = null,
-    @SerializedName("latitude") val latitude: Double? = null,
-    @SerializedName("longitude") val longitude: Double? = null,
-    @SerializedName("iconType") val iconType: String? = null,
-    @SerializedName("visibility") val visibility: String? = null, // String (Matches Backend PoiResponse.java)
-    @SerializedName("priority") val priority: Int? = 0          // Added missing backend field
+data class PoiResponse(
+    val id: Int,
+    val name: String,
+    val category: String? = null,
+    val description: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val iconType: String? = null,
+    val visibility: String? = null,
+    val priority: Int? = 1
 )
 
 // Map engine pin object conversion
-fun PoiRes.toMarker(): MapMarker {
-    val poiPriority = priority ?: 0
-    val markerSize = if (poiPriority > 5) MarkerSize.LARGE else MarkerSize.MEDIUM
+fun PoiResponse.toMarker(): MapMarker {
+    val poiPriority = priority ?: 1
+
+    val markerSize = when (poiPriority) {
+        1 -> MarkerSize.SMALL
+        2 -> MarkerSize.MEDIUM
+        else -> MarkerSize.LARGE
+    }
+
+    val highlightCheck = poiPriority == 4
 
     return MapMarker(
         id = "POI_$id",
@@ -31,14 +37,14 @@ fun PoiRes.toMarker(): MapMarker {
         longitude = longitude ?: 0.0,
         label = name,
         priority = poiPriority,
-        size = markerSize
+        size = markerSize,
+        isHighlighted = highlightCheck
     )
 }
 
 // Bottom sheet detail object conversion
-fun PoiRes.toPoiInfo(): MapPoiInfo {
-    val poiPriority = priority ?: 0
-    val derivedSizeString = if (poiPriority > 5) "LARGE" else "MEDIUM"
+fun PoiResponse.toPoiInfo(): MapPoiInfo {
+    val poiPriority = priority ?: 1
 
     return MapPoiInfo(
         id = id,
@@ -48,6 +54,6 @@ fun PoiRes.toPoiInfo(): MapPoiInfo {
         iconType = iconType,
         visibility = visibility,
         priority = poiPriority,
-        sizeString = derivedSizeString
+        sizeString = "MEDIUM"
     )
 }

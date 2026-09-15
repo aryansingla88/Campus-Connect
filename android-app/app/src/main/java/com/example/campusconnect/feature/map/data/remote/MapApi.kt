@@ -1,10 +1,10 @@
 package com.example.campusconnect.feature.map.data.remote
 
 import com.example.campusconnect.core.network.ApiResponse
-import com.example.campusconnect.feature.map.data.remote.response.CategoryResponse
+import com.example.campusconnect.feature.map.data.remote.response.EventCategoryResponse
 import com.example.campusconnect.feature.map.data.remote.response.EventMarkerResponse
 import com.example.campusconnect.feature.map.data.remote.response.EventPreviewResponse
-import com.example.campusconnect.feature.map.data.remote.response.PoiRes
+import com.example.campusconnect.feature.map.data.remote.response.PoiResponse
 //import com.example.campusconnect.feature.map.data.remote.response.ShopResponse
 import com.example.campusconnect.feature.map.data.remote.response.UserMapRes
 import com.example.campusconnect.feature.map.data.remote.response.UserPreviewResponse
@@ -20,7 +20,7 @@ interface MapApi {
     suspend fun getVisibleUsers(): ApiResponse<List<UserMapRes>>
 
     @GET("map/poi")
-    suspend fun getPois(): ApiResponse<List<PoiRes>>
+    suspend fun getPois(): ApiResponse<List<PoiResponse>>
 
     @GET("map/events")
     suspend fun getEventMarkers(): ApiResponse<List<EventMarkerResponse>>
@@ -47,7 +47,7 @@ interface MapApi {
     @GET("map/poi/{poiId}")
     suspend fun getPoiInfo(
         @Path("poiId") poiId: Int
-    ): ApiResponse<PoiRes>
+    ): ApiResponse<PoiResponse>
 
 
     // Event Marker Card --------------------------------------------------------
@@ -72,10 +72,10 @@ interface MapApi {
     // Categories ---------------------------------------------------------------
 
     @GET("event-categories")
-    suspend fun getEventCategories(): ApiResponse<List<CategoryResponse>>
+    suspend fun getEventCategories(): ApiResponse<List<EventCategoryResponse>>
 
     @GET("shop-categories")
-    suspend fun getShopCategories(): ApiResponse<List<CategoryResponse>>
+    suspend fun getShopCategories(): ApiResponse<List<EventCategoryResponse>>
 
     // ---------------------------------------------------------
 // Presence APIs
