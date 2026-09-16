@@ -2,11 +2,10 @@ package com.example.campusconnect.feature.events.data.repo
 
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
+import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
-import com.example.campusconnect.feature.events.model.ParticipantTeam
-import com.example.campusconnect.feature.events.model.SoloParticipant
 import com.example.campusconnect.feature.events.model.UserAccess
 import com.example.campusconnect.feature.events.registrations.model.Registration
 import okhttp3.MultipartBody
@@ -54,17 +53,9 @@ interface EventRepository {
 
     // Participants -------------------------------------------------------
 
-    suspend fun getTeams(
+    suspend fun getParticipants(
         eventId: Int
-    ): Result<List<ParticipantTeam>>
-
-    suspend fun getSoloParticipants(
-        eventId: Int
-    ): Result<List<SoloParticipant>>
-
-    suspend fun getParticipantsCount(
-        eventId: Int
-    ): Result<Int>
+    ): Result<ParticipantsResponse>
 
 
     // Medals -------------------------------------------------------------

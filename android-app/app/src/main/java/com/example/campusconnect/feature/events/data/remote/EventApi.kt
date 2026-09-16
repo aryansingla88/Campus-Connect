@@ -7,9 +7,8 @@ import com.example.campusconnect.feature.events.data.remote.request.GrantAccessR
 import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
 import com.example.campusconnect.feature.events.data.remote.response.EventResponse
 import com.example.campusconnect.feature.events.data.remote.response.MedalAwardResponse
-import com.example.campusconnect.feature.events.data.remote.response.ParticipantTeamResponse
+import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
 import com.example.campusconnect.feature.events.data.remote.response.RegistrationResponse
-import com.example.campusconnect.feature.events.data.remote.response.SoloParticipantResponse
 import com.example.campusconnect.feature.events.data.remote.response.UserAccessResponse
 import okhttp3.MultipartBody
 import retrofit2.Response
@@ -86,20 +85,10 @@ interface EventsApi {
 
     // Participants ----------------------------------------------------------
 
-    @GET("events/{eventId}/teams")
-    suspend fun getTeams(
+    @GET("events/{eventId}/participants")
+    suspend fun getParticipants(
         @Path("eventId") eventId: Int
-    ): Response<ApiResponse<List<ParticipantTeamResponse>>>
-
-    @GET("events/{eventId}/solo-participants")
-    suspend fun getSoloParticipants(
-        @Path("eventId") eventId: Int
-    ): Response<ApiResponse<List<SoloParticipantResponse>>>
-
-    @GET("events/{eventId}/participants-count")
-    suspend fun getParticipantsCount(
-        @Path("eventId") eventId: Int
-    ): Response<ApiResponse<Int>>
+    ): Response<ApiResponse<ParticipantsResponse>>
 
 
     // Medals ----------------------------------------------------------------

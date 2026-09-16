@@ -261,20 +261,22 @@ private fun TeamCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text       = team.name,
-                    fontSize   = 13.sp,
+                    text = team.name,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color      = TextPrimary,
-                    maxLines   = 1,
-                    overflow   = TextOverflow.Ellipsis
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                // Leader name as subtitle
+
                 val leader = team.members.firstOrNull { it.isLeader }
                 if (leader != null) {
                     Text(
-                        text     = leader.name,
-                        fontSize = 11.sp,
-                        color    = TextMuted
+                        text = "Lead by ${leader.name}",
+                        fontSize = 10.sp,
+                        color = TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

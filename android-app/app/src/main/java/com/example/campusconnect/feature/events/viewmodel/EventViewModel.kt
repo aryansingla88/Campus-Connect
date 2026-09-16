@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.data.repo.ApiEventRepository
@@ -15,9 +16,11 @@ import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
 import com.example.campusconnect.feature.events.model.ParticipantTeam
 import com.example.campusconnect.feature.events.model.SoloParticipant
+import com.example.campusconnect.feature.events.model.TeamMember
 import com.example.campusconnect.feature.events.model.UserAccess
 import com.example.campusconnect.feature.metadata.clubs.Club
 import com.example.campusconnect.feature.metadata.clubs.ClubRepositoryProvider
+import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
 import com.example.campusconnect.feature.metadata.eventcategories.EventCategoryRepositoryProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +38,9 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
 
     private val categoryRepository =
         EventCategoryRepositoryProvider.getRepository(application)
+
+    private val courseRepository =
+        CourseRepositoryProvider.getRepository(application)
 
     private val _clubs =
         MutableStateFlow<List<Club>>(emptyList())
@@ -67,17 +73,85 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     fun loadParticipants(eventId: Int) {
         viewModelScope.launch {
 
-            _teams.value =
-                repository.getTeams(eventId)
-                    .getOrDefault(emptyList())
+            val result = repository.getParticipants(eventId)
 
-            _soloParticipants.value =
-                repository.getSoloParticipants(eventId)
-                    .getOrDefault(emptyList())
+            result.onSuccess { response ->
 
-            _participantsCount.value =
-                repository.getParticipantsCount(eventId)
-                    .getOrDefault(0)
+                _participantsCount.value =
+                    response.totalParticipants
+
+                _soloParticipants.value =
+                    response.soloParticipants.map { participant ->
+
+                        val subtitle =
+                            if (
+                                participant.courseId != null &&
+                                participant.admissionYear != null
+                            ) {
+                                courseRepository
+                                    .getCourseById(participant.courseId)
+                                    ?.let { course ->
+                                        AcademicUtils.buildSubtitle(
+                                            course = course,
+                                            admissionYear = participant.admissionYear
+                                        )
+                                    } ?: ""
+                            } else {
+                                ""
+                            }
+
+                        SoloParticipant(
+                            id = participant.userId,
+                            name = participant.name,
+                            subtitle = subtitle
+                        )
+                    }
+
+                _teams.value =
+                    response.teams.map { team ->
+
+                        ParticipantTeam(
+                            id = team.teamId,
+                            name = team.teamName,
+                            members = team.members.map { member ->
+
+                                val subtitle =
+                                    if (
+                                        member.courseId != null &&
+                                        member.admissionYear != null
+                                    ) {
+                                        courseRepository
+                                            .getCourseById(member.courseId)
+                                            ?.let { course ->
+                                                AcademicUtils.buildSubtitle(
+                                                    course = course,
+                                                    admissionYear = member.admissionYear
+                                                )
+                                            } ?: ""
+                                    } else {
+                                        ""
+                                    }
+
+                                TeamMember(
+                                    id = member.userId,
+                                    name = member.name,
+                                    subtitle = subtitle,
+                                    isLeader = member.leader
+                                )
+                            }
+                        )
+                    }
+
+            }.onFailure { error ->
+
+                println(
+                    "PARTICIPANTS API ERROR: ${error.message}"
+                )
+
+                _teams.value = emptyList()
+                _soloParticipants.value = emptyList()
+                _participantsCount.value = 0
+            }
         }
     }
 

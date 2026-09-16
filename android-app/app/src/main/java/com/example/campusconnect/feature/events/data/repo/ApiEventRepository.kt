@@ -5,12 +5,11 @@ import com.example.campusconnect.feature.events.data.remote.EventsApi
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
+import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
 import com.example.campusconnect.feature.events.mapper.toEvent
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
-import com.example.campusconnect.feature.events.model.ParticipantTeam
-import com.example.campusconnect.feature.events.model.SoloParticipant
 import com.example.campusconnect.feature.events.model.UserAccess
 import com.example.campusconnect.feature.events.registrations.model.Registration
 import com.google.gson.Gson
@@ -226,17 +225,33 @@ class ApiEventRepository(
         eventId: Int
     ): Result<Registration> = TODO()
 
-    override suspend fun getTeams(
+    override suspend fun getParticipants(
         eventId: Int
-    ): Result<List<ParticipantTeam>> = TODO()
+    ): Result<ParticipantsResponse> {
+        return try {
+            val response = api.getParticipants(eventId)
 
-    override suspend fun getSoloParticipants(
-        eventId: Int
-    ): Result<List<SoloParticipant>> = TODO()
+            if (response.isSuccessful) {
+                val data = response.body()?.data
 
-    override suspend fun getParticipantsCount(
-        eventId: Int
-    ): Result<Int> = TODO()
+                if (data != null) {
+                    Result.success(data)
+                } else {
+                    Result.failure(
+                        Exception("Participants response is empty")
+                    )
+                }
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to get participants: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun getMedalsForEvent(
         eventId: Int

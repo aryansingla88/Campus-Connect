@@ -19,10 +19,11 @@ public class TeamMemberResponse {
 
     private String name;
 
-    private String subtitle;
+    private Integer courseId;
+
+    private Integer admissionYear;
 
     private String avatarUrl;
 
     private Boolean leader;
-
 }

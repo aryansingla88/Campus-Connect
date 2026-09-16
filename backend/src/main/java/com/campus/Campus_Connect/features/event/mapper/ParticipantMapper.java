@@ -1,10 +1,8 @@
 package com.campus.Campus_Connect.features.event.mapper;
 
-import com.campus.Campus_Connect.features.event.dto.response.ParticipantDisplayResponse;
 import com.campus.Campus_Connect.features.event.dto.response.SoloParticipantResponse;
 import com.campus.Campus_Connect.features.event.dto.response.TeamMemberResponse;
 import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
-import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,14 +10,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ParticipantMapper {
 
-    private final CourseRepository courseRepository;
     private final ParticipantDisplayMapper participantDisplayMapper;
 
     public SoloParticipantResponse toSoloResponse(
             EventRegistration registration
     ) {
 
-        ParticipantDisplayResponse display =
+        var display =
                 participantDisplayMapper.toDisplay(
                         registration.getUser()
                 );
@@ -28,7 +25,8 @@ public class ParticipantMapper {
                 .registrationId(registration.getId())
                 .userId(registration.getUser().getId())
                 .name(display.getName())
-                .subtitle(display.getSubtitle())
+                .courseId(registration.getUser().getProfile().getCourseId())
+                .admissionYear(registration.getUser().getProfile().getAdmissionYear())
                 .avatarUrl(display.getAvatarUrl())
                 .build();
     }
@@ -38,7 +36,7 @@ public class ParticipantMapper {
             boolean leader
     ) {
 
-        ParticipantDisplayResponse display =
+        var display =
                 participantDisplayMapper.toDisplay(
                         registration.getUser()
                 );
@@ -47,7 +45,8 @@ public class ParticipantMapper {
                 .registrationId(registration.getId())
                 .userId(registration.getUser().getId())
                 .name(display.getName())
-                .subtitle(display.getSubtitle())
+                .courseId(registration.getUser().getProfile().getCourseId())
+                .admissionYear(registration.getUser().getProfile().getAdmissionYear())
                 .avatarUrl(display.getAvatarUrl())
                 .leader(leader)
                 .build();
