@@ -72,10 +72,6 @@ private val RemoveRed      = Color(0xFFD32F2F)
 private val RemoveRedLight = Color(0xFFFFEBEE)
 
 // ─── EventAccessDialog ────────────────────────────────────────────────────────
-// UserAccess model + fake data now live in:
-//   - model/UserAccess.kt
-//   - data/FakeUserAccessService.kt
-// This file only contains UI.
 
 @Composable
 fun EventAccessDialog(
