@@ -85,10 +85,15 @@ fun PoiMarkerDialog(
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-
+                val displayDescription = if (poi.description.isNullOrBlank()) {
+                    "Campus Point of Interest located on campus."
+                } else {
+                    poi.description
+                }
                 PoiDescription(
                     description = limitWords(
-                        text = poi.description.orEmpty(), // Modified: Handled nullable description
+                       // text = poi.description.orEmpty(), // Modified: Handled nullable description
+                        text = displayDescription,
                         wordLimit = 24
                     ),
                     modifier = Modifier.weight(1f)

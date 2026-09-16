@@ -8,9 +8,15 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,12 +28,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.campusconnect.R
 import com.example.campusconnect.core.components.PanelSearchBar
 import com.example.campusconnect.feature.map.mapengine.*
 import androidx.compose.foundation.shape.CircleShape
@@ -138,14 +142,6 @@ fun MapScreen(
                 onSearchQueryChange = { query ->
                     searchQuery = query
                 },
-                onFilterClick = {
-                    showFilters = !showFilters
-                },
-                onSettingsClick = {}
-            )
-
-            RightSideTabs(
-                selectedSidePanel = selectedSidePanel,
                 onProfileClick = {
                     selectedSidePanel =
                         if (selectedSidePanel == SidePanel.PROFILE) {
@@ -154,12 +150,29 @@ fun MapScreen(
                             SidePanel.PROFILE
                         }
                 },
-                onChatClick = {
+                onSettingsClick = {}
+            )
+
+            RightSideTabs(
+                showFilters = showFilters,
+                selectedSidePanel = selectedSidePanel,
+                onFiltersClick = {
+                    showFilters = !showFilters
+                },
+                onBoardClick = {
                     selectedSidePanel =
                         if (selectedSidePanel == SidePanel.CHAT) {
                             SidePanel.NONE
                         } else {
                             SidePanel.CHAT
+                        }
+                },
+                onPostsClick = {
+                    selectedSidePanel =
+                        if (selectedSidePanel == SidePanel.PROFILE) {
+                            SidePanel.NONE
+                        } else {
+                            SidePanel.PROFILE
                         }
                 },
                 modifier = Modifier
@@ -395,7 +408,7 @@ private fun TopMapControls(
     modifier: Modifier = Modifier,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onFilterClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     Row(
@@ -404,8 +417,18 @@ private fun TopMapControls(
             .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        RoundIconButton(
+            icon = Icons.Default.Person,
+            contentDescription = "Profile",
+            onClick = onProfileClick
+        )
+
+        Spacer(modifier = Modifier.width(14.dp))
+
         Box(
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(30.dp))
         ) {
             PanelSearchBar(
                 value = searchQuery,
@@ -416,56 +439,36 @@ private fun TopMapControls(
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        DiamondButton(
-            onClick = onFilterClick
+        RoundIconButton(
+            icon = Icons.Default.Settings,
+            contentDescription = "Settings",
+            onClick = onSettingsClick
         )
-
-        Spacer(modifier = Modifier.width(14.dp))
-
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(OrangeLight.copy(alpha = 0.95f))
-                .clickable {
-                    onSettingsClick()
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
-                tint = OrangePrimary,
-                modifier = Modifier.size(18.dp)
-            )
-        }
     }
 }
 
 @Composable
-private fun DiamondButton(
+private fun RoundIconButton(
     modifier: Modifier = Modifier,
+    icon: ImageVector,
+    contentDescription: String,
     onClick: () -> Unit
 ) {
     Box(
         modifier = modifier
-            .size(30.dp)
-            .graphicsLayer {
-                rotationZ = 45f
-            }
-            .clip(RoundedCornerShape(8.dp))
-            .background(OrangeGradient)
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(Color.White)
             .clickable {
                 onClick()
             },
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "◆",
-            modifier = Modifier.graphicsLayer {
-                rotationZ = -45f
-            },
-            color = Color.White
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = OrangePrimary,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -539,9 +542,11 @@ private fun FilterButton(
 
 @Composable
 private fun RightSideTabs(
+    showFilters: Boolean,
     selectedSidePanel: SidePanel,
-    onProfileClick: () -> Unit,
-    onChatClick: () -> Unit,
+    onFiltersClick: () -> Unit,
+    onBoardClick: () -> Unit,
+    onPostsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -550,17 +555,24 @@ private fun RightSideTabs(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         SideTab(
-            text = "PROFILE",
-            icon = Icons.Default.Person,
-            selected = selectedSidePanel == SidePanel.PROFILE,
-            onClick = onProfileClick
+            text = "FILTERS",
+            icon = Icons.Default.FilterList,
+            selected = showFilters,
+            onClick = onFiltersClick
         )
 
         SideTab(
-            text = "CHAT",
+            text = "BOARD",
             icon = Icons.Default.Chat,
             selected = selectedSidePanel == SidePanel.CHAT,
-            onClick = onChatClick
+            onClick = onBoardClick
+        )
+
+        SideTab(
+            text = "POSTS",
+            icon = Icons.Default.Article,
+            selected = selectedSidePanel == SidePanel.PROFILE,
+            onClick = onPostsClick
         )
     }
 }
@@ -580,7 +592,7 @@ private fun SideTab(
         bottomEnd = 0.dp
     )
 
-    val singleTabColor = Color(0xFFFFF3E0)
+    val singleTabColor = Color.White
 
     Surface(
         modifier = modifier
@@ -604,8 +616,8 @@ private fun SideTab(
                 .fillMaxSize()
                 .background(singleTabColor)
                 .border(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = 0.35f),
+                    width = if (selected) 1.5.dp else 0.dp,
+                    color = if (selected) OrangePrimary else Color.Transparent,
                     shape = tabShape
                 ),
             contentAlignment = Alignment.Center
@@ -622,7 +634,7 @@ private fun SideTab(
                 Icon(
                     imageVector = icon,
                     contentDescription = text,
-                    tint = TextDark,
+                    tint = if (selected) OrangePrimary else TextDark,
                     modifier = Modifier.size(14.dp)
                 )
 
@@ -630,7 +642,7 @@ private fun SideTab(
 
                 Text(
                     text = text,
-                    color = TextDark,
+                    color = if (selected) OrangePrimary else TextDark,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -650,25 +662,18 @@ private fun ModeBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp), // changed: bar height smaller
+            .height(64.dp),
         shape = RoundedCornerShape(28.dp),
-        color = Color(0xFFEDEDED).copy(alpha = 0.78f),
+        color = Color.White,
         tonalElevation = 8.dp,
         shadowElevation = 10.dp
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .border(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = 0.65f),
-                    shape = RoundedCornerShape(28.dp)
-                )
                 .padding(
-                    start = 8.dp,
-                    end = 8.dp,
-                    top = 4.dp,     // changed: top padding smaller
-                    bottom = 4.dp
+                    horizontal = 10.dp,
+                    vertical = 6.dp
                 )
         ) {
             Row(
@@ -677,7 +682,8 @@ private fun ModeBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ModeBarItem(
-                    imageRes = R.drawable.poster_mode,
+                    icon = Icons.Default.Image,
+                    label = "Poster",
                     selected = selectedMode == MapMode.POSTER,
                     onClick = {
                         onModeSelected(MapMode.POSTER)
@@ -686,7 +692,8 @@ private fun ModeBar(
                 )
 
                 ModeBarItem(
-                    imageRes = R.drawable.home_mode,
+                    icon = Icons.Default.Home,
+                    label = "Home",
                     selected = selectedMode == MapMode.HOME,
                     onClick = {
                         onModeSelected(MapMode.HOME)
@@ -695,7 +702,8 @@ private fun ModeBar(
                 )
 
                 ModeBarItem(
-                    imageRes = R.drawable.event_mode,
+                    icon = Icons.Default.Event,
+                    label = "Events",
                     selected = selectedMode == MapMode.EVENT,
                     onClick = {
                         onModeSelected(MapMode.EVENT)
@@ -704,7 +712,8 @@ private fun ModeBar(
                 )
 
                 ModeBarItem(
-                    imageRes = R.drawable.shop_mode,
+                    icon = Icons.Default.Storefront,
+                    label = "Shop",
                     selected = selectedMode == MapMode.SHOP,
                     onClick = {
                         onModeSelected(MapMode.SHOP)
@@ -718,51 +727,44 @@ private fun ModeBar(
 
 @Composable
 private fun ModeBarItem(
-    imageRes: Int,
+    icon: ImageVector,
+    label: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (selected) 1.02f else 1f, // changed: very little zoom
-        animationSpec = MapMotion.springSoft(),
-        label = "mode_bar_item_scale"
-    )
-
     Box(
         modifier = modifier
             .fillMaxHeight()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(percent = 50))
+            .background(
+                if (selected) OrangeLight else Color.Transparent
+            )
             .clickable {
                 onClick()
             },
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(
-                    if (selected) 46.dp else 42.dp // changed: selected circle not too big
-                )
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .clip(CircleShape)
-                .background(
-                    if (selected) {
-                        OrangePrimary.copy(alpha = 0.96f)
-                    } else {
-                        Color.Transparent
-                    }
-                ),
-            contentAlignment = Alignment.Center
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.padding(horizontal = 10.dp)
         ) {
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = null,
-                modifier = Modifier.size(
-                    if (selected) 31.dp else 28.dp // changed: default icon smaller
-                ),
-                contentScale = ContentScale.Fit
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (selected) OrangePrimary else TextDark,
+                modifier = Modifier.size(20.dp)
+            )
+
+            Text(
+                text = label,
+                color = if (selected) OrangePrimary else TextDark,
+                fontSize = 12.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+                softWrap = false
             )
         }
     }
