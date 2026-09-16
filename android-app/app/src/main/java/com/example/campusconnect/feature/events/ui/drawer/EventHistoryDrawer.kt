@@ -1,5 +1,7 @@
 package com.example.campusconnect.feature.events.ui.drawer
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
@@ -60,8 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.campusconnect.feature.events.model.Event
-import com.example.campusconnect.feature.events.model.EventStatus
+import com.example.campusconnect.feature.events.model.EventHistoryItem
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
 import com.example.campusconnect.feature.events.model.ParticipantTeam
@@ -89,11 +90,14 @@ private val BronzeColor = Color(0xFFBF8651)
  * Tabs: Live | Past
  * Past events → expandable medal section per event with award / view logic.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun EventHistoryDrawer(
     isOpen: Boolean,
     onToggle: () -> Unit,
-    events: List<Event>,
+    liveEvents: List<EventHistoryItem>,
+    upcomingEvents: List<EventHistoryItem>,
+    pastEvents: List<EventHistoryItem>,
     medals: List<MedalAward>,
     teams: List<ParticipantTeam>,
     soloParticipants: List<SoloParticipant>,
@@ -103,12 +107,7 @@ fun EventHistoryDrawer(
     onRemoveMedal: (Int, MedalType) -> Unit,
 ) {
 
-
-    // Derived directly from the passed-in list so create/delete updates are instant
-    val liveEvents = remember(events) { events.filter { it.status == EventStatus.LIVE } }
-    val pastEvents = remember(events) { events.filter { it.status == EventStatus.PAST } }
-
-    var selectedTab by remember { mutableStateOf(0) }  // 0=Live, 1=Past
+    var selectedTab by remember { mutableStateOf(0) }  // 0=Live, 1=Upcoming, 2=Past
 
     // Which past event is expanded for medal awarding
     var expandedEventId by remember { mutableStateOf<Int?>(null) }
@@ -164,7 +163,7 @@ fun EventHistoryDrawer(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                "Event History",
+                                "Your Events",
                                 fontSize   = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color      = TextPrimary
@@ -182,16 +181,24 @@ fun EventHistoryDrawer(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             TabChip(
-                                label    = "Live  ${liveEvents.size}",
+                                label = "Live - ${liveEvents.size}",
                                 selected = selectedTab == 0,
-                                color    = Orange,
-                                onClick  = { selectedTab = 0 }
+                                color = Orange,
+                                onClick = { selectedTab = 0 }
                             )
+
                             TabChip(
-                                label    = "Past  ${pastEvents.size}",
+                                label = "Upcoming - ${upcomingEvents.size}",
                                 selected = selectedTab == 1,
-                                color    = Orange,
-                                onClick  = { selectedTab = 1 }
+                                color = Orange,
+                                onClick = { selectedTab = 1 }
+                            )
+
+                            TabChip(
+                                label = "Past - ${pastEvents.size}",
+                                selected = selectedTab == 2,
+                                color = Orange,
+                                onClick = { selectedTab = 2 }
                             )
                         }
 
@@ -204,22 +211,42 @@ fun EventHistoryDrawer(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             if (selectedTab == 0) {
-                                // LIVE tab
+
+                                // LIVE
                                 if (liveEvents.isEmpty()) {
-                                    item(key = "live_empty") { EmptyState("No live events right now") }
+                                    item(key = "live_empty") {
+                                        EmptyState("No live events right now")
+                                    }
                                 } else {
                                     items(liveEvents, key = { "live_${it.id}" }) { event ->
                                         LiveEventCard(event)
                                     }
                                 }
+
+                            } else if (selectedTab == 1) {
+
+                                // UPCOMING
+                                if (upcomingEvents.isEmpty()) {
+                                    item(key = "upcoming_empty") {
+                                        EmptyState("No upcoming events")
+                                    }
+                                } else {
+                                    items(upcomingEvents, key = { "upcoming_${it.id}" }) { event ->
+                                        UpcomingEventCard(event)
+                                    }
+                                }
+
                             } else {
-                                // PAST tab
+
+                                // PAST
                                 if (pastEvents.isEmpty()) {
-                                    item(key = "past_empty") { EmptyState("No past events") }
+                                    item(key = "past_empty") {
+                                        EmptyState("No past events")
+                                    }
                                 } else {
                                     items(pastEvents, key = { "past_${it.id}" }) { event ->
                                         val isExpanded = expandedEventId == event.id
-                                        // read medalVersion so card recomposes on award
+
                                         LaunchedEffect(event.id) {
                                             onLoadMedals(event.id)
                                         }
@@ -227,12 +254,12 @@ fun EventHistoryDrawer(
                                         val awards = medals.filter {
                                             it.eventId == event.id
                                         }
+
                                         PastEventCard(
-                                            event      = event,
-                                            awards     = awards,
+                                            event = event,
+                                            awards = awards,
                                             isExpanded = isExpanded,
                                             onToggle = {
-
                                                 if (!isExpanded) {
                                                     onLoadParticipants(event.id)
                                                 }
@@ -240,26 +267,25 @@ fun EventHistoryDrawer(
                                                 expandedEventId =
                                                     if (isExpanded) null else event.id
                                             },
-                                            onAward    = { medalType ->
+                                            onAward = { medalType ->
                                                 val allRecipients = buildRecipients(
                                                     teams,
                                                     soloParticipants
                                                 )
-                                                // Exclude anyone already holding a medal
-                                                // in this event (regardless of which medal type)
+
                                                 val alreadyAwardedIds = awards.map {
                                                     Pair(it.recipientId, it.isTeam)
                                                 }.toSet()
+
                                                 val available = allRecipients.filter {
                                                     Pair(it.id, it.isTeam) !in alreadyAwardedIds
                                                 }
-                                                awardingMedal = Triple(event.id, medalType, available)
+
+                                                awardingMedal =
+                                                    Triple(event.id, medalType, available)
                                             },
                                             onRemove = { medalType ->
-                                                onRemoveMedal(
-                                                    event.id,
-                                                    medalType
-                                                )
+                                                onRemoveMedal(event.id, medalType)
                                             }
                                         )
                                     }
@@ -302,8 +328,9 @@ fun EventHistoryDrawer(
 
 // ─── LiveEventCard ────────────────────────────────────────────────────────────
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun LiveEventCard(event: Event) {
+private fun LiveEventCard(event: EventHistoryItem){
     Card(
         shape     = RoundedCornerShape(14.dp),
         colors    = CardDefaults.cardColors(containerColor = CardBg),
@@ -333,11 +360,30 @@ private fun LiveEventCard(event: Event) {
                     maxLines   = 1,
                     overflow   = TextOverflow.Ellipsis
                 )
-                Text(
-                    "${event.date}  ·  ${event.venue}",
-                    fontSize = 11.sp,
-                    color    = GreyText
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Text(
+                        text = formatEventDate(event.startTime),
+                        fontSize = 11.sp,
+                        color = GreyText
+                    )
+
+                    Text(
+                        text = "•",
+                        fontSize = 15.sp,
+                        color = GreyText
+                    )
+
+                    Text(
+                        text = event.venue,
+                        fontSize = 11.sp,
+                        color = GreyText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
             Box(
                 modifier = Modifier
@@ -352,9 +398,10 @@ private fun LiveEventCard(event: Event) {
 
 // ─── PastEventCard ────────────────────────────────────────────────────────────
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun PastEventCard(
-    event      : Event,
+    event      : EventHistoryItem,
     awards     : List<MedalAward>,
     isExpanded : Boolean,
     onToggle   : () -> Unit,
@@ -394,11 +441,30 @@ private fun PastEventCard(
                         maxLines   = 1,
                         overflow   = TextOverflow.Ellipsis
                     )
-                    Text(
-                        "${event.date}  ·  ${event.venue}",
-                        fontSize = 11.sp,
-                        color    = GreyText
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Text(
+                            text = formatEventDate(event.startTime),
+                            fontSize = 11.sp,
+                            color = GreyText
+                        )
+
+                        Text(
+                            text = "•",
+                            fontSize = 15.sp,
+                            color = GreyText
+                        )
+
+                        Text(
+                            text = event.venue,
+                            fontSize = 11.sp,
+                            color = GreyText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
                 // Medal count badge if any awarded
@@ -450,6 +516,93 @@ private fun PastEventCard(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun UpcomingEventCard(event: EventHistoryItem) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = CardBg
+        ),
+        elevation = CardDefaults.cardElevation(0.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+
+            // Upcoming dot
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(Orange)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = event.title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Text(
+                        text = formatEventDate(event.startTime),
+                        fontSize = 11.sp,
+                        color = GreyText
+                    )
+
+                    Text(
+                        text = "•",
+                        fontSize = 15.sp,
+                        color = GreyText
+                    )
+
+                    Text(
+                        text = event.venue,
+                        fontSize = 11.sp,
+                        color = GreyText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .background(
+                        OrangeLight,
+                        RoundedCornerShape(8.dp)
+                    )
+                    .padding(
+                        horizontal = 8.dp,
+                        vertical = 3.dp
+                    )
+            ) {
+                Text(
+                    "UPCOMING",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Orange
+                )
             }
         }
     }
@@ -870,4 +1023,20 @@ private fun buildRecipients(
         )
     }
     return teamRecipients + soloRecipients
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+private fun formatEventDate(dateTime: String): String {
+    return try {
+        java.time.Instant.parse(dateTime)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDate()
+            .format(
+                java.time.format.DateTimeFormatter.ofPattern(
+                    "dd-MMM-yyyy"
+                )
+            )
+    } catch (e: Exception) {
+        dateTime.substringBefore("T")
+    }
 }

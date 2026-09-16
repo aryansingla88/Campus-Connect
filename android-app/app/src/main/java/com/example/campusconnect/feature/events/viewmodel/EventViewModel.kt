@@ -11,6 +11,7 @@ import com.example.campusconnect.feature.events.data.remote.request.UpdateEventR
 import com.example.campusconnect.feature.events.data.repo.ApiEventRepository
 import com.example.campusconnect.feature.events.data.repo.EventRepository
 import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.EventHistoryItem
 import com.example.campusconnect.feature.events.model.EventUiState
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
@@ -57,6 +58,24 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
+
+    private val _liveHistory =
+        MutableStateFlow<List<EventHistoryItem>>(emptyList())
+
+    val liveHistory: StateFlow<List<EventHistoryItem>> =
+        _liveHistory
+
+    private val _upcomingHistory =
+        MutableStateFlow<List<EventHistoryItem>>(emptyList())
+
+    val upcomingHistory: StateFlow<List<EventHistoryItem>> =
+        _upcomingHistory
+
+    private val _pastHistory =
+        MutableStateFlow<List<EventHistoryItem>>(emptyList())
+
+    val pastHistory: StateFlow<List<EventHistoryItem>> =
+        _pastHistory
 
     private val _teams =
         MutableStateFlow<List<ParticipantTeam>>(emptyList())
@@ -172,6 +191,66 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
             _accessUsers.value =
                 repository.getUsersWithAccess(eventId)
                     .getOrDefault(emptyList())
+        }
+    }
+
+    fun loadEventHistory() {
+        viewModelScope.launch {
+
+            val result = repository.getEventHistory()
+
+            result.onSuccess { response ->
+
+                _liveHistory.value = response.live.map {
+                    EventHistoryItem(
+                        id = it.id,
+                        title = it.title,
+                        venue = it.venue,
+                        startTime = it.startTime,
+                        endTime = it.endTime,
+                        posterUrl = it.posterUrl
+                    )
+                }
+
+                _upcomingHistory.value = response.upcoming.map {
+                    EventHistoryItem(
+                        id = it.id,
+                        title = it.title,
+                        venue = it.venue,
+                        startTime = it.startTime,
+                        endTime = it.endTime,
+                        posterUrl = it.posterUrl
+                    )
+                }
+
+                _pastHistory.value = response.past.map {
+                    EventHistoryItem(
+                        id = it.id,
+                        title = it.title,
+                        venue = it.venue,
+                        startTime = it.startTime,
+                        endTime = it.endTime,
+                        posterUrl = it.posterUrl
+                    )
+                }
+
+                println(
+                    "EVENT HISTORY API SUCCESS: " +
+                            "live=${response.live.size}, " +
+                            "upcoming=${response.upcoming.size}, " +
+                            "past=${response.past.size}"
+                )
+
+            }.onFailure { error ->
+
+                println(
+                    "EVENT HISTORY API ERROR: ${error.message}"
+                )
+
+                _liveHistory.value = emptyList()
+                _upcomingHistory.value = emptyList()
+                _pastHistory.value = emptyList()
+            }
         }
     }
 

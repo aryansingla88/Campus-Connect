@@ -5,6 +5,7 @@ import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRe
 import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
 import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
+import com.example.campusconnect.feature.events.data.remote.response.EventHistoryResponse
 import com.example.campusconnect.feature.events.data.remote.response.EventResponse
 import com.example.campusconnect.feature.events.data.remote.response.MedalAwardResponse
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
@@ -67,6 +68,9 @@ interface EventsApi {
     suspend fun deleteEvent(
         @Path("eventId") eventId: Int
     ): Response<ApiResponse<Unit>>
+
+    @GET("events/history")
+    suspend fun getEventHistory(): Response<ApiResponse<EventHistoryResponse>>
 
 
     // Registration ----------------------------------------------------------

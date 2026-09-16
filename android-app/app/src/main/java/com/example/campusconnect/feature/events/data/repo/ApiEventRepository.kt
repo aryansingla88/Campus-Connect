@@ -2,9 +2,12 @@ package com.example.campusconnect.feature.events.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.events.data.remote.EventsApi
+import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
+import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
+import com.example.campusconnect.feature.events.data.remote.response.EventHistoryResponse
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
 import com.example.campusconnect.feature.events.mapper.toEvent
 import com.example.campusconnect.feature.events.model.Event
@@ -220,6 +223,32 @@ class ApiEventRepository(
         }
     }
 
+    override suspend fun getEventHistory(): Result<EventHistoryResponse> {
+        return try {
+            val response = api.getEventHistory()
+
+            if (response.isSuccessful) {
+                val data = response.body()?.data
+
+                if (data != null) {
+                    Result.success(data)
+                } else {
+                    Result.failure(
+                        Exception("Event history response is empty")
+                    )
+                }
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to get event history: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 
     override suspend fun getRegistration(
         eventId: Int
@@ -255,16 +284,106 @@ class ApiEventRepository(
 
     override suspend fun getMedalsForEvent(
         eventId: Int
-    ): Result<List<MedalAward>> = TODO()
+    ): Result<List<MedalAward>> {
+        return try {
+            val response = api.getMedalsForEvent(eventId)
+
+            if (response.isSuccessful) {
+                Result.success(
+                    response.body()?.data?.map {
+                        MedalAward(
+                            eventId = it.eventId,
+                            medalType = MedalType.valueOf(it.medalType),
+                            recipientId = it.recipientId,
+                            recipientName = it.recipientName,
+                            recipientSubtitle = it.recipientSubtitle,
+                            isTeam = it.isTeam
+                        )
+                    } ?: emptyList()
+                )
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to get medals: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun awardMedal(
         award: MedalAward
-    ): Result<MedalAward> = TODO()
+    ): Result<MedalAward> {
+        return try {
+            val response = api.awardMedal(
+                eventId = award.eventId,
+                body = AwardMedalRequest(
+                    medalType = award.medalType.name,
+                    recipientId = award.recipientId,
+                    recipientName = award.recipientName,
+                    recipientSubtitle = award.recipientSubtitle,
+                    isTeam = award.isTeam
+                )
+            )
+
+            if (response.isSuccessful) {
+                val data = response.body()?.data
+
+                if (data != null) {
+                    Result.success(
+                        MedalAward(
+                            eventId = data.eventId,
+                            medalType = MedalType.valueOf(data.medalType),
+                            recipientId = data.recipientId,
+                            recipientName = data.recipientName,
+                            recipientSubtitle = data.recipientSubtitle,
+                            isTeam = data.isTeam
+                        )
+                    )
+                } else {
+                    Result.failure(
+                        Exception("Award medal response is empty")
+                    )
+                }
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to award medal: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun removeMedal(
         eventId: Int,
         medalType: MedalType
-    ): Result<Unit> = TODO()
+    ): Result<Unit> {
+        return try {
+            val response = api.removeMedal(
+                eventId = eventId,
+                body = RemoveMedalRequest(
+                    medalType = medalType.name
+                )
+            )
+
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to remove medal: ${response.code()}"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun getUsersWithAccess(
         eventId: Int

@@ -78,6 +78,9 @@ fun EventScreen(
 
     val state              by viewModel.uiState.collectAsState()
     val events             by viewModel.events.collectAsState()
+    val liveHistory by viewModel.liveHistory.collectAsState()
+    val upcomingHistory by viewModel.upcomingHistory.collectAsState()
+    val pastHistory by viewModel.pastHistory.collectAsState()
     val activeIndex        by viewModel.activeEventIndex.collectAsState()
     val showPreview        by viewModel.showPreview.collectAsState()
     val isEditMode         by viewModel.isEditMode.collectAsState()
@@ -272,11 +275,14 @@ fun EventScreen(
                             shape = RoundedCornerShape(14.dp)
                         )
                         .clickable(
-                            indication        = null,
+                            indication = null,
                             interactionSource = remember {
                                 MutableInteractionSource()
                             }
-                        ) { showHistoryDrawer = true },
+                        ) {
+                            viewModel.loadEventHistory()
+                            showHistoryDrawer = true
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -387,7 +393,9 @@ fun EventScreen(
                 EventHistoryDrawer(
                     isOpen = showHistoryDrawer,
                     onToggle = { showHistoryDrawer = !showHistoryDrawer },
-                    events = events,
+                    liveEvents = liveHistory,
+                    upcomingEvents = upcomingHistory,
+                    pastEvents = pastHistory,
 
                     medals = viewModel.medals.collectAsState().value,
 
