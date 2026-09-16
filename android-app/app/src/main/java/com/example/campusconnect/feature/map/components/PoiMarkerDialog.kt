@@ -1,39 +1,44 @@
 package com.example.campusconnect.feature.map.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.SportsTennis
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.map.model.MapPoiInfo
+import kotlinx.coroutines.launch
 
 private val OrangePrimary = Color(0xFFFF5F00)
-private val TextDark = Color(0xFF202020)
+private val ChipBackground = Color(0xFFFFE3D1)
+private val TextDark = Color(0xFF1A1A1A)
 private val TextMuted = Color(0xFF8A929A)
-private val BorderGrey = Color(0xFFB4BAC0)
-private val HandleGrey = Color(0xFFB7B7B7)
+private val HandleGrey = Color(0xFFD6D6D6)
 
-
+// How far (in dp) the sheet must be dragged down before it counts as a "close" swipe.
+private val DismissDragThreshold = 110.dp
 
 @Composable
 fun PoiMarkerDialog(
@@ -42,6 +47,11 @@ fun PoiMarkerDialog(
     onNavigateClick: () -> Unit = {},
     onCloseClick: () -> Unit = {}
 ) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val scope = rememberCoroutineScope()
+    val offsetY = remember { Animatable(0f) }
+    val dismissThresholdPx = with(density) { DismissDragThreshold.toPx() }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -56,7 +66,30 @@ fun PoiMarkerDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(285.dp),
+                .offset { androidx.compose.ui.unit.IntOffset(0, offsetY.value.toInt()) }
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            val newOffset = (offsetY.value + dragAmount).coerceAtLeast(0f)
+                            scope.launch { offsetY.snapTo(newOffset) }
+                        },
+                        onDragEnd = {
+                            scope.launch {
+                                if (offsetY.value > dismissThresholdPx) {
+                                    // Finish the slide-down off screen, then notify caller.
+                                    offsetY.animateTo(dismissThresholdPx * 4f)
+                                    onCloseClick()
+                                } else {
+                                    offsetY.animateTo(0f)
+                                }
+                            }
+                        },
+                        onDragCancel = {
+                            scope.launch { offsetY.animateTo(0f) }
+                        }
+                    )
+                },
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White
@@ -67,24 +100,26 @@ fun PoiMarkerDialog(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(
                         start = 26.dp,
-                        end = 24.dp,
+                        end = 26.dp,
                         top = 8.dp,
-                        bottom = 16.dp
+                        bottom = 24.dp
                     )
             ) {
                 PoiTopHandle()
 
+                Spacer(modifier = Modifier.height(20.dp))
+
+                PoiHeader(title = poi.name)
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                PoiCategoryChip(category = poi.category)
+
                 Spacer(modifier = Modifier.height(16.dp))
 
-                PoiHeader(
-                    title = poi.name,
-                    category = poi.category // Modified: Replaced type with category
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
                 val displayDescription = if (poi.description.isNullOrBlank()) {
                     "Campus Point of Interest located on campus."
                 } else {
@@ -92,18 +127,18 @@ fun PoiMarkerDialog(
                 }
                 PoiDescription(
                     description = limitWords(
-                       // text = poi.description.orEmpty(), // Modified: Handled nullable description
                         text = displayDescription,
                         wordLimit = 24
-                    ),
-                    modifier = Modifier.weight(1f)
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                PoiActions(
-                    onNavigateClick = onNavigateClick,
-                    onCloseClick = onCloseClick
+                NavigateButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    onClick = onNavigateClick
                 )
             }
         }
@@ -131,7 +166,7 @@ private fun PoiTopHandle() {
     ) {
         Box(
             modifier = Modifier
-                .width(64.dp)
+                .width(56.dp)
                 .height(4.dp)
                 .clip(RoundedCornerShape(50))
                 .background(HandleGrey)
@@ -140,36 +175,40 @@ private fun PoiTopHandle() {
 }
 
 @Composable
-private fun PoiHeader(
-    title: String,
-    category: String
-) {
+private fun PoiHeader(title: String) {
+    Text(
+        text = title,
+        color = TextDark,
+        fontSize = 30.sp,
+        lineHeight = 34.sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun PoiCategoryChip(category: String) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(ChipBackground)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            color = TextDark,
-            fontSize = 30.sp,
-            lineHeight = 32.sp,
-            fontWeight = FontWeight.Normal,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+        Icon(
+            imageVector = Icons.Default.SportsTennis,
+            contentDescription = null,
+            tint = OrangePrimary,
+            modifier = Modifier.size(18.dp)
         )
-
-        Spacer(modifier = Modifier.width(12.dp))
-
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text = "Type:${category.lowercase()}", // Uses category while keeping UI text format
-            color = TextMuted,
-            fontSize = 17.sp,
-            lineHeight = 19.sp,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            modifier = Modifier.padding(top = 3.dp)
+            text = category.replaceFirstChar { it.uppercase() },
+            color = OrangePrimary,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -182,42 +221,13 @@ private fun PoiDescription(
     Text(
         text = description,
         color = TextMuted,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
-        maxLines = 4,
-        overflow = TextOverflow.Clip,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+        fontWeight = FontWeight.Normal,
+        maxLines = 3,
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier.fillMaxWidth()
     )
-}
-
-@Composable
-private fun PoiActions(
-    onNavigateClick: () -> Unit,
-    onCloseClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(54.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        NavigateButton(
-            modifier = Modifier
-                .width(220.dp)
-                .height(50.dp),
-            onClick = onNavigateClick
-        )
-
-        Spacer(modifier = Modifier.width(34.dp))
-
-        CloseButton(
-            modifier = Modifier.size(46.dp),
-            onClick = onCloseClick
-        )
-    }
 }
 
 @Composable
@@ -228,75 +238,31 @@ private fun NavigateButton(
     Box(
         modifier = modifier
             .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(14.dp)
+                elevation = 4.dp,
+                shape = RoundedCornerShape(50)
             )
-            .clip(RoundedCornerShape(14.dp))
-            .border(
-                width = 1.dp,
-                color = BorderGrey,
-                shape = RoundedCornerShape(14.dp)
-            )
-            .background(Color.White)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 26.dp, end = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Navigate",
-                color = OrangePrimary,
-                fontSize = 22.sp,
-                lineHeight = 24.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                modifier = Modifier.weight(1f)
-            )
-
-            Icon(
-                imageVector = Icons.Default.NearMe,
-                contentDescription = "Navigate",
-                tint = OrangePrimary,
-                modifier = Modifier
-                    .size(28.dp)
-                    .graphicsLayer {
-                        rotationZ = -12f
-                    }
-            )
-        }
-    }
-}
-
-@Composable
-private fun CloseButton(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .shadow(
-                elevation = 6.dp,
-                shape = CircleShape
-            )
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(50))
             .background(OrangePrimary)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier.size(24.dp),
-            contentAlignment = Alignment.Center
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Close",
+                imageVector = Icons.Default.NearMe,
+                contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Navigate",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
             )
         }
     }
