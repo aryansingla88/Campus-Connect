@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
+import com.example.campusconnect.feature.events.data.remote.response.MedalCandidateResponse
 import com.example.campusconnect.feature.events.data.repo.ApiEventRepository
 import com.example.campusconnect.feature.events.data.repo.EventRepository
 import com.example.campusconnect.feature.events.model.Event
@@ -88,6 +89,18 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     private val _participantsCount =
         MutableStateFlow(0)
     val participantsCount: StateFlow<Int> = _participantsCount
+
+    private val _medalCandidates =
+        MutableStateFlow<List<MedalCandidateResponse>>(emptyList())
+
+    val medalCandidates: StateFlow<List<MedalCandidateResponse>> =
+        _medalCandidates
+
+    private val _medals =
+        MutableStateFlow<List<MedalAward>>(emptyList())
+
+    val medals: StateFlow<List<MedalAward>> =
+        _medals
 
     fun loadParticipants(eventId: Int) {
         viewModelScope.launch {
@@ -320,15 +333,41 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private val _medals =
-        MutableStateFlow<List<MedalAward>>(emptyList())
+    fun loadMedalCandidates(eventId: Int) {
+        viewModelScope.launch {
 
-    val medals: StateFlow<List<MedalAward>> =
-        _medals
+            val result =
+                repository.getEligibleParticipantsForMedal(eventId)
+
+            result.onSuccess { candidates ->
+                _medalCandidates.value = candidates
+            }.onFailure { error ->
+                println(
+                    "MEDAL CANDIDATES API ERROR: ${error.message}"
+                )
+                _medalCandidates.value = emptyList()
+            }
+        }
+    }
+
+    fun awardMedal(award: MedalAward) {
+        viewModelScope.launch {
+            repository.awardMedal(award)
+            loadMedals(award.eventId)
+            loadMedalCandidates(award.eventId)
+        }
+    }
+
+    fun removeMedal(eventId: Int, medalType: MedalType) {
+        viewModelScope.launch {
+            repository.removeMedal(eventId, medalType)
+            loadMedals(eventId)
+            loadMedalCandidates(eventId)
+        }
+    }
 
     fun loadMedals(eventId: Int) {
         viewModelScope.launch {
-
             val eventMedals =
                 repository.getMedalsForEvent(eventId)
                     .getOrDefault(emptyList())
@@ -337,32 +376,6 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                 _medals.value
                     .filter { it.eventId != eventId } +
                         eventMedals
-        }
-    }
-
-    fun awardMedal(
-        award: MedalAward
-    ) {
-        viewModelScope.launch {
-
-            repository.awardMedal(award)
-
-            loadMedals(award.eventId)
-        }
-    }
-
-    fun removeMedal(
-        eventId: Int,
-        medalType: MedalType
-    ) {
-        viewModelScope.launch {
-
-            repository.removeMedal(
-                eventId,
-                medalType
-            )
-
-            loadMedals(eventId)
         }
     }
 

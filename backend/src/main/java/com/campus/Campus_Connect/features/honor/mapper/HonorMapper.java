@@ -73,7 +73,6 @@ public class HonorMapper {
         return MedalRecipientResponse.builder()
                 .honorId(honor.getId())
                 .name(display.getName())
-                .subtitle(display.getSubtitle())
                 .team(false)
                 .build();
     }
@@ -97,12 +96,6 @@ public class HonorMapper {
         return MedalRecipientResponse.builder()
                 .honorId(honor.getId())
                 .name(team.getTeamName())
-                .subtitle(
-                        "Led by "
-                                + team.getLeader()
-                                .getProfile()
-                                .getFullName()
-                )
                 .team(true)
                 .build();
     }

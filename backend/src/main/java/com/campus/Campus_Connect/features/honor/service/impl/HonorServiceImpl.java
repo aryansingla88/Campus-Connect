@@ -332,9 +332,9 @@ public class HonorServiceImpl implements HonorService {
             List<MedalCandidateResponse> response
     ) {
 
-        if (awardedUserIds.contains(
-                registration.getUser().getId()
-        )) {
+        Integer userId = registration.getUser().getId();
+
+        if (awardedUserIds.contains(userId)) {
             return;
         }
 
@@ -347,7 +347,16 @@ public class HonorServiceImpl implements HonorService {
                 MedalCandidateResponse.builder()
                         .registrationId(registration.getId())
                         .name(display.getName())
-                        .subtitle(display.getSubtitle())
+                        .courseId(
+                                registration.getUser()
+                                        .getProfile()
+                                        .getCourseId()
+                        )
+                        .admissionYear(
+                                registration.getUser()
+                                        .getProfile()
+                                        .getAdmissionYear()
+                        )
                         .avatarUrl(display.getAvatarUrl())
                         .team(false)
                         .build()
@@ -363,29 +372,35 @@ public class HonorServiceImpl implements HonorService {
 
         EventTeam team = registration.getTeam();
 
-        if (!processedTeams.add(team.getId())) {
+        if (team == null || team.getId() == null) {
             return;
         }
 
-        for (EventRegistration member : team.getRegistrations()) {
+        if (processedTeams.contains(team.getId())) {
+            return;
+        }
 
-            if (awardedUserIds.contains(
-                    member.getUser().getId()
-            )) {
-                return;
-            }
+        processedTeams.add(team.getId());
+
+        boolean alreadyAwarded =
+                team.getRegistrations()
+                        .stream()
+                        .anyMatch(teamRegistration ->
+                                awardedUserIds.contains(
+                                        teamRegistration.getUser().getId()
+                                )
+                        );
+
+        if (alreadyAwarded) {
+            return;
         }
 
         response.add(
                 MedalCandidateResponse.builder()
                         .registrationId(registration.getId())
                         .name(team.getTeamName())
-                        .subtitle(
-                                "Led by "
-                                        + team.getLeader()
-                                        .getProfile()
-                                        .getFullName()
-                        )
+                        .courseId(null)
+                        .admissionYear(null)
                         .avatarUrl(null)
                         .team(true)
                         .build()

@@ -4,10 +4,10 @@ import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
 import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
-import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
 import com.example.campusconnect.feature.events.data.remote.response.EventHistoryResponse
 import com.example.campusconnect.feature.events.data.remote.response.EventResponse
-import com.example.campusconnect.feature.events.data.remote.response.MedalAwardResponse
+import com.example.campusconnect.feature.events.data.remote.response.MedalCandidateResponse
+import com.example.campusconnect.feature.events.data.remote.response.MedalsResponse
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
 import com.example.campusconnect.feature.events.data.remote.response.RegistrationResponse
 import com.example.campusconnect.feature.events.data.remote.response.UserAccessResponse
@@ -16,7 +16,6 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.HTTP
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -100,22 +99,23 @@ interface EventsApi {
     @GET("events/{eventId}/medals")
     suspend fun getMedalsForEvent(
         @Path("eventId") eventId: Int
-    ): Response<ApiResponse<List<MedalAwardResponse>>>
+    ): Response<ApiResponse<MedalsResponse>>
+
+    @GET("events/{eventId}/participants/eligible-for-medal")
+    suspend fun getEligibleParticipantsForMedal(
+        @Path("eventId") eventId: Int
+    ): Response<ApiResponse<List<MedalCandidateResponse>>>
 
     @POST("events/{eventId}/medals")
     suspend fun awardMedal(
         @Path("eventId") eventId: Int,
         @Body body: AwardMedalRequest
-    ): Response<ApiResponse<MedalAwardResponse>>
+    ): Response<ApiResponse<Unit>>
 
-    @HTTP(
-        method = "DELETE",
-        path = "events/{eventId}/medals",
-        hasBody = true
-    )
+    @DELETE("events/{eventId}/medals/{honorId}")
     suspend fun removeMedal(
         @Path("eventId") eventId: Int,
-        @Body body: RemoveMedalRequest
+        @Path("honorId") honorId: Int
     ): Response<ApiResponse<Unit>>
 
 

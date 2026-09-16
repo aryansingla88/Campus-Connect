@@ -81,6 +81,7 @@ fun EventScreen(
     val liveHistory by viewModel.liveHistory.collectAsState()
     val upcomingHistory by viewModel.upcomingHistory.collectAsState()
     val pastHistory by viewModel.pastHistory.collectAsState()
+    val medalCandidates by viewModel.medalCandidates.collectAsState()
     val activeIndex        by viewModel.activeEventIndex.collectAsState()
     val showPreview        by viewModel.showPreview.collectAsState()
     val isEditMode         by viewModel.isEditMode.collectAsState()
@@ -393,6 +394,7 @@ fun EventScreen(
                 EventHistoryDrawer(
                     isOpen = showHistoryDrawer,
                     onToggle = { showHistoryDrawer = !showHistoryDrawer },
+
                     liveEvents = liveHistory,
                     upcomingEvents = upcomingHistory,
                     pastEvents = pastHistory,
@@ -404,12 +406,19 @@ fun EventScreen(
                     soloParticipants =
                         viewModel.soloParticipants.collectAsState().value,
 
-                    onLoadMedals = {
-                        viewModel.loadMedals(it)
+                    medalCandidates =
+                        medalCandidates,
+
+                    onLoadMedals = { eventId: Int ->
+                        viewModel.loadMedals(eventId)
                     },
 
                     onLoadParticipants = {
                         viewModel.loadParticipants(it)
+                    },
+
+                    onLoadMedalCandidates = {
+                        viewModel.loadMedalCandidates(it)
                     },
 
                     onAwardMedal = { award ->
