@@ -153,34 +153,21 @@ fun MapScreen(
                 onSettingsClick = {}
             )
 
+            // AFTER (Positioned near the top-right, just below the top search bar)
             RightSideTabs(
                 showFilters = showFilters,
                 selectedSidePanel = selectedSidePanel,
-                onFiltersClick = {
-                    showFilters = !showFilters
-                },
+                onFiltersClick = { showFilters = !showFilters },
                 onBoardClick = {
-                    selectedSidePanel =
-                        if (selectedSidePanel == SidePanel.CHAT) {
-                            SidePanel.NONE
-                        } else {
-                            SidePanel.CHAT
-                        }
+                    selectedSidePanel = if (selectedSidePanel == SidePanel.CHAT) SidePanel.NONE else SidePanel.CHAT
                 },
                 onPostsClick = {
-                    selectedSidePanel =
-                        if (selectedSidePanel == SidePanel.PROFILE) {
-                            SidePanel.NONE
-                        } else {
-                            SidePanel.PROFILE
-                        }
+                    selectedSidePanel = if (selectedSidePanel == SidePanel.PROFILE) SidePanel.NONE else SidePanel.PROFILE
                 },
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .offset(
-                        x = 6.dp,
-                        y = 110.dp
-                    )
+                    .align(Alignment.TopEnd)
+                    .padding(top = 90.dp)
+                    .offset(x = 6.dp)
             )
 
             ModeBar(
@@ -248,7 +235,8 @@ fun MapScreen(
         }
 
         AnimatedVisibility(
-            visible = uiState.selectedMarker != null,
+            visible = uiState.selectedMarker != null &&
+                    uiState.selectedMarker?.type != MarkerType.EVENT,
             enter = markerCardEnter(),
             exit = markerCardExit()
         ) {
@@ -297,33 +285,10 @@ fun MapScreen(
                     }
 
                     MarkerType.EVENT -> {
-                        lastSelectedEvent?.let { eventInfo ->
-                            EventMarkerDialog(
-                                event = eventInfo,
-                                onDismiss = {
-                                    viewModel.clearSelection()
-                                },
-                                onNavigateClick = {
-                                    Log.d(
-                                        "MAP_EVENT",
-                                        "Navigate clicked: ${eventInfo.id}"
-                                    )
-                                },
-                                onRegisterClick = {
-
-                                    Log.d(
-                                        "MAP_EVENT",
-                                        "Register clicked: ${eventInfo.id}"
-                                    )
-
-                                    // TODO:
-                                    // Handle event.registrationType:
-                                    // NONE
-                                    // THROUGH_APP -> navigate to in-app registration form
-                                    // THROUGH_LINK -> open registrationLink
-                                }
-                            )
-                        }
+                        // Handled below via EventMarkerDialog, outside this
+                        // AnimatedVisibility — ModalBottomSheet is a Popup with
+                        // its own enter/exit animation, so it should not be
+                        // wrapped in another slide/scale AnimatedVisibility.
                     }
 
                     MarkerType.SHOP -> {
@@ -342,6 +307,36 @@ fun MapScreen(
                         }
                     }
                 }
+            }
+        }
+
+        if (uiState.selectedMarker?.type == MarkerType.EVENT) {
+            lastSelectedEvent?.let { eventInfo ->
+                EventMarkerDialog(
+                    event = eventInfo,
+                    onDismiss = {
+                        viewModel.clearSelection()
+                    },
+                    onNavigateClick = {
+                        Log.d(
+                            "MAP_EVENT",
+                            "Navigate clicked: ${eventInfo.id}"
+                        )
+                    },
+                    onRegisterClick = {
+
+                        Log.d(
+                            "MAP_EVENT",
+                            "Register clicked: ${eventInfo.id}"
+                        )
+
+                        // TODO:
+                        // Handle event.registrationType:
+                        // NONE
+                        // THROUGH_APP -> navigate to in-app registration form
+                        // THROUGH_LINK -> open registrationLink
+                    }
+                )
             }
         }
 
