@@ -35,6 +35,12 @@ private const val MAP_IMAGE_HEIGHT = 3000f
 private const val MIN_ZOOM = 2.1f
 private const val MAX_ZOOM = 5f
 
+// POI-only priority gating. Priority 4 = always visible, priority 3 shows
+// from mid zoom onward, priority 1-2 only show near max zoom. Values sit
+// inside the existing [MIN_ZOOM, MAX_ZOOM] range and can be tuned freely.
+private const val POI_ZOOM_MID_THRESHOLD = 2.3f
+private const val POI_ZOOM_HIGH_THRESHOLD = 4.2f
+
 @Composable
 fun MapView(
     modifier: Modifier = Modifier,
@@ -113,7 +119,24 @@ fun MapView(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val bounds = calculateImageBounds(size.width, size.height)
 
-            markers.forEach { marker ->
+            // POI-only zoom gating: priority 4 always renders, priority 3
+            // renders from mid zoom, priority 1-2 only render near max
+            // zoom. All other marker types are unaffected.
+            val renderMarkers = markers.filter { marker ->
+                marker.type != MarkerType.POI || isPoiVisibleAtZoom(marker.priority, scale)
+            }
+
+            // POI-only label collision avoidance: higher-priority (and
+            // selected) POI labels claim space first; a colliding label is
+            // hidden while its dot still renders.
+            val poiLabelVisibility = resolvePoiLabelVisibility(
+                poiMarkers = renderMarkers.filter { it.type == MarkerType.POI },
+                bounds = bounds,
+                scale = scale,
+                offset = offset
+            )
+
+            renderMarkers.forEach { marker ->
                 val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
                 val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
 
@@ -121,7 +144,8 @@ fun MapView(
                     marker = marker,
                     x = mapX * scale + offset.x,
                     y = mapY * scale + offset.y,
-                    zoom = scale
+                    zoom = scale,
+                    showPoiLabel = poiLabelVisibility[marker.id] ?: true
                 )
             }
         }
@@ -262,11 +286,113 @@ private fun clampOffsetSmooth(
     return Offset(finalX, finalY)
 }
 
+// --- POI-only zoom gating -------------------------------------------------
+
+private fun isPoiVisibleAtZoom(priority: Int, zoom: Float): Boolean {
+    return when (priority) {
+        4 -> true
+        3 -> zoom >= POI_ZOOM_MID_THRESHOLD
+        2, 1 -> zoom >= POI_ZOOM_HIGH_THRESHOLD
+        else -> true
+    }
+}
+
+// --- POI-only label collision avoidance -----------------------------------
+
+private fun projectMarkerToScreen(
+    marker: MarkerRenderData,
+    bounds: ImageBounds,
+    scale: Float,
+    offset: Offset
+): Offset {
+    val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
+    val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
+    return Offset(mapX * scale + offset.x, mapY * scale + offset.y)
+}
+
+private fun computeVisualRadius(marker: MarkerRenderData, zoom: Float): Float {
+    val zoomBoost = (zoom - 1f).coerceIn(0f, 2f) * 2.2f
+    return (marker.radius + zoomBoost).coerceIn(8f, 30f)
+}
+
+private data class LabelBounds(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float
+) {
+    fun intersects(other: LabelBounds): Boolean =
+        left < other.right && right > other.left &&
+                top < other.bottom && bottom > other.top
+}
+
+/**
+ * Decides, per POI marker id, whether its text label should render. The
+ * dot itself always renders regardless of this result — only the label is
+ * suppressed on collision. Higher priority (then selected, then
+ * highlighted) POIs claim label space first.
+ */
+private fun resolvePoiLabelVisibility(
+    poiMarkers: List<MarkerRenderData>,
+    bounds: ImageBounds,
+    scale: Float,
+    offset: Offset
+): Map<String, Boolean> {
+    if (poiMarkers.isEmpty()) return emptyMap()
+
+    val ordered = poiMarkers.sortedWith(
+        compareByDescending<MarkerRenderData> { it.priority }
+            .thenByDescending { it.isSelected }
+            .thenByDescending { it.isHighlighted }
+    )
+
+    val placedBoxes = mutableListOf<LabelBounds>()
+    val visibility = mutableMapOf<String, Boolean>()
+    val measurePaint = Paint()
+
+    for (marker in ordered) {
+        val screenPos = projectMarkerToScreen(marker, bounds, scale, offset)
+        val radius = computeVisualRadius(marker, scale)
+        val labelTextSize = if (marker.isHighlighted) 27f else 23f
+
+        measurePaint.textSize = labelTextSize
+        measurePaint.isFakeBoldText = marker.isHighlighted
+
+        val textWidth = measurePaint.measureText(marker.label)
+        val labelWidth = textWidth + 22f
+        val labelHeight = if (marker.isHighlighted) 30f else 26f
+
+        val labelLeft = screenPos.x + radius + 8f
+        val labelTop = screenPos.y - labelHeight / 2f
+
+        val box = LabelBounds(
+            left = labelLeft,
+            top = labelTop,
+            right = labelLeft + labelWidth,
+            bottom = labelTop + labelHeight
+        )
+
+        val collides = placedBoxes.any { it.intersects(box) }
+
+        if (!collides) {
+            placedBoxes += box
+            visibility[marker.id] = true
+        } else {
+            // Selected marker keeps its label even if it overlaps; every
+            // other loser just hides its text and keeps its dot.
+            visibility[marker.id] = marker.isSelected
+        }
+    }
+
+    return visibility
+}
+
 private fun DrawScope.drawMarker(
     marker: MarkerRenderData,
     x: Float,
     y: Float,
-    zoom: Float
+    zoom: Float,
+    showPoiLabel: Boolean = true
 ) {
     val zoomBoost = (zoom - 1f).coerceIn(0f, 2f) * 2.2f
     val visualRadius = (marker.radius + zoomBoost).coerceIn(8f, 30f)
@@ -280,7 +406,8 @@ private fun DrawScope.drawMarker(
                 x = x,
                 y = y,
                 radius = visualRadius,
-                labelTextSize = labelTextSize
+                labelTextSize = labelTextSize,
+                showLabel = showPoiLabel
             )
         }
 
@@ -362,7 +489,8 @@ private fun DrawScope.drawPoiMarker(
     x: Float,
     y: Float,
     radius: Float,
-    labelTextSize: Float
+    labelTextSize: Float,
+    showLabel: Boolean = true
 ) {
     val dotColor = if (marker.isHighlighted) {
         Color(0xFF00C853)
@@ -395,6 +523,8 @@ private fun DrawScope.drawPoiMarker(
         radius = radius,
         center = Offset(x, y)
     )
+
+    if (!showLabel) return
 
     val paint = Paint().apply {
         color = android.graphics.Color.WHITE
