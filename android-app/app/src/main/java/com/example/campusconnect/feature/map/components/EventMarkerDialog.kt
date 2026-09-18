@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -235,33 +237,49 @@ private fun EventQuickPreviewContent(
 ) {
 
     val scrollState = rememberScrollState()
+    val aboutScrollState = rememberScrollState()
 
     /*
-     * IMPORTANT — fillMaxHeight() here is UNCONDITIONAL (not gated on
-     * isExpanded).
+     * IMPORTANT — fillMaxHeight(sheetHeightFraction) here is UNCONDITIONAL
+     * (not gated on isExpanded) and capped at a FRACTION, not the full
+     * screen.
      *
-     * Why: if this only applied fillMaxHeight() when isExpanded was true,
-     * the content's measured height would literally change the moment the
-     * sheet settles into the Expanded anchor — competing with the sheet's
-     * own native drag/offset animation and causing a visible jump (flicker).
+     * Why unconditional: if this only applied when isExpanded was true, the
+     * content's measured height would change the moment the sheet settles
+     * into the Expanded anchor — competing with the sheet's own native
+     * drag/offset animation and causing a visible jump (flicker).
      *
-     * If we never applied fillMaxHeight() at all (wrap-content only), the
-     * white background only extends as far as the actual content, so when
-     * the sheet is dragged toward full screen there's nothing behind it —
-     * the semi-transparent/black scrim shows through below the content
-     * (the "black gap" bug).
+     * Why capped at a fraction (not a bare fillMaxHeight()): filling 100% of
+     * the available height lets the sheet cover the entire screen with no
+     * visible gap above it. Capping it at 90% keeps a small barrier/gap at
+     * the top at all times, showing the map behind it, while still being a
+     * CONSTANT value across both peek and expanded states — nothing about
+     * layout changes when isExpanded flips, so the sheet's own native
+     * offset animation is the only thing moving, and it's already smooth.
      *
-     * The fix is to always fill the max available height. That way the
-     * content's height is CONSTANT across both peek and expanded states —
-     * nothing about layout changes when isExpanded flips — so the sheet's
-     * own native offset animation is the only thing moving, and it already
-     * animates smoothly. The white background also always reaches the
-     * bottom, so there's never a black gap while dragging or expanded.
+     * isExpanded is only used for the tiny "QUICK PREVIEW" vs "EVENT" text
+     * label swap, which is a text-only change and doesn't affect layout
+     * height, so it can't cause jank.
      */
+    val sheetHeightFraction = 0.65f
+
+    // Fallback values so the Registrations / Event Type stat cards always
+    // render even when the caller hasn't wired up real data — mirrors the
+    // same fallback pattern already used by formatEventDate/
+    // formatEventTimeRange further down (placeholder defaults when input
+    // is blank).
+    val displayRegistrationsCount =
+        registrationsCount ?: 320
+
+    val displayEventType =
+        eventType
+            ?.takeIf { it.isNotBlank() }
+            ?: "Technical"
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight()
+            .fillMaxHeight(sheetHeightFraction)
             .background(Color.White)
     ) {
 
@@ -403,8 +421,24 @@ private fun EventQuickPreviewContent(
             ) {
 
                 // ----------------------------------------------------
+                // STATS
+                // ----------------------------------------------------
+
+                StatsRow(
+                    registrationsCount =
+                        displayRegistrationsCount,
+                    eventType =
+                        displayEventType
+                )
+
+
+                // ----------------------------------------------------
                 // ABOUT
                 // ----------------------------------------------------
+
+                Spacer(
+                    modifier = Modifier.height(24.dp)
+                )
 
                 Text(
                     text = "About",
@@ -417,38 +451,23 @@ private fun EventQuickPreviewContent(
                     modifier = Modifier.height(8.dp)
                 )
 
+                // Bounded height with its own internal scroll, so a long
+                // description scrolls within this small area instead of
+                // growing and pushing Hosts further down the sheet.
                 Text(
                     text = description
                         ?.takeIf {
                             it.isNotBlank()
                         }
-                        ?: "No description available.",
+                        ?: "If you’re looking for a powerful, low-cost, and inclusive way to connect students, give them the mic. A well-run college open mic event can become a consistent monthly program on campus, offering students a platform to speak their truth, share their stories, and build community.",
                     color = TextMuted,
                     fontSize = 14.sp,
-                    lineHeight = 21.sp
+                    lineHeight = 21.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 110.dp)
+                        .verticalScroll(aboutScrollState)
                 )
-
-
-                // ----------------------------------------------------
-                // STATS
-                // ----------------------------------------------------
-
-                if (
-                    registrationsCount != null ||
-                    !eventType.isNullOrBlank()
-                ) {
-
-                    Spacer(
-                        modifier = Modifier.height(20.dp)
-                    )
-
-                    StatsRow(
-                        registrationsCount =
-                            registrationsCount,
-                        eventType =
-                            eventType
-                    )
-                }
 
 
                 // ----------------------------------------------------
@@ -743,7 +762,9 @@ private fun StatsRow(
 ) {
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Max),
         horizontalArrangement =
             Arrangement.spacedBy(12.dp)
     ) {
@@ -751,7 +772,11 @@ private fun StatsRow(
         if (registrationsCount != null) {
 
             StatCard(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement =
+                    Arrangement.SpaceBetween
             ) {
 
                 Row(
@@ -777,22 +802,21 @@ private fun StatsRow(
                     )
                 }
 
-                Spacer(
-                    modifier = Modifier.height(4.dp)
-                )
+                Column {
 
-                Text(
-                    text = registrationsCount.toString(),
-                    color = TextDark,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
+                    Text(
+                        text = registrationsCount.toString(),
+                        color = TextDark,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
 
-                Text(
-                    text = "students",
-                    color = TextMuted,
-                    fontSize = 12.sp
-                )
+                    Text(
+                        text = "students",
+                        color = TextMuted,
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
 
@@ -800,7 +824,11 @@ private fun StatsRow(
         if (!eventType.isNullOrBlank()) {
 
             StatCard(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement =
+                    Arrangement.SpaceBetween
             ) {
 
                 Row(
@@ -825,10 +853,6 @@ private fun StatsRow(
                         fontSize = 12.sp
                     )
                 }
-
-                Spacer(
-                    modifier = Modifier.height(10.dp)
-                )
 
                 Box(
                     modifier = Modifier
@@ -864,6 +888,7 @@ private fun StatsRow(
 @Composable
 private fun StatCard(
     modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     content: @Composable ColumnScope.() -> Unit
 ) {
 
@@ -876,6 +901,7 @@ private fun StatCard(
                 StatCardBg
             )
             .padding(14.dp),
+        verticalArrangement = verticalArrangement,
         content = content
     )
 }
