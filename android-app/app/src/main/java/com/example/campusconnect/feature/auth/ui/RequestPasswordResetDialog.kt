@@ -1,12 +1,30 @@
 package com.example.campusconnect.feature.auth.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun RequestPasswordResetDialog(
@@ -28,8 +46,17 @@ fun RequestPasswordResetDialog(
 
         onDismissRequest = onDismiss,
 
+        containerColor = Color.White,
+
+        shape = RoundedCornerShape(28.dp),
+
         title = {
-            Text("Forgot Password")
+            Text(
+                text = "Forgot Password",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A1A1A)
+            )
         },
 
         text = {
@@ -37,12 +64,14 @@ fun RequestPasswordResetDialog(
             Column {
 
                 Text(
-                    "Enter your registered email address. " +
-                            "We will send you a verification OTP."
+                    text = "Enter your registered email address. " +
+                            "We will send you a verification OTP.",
+                    color = Color.Gray,
+                    fontSize = 13.sp
                 )
 
                 Spacer(
-                    modifier = Modifier.height(16.dp)
+                    modifier = Modifier.height(20.dp)
                 )
 
                 OutlinedTextField(
@@ -51,8 +80,16 @@ fun RequestPasswordResetDialog(
 
                     onValueChange = onEmailChange,
 
-                    label = {
-                        Text("Email")
+                    placeholder = {
+                        Text("Email", color = Color.Gray)
+                    },
+
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Email,
+                            contentDescription = null,
+                            tint = Color.Gray
+                        )
                     },
 
                     singleLine = true,
@@ -63,21 +100,34 @@ fun RequestPasswordResetDialog(
                                 KeyboardType.Email
                         ),
 
+                    shape = RoundedCornerShape(16.dp),
+
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFFF5F6FA),
+                        unfocusedContainerColor = Color(0xFFF5F6FA),
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
+                    ),
+
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
                 )
 
                 if (warning.isNotEmpty()) {
 
                     Spacer(
                         modifier =
-                            Modifier.height(8.dp)
+                            Modifier.height(10.dp)
                     )
 
                     Text(
                         text = warning,
-                        color =
-                            MaterialTheme.colorScheme.error
+                        color = Color(0xFFD32F2F),
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -89,19 +139,30 @@ fun RequestPasswordResetDialog(
 
                 onClick = onSendOtp,
 
-                enabled = !isLoading
+                enabled = !isLoading,
+
+                shape = RoundedCornerShape(20.dp),
+
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF6B35)
+                )
             ) {
 
                 if (isLoading) {
 
                     CircularProgressIndicator(
                         modifier =
-                            Modifier.size(20.dp)
+                            Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
                     )
 
                 } else {
 
-                    Text("Send OTP")
+                    Text(
+                        text = "Send OTP",
+                        color = Color.White
+                    )
                 }
             }
         },
@@ -112,7 +173,10 @@ fun RequestPasswordResetDialog(
                 onClick = onDismiss
             ) {
 
-                Text("Cancel")
+                Text(
+                    text = "Cancel",
+                    color = Color.Gray
+                )
             }
         }
     )

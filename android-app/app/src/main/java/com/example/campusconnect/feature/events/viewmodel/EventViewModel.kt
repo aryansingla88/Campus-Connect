@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
@@ -12,6 +13,7 @@ import com.example.campusconnect.feature.events.data.remote.response.MedalCandid
 import com.example.campusconnect.feature.events.data.repo.ApiEventRepository
 import com.example.campusconnect.feature.events.data.repo.EventRepository
 import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.EventFilter
 import com.example.campusconnect.feature.events.model.EventHistoryItem
 import com.example.campusconnect.feature.events.model.EventUiState
 import com.example.campusconnect.feature.events.model.MedalAward
@@ -26,7 +28,10 @@ import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvid
 import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
 import com.example.campusconnect.feature.metadata.eventcategories.EventCategoryRepositoryProvider
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -59,6 +64,12 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
+
+    private val _currentUserId =
+        MutableStateFlow<Int?>(null)
+
+    val currentUserId: StateFlow<Int?> =
+        _currentUserId
 
     private val _liveHistory =
         MutableStateFlow<List<EventHistoryItem>>(emptyList())
@@ -101,6 +112,86 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
 
     val medals: StateFlow<List<MedalAward>> =
         _medals
+
+    private val _eventFilter =
+        MutableStateFlow(EventFilter.ALL)
+
+    val eventFilter: StateFlow<EventFilter> =
+        _eventFilter
+
+    val displayedEvents: StateFlow<List<Event>> =
+        combine(
+            _events,
+            _currentUserId,
+            _eventFilter
+        ) { events, currentUserId, filter ->
+
+            if (currentUserId == null) {
+                emptyList()
+            } else {
+                when (filter) {
+
+                    EventFilter.ALL ->
+                        events
+
+                    EventFilter.SELF ->
+                        events.filter {
+                            it.createdBy == currentUserId
+                        }
+
+                    EventFilter.SHARED ->
+                        events.filter {
+                            it.createdBy != currentUserId
+                        }
+                }
+            }
+
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+
+    fun setEventFilter(filter: EventFilter) {
+        _eventFilter.value =
+            if (_eventFilter.value == filter) {
+                EventFilter.ALL
+            } else {
+                filter
+            }
+    }
+
+    private fun loadCurrentUser() {
+        viewModelScope.launch {
+
+            try {
+                val response =
+                    RetrofitClient.authApi.getCurrentUser()
+
+                if (response.isSuccessful) {
+
+                    _currentUserId.value =
+                        response.body()?.data?.id
+
+                    println(
+                        "CURRENT USER ID: ${_currentUserId.value}"
+                    )
+
+                } else {
+
+                    println(
+                        "CURRENT USER API ERROR: ${response.code()}"
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                println(
+                    "CURRENT USER API ERROR: ${e.message}"
+                )
+            }
+        }
+    }
 
     fun loadParticipants(eventId: Int) {
         viewModelScope.launch {
@@ -197,6 +288,31 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
         MutableStateFlow<List<UserAccess>>(emptyList())
 
     val searchResults = _searchResults
+
+    private fun loadEvents() {
+        viewModelScope.launch {
+
+            val result =
+                repository.getEvents()
+
+            result.onSuccess { events ->
+
+                println(
+                    "EVENT API SUCCESS: ${events.size} events"
+                )
+
+                _events.value = events
+
+            }.onFailure { error ->
+
+                println(
+                    "EVENT API ERROR: ${error.message}"
+                )
+
+                _events.value = emptyList()
+            }
+        }
+    }
 
     fun loadAccessUsers(eventId: Int) {
         viewModelScope.launch {
@@ -412,16 +528,8 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
 
-            val result = repository.getEvents()
-
-            result.onSuccess { events ->
-                println("EVENT API SUCCESS: ${events.size} events")
-                _events.value = events
-            }.onFailure { error ->
-                println("EVENT API ERROR: ${error.message}")
-                error.printStackTrace()
-                _events.value = emptyList()
-            }
+            loadCurrentUser()
+            loadEvents()
 
             try {
                 _clubs.value = clubRepository.getAllClubs()
