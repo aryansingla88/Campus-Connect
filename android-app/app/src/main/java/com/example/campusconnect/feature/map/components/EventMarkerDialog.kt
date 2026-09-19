@@ -16,13 +16,15 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +33,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.LocationOn
@@ -60,18 +61,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.campusconnect.R
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.math.roundToInt
 
 
 private val OrangePrimary = Color(0xFFFE5200)
@@ -261,7 +265,7 @@ private fun EventQuickPreviewContent(
      * label swap, which is a text-only change and doesn't affect layout
      * height, so it can't cause jank.
      */
-    val sheetHeightFraction = 0.65f
+    val sheetHeightFraction = 0.80f
 
     // Fallback values so the Registrations / Event Type stat cards always
     // render even when the caller hasn't wired up real data — mirrors the
@@ -275,6 +279,27 @@ private fun EventQuickPreviewContent(
         eventType
             ?.takeIf { it.isNotBlank() }
             ?: "Technical"
+
+    // Fallback so the Hosts section always has something to render even
+    // when the caller hasn't wired up real host data yet — same pattern as
+    // the stats fallbacks above. 10 names to verify horizontal scrolling.
+    val displayHosts =
+        event.hosts
+            .map { it.name }
+            .ifEmpty {
+                listOf(
+                    "Alex",
+                    "Maria",
+                    "Chen",
+                    "Fatima",
+                    "Ravi",
+                    "Sofia",
+                    "Liam",
+                    "Aisha",
+                    "Diego",
+                    "Priya"
+                )
+            }
 
     Box(
         modifier = Modifier
@@ -451,21 +476,22 @@ private fun EventQuickPreviewContent(
                     modifier = Modifier.height(8.dp)
                 )
 
-                // Bounded height with its own internal scroll, so a long
-                // description scrolls within this small area instead of
-                // growing and pushing Hosts further down the sheet.
+                // Fixed height (not just a max) so About always reserves
+                // the same amount of space whether the description is one
+                // line or ten — short text just leaves blank space below
+                // it, long text scrolls within this same fixed area.
                 Text(
                     text = description
                         ?.takeIf {
                             it.isNotBlank()
                         }
-                        ?: "If you’re looking for a powerful, low-cost, and inclusive way to connect students, give them the mic. A well-run college open mic event can become a consistent monthly program on campus, offering students a platform to speak their truth, share their stories, and build community.",
+                        ?: "An open mic or open mike (shortened from \"open microphone\") is a live show at a venue such as a coffeehouse, nightclub, comedy club, strip club, or pub, often taking place at night (an open mic night), in which audience members may perform on stage whether they are amateurs or professionals, often for the first time or to promote an upcoming performance.[1] As the name suggests, performers are usually provided with a microphone plugged into a PA system so that they can be better heard by the audience",
                     color = TextMuted,
                     fontSize = 14.sp,
                     lineHeight = 21.sp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 110.dp)
+                        .height(110.dp)
                         .verticalScroll(aboutScrollState)
                 )
 
@@ -474,20 +500,15 @@ private fun EventQuickPreviewContent(
                 // HOSTS
                 // ----------------------------------------------------
 
-                if (event.hosts.isNotEmpty()) {
+                Spacer(
+                    modifier = Modifier.height(22.dp)
+                )
 
-                    Spacer(
-                        modifier = Modifier.height(22.dp)
-                    )
-
-                    HostsSection(
-                        hosts = event.hosts.map {
-                            it.name
-                        },
-                        onViewAllClick =
-                            onViewAllHostsClick
-                    )
-                }
+                HostsSection(
+                    hosts = displayHosts,
+                    onViewAllClick =
+                        onViewAllHostsClick
+                )
 
                 Spacer(
                     modifier = Modifier.height(28.dp)
@@ -917,60 +938,25 @@ private fun HostsSection(
     onViewAllClick: () -> Unit
 ) {
 
+    val hostsListState = rememberLazyListState()
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement =
-                Arrangement.SpaceBetween,
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-
-            Text(
-                text = "Hosts",
-                color = TextDark,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-
-            Row(
-                verticalAlignment =
-                    Alignment.CenterVertically,
-                modifier = Modifier.clickable {
-                    onViewAllClick()
-                }
-            ) {
-
-                Text(
-                    text = "View All",
-                    color = OrangePrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(
-                    modifier = Modifier.width(2.dp)
-                )
-
-                Icon(
-                    imageVector =
-                        Icons.Default.ChevronRight,
-                    contentDescription =
-                        "View all hosts",
-                    tint = OrangePrimary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
+        Text(
+            text = "Hosts",
+            color = TextDark,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.ExtraBold
+        )
 
         Spacer(
             modifier = Modifier.height(10.dp)
         )
 
         LazyRow(
+            state = hostsListState,
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement =
                 Arrangement.spacedBy(20.dp)
@@ -986,6 +972,138 @@ private fun HostsSection(
                 )
             }
         }
+
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
+        // Horizontal sliding scroll indicator reflecting how far through
+        // the hosts row the user has scrolled, in place of "View All".
+        HostsScrollIndicator(
+            listState = hostsListState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 2.dp)
+        )
+    }
+}
+
+
+// ============================================================================
+// HOSTS SCROLL INDICATOR
+// ============================================================================
+
+@Composable
+private fun HostsScrollIndicator(
+    listState: LazyListState,
+    modifier: Modifier = Modifier
+) {
+
+    val layoutInfo = listState.layoutInfo
+    val totalItemsCount = layoutInfo.totalItemsCount
+    val visibleItemsInfo = layoutInfo.visibleItemsInfo
+
+    // thumbWidthFraction: how much of the track the thumb covers.
+    // thumbStartFraction: how far along the track the thumb starts.
+    val (thumbWidthFraction, thumbStartFraction) = remember(
+        totalItemsCount,
+        visibleItemsInfo,
+        listState.firstVisibleItemIndex,
+        listState.firstVisibleItemScrollOffset
+    ) {
+
+        if (
+            totalItemsCount == 0 ||
+            visibleItemsInfo.isEmpty()
+        ) {
+
+            1f to 0f
+
+        } else {
+
+            val avgItemSize =
+                visibleItemsInfo
+                    .sumOf { it.size }
+                    .toFloat() /
+                        visibleItemsInfo.size
+
+            val viewportSize =
+                layoutInfo.viewportSize.width.toFloat()
+
+            val totalContentSize =
+                avgItemSize * totalItemsCount
+
+            val widthFraction =
+                (viewportSize / totalContentSize)
+                    .coerceIn(0.15f, 1f)
+
+            val maxScrollPx =
+                (totalContentSize - viewportSize)
+                    .coerceAtLeast(1f)
+
+            val scrolledPx =
+                (listState.firstVisibleItemIndex * avgItemSize) +
+                        listState.firstVisibleItemScrollOffset
+
+            val scrolledFraction =
+                (scrolledPx / maxScrollPx)
+                    .coerceIn(0f, 1f)
+
+            widthFraction to
+                    scrolledFraction * (1f - widthFraction)
+        }
+    }
+
+    // Track width in raw pixels, measured directly off this Box via
+    // onGloballyPositioned. This avoids BoxWithConstraints entirely (and
+    // the "scope is unused" lint that comes with it), since all we ever
+    // needed was the container's width — a plain Box gives us that just
+    // as well.
+    var trackWidthPx by remember {
+        mutableStateOf(0)
+    }
+
+    Box(
+        modifier = modifier
+            .height(4.dp)
+            .onGloballyPositioned { coordinates ->
+                trackWidthPx = coordinates.size.width
+            }
+    ) {
+
+        // Track
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(
+                    RoundedCornerShape(2.dp)
+                )
+                .background(
+                    Color(0xFFEDEDED)
+                )
+        )
+
+        // Thumb — offset is applied in raw pixels via the lambda form of
+        // Modifier.offset, so no dp/px conversion is needed at all.
+        Box(
+            modifier = Modifier
+                .offset {
+                    IntOffset(
+                        x = (thumbStartFraction * trackWidthPx)
+                            .roundToInt(),
+                        y = 0
+                    )
+                }
+                .fillMaxWidth(thumbWidthFraction)
+                .height(4.dp)
+                .clip(
+                    RoundedCornerShape(2.dp)
+                )
+                .background(
+                    OrangePrimary
+                )
+        )
     }
 }
 
@@ -1000,6 +1118,7 @@ private fun HostAvatar(
 ) {
 
     Column(
+        modifier = Modifier.width(64.dp),
         horizontalAlignment =
             Alignment.CenterHorizontally
     ) {
@@ -1035,7 +1154,9 @@ private fun HostAvatar(
             color = TextDark,
             fontSize = 12.sp,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
