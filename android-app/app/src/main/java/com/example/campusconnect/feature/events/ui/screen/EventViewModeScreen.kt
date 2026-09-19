@@ -2,11 +2,14 @@
 
 package com.example.campusconnect.feature.events.ui.screen
 
+import android.annotation.SuppressLint
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,17 +34,17 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -586,6 +589,7 @@ private fun PosterCard(event: Event) {
 
 // ─── TopBar ───────────────────────────────────────────────────────────────────
 
+@SuppressLint("ResourceAsColor")
 @Composable
 private fun TopBar(
     searchQuery: String,
@@ -597,22 +601,28 @@ private fun TopBar(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment     = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+
         // Back button
         Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(Orange)
+                .border(
+                    1.dp,
+                    Orange,
+                    CircleShape
+                )
                 .clickable { onBack() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Default.ArrowBack,
+                imageVector = Icons.Default.ArrowBack,
                 contentDescription = "Back",
-                tint     = TextDark,
+                tint = Color.White,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -624,54 +634,67 @@ private fun TopBar(
                 .height(44.dp)
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color.White)
+                .border(
+                    1.dp,
+                    Color.White,
+                    RoundedCornerShape(22.dp)
+                )
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             Row(
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier              = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+
                 Icon(
-                    Icons.Default.Search,
+                    imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint     = TextMuted,
+                    tint = Orange,
                     modifier = Modifier.size(18.dp)
                 )
-                Box(modifier = Modifier.weight(1f)) {
+
+                Box(
+                    modifier = Modifier.weight(1f)
+                ) {
                     BasicTextField(
-                        value         = searchQuery,
+                        value = searchQuery,
                         onValueChange = onQueryChange,
-                        singleLine    = true,
-                        textStyle     = TextStyle(
+                        singleLine = true,
+                        textStyle = TextStyle(
                             fontSize = 13.sp,
-                            color    = TextDark
+                            color = TextDark
                         ),
-                        modifier      = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         decorationBox = { inner ->
                             if (searchQuery.isEmpty()) {
                                 Text(
-                                    "Search events...",
+                                    text = "Search events...",
                                     fontSize = 13.sp,
-                                    color    = TextMuted
+                                    color = TextMuted
                                 )
                             }
                             inner()
                         }
                     )
                 }
+
                 if (searchQuery.isNotBlank()) {
                     Box(
                         modifier = Modifier
                             .size(20.dp)
                             .clip(CircleShape)
                             .background(Color(0xFFF0F0F0))
-                            .clickable { onQueryChange("") },
+                            .clickable {
+                                onQueryChange("")
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            Icons.Default.Close, null,
-                            tint     = TextMuted,
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear search",
+                            tint = Orange,
                             modifier = Modifier.size(12.dp)
                         )
                     }
@@ -684,21 +707,24 @@ private fun TopBar(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(Orange)
+                .border(
+                    1.dp,
+                    Orange,
+                    CircleShape
+                )
                 .clickable { onFilter() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Default.Tune,
+                imageVector = Icons.Default.Tune,
                 contentDescription = "Filter",
-                tint     = TextDark,
+                tint = Color.White,
                 modifier = Modifier.size(20.dp)
             )
         }
     }
 }
-
-// ─── BottomActions ────────────────────────────────────────────────────────────
 
 @Composable
 private fun BottomActions(
@@ -709,115 +735,39 @@ private fun BottomActions(
     onNotify: () -> Unit,
     onExpand: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 42.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
-        // =========================
-        // REGISTER / REGISTERED
-        // =========================
+        // Top row: Notify + View Details
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
 
-        Button(
+            NotifyMeButton(
+                isNotified = isNotified,
+                onClick = onNotify,
+                modifier = Modifier.weight(1f)
+            )
+
+            ViewDetailsButton(
+                onClick = onExpand,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Register button
+        RegisterActionButton(
+            isJoined = isRegistered,
             onClick = onRegister,
-            modifier = Modifier
-                .weight(1f)
-                .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(
-                width = 1.dp,
-                color = Color(0xFFFF4D00)
-            ),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isRegistered) {
-                    Color(0xFFFFF3E0)
-                } else {
-                    Color(0xFFFF4D00)
-                },
-                contentColor = if (isRegistered) {
-                    Color(0xFFFF4D00)
-                } else {
-                    Color.White
-                }
-            ),
-            contentPadding = PaddingValues(horizontal = 10.dp)
-        ) {
-            Icon(
-                imageVector = if (isRegistered) {
-                    Icons.Default.Check
-                } else {
-                    Icons.Default.ConfirmationNumber
-                },
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-
-            Spacer(Modifier.width(7.dp))
-
-            Text(
-                text = if (isRegistered) {
-                    "Registered"
-                } else {
-                    "Register Now"
-                },
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
-
-        // =========================
-        // NOTIFY / NOTIFIED
-        // =========================
-
-        OutlinedButton(
-            onClick = onNotify,
-            modifier = Modifier
-                .weight(1f)
-                .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(
-                width = 1.dp,
-                color = Color(0xFFFF4D00)
-            ),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = if (isNotified) {
-                    Color(0xFFFFF3E0)
-                } else {
-                    Color.White
-                },
-                contentColor = Color(0xFFFF4D00)
-            ),
-            contentPadding = PaddingValues(horizontal = 10.dp)
-        ) {
-            Icon(
-                imageVector = if (isNotified) {
-                    Icons.Default.Check
-                } else {
-                    Icons.Default.NotificationsNone
-                },
-                contentDescription = null,
-                modifier = Modifier.size(19.dp)
-            )
-
-            Spacer(Modifier.width(7.dp))
-
-            Text(
-                text = if (isNotified) {
-                    "Notified"
-                } else {
-                    "Notify Me"
-                },
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
-
 
 // ─── FilterSheet ─────────────────────────────────────────────────────────────
 
@@ -918,6 +868,187 @@ private fun EmptyViewMode(onBack: () -> Unit) {
                 Text("Go Back", color = Color.White)
             }
         }
+    }
+}
+
+@Composable
+private fun NotifyMeButton(
+    isNotified: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bellRotation = remember { Animatable(0f) }
+
+    LaunchedEffect(isNotified) {
+        if (isNotified) {
+            bellRotation.animateTo(
+                targetValue = 0f,
+                animationSpec = keyframes {
+                    durationMillis = 450
+
+                    0f at 0
+                    -25f at 90
+                    20f at 180
+                    -15f at 270
+                    8f at 360
+                    0f at 450
+                }
+            )
+        }
+    }
+
+    val backgroundColor =
+        if (isNotified) Orange else Color.White
+
+    val contentColor =
+        if (isNotified) Color.White else Orange
+
+    Row(
+        modifier = modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(backgroundColor)
+            .then(
+                if (!isNotified) {
+                    Modifier.border(
+                        1.dp,
+                        Orange,
+                        RoundedCornerShape(14.dp)
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .clickable {
+                onClick()
+            },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Icon(
+            imageVector = Icons.Default.Notifications,
+            contentDescription = if (isNotified) {
+                "Notified"
+            } else {
+                "Notify me"
+            },
+            tint = contentColor,
+            modifier = Modifier
+                .size(18.dp)
+                .graphicsLayer {
+                    rotationZ = bellRotation.value
+                }
+        )
+
+        Spacer(Modifier.width(6.dp))
+
+        Text(
+            text = if (isNotified) "Notified" else "Notify Me",
+            color = contentColor,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun RegisterActionButton(
+    isJoined: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor =
+        if (isJoined) Color.White else Orange
+
+    val contentColor =
+        if (isJoined) Orange else Color.White
+
+    Row(
+        modifier = modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(backgroundColor)
+            .then(
+                if (isJoined) {
+                    Modifier.border(
+                        1.dp,
+                        Orange,
+                        RoundedCornerShape(14.dp)
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .clickable {
+                onClick()
+            },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Icon(
+            imageVector = if (isJoined) {
+                Icons.Default.Check
+            } else {
+                Icons.Default.PersonAdd
+            },
+            contentDescription = if (isJoined) {
+                "Registered"
+            } else {
+                "Register"
+            },
+            tint = contentColor,
+            modifier = Modifier.size(18.dp)
+        )
+
+        Spacer(Modifier.width(6.dp))
+
+        Text(
+            text = if (isJoined) "Registered" else "Register",
+            color = contentColor,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun ViewDetailsButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(
+                width = 1.dp,
+                color = Orange,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable {
+                onClick()
+            },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = "View Details",
+            tint = Orange,
+            modifier = Modifier.size(18.dp)
+        )
+
+        Spacer(Modifier.width(6.dp))
+
+        Text(
+            text = "View Details",
+            color = Orange,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
