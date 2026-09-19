@@ -183,7 +183,15 @@ fun MapView(
                             height = size.height.toFloat()
                         )
 
-                        val tappedMarker = markers.firstOrNull { marker ->
+                        // Must match the Canvas's render filter exactly —
+                        // a POI that's hidden at this zoom level (see
+                        // isPoiVisibleAtZoom) should not be tappable either.
+                        val tappableMarkers = markers.filter { marker ->
+                            marker.type != MarkerType.POI ||
+                                    isPoiVisibleAtZoom(marker.priority, scale)
+                        }
+
+                        val tappedMarker = tappableMarkers.firstOrNull { marker ->
                             val mapX = bounds.left + (marker.x / MAP_IMAGE_WIDTH) * bounds.width
                             val mapY = bounds.top + (marker.y / MAP_IMAGE_HEIGHT) * bounds.height
 
