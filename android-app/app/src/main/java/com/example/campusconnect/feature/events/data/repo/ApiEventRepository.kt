@@ -5,9 +5,9 @@ import com.example.campusconnect.feature.events.data.remote.EventsApi
 import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
-import com.example.campusconnect.feature.events.data.remote.request.RemoveMedalRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.data.remote.response.EventHistoryResponse
+import com.example.campusconnect.feature.events.data.remote.response.MedalCandidateResponse
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
 import com.example.campusconnect.feature.events.mapper.toEvent
 import com.example.campusconnect.feature.events.model.Event
@@ -289,22 +289,78 @@ class ApiEventRepository(
             val response = api.getMedalsForEvent(eventId)
 
             if (response.isSuccessful) {
-                Result.success(
-                    response.body()?.data?.map {
-                        MedalAward(
-                            eventId = it.eventId,
-                            medalType = MedalType.valueOf(it.medalType),
-                            recipientId = it.recipientId,
-                            recipientName = it.recipientName,
-                            recipientSubtitle = it.recipientSubtitle,
-                            isTeam = it.isTeam
-                        )
-                    } ?: emptyList()
-                )
+
+                val data = response.body()?.data
+
+                if (data != null) {
+
+                    val medals = mutableListOf<MedalAward>()
+
+                    fun addMedal(
+                        medal: com.example.campusconnect.feature.events.data.remote.response.MedalResponse,
+                        medalType: MedalType
+                    ) {
+                        val recipient = medal.recipient
+
+                        if (medal.awarded && recipient != null) {
+                            medals.add(
+                                MedalAward(
+                                    eventId = eventId,
+                                    medalType = medalType,
+                                    registrationId = 0,
+                                    recipientName = recipient.name,
+                                    honorId = recipient.honorId,
+                                    isTeam = recipient.team
+                                )
+                            )
+                        }
+                    }
+
+                    addMedal(data.gold, MedalType.GOLD)
+                    addMedal(data.silver, MedalType.SILVER)
+                    addMedal(data.bronze, MedalType.BRONZE)
+
+                    Result.success(medals)
+
+                } else {
+                    Result.failure(
+                        Exception("Medals response is empty")
+                    )
+                }
+
             } else {
                 Result.failure(
                     Exception(
                         "Failed to get medals: ${response.code()}"
+                    )
+                )
+            }
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getEligibleParticipantsForMedal(
+        eventId: Int
+    ): Result<List<MedalCandidateResponse>> {
+        return try {
+            val response = api.getEligibleParticipantsForMedal(eventId)
+
+            if (response.isSuccessful) {
+                val data = response.body()?.data
+
+                if (data != null) {
+                    Result.success(data)
+                } else {
+                    Result.failure(
+                        Exception("Eligible participants response is empty")
+                    )
+                }
+            } else {
+                Result.failure(
+                    Exception(
+                        "Failed to get eligible medal participants: ${response.code()}"
                     )
                 )
             }
@@ -317,43 +373,28 @@ class ApiEventRepository(
         award: MedalAward
     ): Result<MedalAward> {
         return try {
+
             val response = api.awardMedal(
                 eventId = award.eventId,
                 body = AwardMedalRequest(
-                    medalType = award.medalType.name,
-                    recipientId = award.recipientId,
-                    recipientName = award.recipientName,
-                    recipientSubtitle = award.recipientSubtitle,
-                    isTeam = award.isTeam
+                    registrationId = award.registrationId,
+                    medalType = award.medalType.name
                 )
             )
 
             if (response.isSuccessful) {
-                val data = response.body()?.data
 
-                if (data != null) {
-                    Result.success(
-                        MedalAward(
-                            eventId = data.eventId,
-                            medalType = MedalType.valueOf(data.medalType),
-                            recipientId = data.recipientId,
-                            recipientName = data.recipientName,
-                            recipientSubtitle = data.recipientSubtitle,
-                            isTeam = data.isTeam
-                        )
-                    )
-                } else {
-                    Result.failure(
-                        Exception("Award medal response is empty")
-                    )
-                }
+                Result.success(award)
+
             } else {
+
                 Result.failure(
                     Exception(
                         "Failed to award medal: ${response.code()}"
                     )
                 )
             }
+
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -364,11 +405,30 @@ class ApiEventRepository(
         medalType: MedalType
     ): Result<Unit> {
         return try {
+
+            val medalsResult = getMedalsForEvent(eventId)
+
+            if (medalsResult.isFailure) {
+                return Result.failure(
+                    medalsResult.exceptionOrNull()
+                        ?: Exception("Failed to get medals")
+                )
+            }
+
+            val medal = medalsResult.getOrNull()
+                ?.firstOrNull {
+                    it.medalType == medalType
+                }
+
+            if (medal == null || medal.honorId == null) {
+                return Result.failure(
+                    Exception("Medal not found")
+                )
+            }
+
             val response = api.removeMedal(
                 eventId = eventId,
-                body = RemoveMedalRequest(
-                    medalType = medalType.name
-                )
+                honorId = medal.honorId
             )
 
             if (response.isSuccessful) {
@@ -380,6 +440,7 @@ class ApiEventRepository(
                     )
                 )
             }
+
         } catch (e: Exception) {
             Result.failure(e)
         }

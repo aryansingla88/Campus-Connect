@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.events.data.repo
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.data.remote.response.EventHistoryResponse
+import com.example.campusconnect.feature.events.data.remote.response.MedalCandidateResponse
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
@@ -66,6 +67,10 @@ interface EventRepository {
     suspend fun getMedalsForEvent(
         eventId: Int
     ): Result<List<MedalAward>>
+
+    suspend fun getEligibleParticipantsForMedal(
+        eventId: Int
+    ): Result<List<MedalCandidateResponse>>
 
     suspend fun awardMedal(
         award: MedalAward

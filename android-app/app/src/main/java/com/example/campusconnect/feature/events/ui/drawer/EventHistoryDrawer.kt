@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.campusconnect.feature.events.data.remote.response.MedalCandidateResponse
 import com.example.campusconnect.feature.events.model.EventHistoryItem
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
@@ -101,11 +102,13 @@ fun EventHistoryDrawer(
     medals: List<MedalAward>,
     teams: List<ParticipantTeam>,
     soloParticipants: List<SoloParticipant>,
+    medalCandidates: List<MedalCandidateResponse>,
     onLoadMedals: (Int) -> Unit,
     onLoadParticipants: (Int) -> Unit,
+    onLoadMedalCandidates: (Int) -> Unit,
     onAwardMedal: (MedalAward) -> Unit,
     onRemoveMedal: (Int, MedalType) -> Unit,
-) {
+){
 
     var selectedTab by remember { mutableStateOf(0) }  // 0=Live, 1=Upcoming, 2=Past
 
@@ -262,27 +265,36 @@ fun EventHistoryDrawer(
                                             onToggle = {
                                                 if (!isExpanded) {
                                                     onLoadParticipants(event.id)
+                                                    onLoadMedalCandidates(event.id)
                                                 }
 
                                                 expandedEventId =
                                                     if (isExpanded) null else event.id
                                             },
                                             onAward = { medalType ->
-                                                val allRecipients = buildRecipients(
-                                                    teams,
-                                                    soloParticipants
-                                                )
 
-                                                val alreadyAwardedIds = awards.map {
-                                                    Pair(it.recipientId, it.isTeam)
-                                                }.toSet()
-
-                                                val available = allRecipients.filter {
-                                                    Pair(it.id, it.isTeam) !in alreadyAwardedIds
+                                                val available = medalCandidates.map { candidate ->
+                                                    SearchableRecipient(
+                                                        registrationId = candidate.registrationId,
+                                                        name = candidate.name,
+                                                        subtitle = if (
+                                                            candidate.courseId != null &&
+                                                            candidate.admissionYear != null
+                                                        ) {
+                                                            candidate.name // temporary, next step course name resolve karenge
+                                                        } else {
+                                                            if (candidate.team) "Team" else ""
+                                                        },
+                                                        isTeam = candidate.team
+                                                    )
                                                 }
 
                                                 awardingMedal =
-                                                    Triple(event.id, medalType, available)
+                                                    Triple(
+                                                        event.id,
+                                                        medalType,
+                                                        available
+                                                    )
                                             },
                                             onRemove = { medalType ->
                                                 onRemoveMedal(event.id, medalType)
@@ -312,9 +324,8 @@ fun EventHistoryDrawer(
                     MedalAward(
                         eventId = eventId,
                         medalType = medalType,
-                        recipientId = recipient.id,
+                        registrationId = recipient.registrationId,
                         recipientName = recipient.name,
-                        recipientSubtitle = recipient.subtitle,
                         isTeam = recipient.isTeam
                     )
                 )
@@ -349,7 +360,7 @@ private fun LiveEventCard(event: EventHistoryItem){
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(Orange)
+                    .background(color = Color(0xFFF12727))
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -645,19 +656,14 @@ private fun MedalRow(
                 Text(
                     award.recipientName,
                     fontSize = 11.sp,
-                    color    = TextPrimary,
+                    color = TextPrimary,
                     fontWeight = FontWeight.Medium
-                )
-                Text(
-                    award.recipientSubtitle,
-                    fontSize = 10.sp,
-                    color    = GreyText
                 )
             } else {
                 Text(
                     "Not yet awarded",
                     fontSize = 11.sp,
-                    color    = GreyText
+                    color = GreyText
                 )
             }
         }
@@ -785,12 +791,22 @@ private fun MedalAwardDialog(
                                 }
                             }
                         } else {
-                            items(filtered, key = { "${it.isTeam}_${it.id}" }) { recipient ->
-                                val isSelected = selected?.id == recipient.id && selected?.isTeam == recipient.isTeam
+                            items(
+                                filtered,
+                                key = { "${it.isTeam}_${it.registrationId}" }
+                            ) { recipient ->
+
+                                val isSelected =
+                                    selected?.registrationId == recipient.registrationId &&
+                                            selected?.isTeam == recipient.isTeam
+
                                 RecipientCard(
-                                    recipient  = recipient,
+                                    recipient = recipient,
                                     isSelected = isSelected,
-                                    onClick    = { selected = if (isSelected) null else recipient }
+                                    onClick = {
+                                        selected =
+                                            if (isSelected) null else recipient
+                                    }
                                 )
                             }
                         }
@@ -993,37 +1009,19 @@ private fun EmptyState(text: String) {
 // ─── SearchableRecipient — unified model for teams + solo in award dialog ─────
 
 data class SearchableRecipient(
-    val id       : Int,
-    val name     : String,
-    val subtitle : String,
-    val isTeam   : Boolean,
-    val initials : String = name
-        .split(" ").take(2).joinToString("") { it.take(1).uppercase() }
+    val registrationId: Int,
+    val name: String,
+    val subtitle: String,
+    val isTeam: Boolean,
+    val initials: String = name
+        .split(" ")
+        .take(2)
+        .joinToString("") {
+            it.take(1).uppercase()
+        }
 )
 
-private fun buildRecipients(
-    teams : List<ParticipantTeam>,
-    solo  : List<SoloParticipant>
-): List<SearchableRecipient> {
-    val teamRecipients = teams.map { team ->
-        val leader = team.members.firstOrNull { it.isLeader }
-        SearchableRecipient(
-            id       = team.id,
-            name     = team.name,
-            subtitle = if (leader != null) "Led by ${leader.name}" else "${team.members.size} members",
-            isTeam   = true
-        )
-    }
-    val soloRecipients = solo.map {
-        SearchableRecipient(
-            id       = it.id,
-            name     = it.name,
-            subtitle = it.subtitle,
-            isTeam   = false
-        )
-    }
-    return teamRecipients + soloRecipients
-}
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 private fun formatEventDate(dateTime: String): String {

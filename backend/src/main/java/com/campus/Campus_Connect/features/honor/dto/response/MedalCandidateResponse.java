@@ -13,7 +13,9 @@ public class MedalCandidateResponse {
 
     private String name;
 
-    private String subtitle;
+    private Integer courseId;
+
+    private Integer admissionYear;
 
     private Boolean team;
 

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.events.model.EventFilter
 import com.example.campusconnect.feature.events.model.EventStatus
 import com.example.campusconnect.feature.events.ui.components.BackButton
 import com.example.campusconnect.feature.events.ui.components.CreateEventButton
@@ -76,11 +77,13 @@ fun EventScreen(
 
     val viewModel: EventViewModel = viewModel()
 
-    val state              by viewModel.uiState.collectAsState()
-    val events             by viewModel.events.collectAsState()
+    val state by viewModel.uiState.collectAsState()
+    val events by viewModel.displayedEvents.collectAsState()
+    val eventFilter by viewModel.eventFilter.collectAsState()
     val liveHistory by viewModel.liveHistory.collectAsState()
     val upcomingHistory by viewModel.upcomingHistory.collectAsState()
     val pastHistory by viewModel.pastHistory.collectAsState()
+    val medalCandidates by viewModel.medalCandidates.collectAsState()
     val activeIndex        by viewModel.activeEventIndex.collectAsState()
     val showPreview        by viewModel.showPreview.collectAsState()
     val isEditMode         by viewModel.isEditMode.collectAsState()
@@ -88,7 +91,6 @@ fun EventScreen(
 
     var dialogKey           by remember { mutableStateOf(0) }
     var showDialog          by remember { mutableStateOf(false) }
-    var selectedMode        by remember { mutableStateOf<String?>(null) }
     var isSelectingLocation by remember { mutableStateOf(false) }
     var wasEditMode         by remember { mutableStateOf(false) }
 
@@ -245,20 +247,18 @@ fun EventScreen(
                 ModeToggle(
                     text = "Mine",
                     icon = Icons.Default.Person,
-                    selected = selectedMode == "self",
+                    selected = eventFilter == EventFilter.SELF,
                     onClick = {
-                        selectedMode =
-                            if (selectedMode == "self") null else "self"
+                        viewModel.setEventFilter(EventFilter.SELF)
                     }
                 )
 
                 ModeToggle(
                     text = "Shared",
                     icon = Icons.Default.Group,
-                    selected = selectedMode == "shared",
+                    selected = eventFilter == EventFilter.SHARED,
                     onClick = {
-                        selectedMode =
-                            if (selectedMode == "shared") null else "shared"
+                        viewModel.setEventFilter(EventFilter.SHARED)
                     }
                 )
             }
@@ -393,6 +393,7 @@ fun EventScreen(
                 EventHistoryDrawer(
                     isOpen = showHistoryDrawer,
                     onToggle = { showHistoryDrawer = !showHistoryDrawer },
+
                     liveEvents = liveHistory,
                     upcomingEvents = upcomingHistory,
                     pastEvents = pastHistory,
@@ -404,12 +405,19 @@ fun EventScreen(
                     soloParticipants =
                         viewModel.soloParticipants.collectAsState().value,
 
-                    onLoadMedals = {
-                        viewModel.loadMedals(it)
+                    medalCandidates =
+                        medalCandidates,
+
+                    onLoadMedals = { eventId: Int ->
+                        viewModel.loadMedals(eventId)
                     },
 
                     onLoadParticipants = {
                         viewModel.loadParticipants(it)
+                    },
+
+                    onLoadMedalCandidates = {
+                        viewModel.loadMedalCandidates(it)
                     },
 
                     onAwardMedal = { award ->
