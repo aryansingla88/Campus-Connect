@@ -181,20 +181,27 @@ class MapViewModel(
                 MarkerType.SHOP -> {
 
                     repository.getShopInfo(marker.sourceId)
-                        .onSuccess {
-
-                            _uiState.value = _uiState.value.copy(
-                                isDetailLoading = false,
-                                detailErrorMessage = null,
-                                selectedUserProfile = null,
-                                selectedPoiInfo = null,
-                                selectedEventInfo = null
-                            )
-                        }
-                        .onFailure { error ->
-
-                            updateDetailError(error)
-                        }
+                      //  .onSuccess { shop ->
+                       //     updateSelectedDetails(
+                                .onSuccess {
+                                _uiState.value = _uiState.value.copy(
+                                    isDetailLoading = false,
+                                    detailErrorMessage = null,
+                                    selectedUserProfile = null,
+                           //         selectedPoiInfo = MapPoiInfo(
+                            //            id = shop.id,
+                           //             name = shop.name,
+                           //             category = shop.category,
+                           //             description = shop.description ?: "Campus shop and utility store.",
+                           //             priority = 2
+                           //         ),
+                                    selectedPoiInfo = null,
+                                    selectedEventInfo = null
+                                )
+                            }
+                                .onFailure { error ->
+                                    updateDetailError(error)
+                                }
                 }
             }
         }

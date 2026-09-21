@@ -40,14 +40,14 @@ class MarkerRenderer {
     ): Float {
 
         val baseRadius = when (marker.size) {
-            MarkerSize.SMALL -> 9f
+            MarkerSize.SMALL -> 8f
             MarkerSize.MEDIUM -> 13f
-            MarkerSize.LARGE -> 15f
+            MarkerSize.LARGE -> 18f
         }
 
         val typeRadius = when (marker.type) {
             MarkerType.POI -> {
-                if (marker.isHighlighted) baseRadius + 4f else baseRadius - 3f
+                if (marker.isHighlighted) baseRadius + 4f else baseRadius
             }
 
             MarkerType.USER -> baseRadius + 2f

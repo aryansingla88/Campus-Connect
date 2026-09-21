@@ -24,10 +24,13 @@ fun PoiResponse.toMarker(): MapMarker {
     val markerSize = when (poiPriority) {
         1 -> MarkerSize.SMALL
         2 -> MarkerSize.MEDIUM
-        else -> MarkerSize.LARGE
+       // else -> MarkerSize.LARGE
+        3 -> MarkerSize.LARGE
+        4 -> MarkerSize.LARGE
+        else -> MarkerSize.SMALL
     }
-
-    val highlightCheck = poiPriority == 4
+   // val highlightCheck = poiPriority == 4
+    val highlightCheck = poiPriority >= 4
 
     return MapMarker(
         id = "POI_$id",
