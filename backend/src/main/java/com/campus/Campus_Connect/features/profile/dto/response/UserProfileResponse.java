@@ -1,5 +1,6 @@
 package com.campus.Campus_Connect.features.profile.dto.response;
 
+import com.campus.Campus_Connect.features.connection.dto.ConnectionRelationshipStatus;
 import com.campus.Campus_Connect.features.metadata.courses.dto.CourseResponse;
 import lombok.*;
 
@@ -36,6 +37,7 @@ public class UserProfileResponse {
     private String instagram;
 
     private String memberSince;
+    private ConnectionRelationshipStatus relationshipStatus;
 
     // Preferences
     private Boolean showPhone;

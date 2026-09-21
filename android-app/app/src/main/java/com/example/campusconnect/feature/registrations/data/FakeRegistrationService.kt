@@ -1,5 +1,5 @@
-package com.example.campusconnect.feature.events.registrations.data
-import com.example.campusconnect.feature.events.registrations.model.Registration
+package com.example.campusconnect.feature.registrations.data
+import com.example.campusconnect.feature.registrations.model.Registration
 
 object FakeRegistrationService {
     const val EVENT_ID = 1

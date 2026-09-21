@@ -18,8 +18,8 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import com.example.campusconnect.core.components.AppAvatar
 
 private enum class ManageTab {
-    REQUESTS,
-    INVITES
+    RECEIVED,
+    SENT
 }
 
 @Composable
@@ -31,7 +31,7 @@ fun ManageConnectionsPanel(
     onCancelInvite: (Int) -> Unit
 ) {
     var selectedTab by remember {
-        mutableStateOf(ManageTab.REQUESTS)
+        mutableStateOf(ManageTab.RECEIVED)
     }
 
     Column(
@@ -40,14 +40,14 @@ fun ManageConnectionsPanel(
 
         TabRow(
             selectedTabIndex =
-                if (selectedTab == ManageTab.REQUESTS) 0 else 1,
+                if (selectedTab == ManageTab.RECEIVED) 0 else 1,
             containerColor = Color.White,
             contentColor = Orange,
             indicator = { positions ->
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(
                         positions[
-                            if (selectedTab == ManageTab.REQUESTS) 0 else 1
+                            if (selectedTab == ManageTab.RECEIVED) 0 else 1
                         ]
                     ),
                     color = Orange
@@ -56,15 +56,15 @@ fun ManageConnectionsPanel(
         ) {
 
             Tab(
-                selected = selectedTab == ManageTab.REQUESTS,
+                selected = selectedTab == ManageTab.RECEIVED,
                 onClick = {
-                    selectedTab = ManageTab.REQUESTS
+                    selectedTab = ManageTab.RECEIVED
                 },
                 text = {
                     Text(
-                        text = "Requests",
+                        text = "Received",
                         color =
-                            if (selectedTab == ManageTab.REQUESTS)
+                            if (selectedTab == ManageTab.RECEIVED)
                                 Orange
                             else
                                 TextMuted
@@ -73,15 +73,15 @@ fun ManageConnectionsPanel(
             )
 
             Tab(
-                selected = selectedTab == ManageTab.INVITES,
+                selected = selectedTab == ManageTab.SENT,
                 onClick = {
-                    selectedTab = ManageTab.INVITES
+                    selectedTab = ManageTab.SENT
                 },
                 text = {
                     Text(
-                        text = "Invites",
+                        text = "Sent",
                         color =
-                            if (selectedTab == ManageTab.INVITES)
+                            if (selectedTab == ManageTab.SENT)
                                 Orange
                             else
                                 TextMuted
@@ -91,7 +91,7 @@ fun ManageConnectionsPanel(
         }
 
         val list =
-            if (selectedTab == ManageTab.REQUESTS)
+            if (selectedTab == ManageTab.RECEIVED)
                 incomingRequests
             else
                 sentInvites
@@ -104,10 +104,10 @@ fun ManageConnectionsPanel(
             ) {
                 Text(
                     text =
-                        if (selectedTab == ManageTab.REQUESTS)
-                            "No requests"
+                        if (selectedTab == ManageTab.RECEIVED)
+                            "No received requests"
                         else
-                            "No pending invites",
+                            "No sent requests",
                     fontSize = 13.sp,
                     color = TextMuted
                 )
@@ -141,7 +141,7 @@ fun ManageConnectionsPanel(
 
                         trailingContent = {
 
-                            if (selectedTab == ManageTab.REQUESTS) {
+                            if (selectedTab == ManageTab.RECEIVED) {
 
                                 Row(
                                     horizontalArrangement =

@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.profile.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,7 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.campusconnect.feature.profile.model.ClubStatus
+
+import com.example.campusconnect.core.utils.Image.ImagePickerSheet
+import com.example.campusconnect.core.utils.Image.ImageSource
+import com.example.campusconnect.core.utils.Image.rememberImagePicker
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.model.StatPanel
@@ -23,12 +27,11 @@ import com.example.campusconnect.feature.profile.ui.panels.honor.ManageCollectio
 import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.ui.panels.interests.ManageInterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.MyProfileViewModel
-import com.example.campusconnect.core.utils.Image.rememberImagePicker
-import com.example.campusconnect.core.utils.Image.ImagePickerSheet
-import com.example.campusconnect.core.utils.Image.ImageSource
-import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+//-------------------------------
+// My Profile Screen
+//-------------------------------
+
 @Composable
 fun MyProfileScreen(
     onBack: () -> Unit = {},
@@ -38,15 +41,58 @@ fun MyProfileScreen(
     vm: MyProfileViewModel = viewModel()
 ) {
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope             = rememberCoroutineScope()
-    val currentProfile =
-        if (vm.isEditMode)
-            vm.editableProfile
-        else
-            vm.profile
+    //-------------------------------
+    // Local State
+    //-------------------------------
 
-    var showImagePicker by remember { mutableStateOf(false) }
+    var showImagePicker by remember {
+        mutableStateOf(false)
+    }
+
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
+
+    val currentProfile =
+        if (vm.isEditMode) {
+            vm.editableProfile
+        } else {
+            vm.profile
+        }
+
+    //-------------------------------
+    // Back Handling
+    //-------------------------------
+
+    BackHandler(
+        enabled =
+            showImagePicker ||
+                    vm.isEditMode ||
+                    vm.activeManagePanel != null ||
+                    vm.activePanel != null
+    ) {
+        when {
+            showImagePicker -> {
+                showImagePicker = false
+            }
+
+            vm.isEditMode -> {
+                vm.cancelEditing()
+            }
+
+            vm.activeManagePanel != null -> {
+                vm.closeManagePanel()
+            }
+
+            vm.activePanel != null -> {
+                vm.togglePanel(vm.activePanel!!)
+            }
+        }
+    }
+
+    //-------------------------------
+    // Image Picker
+    //-------------------------------
 
     val pickImage = rememberImagePicker { uri ->
         vm.updateAvatar(uri)
@@ -68,31 +114,18 @@ fun MyProfileScreen(
         )
     }
 
+    //-------------------------------
+    // Scaffold
+    //-------------------------------
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PageBg,
-        topBar = {
-            TopAppBar(
-                title = {},
-                modifier = Modifier.height(40.dp),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = TextPrimary)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onSettings) {
-                        Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = TextPrimary)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-            )
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
         },
         bottomBar = {
 
             when {
-
                 vm.isEditMode -> {
                     ProfileBottomBar(
                         buttons = listOf(
@@ -168,127 +201,233 @@ fun MyProfileScreen(
             }
         }
     ) { innerPadding ->
+
+        //-------------------------------
+        // Main Layout
+        //-------------------------------
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+
+            //-------------------------------
+            // Profile Header
+            //-------------------------------
+
             ProfileHeader(
                 entityId = currentProfile.userId,
                 avatarUrl = currentProfile.avatarUrl,
                 avatarUri = vm.selectedAvatarUri,
-                displayName   = currentProfile.fullName,
-                username      = currentProfile.username,
-                bio           = currentProfile.bio,
-                badgeColors = emptyList(),
-                medalColors = emptyList(),
+                displayName = currentProfile.fullName,
+                username = currentProfile.username,
+                bio = currentProfile.bio,
 
-                isEditMode    = vm.isEditMode,
+                badgeColors = listOf(
+                    Color(0xFF2196F3),
+                    Color(0xFF9C27B0),
+                    Color(0xFF00C853)
+                ),
+
+                medalColors = listOf(
+                    Color(0xFFFFA000),
+                    Color(0xFF9E9E9E)
+                ),
+
+                isEditMode = vm.isEditMode,
+
                 onEditAvatar = {
                     showImagePicker = true
                 },
-                onBioChange   = { newBio ->
-                    vm.updateEditableProfile(currentProfile.copy(bio = newBio))
-                }
+
+                onBioChange = { newBio ->
+                    vm.updateEditableProfile(
+                        currentProfile.copy(
+                            bio = newBio
+                        )
+                    )
+                },
+
+                onBack = onBack,
+                onSettings = onSettings
             )
+
+            Spacer(
+                modifier = Modifier.height(9.dp)
+            )
+
+            //-------------------------------
+            // Profile Stats
+            //-------------------------------
 
             StatsRow(
-                connectionCount = vm.connections.size,
-                honorCount      = vm.badges.size + vm.medals.size,
-                clubCount       = vm.clubs.count { it.status == ClubStatus.JOINED },
-                interestCount   = vm.interests.size,
-                activePanel     = vm.activePanel,
-                onStatClick     = { vm.togglePanel(it) }
+                connectionCount = vm.stats.connectionCount,
+                honorCount = vm.stats.honorCount,
+                clubCount = vm.stats.clubCount,
+                interestCount = vm.stats.interestCount,
+                activePanel = vm.activePanel,
+                onStatClick = vm::togglePanel
             )
 
+            //-------------------------------
+            // Profile Content / Panels
+            //-------------------------------
 
-                // temp before refraction
-            AnimatedContent(
-                targetState = Pair(vm.activePanel, vm.activeManagePanel),
-                transitionSpec = {
-                    (fadeIn() + slideInVertically { it / 10 })
-                        .togetherWith(fadeOut() + slideOutVertically { -it / 10 })
-                },
-                label = "my_profile_panel"
-            ) { (panel, managePanel) ->
-                when {
-                    managePanel == StatPanel.CONNECTIONS ->
-                        ManageConnectionsPanel(
-                            incomingRequests = vm.incomingRequests,
-                            sentInvites = vm.sentInvites,
-                            onAccept = vm::acceptRequest,
-                            onDecline = vm::declineRequest,
-                            onCancelInvite = vm::cancelInvite
-                        )
-                    managePanel == StatPanel.HONOR ->
-                        ManageCollectionPanel(
-                            badges = vm.badges,
-                            medals = vm.medals,
-                            onBadgeMoveUp = vm::moveBadgeUp,
-                            onBadgeMoveDown = vm::moveBadgeDown,
-                            onMedalMoveUp = vm::moveMedalUp,
-                            onMedalMoveDown = vm::moveMedalDown,
-                            onBadgeMoveTo = vm::moveBadgeTo,
-                            onMedalMoveTo = vm::moveMedalTo
-                        )
-                    managePanel == StatPanel.INTERESTS ->
-                        ManageInterestsPanel(
-                            interests = vm.interests,
-                            allInterests = vm.allInterests,
-                            onAddInterest = vm::addInterest
-                        )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
 
-                    panel == StatPanel.CONNECTIONS -> ConnectionsPanel(
-                        connections = vm.connections,
-                        mode = ProfileMode.OWN,
-                        onStatusChange = { userId, status ->
-                            if (status == ConnectionStatus.PENDING) {
-                                vm.sendConnectionRequest(userId)
-                            }
-                        },
-                        onRemoveConnection = { userId ->
-                            vm.removeConnection(userId)
-                        },
-                        onConnectionClick = { userId ->
-                            onNavigateToProfile(userId)
+                AnimatedContent(
+                    modifier = Modifier.fillMaxSize(),
+                    targetState = Pair(
+                        vm.activePanel,
+                        vm.activeManagePanel
+                    ),
+                    transitionSpec = {
+                        (
+                                fadeIn() +
+                                        slideInVertically { it / 10 }
+                                ).togetherWith(
+                                fadeOut() +
+                                        slideOutVertically { -it / 10 }
+                            )
+                    },
+                    label = "my_profile_panel"
+                ) { (panel, managePanel) ->
+
+                    when {
+
+                        //-------------------------------
+                        // Manage Connections
+                        //-------------------------------
+
+                        managePanel == StatPanel.CONNECTIONS -> {
+                            ManageConnectionsPanel(
+                                incomingRequests = vm.incomingRequests,
+                                sentInvites = vm.sentInvites,
+                                onAccept = vm::acceptRequest,
+                                onDecline = vm::declineRequest,
+                                onCancelInvite = vm::cancelInvite
+                            )
                         }
-                    )
-                    panel == StatPanel.HONOR -> HonorPanel(
-                        honorRank    = vm.honorRank,
-                        badges       = vm.badges,
-                        medals       = vm.medals,
-                        mode         = ProfileMode.OWN
-                    )
-                    panel == StatPanel.CLUBS -> ClubsPanel(
-                        clubs = vm.clubs,
-                        mode = ProfileMode.OWN,
-                        allClubs = vm.allClubs,
 
-                        onJoinClub = { clubId ->
-                            vm.joinClub(clubId)
-                        },
+                        //-------------------------------
+                        // Manage Honors
+                        //-------------------------------
 
-                        onLeaveClub = { clubId ->
-                            vm.leaveClub(clubId)
+                        managePanel == StatPanel.HONOR -> {
+                            ManageCollectionPanel(
+                                badges = vm.badges,
+                                medals = vm.medals,
+                                onBadgeMoveUp = vm::moveBadgeUp,
+                                onBadgeMoveDown = vm::moveBadgeDown,
+                                onMedalMoveUp = vm::moveMedalUp,
+                                onMedalMoveDown = vm::moveMedalDown,
+                                onBadgeMoveTo = vm::moveBadgeTo,
+                                onMedalMoveTo = vm::moveMedalTo
+                            )
                         }
-                    )
-                    panel == StatPanel.INTERESTS -> InterestsPanel(
-                        interests  = vm.interests,
-                        mode       = ProfileMode.OWN,
-                        onRemove = { interest ->
-                            vm.removeInterest(interest)
-                        },
-                        onAddClick = { vm.openManagePanel(StatPanel.INTERESTS) }
-                    )
-                    else -> ProfileContent(
-                        profile       = currentProfile,
-                        mode          = ProfileMode.OWN,
-                        isEditMode    = vm.isEditMode,
-                        onValueChange = vm::updateEditableProfile
-                    )
+
+                        //-------------------------------
+                        // Manage Interests
+                        //-------------------------------
+
+                        managePanel == StatPanel.INTERESTS -> {
+                            ManageInterestsPanel(
+                                interests = vm.interests,
+                                allInterests = vm.allInterests,
+                                onAddInterest = vm::addInterest
+                            )
+                        }
+
+                        //-------------------------------
+                        // Connections
+                        //-------------------------------
+
+                        panel == StatPanel.CONNECTIONS -> {
+                            ConnectionsPanel(
+                                connections = vm.connections,
+                                searchResults = vm.searchResults,
+                                mode = ProfileMode.OWN,
+                                onSearch = vm::searchUsers,
+
+                                onStatusChange = { userId, status ->
+                                    if (status == ConnectionStatus.PENDING) {
+                                        vm.sendConnectionRequest(userId)
+                                    }
+                                },
+
+                                onRemoveConnection = vm::removeConnection,
+
+                                onConnectionClick = onNavigateToProfile,
+
+                                onCancelConnectionRequest =
+                                    vm::cancelConnectionRequest
+                            )
+                        }
+
+                        //-------------------------------
+                        // Honors
+                        //-------------------------------
+
+                        panel == StatPanel.HONOR -> {
+                            HonorPanel(
+                                honorRank = vm.honorRank,
+                                badges = vm.badges,
+                                medals = vm.medals,
+                                mode = ProfileMode.OWN
+                            )
+                        }
+
+                        //-------------------------------
+                        // Clubs
+                        //-------------------------------
+
+                        panel == StatPanel.CLUBS -> {
+                            ClubsPanel(
+                                clubs = vm.clubs,
+                                mode = ProfileMode.OWN,
+                                allClubs = vm.allClubs,
+                                onJoinClub = vm::joinClub,
+                                onLeaveClub = vm::leaveClub
+                            )
+                        }
+
+                        //-------------------------------
+                        // Interests
+                        //-------------------------------
+
+                        panel == StatPanel.INTERESTS -> {
+                            InterestsPanel(
+                                interests = vm.interests,
+                                mode = ProfileMode.OWN,
+                                onRemove = vm::removeInterest,
+                                onAddClick = {
+                                    vm.openManagePanel(
+                                        StatPanel.INTERESTS
+                                    )
+                                }
+                            )
+                        }
+
+                        //-------------------------------
+                        // Main Profile
+                        //-------------------------------
+
+                        else -> {
+                            ProfileContent(
+                                profile = currentProfile,
+                                mode = ProfileMode.OWN,
+                                isEditMode = vm.isEditMode,
+                                onValueChange = vm::updateEditableProfile
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
-

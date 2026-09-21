@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.profile.data.mapper
 import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.metadata.courses.CourseRepository
 import com.example.campusconnect.feature.profile.data.remote.response.ProfileResponse
+import com.example.campusconnect.feature.profile.model.ConnectionStatus
 import com.example.campusconnect.feature.profile.model.PublicUserProfile
 
 object ProfileMapper {
@@ -75,7 +76,16 @@ object ProfileMapper {
 
             // Visibility
             showPhone = response.showPhone ?: false,
-            showSocials = response.showSocials ?: true
+            showSocials = response.showSocials ?: true,
+
+            // Relationship status (null for /users/me)
+            relationshipStatus = when (response.relationshipStatus) {
+                "NOT_CONNECTED"   -> ConnectionStatus.NOT_CONNECTED
+                "PENDING_SENT",
+                "PENDING_RECEIVED" -> ConnectionStatus.PENDING
+                "CONNECTED"       -> ConnectionStatus.CONNECTED
+                else              -> null
+            }
         )
     }
 }

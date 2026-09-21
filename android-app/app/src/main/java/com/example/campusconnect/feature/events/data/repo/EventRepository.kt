@@ -8,7 +8,7 @@ import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
 import com.example.campusconnect.feature.events.model.UserAccess
-import com.example.campusconnect.feature.events.registrations.model.Registration
+import com.example.campusconnect.feature.registrations.model.Registration
 import okhttp3.MultipartBody
 
 interface EventRepository {

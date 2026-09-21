@@ -31,7 +31,7 @@ fun TestScreen(
     }
 
     // test2 only
-    LaunchedEffect(onLogout) {
+    LaunchedEffect(Unit) {
 
         if (onLogout != null) {
 

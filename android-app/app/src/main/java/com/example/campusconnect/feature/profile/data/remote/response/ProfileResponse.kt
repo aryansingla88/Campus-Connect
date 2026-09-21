@@ -41,6 +41,8 @@ data class ProfileResponse(
     // Preferences ----------------------------------------------------
 
     val showPhone: Boolean?,
-    val showSocials: Boolean?
+    val showSocials: Boolean?,
+
+    val relationshipStatus: String?
 
 )

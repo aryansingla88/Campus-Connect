@@ -92,7 +92,7 @@ abstract class BaseProfileViewModel(
         clubSearchQuery = query
     }
 
-    fun togglePanel(panel: StatPanel) {
+    open fun togglePanel(panel: StatPanel) {
         activePanel =
             if (activePanel == panel) {
                 null

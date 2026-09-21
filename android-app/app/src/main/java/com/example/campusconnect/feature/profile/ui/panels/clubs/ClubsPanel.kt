@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.profile.ui.panels.clubs
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.core.components.AvatarShape
 import com.example.campusconnect.core.components.PanelSearchBar
+import com.example.campusconnect.core.components.SearchPopup
 import com.example.campusconnect.feature.profile.model.Club
 import com.example.campusconnect.feature.profile.model.ClubStatus
 import com.example.campusconnect.feature.profile.model.ProfileMode
@@ -27,47 +29,77 @@ fun ClubsPanel(
     onJoinClub: (Int) -> Unit = {},
     onLeaveClub: (Int) -> Unit = {}
 ) {
-    var query by remember { mutableStateOf("") }
+    var showSearchPopup by remember {
+        mutableStateOf(false)
+    }
+
+    var query by remember {
+        mutableStateOf("")
+    }
 
     val isOwnProfile = mode == ProfileMode.OWN
 
-
-    val searchableClubs = if (isOwnProfile) {
-        allClubs
-    } else {
-        clubs
-    }
-
-    val visibleClubs = if (query.isBlank()) {
-        clubs
-    } else {
-        searchableClubs.filter { club ->
-            club.name.contains(
-                other = query,
-                ignoreCase = true
-            )
+    val searchableClubs =
+        if (isOwnProfile) {
+            allClubs
+        } else {
+            clubs
         }
-    }
+
+    val visibleClubs =
+        if (query.isBlank()) {
+            clubs
+        } else {
+            searchableClubs.filter { club ->
+                club.name.contains(
+                    other = query,
+                    ignoreCase = true
+                )
+            }
+        }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 14.dp),
+            .padding(
+                horizontal = 12.dp,
+                vertical = 14.dp
+            ),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        PanelSearchBar(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = if (isOwnProfile) {
-                "Search clubs to join…"
-            } else {
-                "Search clubs…"
-            },
-            showEmbeddedPlus = isOwnProfile
-        )
 
+        // Normal Clubs panel search bar.
+        // It stays here; clicking it opens the common popup.
+        Box(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            PanelSearchBar(
+                value = query,
+                onValueChange = {
+                    query = it
+                },
+                placeholder =
+                    if (isOwnProfile) {
+                        "Search clubs to join…"
+                    } else {
+                        "Search clubs…"
+                    },
+                showEmbeddedPlus = isOwnProfile
+            )
+
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable {
+                        showSearchPopup = true
+                    }
+            )
+        }
+
+        // Normal Clubs list
         visibleClubs.forEach { club ->
+
             ProfileListCard(
                 title = club.name,
                 subtitle = "${club.memberCount} members",
@@ -88,6 +120,7 @@ fun ClubsPanel(
                             status = club.status,
                             onClick = {
                                 when (club.status) {
+
                                     ClubStatus.NOT_JOINED -> {
                                         onJoinClub(club.clubId)
                                     }
@@ -107,6 +140,80 @@ fun ClubsPanel(
             )
         }
     }
+
+    /*
+     * Common search popup
+     */
+    SearchPopup(
+        visible = showSearchPopup,
+        query = query,
+        onQueryChange = {
+            query = it
+        },
+        placeholder =
+            if (isOwnProfile) {
+                "Search clubs to join…"
+            } else {
+                "Search clubs…"
+            },
+        items =
+            if (query.isBlank()) {
+                searchableClubs
+            } else {
+                searchableClubs.filter { club ->
+                    club.name.contains(
+                        other = query,
+                        ignoreCase = true
+                    )
+                }
+            },
+        onSearch = { },
+        onDismiss = {
+            showSearchPopup = false
+            query = ""
+        },
+        itemContent = { club ->
+
+            ProfileListCard(
+                title = club.name,
+                subtitle = "${club.memberCount} members",
+
+                leadingContent = {
+                    AppAvatar(
+                        entityId = club.clubId,
+                        displayName = club.name,
+                        imageUrl = club.logoUrl,
+                        size = 38.dp,
+                        shape = AvatarShape.ROUNDED
+                    )
+                },
+
+                trailingContent = {
+                    if (isOwnProfile) {
+                        ClubButton(
+                            status = club.status,
+                            onClick = {
+                                when (club.status) {
+
+                                    ClubStatus.NOT_JOINED -> {
+                                        onJoinClub(club.clubId)
+                                    }
+
+                                    ClubStatus.PENDING -> {
+                                        // No action while request is pending.
+                                    }
+
+                                    ClubStatus.JOINED -> {
+                                        onLeaveClub(club.clubId)
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+            )
+        }
+    )
 }
 
 @Composable

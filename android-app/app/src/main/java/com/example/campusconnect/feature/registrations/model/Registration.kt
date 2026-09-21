@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.events.registrations.model
+package com.example.campusconnect.feature.registrations.model
 
 data class Registration(
     val eventId: Int,

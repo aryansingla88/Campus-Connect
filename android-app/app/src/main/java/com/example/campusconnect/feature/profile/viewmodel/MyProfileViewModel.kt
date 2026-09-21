@@ -19,6 +19,12 @@ class MyProfileViewModel(
     var stats by mutableStateOf(ProfileStats())
         private set
 
+    // per‑panel loaded flags – in‑memory cache
+    private var connectionsLoaded = false
+    private var clubsLoaded = false
+    private var honorsLoaded = false
+    private var interestsLoaded = false
+
     var editableProfile by mutableStateOf(PublicUserProfile())
         private set
 
@@ -32,12 +38,13 @@ class MyProfileViewModel(
 
     val sentInvites = mutableStateListOf<ConnectionRequest>()
 
+    val searchResults = mutableStateListOf<Connection>()
+
     var selectedAvatarUri by mutableStateOf<Uri?>(null)
         private set
 
     init {
         loadMyData()
-        loadConnectionRequests()
     }
 
     fun updateAvatar(uri: Uri) {
@@ -51,37 +58,12 @@ class MyProfileViewModel(
 
             try {
                 coroutineScope {
-
                     val profileRequest = async {
                         repository.getMyProfile()
                     }
 
                     val statsRequest = async {
                         repository.getMyStats()
-                    }
-
-                    val connectionsRequest = async {
-                        repository.getMyConnections()
-                    }
-
-                    val clubsRequest = async {
-                        repository.getMyClubs()
-                    }
-
-                    val allClubsRequest = async {
-                        repository.getAllClubs()
-                    }
-
-                    val honorsRequest = async {
-                        repository.getProfileHonors()
-                    }
-
-                    val interestsRequest = async {
-                        repository.getSelectedInterests()
-                    }
-
-                    val allInterestsRequest = async {
-                        repository.getAllInterests()
                     }
 
                     profileRequest.await()
@@ -97,47 +79,6 @@ class MyProfileViewModel(
                         .onSuccess {
                             stats = it
                         }
-
-                    connectionsRequest.await()
-                        .onSuccess {
-                            connections.clear()
-                            connections.addAll(it)
-                        }
-
-                    clubsRequest.await()
-                        .onSuccess {
-                            clubs.clear()
-                            clubs.addAll(it)
-                        }
-
-                    allClubsRequest.await()
-                        .onSuccess {
-                            allClubs.clear()
-                            allClubs.addAll(it)
-                        }
-
-                    honorsRequest.await()
-                        .onSuccess { honors ->
-                            honorRank = honors.honorRank
-
-                            badges.clear()
-                            badges.addAll(honors.badges)
-
-                            medals.clear()
-                            medals.addAll(honors.medals)
-                        }
-
-                    interestsRequest.await()
-                        .onSuccess {
-                            interests.clear()
-                            interests.addAll(it)
-                        }
-
-                    allInterestsRequest.await()
-                        .onSuccess {
-                            allInterests.clear()
-                            allInterests.addAll(it)
-                        }
                 }
             } finally {
                 isLoading = false
@@ -145,9 +86,29 @@ class MyProfileViewModel(
         }
     }
 
+    override fun togglePanel(panel: StatPanel) {
+        super.togglePanel(panel)
+        if (activePanel == panel) {
+            loadPanelData(panel)
+        }
+    }
+
+    private fun loadPanelData(panel: StatPanel) {
+        when (panel) {
+            StatPanel.CONNECTIONS -> if (!connectionsLoaded) loadConnections()
+            StatPanel.CLUBS -> if (!clubsLoaded) loadClubs()
+            StatPanel.HONOR -> if (!honorsLoaded) loadHonors()
+            StatPanel.INTERESTS -> if (!interestsLoaded) loadInterests()
+        }
+    }
 
     fun openManagePanel(panel: StatPanel) {
         activeManagePanel = panel
+        when (panel) {
+            StatPanel.CONNECTIONS -> loadConnectionRequests()
+            StatPanel.INTERESTS -> loadAllInterestsIfNeeded()
+            else -> {}
+        }
     }
 
     fun closeManagePanel() {
@@ -165,6 +126,7 @@ class MyProfileViewModel(
 
     fun cancelEditing() {
         editableProfile = profile.copy()
+        selectedAvatarUri = null
         isEditMode = false
     }
 
@@ -192,39 +154,96 @@ class MyProfileViewModel(
             repository
                 .sendConnectionRequest(userId)
                 .onSuccess {
-                    val index = connections.indexOfFirst {
+
+                    val connectionIndex = connections.indexOfFirst {
                         it.userId == userId
                     }
 
-                    if (index != -1) {
-                        connections[index] = connections[index].copy(
-                            status = ConnectionStatus.PENDING
-                        )
+                    if (connectionIndex != -1) {
+                        connections[connectionIndex] =
+                            connections[connectionIndex].copy(
+                                status = ConnectionStatus.PENDING
+                            )
+                    }
+
+                    val searchIndex = searchResults.indexOfFirst {
+                        it.userId == userId
+                    }
+
+                    if (searchIndex != -1) {
+                        searchResults[searchIndex] =
+                            searchResults[searchIndex].copy(
+                                status = ConnectionStatus.PENDING
+                            )
                     }
                 }
                 .onFailure {
-                    // Use your existing error handling here
+                    errorMessage = it.message
                 }
         }
     }
 
+    fun cancelConnectionRequest(userId: Int) {
+        viewModelScope.launch {
+            repository
+                .removeConnectionRequest(userId)
+                .onSuccess {
+                    val connectionIndex =
+                        connections.indexOfFirst { it.userId == userId }
+
+                    if (connectionIndex != -1) {
+                        connections[connectionIndex] =
+                            connections[connectionIndex].copy(
+                                status = ConnectionStatus.NOT_CONNECTED
+                            )
+                    }
+
+                    val searchIndex =
+                        searchResults.indexOfFirst { it.userId == userId }
+
+                    if (searchIndex != -1) {
+                        searchResults[searchIndex] =
+                            searchResults[searchIndex].copy(
+                                status = ConnectionStatus.NOT_CONNECTED
+                            )
+                    }
+                }
+                .onFailure {
+                    errorMessage = it.message
+                }
+        }
+    }
     fun removeConnection(userId: Int) {
         viewModelScope.launch {
             repository
                 .removeConnection(userId)
                 .onSuccess {
-                    val index = connections.indexOfFirst {
+
+                    val connectionIndex = connections.indexOfFirst {
                         it.userId == userId
                     }
 
-                    if (index != -1) {
-                        connections[index] = connections[index].copy(
-                            status = ConnectionStatus.NOT_CONNECTED
-                        )
+                    if (connectionIndex != -1) {
+                        connections[connectionIndex] =
+                            connections[connectionIndex].copy(
+                                status = ConnectionStatus.NOT_CONNECTED
+                            )
                     }
+
+                    val searchIndex = searchResults.indexOfFirst {
+                        it.userId == userId
+                    }
+
+                    if (searchIndex != -1) {
+                        searchResults[searchIndex] =
+                            searchResults[searchIndex].copy(
+                                status = ConnectionStatus.NOT_CONNECTED
+                            )
+                    }
+                    loadStats()
                 }
                 .onFailure {
-                    // Use your existing error handling here
+                    errorMessage = it.message
                 }
         }
     }
@@ -240,9 +259,10 @@ class MyProfileViewModel(
 
                     loadConnections()
                     loadConnectionRequests()
+                    loadStats()
                 }
                 .onFailure {
-                    // Use your existing error handling here
+                    errorMessage = it.message
                 }
         }
     }
@@ -259,7 +279,7 @@ class MyProfileViewModel(
                     loadConnectionRequests()
                 }
                 .onFailure {
-                    // Use your existing error handling here
+                    errorMessage = it.message
                 }
         }
     }
@@ -276,7 +296,26 @@ class MyProfileViewModel(
                     loadConnectionRequests()
                 }
                 .onFailure {
-                    // Use your existing error handling here
+                    errorMessage = it.message
+                }
+        }
+    }
+
+    fun searchUsers(query: String) {
+        if (query.isBlank()) {
+            searchResults.clear()
+            return
+        }
+
+        viewModelScope.launch {
+            repository
+                .searchUsers(query)
+                .onSuccess { result ->
+                    searchResults.clear()
+                    searchResults.addAll(result)
+                }
+                .onFailure {
+                    errorMessage = it.message
                 }
         }
     }
@@ -287,6 +326,7 @@ class MyProfileViewModel(
                 .joinClub(clubId)
                 .onSuccess {
                     refreshClubs()
+                    loadStats()
                 }
         }
     }
@@ -297,6 +337,7 @@ class MyProfileViewModel(
                 .leaveClub(clubId)
                 .onSuccess {
                     refreshClubs()
+                    loadStats()
                 }
         }
     }
@@ -308,9 +349,76 @@ class MyProfileViewModel(
                 .onSuccess { result ->
                     connections.clear()
                     connections.addAll(result)
+                    connectionsLoaded = true
                 }
                 .onFailure {
-                    // Use your existing error handling here
+                    errorMessage = it.message
+                }
+        }
+    }
+
+    private fun loadClubs() {
+        viewModelScope.launch {
+            repository
+                .getMyClubs()
+                .onSuccess { result ->
+                    clubs.clear()
+                    clubs.addAll(result)
+                    clubsLoaded = true
+                }
+            if (allClubs.isEmpty()) {
+                loadAllClubs()
+            }
+        }
+    }
+
+    private fun loadHonors() {
+        viewModelScope.launch {
+            repository
+                .getProfileHonors()
+                .onSuccess { honors ->
+                    honorRank = honors.honorRank
+                    badges.clear()
+                    badges.addAll(honors.badges)
+                    medals.clear()
+                    medals.addAll(honors.medals)
+                    honorsLoaded = true
+                }
+                .onFailure {
+                    errorMessage = it.message
+                }
+        }
+    }
+
+    private fun loadInterests() {
+        viewModelScope.launch {
+            repository
+                .getSelectedInterests()
+                .onSuccess { result ->
+                    interests.clear()
+                    interests.addAll(result)
+                    interestsLoaded = true
+                }
+                .onFailure {
+                    errorMessage = it.message
+                }
+        }
+    }
+
+    private fun loadAllInterestsIfNeeded() {
+        viewModelScope.launch {
+            if (allInterests.isEmpty()) {
+                loadAllInterests()
+            }
+        }
+    }
+
+    private fun loadStats() {
+        viewModelScope.launch {
+            repository
+                .getMyStats()
+                .onSuccess {
+                    stats = it
                 }
         }
     }
@@ -336,7 +444,7 @@ class MyProfileViewModel(
                     )
                 }
                 .onFailure {
-                    // Use your existing error handling here
+                    errorMessage = it.message
                 }
         }
     }
@@ -348,7 +456,9 @@ class MyProfileViewModel(
                 clubs.clear()
                 clubs.addAll(result)
             }
-
+        if (allClubs.isNotEmpty()) {
+            loadAllClubs()
+        }
     }
 
     fun addInterest(interest: Interest) {
@@ -358,6 +468,7 @@ class MyProfileViewModel(
             repository.addInterest(interest.interestId)
                 .onSuccess {
                     interests.add(interest)
+                    loadStats()
                 }
         }
     }
@@ -367,6 +478,7 @@ class MyProfileViewModel(
             repository.removeInterest(interest.interestId)
                 .onSuccess {
                     interests.remove(interest)
+                    loadStats()
                 }
         }
     }

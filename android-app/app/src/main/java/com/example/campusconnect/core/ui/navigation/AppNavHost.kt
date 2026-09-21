@@ -7,8 +7,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.campusconnect.core.session.SessionManager
 import com.example.campusconnect.feature.auth.authNav
 import com.example.campusconnect.feature.events.eventNav
-import com.example.campusconnect.feature.events.registrations.RegisterationNav
-import com.example.campusconnect.feature.events.registrations.navigateToFormBuilder
+import com.example.campusconnect.feature.registrations.RegisterationNav
+import com.example.campusconnect.feature.registrations.navigateToFormBuilder
 import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.posts.navigation.POSTS_FEED_ROUTE
 import com.example.campusconnect.feature.posts.navigation.postNav

@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.events.registrations.ui
+package com.example.campusconnect.feature.registrations.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke

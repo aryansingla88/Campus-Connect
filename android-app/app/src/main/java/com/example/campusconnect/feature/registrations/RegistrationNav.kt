@@ -1,12 +1,12 @@
-package com.example.campusconnect.feature.events.registrations
+package com.example.campusconnect.feature.registrations
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.campusconnect.feature.events.registrations.data.FakeFormDetails
-import com.example.campusconnect.feature.events.registrations.ui.FormBuilderScreen
+import com.example.campusconnect.feature.registrations.data.FakeFormDetails
+import com.example.campusconnect.feature.registrations.ui.FormBuilderScreen
 
 fun NavGraphBuilder.RegisterationNav(navController: NavController) {
     composable(
