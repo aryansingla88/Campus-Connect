@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,6 +27,7 @@ fun StatsRow(
     clubCount: Int,
     interestCount: Int,
     activePanel: StatPanel?,
+    enabled: Boolean = true,
     onStatClick: (StatPanel) -> Unit
 ) {
     data class StatItem(
@@ -58,7 +60,7 @@ fun StatsRow(
                 .height(IntrinsicSize.Min)
         ) {
             stats.forEachIndexed { index, stat ->
-                val isActive = activePanel == stat.panel
+                val isActive = enabled && activePanel == stat.panel
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -67,10 +69,14 @@ fun StatsRow(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .alpha(if (enabled) 1f else 0.45f)
                             .clickable(
+                                enabled = enabled,
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication        = null
-                            ) { onStatClick(stat.panel) }
+                                indication = null
+                            ) {
+                                onStatClick(stat.panel)
+                            }
                             .background(if (isActive) OrangeLight else CardBg)
                             .padding(vertical = 9.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,

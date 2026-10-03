@@ -6,5 +6,5 @@ public enum EventState {
     UPCOMING,
     ONGOING,
     COMPLETED,
-    LIVE, CANCELLED
+    CANCELLED
 }

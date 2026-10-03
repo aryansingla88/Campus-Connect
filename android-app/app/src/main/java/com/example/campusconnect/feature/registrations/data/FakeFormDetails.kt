@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.registrations.data
 
-import com.example.campusconnect.feature.registrations.ui.FormField
-import com.example.campusconnect.feature.registrations.ui.FieldType
+import com.example.campusconnect.feature.registrations.ui.screens.FormField
+import com.example.campusconnect.feature.registrations.ui.screens.FieldType
 
 object FakeFormDetails {
 

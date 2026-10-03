@@ -36,8 +36,8 @@ import com.example.campusconnect.feature.profile.viewmodel.MyProfileViewModel
 fun MyProfileScreen(
     onBack: () -> Unit = {},
     onSettings: () -> Unit = {},
-    onEditProfile: () -> Unit = {},
     onNavigateToProfile: (Int) -> Unit = {},
+    initialEditMode: Boolean = false,
     vm: MyProfileViewModel = viewModel()
 ) {
 
@@ -51,6 +51,12 @@ fun MyProfileScreen(
 
     val snackbarHostState = remember {
         SnackbarHostState()
+    }
+
+    LaunchedEffect(initialEditMode) {
+        if (initialEditMode && !vm.isEditMode) {
+            vm.startEditing()
+        }
     }
 
     val currentProfile =
@@ -261,12 +267,16 @@ fun MyProfileScreen(
             // Profile Stats
             //-------------------------------
 
+            val profileInteractionLocked =
+                vm.isEditMode || vm.activeManagePanel != null
+
             StatsRow(
                 connectionCount = vm.stats.connectionCount,
                 honorCount = vm.stats.honorCount,
                 clubCount = vm.stats.clubCount,
                 interestCount = vm.stats.interestCount,
                 activePanel = vm.activePanel,
+                enabled = !profileInteractionLocked,
                 onStatClick = vm::togglePanel
             )
 

@@ -7,13 +7,15 @@ import androidx.navigation.compose.rememberNavController
 import com.example.campusconnect.core.session.SessionManager
 import com.example.campusconnect.feature.auth.authNav
 import com.example.campusconnect.feature.events.eventNav
-import com.example.campusconnect.feature.registrations.RegisterationNav
+import com.example.campusconnect.feature.registrations.RegistrationNav
 import com.example.campusconnect.feature.registrations.navigateToFormBuilder
 import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.posts.navigation.POSTS_FEED_ROUTE
 import com.example.campusconnect.feature.posts.navigation.postNav
 import com.example.campusconnect.feature.profile.ProfileNav
 import com.example.campusconnect.feature.profile.ProfileRoutes
+import com.example.campusconnect.feature.registrations.navigateToRegistrationSetup
+import com.example.campusconnect.feature.settings.SettingsNav
 import com.example.campusconnect.feature.splash.navigation.SPLASH_ROUTE
 import com.example.campusconnect.feature.splash.navigation.splashNav
 import com.example.campusconnect.feature.test.TestScreen
@@ -56,8 +58,13 @@ fun AppNavHost() {
                 },
 
                 onFormBuilder = {
-                    navController.navigateToFormBuilder(1)
-                }
+                    navController.navigateToRegistrationSetup(1)
+                },
+
+                onSettings = {
+                    navController.navigate("settings_graph")
+                },
+
             )
         }
 
@@ -85,7 +92,11 @@ fun AppNavHost() {
                 },
 
                 onFormBuilder = {
-                    navController.navigateToFormBuilder(1)
+                    navController.navigateToRegistrationSetup(1)
+                },
+
+                onSettings = {
+                    navController.navigate("settings_graph")
                 },
 
                 onLogout = {
@@ -97,6 +108,10 @@ fun AppNavHost() {
                             inclusive = true
                         }
                     }
+                },
+
+                onContinue = {
+                    navController.navigate("map")
                 }
             )
         }
@@ -117,6 +132,8 @@ fun AppNavHost() {
 
         ProfileNav(navController)
 
-        RegisterationNav(navController)
+        RegistrationNav(navController)
+
+        SettingsNav(navController)
     }
 }

@@ -68,6 +68,12 @@ private val OrangeGradient = Brush.verticalGradient(
 
 @Composable
 fun MapScreen(
+    onProfileClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onHomePostsClick: () -> Unit = {},
+    onEventPostsClick: () -> Unit = {},
+    onEventFeatureClick: () -> Unit = {},
+    onPosterClick: () -> Unit = {},
     viewModel: MapViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -115,24 +121,27 @@ fun MapScreen(
                 .fillMaxSize()
                 .blur(animatedBlur)
         ) {
-            MapView(
-                modifier = Modifier.fillMaxSize(),
-                markers = uiState.renderData,
-                onMarkerClick = { markerId ->
-                    selectedSidePanel = SidePanel.NONE
-                    viewModel.selectMarker(markerId)
-                },
-                onMapTap = { x, y ->
-                    selectedSidePanel = SidePanel.NONE
+            if (selectedMode != MapMode.POSTER) {
 
-                    Log.d(
-                        "MAP_PIXEL",
-                        "MapScreen received pixel: x=$x, y=$y"
-                    )
-                },
-                initialFocusMarkerId = "shop_1",
-                initialZoom = 4.2f
-            )
+                MapView(
+                    modifier = Modifier.fillMaxSize(),
+                    markers = uiState.renderData,
+                    onMarkerClick = { markerId ->
+                        selectedSidePanel = SidePanel.NONE
+                        viewModel.selectMarker(markerId)
+                    },
+                    onMapTap = { x, y ->
+                        selectedSidePanel = SidePanel.NONE
+
+                        Log.d(
+                            "MAP_PIXEL",
+                            "MapScreen received pixel: x=$x, y=$y"
+                        )
+                    },
+                    initialFocusMarkerId = "shop_1",
+                    initialZoom = 4.2f
+                )
+            }
 
             TopMapControls(
                 modifier = Modifier
@@ -142,54 +151,83 @@ fun MapScreen(
                 onSearchQueryChange = { query ->
                     searchQuery = query
                 },
-                onProfileClick = {
-                    selectedSidePanel =
-                        if (selectedSidePanel == SidePanel.PROFILE) {
-                            SidePanel.NONE
-                        } else {
-                            SidePanel.PROFILE
-                        }
-                },
-                onSettingsClick = {}
+                onProfileClick = onProfileClick,
+                onSettingsClick = onSettingsClick
             )
 
             // AFTER (Positioned near the top-right, just below the top search bar)
-            RightSideTabs(
-                showFilters = showFilters,
-                selectedSidePanel = selectedSidePanel,
-                onFiltersClick = { showFilters = !showFilters },
-                onBoardClick = {
-                    selectedSidePanel = if (selectedSidePanel == SidePanel.CHAT) SidePanel.NONE else SidePanel.CHAT
-                },
-                onPostsClick = {
-                    selectedSidePanel = if (selectedSidePanel == SidePanel.PROFILE) SidePanel.NONE else SidePanel.PROFILE
-                },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 90.dp)
-                    .offset(x = 6.dp)
-            )
+            if (selectedMode != MapMode.POSTER) {
+
+                RightSideTabs(
+                    showFilters = showFilters,
+                    selectedSidePanel = selectedSidePanel,
+
+                    onFiltersClick = {
+                        showFilters = !showFilters
+                    },
+
+                    onBoardClick = {
+                        selectedSidePanel =
+                            if (selectedSidePanel == SidePanel.CHAT)
+                                SidePanel.NONE
+                            else
+                                SidePanel.CHAT
+                    },
+
+                    onPostsClick = {
+                        when (selectedMode) {
+
+                            MapMode.HOME ->
+                                onHomePostsClick()
+
+                            MapMode.EVENT ->
+                                onEventPostsClick()
+
+                            MapMode.SHOP -> {
+                                // Ignore
+                            }
+
+                            MapMode.POSTER -> {
+                                // Never visible
+                            }
+                        }
+                    },
+
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 90.dp)
+                        .offset(x = 6.dp)
+                )
+            }
 
             ModeBar(
                 selectedMode = selectedMode,
                 onModeSelected = { mode ->
+
                     selectedMode = mode
 
                     when (mode) {
+
                         MapMode.POSTER -> {
-                            viewModel.setFilter(MarkerType.EVENT)
+                            onPosterClick()
                         }
 
                         MapMode.HOME -> {
                             viewModel.setFilter(null)
+                            showFilters = false
+                            selectedSidePanel = SidePanel.NONE
                         }
 
                         MapMode.EVENT -> {
                             viewModel.setFilter(MarkerType.EVENT)
+                            showFilters = false
+                            selectedSidePanel = SidePanel.NONE
                         }
 
                         MapMode.SHOP -> {
                             viewModel.setFilter(MarkerType.SHOP)
+                            showFilters = false
+                            selectedSidePanel = SidePanel.NONE
                         }
                     }
                 },
@@ -201,6 +239,19 @@ fun MapScreen(
                         bottom = 24.dp
                     )
             )
+
+            if (selectedMode == MapMode.EVENT) {
+
+                EventShortcutButton(
+                    onClick = onEventFeatureClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(
+                            start = 24.dp,
+                            bottom = 38.dp
+                        )
+                )
+            }
 
             AnimatedVisibility(
                 visible = showFilters,
@@ -764,7 +815,29 @@ private fun ModeBarItem(
         }
     }
 }
-
+@Composable
+private fun EventShortcutButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(Color.White)
+            .clickable {
+                onClick()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Event,
+            contentDescription = "Events",
+            tint = OrangePrimary,
+            modifier = Modifier.size(21.dp)
+        )
+    }
+}
 @Composable
 private fun MarkerPreviewCard(
     modifier: Modifier = Modifier,

@@ -1,4 +1,5 @@
-package com.example.campusconnect.feature.registrations.ui
+package com.example.campusconnect.feature.registrations.ui.screens
+import com.example.campusconnect.feature.registrations.ui.components.*
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -24,19 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// ── Theme Colors ──────────────────────────────────────────────────────────────
-
-val OrangePrimary = Color(0xFFE65100)
-val OrangeLight   = Color(0xFFFFF3E0)
-val OrangeSurface = Color(0xFFFFF8F5)
-val OrangeBorder  = Color(0xFFFFCCBC)
-val TextPrimary   = Color(0xFF1A1A1A)
-val TextSecondary = Color(0xFF757575)
-val CardBg        = Color(0xFFFFFFFF)
-val PageBg        = Color(0xFFF5F5F5)
-
-// OrangeAccent removed — was never used
 
 // ── Data Models ───────────────────────────────────────────────────────────────
 
@@ -64,15 +52,16 @@ data class FormField(
 @Composable
 fun FormBuilderScreen(
     eventId: Int,
-    onPublish: (title: String, description: String, fields: List<FormField>) -> Unit,
+    eventName: String,
+    isPublished: Boolean,
+    onPublish: (fields: List<FormField>) -> Unit,
     onBack: () -> Unit,
-    initialTitle: String           = "",
-    initialDescription: String     = "",
+    initialQuickFieldIds: Set<String> = emptySet(),
+    onQuickFieldsChanged: (Set<String>) -> Unit = {},
     initialFields: List<FormField> = emptyList(),
 ) {
-    var formTitle       by remember { mutableStateOf(initialTitle) }
-    var formDescription by remember { mutableStateOf(initialDescription) }
-    var fields          by remember { mutableStateOf(initialFields) }
+    var fields by remember { mutableStateOf(initialFields) }
+    var selectedQuickFields by remember { mutableStateOf(initialQuickFieldIds) }
     var nextId          by remember { mutableIntStateOf((initialFields.maxOfOrNull { it.id } ?: 0) + 1) }
     var expandedFieldId by remember { mutableStateOf<Int?>(null) }
     var showTypeSheet   by remember { mutableStateOf<Int?>(null) }
@@ -97,18 +86,57 @@ fun FormBuilderScreen(
 
     Scaffold(
         containerColor = PageBg,
+
         topBar = {
-            FormTopBar(onBack = onBack, onPublish = { onPublish(formTitle, formDescription, fields) })
-        },
-        bottomBar = {
-            AddFieldBar(
-                onAdd = {
-                    val newField = FormField(id = nextId++)
-                    fields = fields + newField
-                    expandedFieldId = newField.id
-                },
+            RegistrationHeader(
+                eventName = eventName,
+                isPublished = isPublished,
+                onBack = onBack,
+                action = {
+                    HeaderActionButton(
+                        text = "Publish",
+                        icon = Icons.Outlined.Send,
+                        onClick = { onPublish(fields) }
+                    )
+                }
             )
         },
+
+        bottomBar = {
+            RegistrationBottomBar {
+
+                OutlinedButton(
+                    onClick = {
+                        val newField = FormField(id = nextId++)
+                        fields = fields + newField
+                        expandedFieldId = newField.id
+                    },
+                    border = BorderStroke(
+                        1.5.dp,
+                        OrangePrimary
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = OrangePrimary
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Icon(
+                        Icons.Outlined.Add,
+                        contentDescription = null
+                    )
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Text(
+                        "Add Question",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
     ) { padding ->
         LazyColumn(
             modifier            = Modifier.fillMaxSize().padding(padding),
@@ -116,11 +144,18 @@ fun FormBuilderScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                FormHeaderCard(
-                    title         = formTitle,
-                    description   = formDescription,
-                    onTitleChange = { formTitle = it },
-                    onDescChange  = { formDescription = it },
+                QuickFieldsCard(
+                    selectedIds = selectedQuickFields,
+                    onToggle = { id ->
+                        val updated = if (id in selectedQuickFields) {
+                            selectedQuickFields - id
+                        } else {
+                            selectedQuickFields + id
+                        }
+
+                        selectedQuickFields = updated
+                        onQuickFieldsChanged(updated)
+                    }
                 )
             }
 
@@ -155,97 +190,6 @@ fun FormBuilderScreen(
             }
 
             if (fields.isEmpty()) item { EmptyState() }
-        }
-    }
-}
-
-// ── Top Bar ───────────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FormTopBar(onBack: () -> Unit, onPublish: () -> Unit) {
-    TopAppBar(
-        title = { Text("Form builder", fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = TextPrimary) },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = TextPrimary)
-            }
-        },
-        actions = {
-            Button(
-                onClick  = onPublish,
-                colors   = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                shape    = RoundedCornerShape(10.dp),
-                modifier = Modifier.padding(end = 12.dp),
-            ) {
-                Icon(Icons.Outlined.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Publish", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = CardBg),
-    )
-}
-
-// ── Add Field Bar ─────────────────────────────────────────────────────────────
-
-@Composable
-fun AddFieldBar(onAdd: () -> Unit) {
-    Surface(color = CardBg, tonalElevation = 0.dp, modifier = Modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            OutlinedButton(
-                onClick  = onAdd,
-                border   = BorderStroke(1.5.dp, OrangePrimary),
-                shape    = RoundedCornerShape(12.dp),
-                colors   = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary),
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-            ) {
-                Icon(Icons.Outlined.Add, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Add question", fontWeight = FontWeight.Medium, fontSize = 15.sp)
-            }
-        }
-    }
-}
-
-// ── Form Header Card ──────────────────────────────────────────────────────────
-
-@Composable
-fun FormHeaderCard(
-    title: String,
-    description: String,
-    onTitleChange: (String) -> Unit,
-    onDescChange: (String) -> Unit,
-) {
-    Card(
-        shape    = RoundedCornerShape(16.dp),
-        colors   = CardDefaults.cardColors(containerColor = CardBg),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Box(Modifier.fillMaxWidth().height(6.dp).background(OrangePrimary))
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Form details", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = OrangePrimary, letterSpacing = 0.8.sp)
-            OutlinedTextField(
-                value         = title,
-                onValueChange = onTitleChange,
-                label         = { Text("Form title *") },
-                placeholder   = { Text("e.g. Workshop registration") },
-                singleLine    = true,
-                modifier      = Modifier.fillMaxWidth(),
-                colors        = orangeTextFieldColors(),
-                shape         = RoundedCornerShape(10.dp),
-            )
-            OutlinedTextField(
-                value         = description,
-                onValueChange = onDescChange,
-                label         = { Text("Description") },
-                placeholder   = { Text("What is this form for?") },
-                minLines      = 2,
-                maxLines      = 4,
-                modifier      = Modifier.fillMaxWidth(),
-                colors        = orangeTextFieldColors(),
-                shape         = RoundedCornerShape(10.dp),
-            )
         }
     }
 }
@@ -419,7 +363,185 @@ fun FieldCard(
         }
     }
 }
+// ── Quick Fields Card ─────────────────────────────────────────────────────────
 
+private data class QuickFieldOption(
+    val id: String,
+    val label: String,
+    val icon: ImageVector,
+)
+
+private val quickFieldOptions = listOf(
+    QuickFieldOption("full_name", "Full Name", Icons.Outlined.Person),
+    QuickFieldOption("email", "Email Address", Icons.Outlined.Email),
+    QuickFieldOption("phone", "Phone Number", Icons.Outlined.Phone),
+    QuickFieldOption("course", "Course", Icons.Outlined.School),
+    QuickFieldOption("year_batch", "Year / Batch", Icons.Outlined.CalendarMonth),
+    QuickFieldOption("roll_number", "Roll Number", Icons.Outlined.Badge),
+    QuickFieldOption("hostel", "Hostel", Icons.Outlined.Home),
+    QuickFieldOption("hometown", "Hometown", Icons.Outlined.LocationOn),
+    QuickFieldOption("gender", "Gender", Icons.Outlined.PersonOutline),
+    QuickFieldOption("date_of_birth", "Date of Birth", Icons.Outlined.Cake),
+    QuickFieldOption("github", "GitHub Profile", Icons.Outlined.Code),
+    QuickFieldOption("linkedin", "LinkedIn Profile", Icons.Outlined.Link),
+)
+
+@Composable
+private fun QuickFieldsCard(
+    selectedIds: Set<String>,
+    onToggle: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBg),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(OrangeLight),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Badge,
+                        contentDescription = null,
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(30.dp),
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Quick Fields",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary,
+                    )
+
+                    Text(
+                        "Select profile information collected automatically",
+                        fontSize = 13.sp,
+                        lineHeight = 17.sp,
+                        color = TextSecondary,
+                    )
+
+                    if (!expanded) {
+                        val selectedLabels = quickFieldOptions
+                            .filter { it.id in selectedIds }
+                            .map { it.label }
+
+                        val previewLabels = selectedLabels.take(3)
+                        val remainingCount =
+                            selectedLabels.size - previewLabels.size
+
+                        Text(
+                            text = when {
+                                selectedLabels.isEmpty() ->
+                                    "No fields selected"
+
+                                remainingCount > 0 ->
+                                    "${previewLabels.joinToString(" · ")} · +$remainingCount more"
+
+                                else ->
+                                    previewLabels.joinToString(" · ")
+                            },
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            color = OrangePrimary,
+                            modifier = Modifier.padding(top = 5.dp),
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector =
+                        if (expanded)
+                            Icons.Outlined.KeyboardArrowUp
+                        else
+                            Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier.padding(
+                        horizontal = 16.dp,
+                        vertical = 4.dp
+                    )
+                ) {
+                    HorizontalDivider(
+                        color = Color(0xFFEEEEEE)
+                    )
+
+                    quickFieldOptions.forEachIndexed { index, option ->
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onToggle(option.id)
+                                }
+                                .padding(vertical = 9.dp),
+                            verticalAlignment =
+                                Alignment.CenterVertically,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(10.dp),
+                        ) {
+                            Checkbox(
+                                checked = option.id in selectedIds,
+                                onCheckedChange = {
+                                    onToggle(option.id)
+                                },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = OrangePrimary,
+                                    uncheckedColor =
+                                        Color(0xFF9E9E9E),
+                                ),
+                                modifier = Modifier.size(24.dp),
+                            )
+
+                            Icon(
+                                imageVector = option.icon,
+                                contentDescription = null,
+                                tint = OrangePrimary,
+                                modifier = Modifier.size(18.dp),
+                            )
+
+                            Text(
+                                text = option.label,
+                                fontSize = 13.sp,
+                                color = TextPrimary,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+
+                        if (index != quickFieldOptions.lastIndex) {
+                            HorizontalDivider(
+                                color = Color(0xFFF1F1F1),
+                                thickness = 0.5.dp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 // ── Options Editor ────────────────────────────────────────────────────────────
 
 @Composable
@@ -530,6 +652,12 @@ fun orangeTextFieldColors() = OutlinedTextFieldDefaults.colors(
 @Composable
 fun FormBuilderPreview() {
     MaterialTheme {
-        FormBuilderScreen(eventId = 1, onPublish = { _, _, _ -> }, onBack = {})
+        FormBuilderScreen(
+            eventId = 1,
+            eventName = "Demo Event",
+            isPublished = false,
+            onPublish = { _ -> },
+            onBack = {}
+        )
     }
 }

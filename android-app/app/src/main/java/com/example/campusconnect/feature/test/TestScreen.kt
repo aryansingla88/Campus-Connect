@@ -15,7 +15,9 @@ fun TestScreen(
     onProfile: () -> Unit,
     onSplash: (() -> Unit)? = null,
     onFormBuilder: () -> Unit,
-    onLogout: (() -> Unit)? = null
+    onLogout: (() -> Unit)? = null,
+    onSettings: () -> Unit,
+    onContinue: (() -> Unit)? = null,
 ) {
 
     var currentUser by remember {
@@ -86,6 +88,10 @@ fun TestScreen(
             Text("Form Builder")
         }
 
+        Button(onClick = onSettings) {
+            Text("Settings")
+        }
+
         if (onLogout != null) {
             Button(onClick = onLogout) {
                 Text("Logout")
@@ -135,6 +141,18 @@ fun TestScreen(
                     Text("Email: ${currentUser!!.email}")
                     Text("Role: ${currentUser!!.role}")
                 }
+            }
+        }
+
+        if (onContinue != null) {
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Continue")
             }
         }
     }

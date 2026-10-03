@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -201,16 +202,25 @@ fun ProfileHeader(
                             onClick = onEditAvatar,
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .offset(x = 4.dp, y = 4.dp)
-                                .size(34.dp)
+                                .offset(x = 2.dp, y = 2.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF111111))
+                                .background(Color(0xFFF1F2F4))
+                                .border(
+                                    width = 1.dp,
+                                    color = Color(0xFFD9DCE1),
+                                    shape = CircleShape
+                                )
+                                .shadow(
+                                    elevation = 2.dp,
+                                    shape = CircleShape
+                                )
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.CameraAlt,
                                 contentDescription = "Change photo",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
+                                tint = Color(0xFF4B5563),
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
