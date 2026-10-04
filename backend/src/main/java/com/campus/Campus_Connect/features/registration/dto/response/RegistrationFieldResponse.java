@@ -23,5 +23,7 @@ public class RegistrationFieldResponse {
 
     private Integer fieldOrder;
 
+    private Boolean individual;
+
     private List<RegistrationFieldOptionResponse> options;
 }

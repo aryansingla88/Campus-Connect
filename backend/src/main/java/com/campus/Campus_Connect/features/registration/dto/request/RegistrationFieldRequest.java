@@ -11,6 +11,8 @@ import java.util.List;
 @Builder
 public class RegistrationFieldRequest {
 
+    private Integer id;
+
     private String fieldLabel;
 
     private String fieldType;
@@ -20,6 +22,8 @@ public class RegistrationFieldRequest {
     private String placeholder;
 
     private Integer fieldOrder;
+
+    private Boolean individual;
 
     private List<RegistrationFieldOptionRequest> options;
 }

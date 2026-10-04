@@ -16,13 +16,13 @@ public class RegistrationDetailResponse {
 
     private Integer eventId;
 
-    private Integer userId;
-
-    private Integer teamId;
+    private String type;
 
     private String status;
 
     private Instant submittedAt;
 
-    private List<RegistrationAnswerResponse> answers;
+    private RegistrationTeamDetailResponse team;
+
+    private List<RegistrationMemberResponse> members;
 }

@@ -13,5 +13,7 @@ public class RegistrationAnswerResponse {
 
     private String fieldLabel;
 
+    private String fieldType;
+
     private String answer;
 }

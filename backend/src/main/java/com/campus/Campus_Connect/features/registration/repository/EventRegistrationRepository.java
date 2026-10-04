@@ -2,10 +2,12 @@ package com.campus.Campus_Connect.features.registration.repository;
 
 import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface EventRegistrationRepository
         extends JpaRepository<EventRegistration, Integer> {
 
@@ -36,5 +38,9 @@ public interface EventRegistrationRepository
             Integer eventId,
             Integer teamId
     );
-}
 
+    long countByEventIdAndTeamId(
+            Integer eventId,
+            Integer teamId
+    );
+}

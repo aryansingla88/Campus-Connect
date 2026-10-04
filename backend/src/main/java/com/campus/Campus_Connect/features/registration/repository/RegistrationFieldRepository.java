@@ -9,11 +9,11 @@ import java.util.Optional;
 public interface RegistrationFieldRepository
         extends JpaRepository<RegistrationField, Integer> {
 
-    List<RegistrationField> findByEventIdOrderByFieldOrderAsc(
+    List<RegistrationField> findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(
             Integer eventId
     );
 
-    Optional<RegistrationField> findByIdAndEventId(
+    Optional<RegistrationField> findByIdAndEventIdAndDeletedAtIsNull(
             Integer fieldId,
             Integer eventId
     );
