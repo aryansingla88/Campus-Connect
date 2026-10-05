@@ -72,20 +72,6 @@ interface EventsApi {
     suspend fun getEventHistory(): Response<ApiResponse<EventHistoryResponse>>
 
 
-    // Registration ----------------------------------------------------------
-
-    @GET("events/{eventId}/registration")
-    suspend fun getRegistration(
-        @Path("eventId") eventId: Int
-    ): Response<ApiResponse<RegistrationResponse>>
-
-    @POST("events/{eventId}/registration")
-    suspend fun createRegistration(
-        @Path("eventId") eventId: Int,
-        @Body body: CreateRegistrationRequest
-    ): Response<ApiResponse<RegistrationResponse>>
-
-
     // Participants ----------------------------------------------------------
 
     @GET("events/{eventId}/participants")

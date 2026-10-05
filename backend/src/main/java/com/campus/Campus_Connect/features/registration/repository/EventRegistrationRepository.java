@@ -2,6 +2,8 @@ package com.campus.Campus_Connect.features.registration.repository;
 
 import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -42,5 +44,22 @@ public interface EventRegistrationRepository
     long countByEventIdAndTeamId(
             Integer eventId,
             Integer teamId
+    );
+
+    @Query("""
+    SELECT r
+    FROM EventRegistration r
+    LEFT JOIN r.team t
+    WHERE r.event.id = :eventId
+      AND (
+          r.team IS NULL
+          OR (
+              t.event.id = :eventId
+              AND r.user.id = t.leader.id
+          )
+      )
+""")
+    List<EventRegistration> findShortRegistrations(
+            @Param("eventId") Integer eventId
     );
 }

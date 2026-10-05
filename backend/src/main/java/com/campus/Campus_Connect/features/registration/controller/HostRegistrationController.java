@@ -69,11 +69,6 @@ public class HostRegistrationController {
     // REGISTRATION RESPONSES
     // ============================================================
 
-    @GetMapping("/{eventId}/registrations/count")
-    public ApiResponse<Long> getRegistrationCount(
-            @PathVariable Integer eventId) {
-        return hostRegistrationService.getRegistrationCount(eventId);
-    }
 
     @GetMapping("/{eventId}/registrations")
     public ApiResponse<List<RegistrationShortResponse>> getEventRegistrations(

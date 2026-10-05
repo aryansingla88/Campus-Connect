@@ -9,7 +9,6 @@ import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.registration.constants.QuickFieldMask;
 import com.campus.Campus_Connect.features.registration.dto.request.RegistrationConfigRequest;
-import com.campus.Campus_Connect.features.registration.dto.request.RegistrationFieldOptionRequest;
 import com.campus.Campus_Connect.features.registration.dto.request.RegistrationFieldRequest;
 import com.campus.Campus_Connect.features.registration.dto.response.*;
 import com.campus.Campus_Connect.features.registration.entity.*;
@@ -356,34 +355,9 @@ public class HostRegistrationService {
     // REGISTRATION RESPONSES
     // ============================================================
 
-    /**
-     * Overall registration count for the event.
-     * Used by the event-management section.
-     */
-    public ApiResponse<Long> getRegistrationCount(Integer eventId) {
-        Event event = eventRepository.findById(eventId).orElse(null);
-
-        if (event == null) {
-            return ApiResponse.failure("Event not found.");
-        }
-
-        if (!isOrganizer(event)) {
-            return ApiResponse.failure(
-                    "Only the event organizer can view registrations."
-            );
-        }
-
-        long count = registrationRepository.findByEventId(eventId).size();
-
-        return ApiResponse.success(
-                count,
-                "Registration count fetched successfully."
-        );
-    }
 
     /**
      * Short response used by the host registration list.
-     *
      * Important:
      * - Does not fetch registration answers.
      * - Team registrations are represented once, by the team leader.
@@ -405,22 +379,10 @@ public class HostRegistrationService {
         }
 
         List<EventRegistration> registrations =
-                registrationRepository.findByEventId(eventId);
+                registrationRepository.findShortRegistrations(eventId);
 
         List<RegistrationShortResponse> response =
                 registrations.stream()
-                        .filter(registration -> {
-                            if (registration.getTeam() == null) {
-                                return true;
-                            }
-
-                            EventTeam team = registration.getTeam();
-
-                            return team.getLeader() != null
-                                    && registration.getUser() != null
-                                    && team.getLeader().getId()
-                                    .equals(registration.getUser().getId());
-                        })
                         .map(this::toShortResponse)
                         .toList();
 
@@ -499,6 +461,7 @@ public class HostRegistrationService {
                                     : null
                     )
                     .status(registration.getStatus().name())
+                    .submittedAt(registration.getSubmittedAt())
                     .build();
         }
 
@@ -538,12 +501,12 @@ public class HostRegistrationService {
             members = List.of(registration);
         }
 
-        List<RegistrationMemberResponse> memberResponses =
+        List<RegistrationDetailResponse.Member> memberResponses =
                 members.stream()
                         .map(this::toMemberResponse)
                         .toList();
 
-        RegistrationTeamDetailResponse teamResponse = null;
+        RegistrationDetailResponse.Team teamResponse = null;
 
         if (team != null) {
 
@@ -557,9 +520,9 @@ public class HostRegistrationService {
                             .findFirst()
                             .orElse(null);
 
-            List<RegistrationAnswerResponse> teamAnswers =
+            List<RegistrationDetailResponse.Answer> teamAnswers =
                     leaderRegistration == null
-                            ? List.<RegistrationAnswerResponse>of()
+                            ? List.<RegistrationDetailResponse.Answer>of()
                             : answerRepository
                             .findByIdRegistrationId(
                                     leaderRegistration.getId()
@@ -573,7 +536,7 @@ public class HostRegistrationService {
                             .toList();
 
             teamResponse =
-                    RegistrationTeamDetailResponse.builder()
+                    RegistrationDetailResponse.Team.builder()
                             .teamId(team.getId())
                             .teamName(team.getTeamName())
                             .memberCount(members.size())
@@ -599,7 +562,7 @@ public class HostRegistrationService {
                 .build();
     }
 
-    private RegistrationMemberResponse toMemberResponse(
+    private RegistrationDetailResponse.Member toMemberResponse(
             EventRegistration registration) {
 
         if (registration == null || registration.getUser() == null) {
@@ -616,13 +579,13 @@ public class HostRegistrationService {
                         && team.getLeader() != null
                         && team.getLeader().getId().equals(user.getId());
 
-        List<RegistrationQuickFieldResponse> quickFields =
+        List<RegistrationDetailResponse.QuickField> quickFields =
                 getQuickFields(
                         user,
                         registration.getEvent().getId()
                 );
 
-        List<RegistrationAnswerResponse> individualAnswers =
+        List<RegistrationDetailResponse.Answer> individualAnswers =
                 answerRepository
                         .findByIdRegistrationId(registration.getId())
                         .stream()
@@ -633,7 +596,7 @@ public class HostRegistrationService {
                         .map(this::toAnswerResponse)
                         .toList();
 
-        return RegistrationMemberResponse.builder()
+        return RegistrationDetailResponse.Member.builder()
                 .registrationId(registration.getId())
                 .userId(user.getId())
                 .name(
@@ -648,10 +611,10 @@ public class HostRegistrationService {
                 .build();
     }
 
-    private RegistrationAnswerResponse toAnswerResponse(
+    private RegistrationDetailResponse.Answer toAnswerResponse(
             RegistrationAnswer answer) {
 
-        return RegistrationAnswerResponse.builder()
+        return RegistrationDetailResponse.Answer.builder()
                 .fieldId(answer.getField().getId())
                 .fieldLabel(answer.getField().getFieldLabel())
                 .fieldType(answer.getField().getFieldType())
@@ -659,7 +622,7 @@ public class HostRegistrationService {
                 .build();
     }
 
-    private List<RegistrationQuickFieldResponse> getQuickFields(
+    private List<RegistrationDetailResponse.QuickField> getQuickFields(
             User user,
             Integer eventId) {
 
@@ -678,7 +641,7 @@ public class HostRegistrationService {
 
         long mask = config.getQuickFieldMask();
 
-        List<RegistrationQuickFieldResponse> result =
+        List<RegistrationDetailResponse.QuickField> result =
                 new ArrayList<>();
 
         addQuickField(
@@ -787,7 +750,7 @@ public class HostRegistrationService {
     }
 
     private void addQuickField(
-            List<RegistrationQuickFieldResponse> result,
+            List<RegistrationDetailResponse.QuickField> result,
             long mask,
             long bit,
             String field,
@@ -795,7 +758,7 @@ public class HostRegistrationService {
 
         if ((mask & bit) != 0 && value != null) {
             result.add(
-                    RegistrationQuickFieldResponse.builder()
+                    RegistrationDetailResponse.QuickField.builder()
                             .field(field)
                             .value(value)
                             .build()
@@ -849,9 +812,9 @@ public class HostRegistrationService {
         return currentUser != null && event.getCreator() != null && currentUser.getId().equals(event.getCreator().getId());
     }
 
-    private void saveOptions(RegistrationField field, List<RegistrationFieldOptionRequest> options) {
+    private void saveOptions(RegistrationField field, List<RegistrationFieldRequest.Option> options) {
         if (options == null) return;
-        for (RegistrationFieldOptionRequest req : options) {
+        for (RegistrationFieldRequest.Option req : options) {
             optionRepository.save(RegistrationFieldOption.builder()
                     .field(field)
                     .optionValue(req.getOptionValue())
@@ -872,8 +835,8 @@ public class HostRegistrationService {
     }
 
     private RegistrationFieldResponse toFieldResponse(RegistrationField field) {
-        List<RegistrationFieldOptionResponse> options = optionRepository.findByFieldIdOrderByOptionOrderAsc(field.getId())
-                .stream().map(opt -> RegistrationFieldOptionResponse.builder()
+        List<RegistrationFieldResponse.Option> options = optionRepository.findByFieldIdOrderByOptionOrderAsc(field.getId())
+                .stream().map(opt -> RegistrationFieldResponse.Option.builder()
                         .id(opt.getId())
                         .optionValue(opt.getOptionValue())
                         .optionOrder(opt.getOptionOrder())

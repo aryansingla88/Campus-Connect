@@ -7,7 +7,6 @@ import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.event.entity.EventTeam;
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.event.repository.EventTeamRepository;
-import com.campus.Campus_Connect.features.registration.dto.request.RegistrationAnswerRequest;
 import com.campus.Campus_Connect.features.registration.dto.request.RegistrationRequest;
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
@@ -111,9 +110,9 @@ public class UserRegistrationService {
         }
 
         List<RegistrationField> fields = fieldRepository.findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(eventId);
-        List<RegistrationAnswerRequest> submittedAnswers = request.getAnswers() != null ? request.getAnswers() : List.of();
+        List<RegistrationRequest.Answer> submittedAnswers = request.getAnswers() != null ? request.getAnswers() : List.of();
 
-        for (RegistrationAnswerRequest submitted : submittedAnswers) {
+        for (RegistrationRequest.Answer submitted : submittedAnswers) {
             boolean validField = fields.stream().anyMatch(f -> f.getId().equals(submitted.getFieldId()));
             if (!validField) {
                 return ApiResponse.failure("Invalid registration field ID: " + submitted.getFieldId());
@@ -158,7 +157,7 @@ public class UserRegistrationService {
 
         registration = registrationRepository.save(registration);
 
-        for (RegistrationAnswerRequest submitted : submittedAnswers) {
+        for (RegistrationRequest.Answer submitted : submittedAnswers) {
             if (isTeamMember && !isLeader) {
                 RegistrationField f = fields.stream().filter(field -> field.getId().equals(submitted.getFieldId())).findFirst().orElse(null);
                 if (f != null && Boolean.FALSE.equals(f.getIndividual())) {
