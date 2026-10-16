@@ -4,6 +4,7 @@ import com.campus.Campus_Connect.features.registration.entity.RegistrationAnswer
 import com.campus.Campus_Connect.features.registration.entity.RegistrationAnswerId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface RegistrationAnswerRepository
@@ -15,5 +16,9 @@ public interface RegistrationAnswerRepository
 
     void deleteByIdRegistrationId(
             Integer registrationId
+    );
+
+    List<RegistrationAnswer> findByIdRegistrationIdIn(
+            Collection<Integer> registrationIds
     );
 }

@@ -28,7 +28,7 @@ android {
 
         val apiBaseUrl =
             localProperties.getProperty("API_BASE_URL")
-                ?: "http://10.70.175.87:8000/"
+                ?: "http://10.246.194.121:8000/"
 
         buildConfigField(
             "String",
@@ -115,5 +115,7 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
 
     ksp("androidx.room:room-compiler:2.6.1")
+
+    testImplementation(libs.junit)
 }
 

@@ -43,6 +43,7 @@ class ApiEventRepository(
         }
     }
 
+
     override suspend fun getEvent(
         eventId: Int
     ): Result<Event> {

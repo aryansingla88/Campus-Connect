@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.events.data.remote
 
+import android.util.Log
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
 import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest

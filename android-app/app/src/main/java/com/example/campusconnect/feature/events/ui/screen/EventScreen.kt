@@ -63,8 +63,6 @@ import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
 import com.example.campusconnect.feature.map.mapengine.MapCalibration
 import kotlinx.coroutines.delay
-
-private enum class ToastType { CREATED, UPDATED, DELETED }
 private const val MAP_IMAGE_WIDTH = 3000f
 private const val MAP_IMAGE_HEIGHT = 3000f
 

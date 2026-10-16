@@ -1,7 +1,8 @@
 package com.campus.Campus_Connect.features.map.service;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
-import com.campus.Campus_Connect.common.security.SecurityUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.event.entity.EventMember;
@@ -74,11 +75,19 @@ public class MapEventService {
         // ---------------------------------------------------------
         // Dynamic isJoined Check from DB
         // ---------------------------------------------------------
-        User currentUser = SecurityUtils.getCurrentUser();
-        boolean isJoined = false;
+        // Event previews are also used by unauthenticated map visitors.
+        // A missing session must not turn the preview endpoint into HTTP 500.
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
 
-        if (currentUser != null) {
-            isJoined = eventMemberRepository.existsByEventIdAndUserId(eventId, currentUser.getId());
+        boolean isJoined = false;
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof User currentUser) {
+            isJoined = eventMemberRepository.existsByEventIdAndUserId(
+                    eventId,
+                    currentUser.getId()
+            );
         }
 
         boolean isReminderEnabled = false;

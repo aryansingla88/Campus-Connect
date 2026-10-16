@@ -15,13 +15,8 @@ public class RegistrationShortResponse {
 
     private String type;
 
-    // Team registration
-    private String teamName;
-    private Integer memberCount;
-    private String leaderEmail;
-
-    // Individual registration
     private String name;
+    private Integer teamCount;
     private String email;
 
     private String status;

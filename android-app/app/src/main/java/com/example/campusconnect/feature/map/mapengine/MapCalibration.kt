@@ -1,5 +1,7 @@
 package com.example.campusconnect.feature.map.mapengine
 
+import com.example.campusconnect.feature.map.mapengine.coordinates.CoordinateConverter
+
 object MapCalibration {
 
     val converter = CoordinateConverter(

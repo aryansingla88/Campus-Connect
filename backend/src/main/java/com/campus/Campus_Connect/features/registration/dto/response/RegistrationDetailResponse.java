@@ -12,38 +12,8 @@ import java.util.List;
 @Builder
 public class RegistrationDetailResponse {
 
-    private Integer registrationId;
-
-    private Integer eventId;
-
-    private String type;
-
-    private String status;
-
-    private Instant submittedAt;
-
-    private Team team;
-
+    private List<Answer> teamAnswers;
     private List<Member> members;
-
-    //    ---------------------------
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class Team {
-
-        private Integer teamId;
-
-        private String teamName;
-
-        private Integer memberCount;
-
-        private Member leader;
-
-        private List<Answer> answers;
-    }
 
     //    ---------------------------
     @Getter
@@ -56,15 +26,7 @@ public class RegistrationDetailResponse {
         private Integer registrationId;
 
         private Integer userId;
-
-        private String name;
-
-        private String email;
-
-        private Boolean leader;
-
         private List<QuickField> quickFields;
-
         private List<Answer> individualAnswers;
     }
 

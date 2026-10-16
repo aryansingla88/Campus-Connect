@@ -7,6 +7,7 @@ import com.example.campusconnect.feature.events.EVENTS_POSTER_VIEW
 import com.example.campusconnect.feature.posts.navigation.EVENTS_FEED_ROUTE
 import com.example.campusconnect.feature.posts.navigation.POSTS_FEED_ROUTE
 import com.example.campusconnect.feature.profile.ProfileRoutes
+import com.example.campusconnect.feature.map.ui.MapScreen
 
 fun NavGraphBuilder.mapNav(
     navController: NavController

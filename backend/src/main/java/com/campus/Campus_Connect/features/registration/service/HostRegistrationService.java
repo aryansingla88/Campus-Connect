@@ -19,11 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -438,6 +435,7 @@ public class HostRegistrationService {
         );
     }
 
+
     private RegistrationShortResponse toShortResponse(
             EventRegistration registration) {
 
@@ -453,9 +451,9 @@ public class HostRegistrationService {
             return RegistrationShortResponse.builder()
                     .registrationId(registration.getId())
                     .type("TEAM")
-                    .teamName(team.getTeamName())
-                    .memberCount((int) memberCount)
-                    .leaderEmail(
+                    .name(team.getTeamName())
+                    .teamCount((int) memberCount)
+                    .email(
                             team.getLeader() != null
                                     ? team.getLeader().getEmail()
                                     : null
@@ -479,134 +477,108 @@ public class HostRegistrationService {
                                 ? user.getUsername()
                                 : null
                 )
+                .teamCount(null)
                 .email(user != null ? user.getEmail() : null)
                 .status(registration.getStatus().name())
+                .submittedAt(registration.getSubmittedAt())
                 .build();
     }
+
+
 
     private RegistrationDetailResponse toDetailResponse(
             EventRegistration registration) {
 
         EventTeam team = registration.getTeam();
+        Integer eventId = registration.getEvent().getId();
 
-        List<EventRegistration> members;
+        List<EventRegistration> members =
+                team == null
+                        ? List.of(registration)
+                        : registrationRepository.findByEventIdAndTeamId(
+                        eventId, team.getId());
 
-        if (team != null) {
-            members =
-                    registrationRepository.findByEventIdAndTeamId(
-                            registration.getEvent().getId(),
-                            team.getId()
-                    );
-        } else {
-            members = List.of(registration);
+        // Find the registration responsible for shared/team answers.
+        EventRegistration answerOwner = registration;
+
+        if (team != null && team.getLeader() != null) {
+            answerOwner = members.stream()
+                    .filter(member -> member.getUser() != null
+                            && team.getLeader().getId()
+                            .equals(member.getUser().getId()))
+                    .findFirst()
+                    .orElse(registration);
         }
+
+        List<Integer> registrationIds = members.stream()
+                .map(EventRegistration::getId)
+                .distinct()
+                .toList();
+
+        // One batch query for answers belonging to all members.
+        Map<Integer, List<RegistrationAnswer>> answersByRegistration =
+                registrationIds.isEmpty()
+                        ? Map.of()
+                        : answerRepository
+                        .findByIdRegistrationIdIn(registrationIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                answer -> answer.getId()
+                                        .getRegistrationId()));
+
+        List<RegistrationDetailResponse.Answer> teamAnswers =
+                answersByRegistration
+                        .getOrDefault(answerOwner.getId(), List.of())
+                        .stream()
+                        .filter(answer -> Boolean.FALSE.equals(
+                                answer.getField().getIndividual()))
+                        .map(this::toAnswerResponse)
+                        .toList();
+
+        RegistrationConfig config =
+                configRepository.findByEventId(eventId).orElse(null);
+
+        long quickFieldMask = config == null
+                || config.getQuickFieldMask() == null
+                ? 0L
+                : config.getQuickFieldMask();
 
         List<RegistrationDetailResponse.Member> memberResponses =
                 members.stream()
-                        .map(this::toMemberResponse)
+                        .map(member -> toMemberResponse(
+                                member,
+                                answersByRegistration.getOrDefault(
+                                        member.getId(), List.of()),
+                                quickFieldMask))
                         .toList();
 
-        RegistrationDetailResponse.Team teamResponse = null;
-
-        if (team != null) {
-
-            EventRegistration leaderRegistration =
-                    members.stream()
-                            .filter(member ->
-                                    member.getUser() != null
-                                            && team.getLeader() != null
-                                            && team.getLeader().getId()
-                                            .equals(member.getUser().getId()))
-                            .findFirst()
-                            .orElse(null);
-
-            List<RegistrationDetailResponse.Answer> teamAnswers =
-                    leaderRegistration == null
-                            ? List.<RegistrationDetailResponse.Answer>of()
-                            : answerRepository
-                            .findByIdRegistrationId(
-                                    leaderRegistration.getId()
-                            )
-                            .stream()
-                            .filter(answer ->
-                                    Boolean.FALSE.equals(
-                                            answer.getField().getIndividual()
-                                    ))
-                            .map(this::toAnswerResponse)
-                            .toList();
-
-            teamResponse =
-                    RegistrationDetailResponse.Team.builder()
-                            .teamId(team.getId())
-                            .teamName(team.getTeamName())
-                            .memberCount(members.size())
-                            .leader(
-                                    leaderRegistration != null
-                                            ? toMemberResponse(
-                                            leaderRegistration
-                                    )
-                                            : null
-                            )
-                            .answers(teamAnswers)
-                            .build();
-        }
-
         return RegistrationDetailResponse.builder()
-                .registrationId(registration.getId())
-                .eventId(registration.getEvent().getId())
-                .type(team != null ? "TEAM" : "INDIVIDUAL")
-                .status(registration.getStatus().name())
-                .submittedAt(registration.getSubmittedAt())
-                .team(teamResponse)
+                .teamAnswers(teamAnswers)
                 .members(memberResponses)
                 .build();
     }
 
     private RegistrationDetailResponse.Member toMemberResponse(
-            EventRegistration registration) {
+            EventRegistration registration,
+            List<RegistrationAnswer> answers,
+            long quickFieldMask) {
 
-        if (registration == null || registration.getUser() == null) {
+        User user = registration.getUser();
+
+        if (user == null) {
             return null;
         }
 
-        User user = registration.getUser();
-        UserProfile profile = user.getProfile();
-
-        EventTeam team = registration.getTeam();
-
-        boolean leader =
-                team != null
-                        && team.getLeader() != null
-                        && team.getLeader().getId().equals(user.getId());
-
-        List<RegistrationDetailResponse.QuickField> quickFields =
-                getQuickFields(
-                        user,
-                        registration.getEvent().getId()
-                );
-
         List<RegistrationDetailResponse.Answer> individualAnswers =
-                answerRepository
-                        .findByIdRegistrationId(registration.getId())
-                        .stream()
-                        .filter(answer ->
-                                Boolean.TRUE.equals(
-                                        answer.getField().getIndividual()
-                                ))
+                answers.stream()
+                        .filter(answer -> Boolean.TRUE.equals(
+                                answer.getField().getIndividual()))
                         .map(this::toAnswerResponse)
                         .toList();
 
         return RegistrationDetailResponse.Member.builder()
-                .registrationId(registration.getId())
                 .userId(user.getId())
-                .name(
-                        profile != null && profile.getFullName() != null
-                                ? profile.getFullName()
-                                : user.getUsername()
-                )
-                .email(user.getEmail())
-                .leader(leader)
-                .quickFields(quickFields)
+                .quickFields(getQuickFields(user, quickFieldMask))
                 .individualAnswers(individualAnswers)
                 .build();
     }
@@ -622,14 +594,12 @@ public class HostRegistrationService {
                 .build();
     }
 
+
     private List<RegistrationDetailResponse.QuickField> getQuickFields(
             User user,
-            Integer eventId) {
+            long mask) {
 
-        RegistrationConfig config =
-                configRepository.findByEventId(eventId).orElse(null);
-
-        if (config == null || config.getQuickFieldMask() == null) {
+        if (user == null) {
             return List.of();
         }
 
@@ -639,112 +609,47 @@ public class HostRegistrationService {
             return List.of();
         }
 
-        long mask = config.getQuickFieldMask();
-
         List<RegistrationDetailResponse.QuickField> result =
                 new ArrayList<>();
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.FULL_NAME,
-                "FULL_NAME",
-                profile.getFullName()
-        );
+        addQuickField(result, mask, QuickFieldMask.FULL_NAME,
+                "FULL_NAME", profile.getFullName());
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.EMAIL,
-                "EMAIL",
-                user.getEmail()
-        );
+        addQuickField(result, mask, QuickFieldMask.EMAIL,
+                "EMAIL", user.getEmail());
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.PHONE,
-                "PHONE",
-                profile.getPhone()
-        );
+        addQuickField(result, mask, QuickFieldMask.PHONE,
+                "PHONE", profile.getPhone());
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.COURSE,
-                "COURSE",
-                profile.getCourseId() != null
-                        ? String.valueOf(profile.getCourseId())
-                        : null
-        );
+        addQuickField(result, mask, QuickFieldMask.COURSE,
+                "COURSE", profile.getCourseId() != null
+                        ? String.valueOf(profile.getCourseId()) : null);
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.YEAR_BATCH,
-                "YEAR_BATCH",
-                profile.getAdmissionYear() != null
-                        ? String.valueOf(profile.getAdmissionYear())
-                        : null
-        );
+        addQuickField(result, mask, QuickFieldMask.YEAR_BATCH,
+                "YEAR_BATCH", profile.getAdmissionYear() != null
+                        ? String.valueOf(profile.getAdmissionYear()) : null);
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.ROLL_NUMBER,
-                "ROLL_NUMBER",
-                profile.getRollNumber()
-        );
+        addQuickField(result, mask, QuickFieldMask.ROLL_NUMBER,
+                "ROLL_NUMBER", profile.getRollNumber());
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.HOSTEL,
-                "HOSTEL",
-                profile.getHostel()
-        );
+        addQuickField(result, mask, QuickFieldMask.HOSTEL,
+                "HOSTEL", profile.getHostel());
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.HOMETOWN,
-                "HOMETOWN",
-                profile.getHometown()
-        );
+        addQuickField(result, mask, QuickFieldMask.HOMETOWN,
+                "HOMETOWN", profile.getHometown());
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.GENDER,
-                "GENDER",
-                profile.getGender()
-        );
+        addQuickField(result, mask, QuickFieldMask.GENDER,
+                "GENDER", profile.getGender());
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.DATE_OF_BIRTH,
-                "DATE_OF_BIRTH",
-                profile.getDob() != null
-                        ? profile.getDob().toString()
-                        : null
-        );
+        addQuickField(result, mask, QuickFieldMask.DATE_OF_BIRTH,
+                "DATE_OF_BIRTH", profile.getDob() != null
+                        ? profile.getDob().toString() : null);
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.GITHUB,
-                "GITHUB",
-                profile.getGithub()
-        );
+        addQuickField(result, mask, QuickFieldMask.GITHUB,
+                "GITHUB", profile.getGithub());
 
-        addQuickField(
-                result,
-                mask,
-                QuickFieldMask.LINKEDIN,
-                "LINKEDIN",
-                profile.getLinkedin()
-        );
+        addQuickField(result, mask, QuickFieldMask.LINKEDIN,
+                "LINKEDIN", profile.getLinkedin());
 
         return result;
     }

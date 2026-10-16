@@ -1,6 +1,6 @@
 package com.example.campusconnect.feature.map.data.repo
 
-import com.example.campusconnect.feature.map.mapengine.model.MapMarker
+import com.example.campusconnect.feature.map.model.MapMarker
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.EventFilter
 import com.example.campusconnect.feature.map.model.MapEventInfo

@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.map.mapengine
+package com.example.campusconnect.feature.map.mapengine.coordinates
 
 import androidx.compose.ui.geometry.Offset
 import kotlin.math.abs

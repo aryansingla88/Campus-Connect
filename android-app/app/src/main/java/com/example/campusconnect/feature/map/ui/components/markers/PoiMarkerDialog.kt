@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.map.components
+package com.example.campusconnect.feature.map.ui.components.markers
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background

@@ -1,9 +1,5 @@
 package com.example.campusconnect.feature.map.data.remote.response
 
-import com.example.campusconnect.feature.map.model.HostInfo
-import com.example.campusconnect.feature.map.model.MapEventInfo
-import com.google.gson.annotations.SerializedName
-
 data class EventPreviewResponse(
     val id: Int,
     val title: String,
@@ -20,31 +16,10 @@ data class EventPreviewResponse(
     val hosts: List<EventHostResponse>? = null
 )
 
-fun EventPreviewResponse.toMapEventInfo(): MapEventInfo {
-    val hostList = hosts?.map { host ->
-        HostInfo(
-            id = host.userId,
-            name = host.fullName,
-            avatarUrl = host.avatarUrl
-        )
-    } ?: emptyList()
+data class EventHostResponse(
 
-    return MapEventInfo(
-        id = id,
-        title = title,
-        hostName = hostList.firstOrNull()?.name ?: "Campus Team",
-        date = startTime ?: "TBA",
-        time = if (startTime != null && endTime != null) {
-            "$startTime - $endTime"
-        } else {
-            "TBA"
-        },
-        description = description ?: "",
-        venue = venue ?: "Campus Complex",
-        posterUrl = posterUrl,
-        posterResId = null,
-        hosts = hostList,
-        isJoined = isJoined ?: false
-    )
-}
-
+    val userId: Int,
+    val fullName: String,
+    val avatarUrl: String? = null,
+    val role: String? = null
+)
