@@ -2,6 +2,7 @@ package com.campus.Campus_Connect.features.registration.entity;
 
 import com.campus.Campus_Connect.features.event.entity.Event;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.*;
 
 @Entity
@@ -35,4 +36,11 @@ public class RegistrationField {
 
     @Column(name = "field_order", nullable = false)
     private Integer fieldOrder;
+
+    @Builder.Default
+    @Column(name = "individual", nullable = false)
+    private Boolean individual = true;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

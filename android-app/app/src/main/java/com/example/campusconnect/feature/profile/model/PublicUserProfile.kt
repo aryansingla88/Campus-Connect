@@ -1,6 +1,5 @@
 package com.example.campusconnect.feature.profile.model
 
-import com.example.campusconnect.core.utils.toInitials
 
 data class PublicUserProfile(
 
@@ -33,6 +32,7 @@ data class PublicUserProfile(
 
     // Metadata
     val memberSince: String = "",
+    val relationshipStatus: ConnectionStatus? = null,
 
     // Visibility
     val showPhone: Boolean = false,

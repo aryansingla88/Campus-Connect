@@ -9,6 +9,7 @@ import com.campus.Campus_Connect.features.connection.dto.ConnectionRelationshipS
 import com.campus.Campus_Connect.features.connection.dto.ConnectionResponse;
 import com.campus.Campus_Connect.features.connection.entity.ConnectionStatus;
 import com.campus.Campus_Connect.features.connection.entity.UserConnection;
+import com.campus.Campus_Connect.features.connection.entity.UserConnectionId;
 import com.campus.Campus_Connect.features.connection.repository.ConnectionRepository;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import lombok.RequiredArgsConstructor;
@@ -102,20 +103,36 @@ public class ConnectionService {
 
         User currentUser = SecurityUtils.getCurrentUser();
 
-        List<UserConnection> requests =
+        List<ConnectionResponse> responses = new ArrayList<>();
+
+        // Received requests
+        List<UserConnection> received =
                 connectionRepository.findByReceiver_IdAndStatus(
                         currentUser.getId(),
                         ConnectionStatus.PENDING
                 );
 
-        List<ConnectionResponse> responses = new ArrayList<>();
-
-        for (UserConnection connection : requests) {
-
+        for (UserConnection connection : received) {
             responses.add(
                     buildConnectionResponse(
                             connection.getSender(),
                             ConnectionRelationshipStatus.PENDING_RECEIVED
+                    )
+            );
+        }
+
+        // Sent requests
+        List<UserConnection> sent =
+                connectionRepository.findBySender_IdAndStatus(
+                        currentUser.getId(),
+                        ConnectionStatus.PENDING
+                );
+
+        for (UserConnection connection : sent) {
+            responses.add(
+                    buildConnectionResponse(
+                            connection.getReceiver(),
+                            ConnectionRelationshipStatus.PENDING_SENT
                     )
             );
         }
@@ -147,6 +164,14 @@ public class ConnectionService {
         }
 
         UserConnection connection = new UserConnection();
+
+        connection.setId(
+                new UserConnectionId(
+                        currentUser.getId(),
+                        receiver.getId()
+                )
+        );
+
         connection.setSender(currentUser);
         connection.setReceiver(receiver);
         connection.setStatus(ConnectionStatus.PENDING);
@@ -322,7 +347,7 @@ private ConnectionResponse buildConnectionResponse(
     }
 
 //---------------------
-    private ConnectionRelationshipStatus getRelationshipStatus(
+    public ConnectionRelationshipStatus getRelationshipStatus(
             Integer currentUserId,
             Integer otherUserId
     ) {

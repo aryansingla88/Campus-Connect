@@ -5,5 +5,6 @@ public enum StatisticType {
     PARTICIPATED_EVENTS,
     HOSTED_EVENTS,
     MEDALS_WON,
-
+    CONNECTIONS,
+    CLUBS
 }

@@ -11,7 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,31 +27,32 @@ fun StatsRow(
     clubCount: Int,
     interestCount: Int,
     activePanel: StatPanel?,
+    enabled: Boolean = true,
     onStatClick: (StatPanel) -> Unit
 ) {
     data class StatItem(
         val value: String,
         val label: String,
         val icon: ImageVector,
-        val panel: StatPanel
+        val panel: StatPanel,
+        val iconColor: Color
     )
 
     val stats = listOf(
-        StatItem(connectionCount.toString(), "Connections", Icons.Outlined.People,      StatPanel.CONNECTIONS),
-        StatItem(honorCount.toString(),      "Honor",       Icons.Outlined.EmojiEvents, StatPanel.HONOR),
-        StatItem(clubCount.toString(),       "Clubs",       Icons.Outlined.Shield,      StatPanel.CLUBS),
-        StatItem(interestCount.toString(),   "Interests",   Icons.Outlined.Star,        StatPanel.INTERESTS),
+        StatItem(connectionCount.toString(), "Connections", Icons.Outlined.People, StatPanel.CONNECTIONS, Orange),
+        StatItem(honorCount.toString(), "Honors", Icons.Outlined.EmojiEvents, StatPanel.HONOR, MedalGold),
+        StatItem(clubCount.toString(), "Clubs", Icons.Outlined.Shield, StatPanel.CLUBS, BadgeBlue),
+        StatItem(interestCount.toString(), "Interests", Icons.Outlined.Star, StatPanel.INTERESTS, BadgePurple),
     )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .padding(horizontal = 16.dp)
-            .offset(y = (-3).dp),
+            .padding(horizontal = 22.dp),
         shape     = RoundedCornerShape(20.dp),
         colors    = CardDefaults.cardColors(containerColor = CardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
             modifier = Modifier
@@ -57,7 +60,7 @@ fun StatsRow(
                 .height(IntrinsicSize.Min)
         ) {
             stats.forEachIndexed { index, stat ->
-                val isActive = activePanel == stat.panel
+                val isActive = enabled && activePanel == stat.panel
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -66,30 +69,34 @@ fun StatsRow(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .alpha(if (enabled) 1f else 0.45f)
                             .clickable(
+                                enabled = enabled,
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication        = null
-                            ) { onStatClick(stat.panel) }
+                                indication = null
+                            ) {
+                                onStatClick(stat.panel)
+                            }
                             .background(if (isActive) OrangeLight else CardBg)
-                            .padding(vertical = 14.dp),
+                            .padding(vertical = 9.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             imageVector        = stat.icon,
                             contentDescription = stat.label,
-                            tint               = if (isActive) Orange else TextMuted,
-                            modifier           = Modifier.size(20.dp)
+                            tint               = if (isActive) Orange else stat.iconColor,
+                            modifier           = Modifier.size(22.dp)
                         )
                         Text(
                             stat.value,
-                            fontSize   = 18.sp,
+                            fontSize   = 19.sp,
                             fontWeight = FontWeight.Bold,
                             color      = if (isActive) Orange else TextPrimary
                         )
                         Text(
                             stat.label,
-                            fontSize      = 9.sp,
+                            fontSize      = 10.sp,
                             color         = if (isActive) Orange else TextMuted,
                             letterSpacing = 0.4.sp
                         )
@@ -120,5 +127,5 @@ fun StatsRow(
         }
     }
 
-    Spacer(Modifier.height(6.dp))
+    Spacer(Modifier.height(12.dp))
 }

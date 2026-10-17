@@ -42,8 +42,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralFeedScreen(
-
     onPostClick: (Int) -> Unit,
+    initialTab: Int = 0,
     viewModel: FeedViewModel = FeedViewModel()
 ) {
     var posts by remember {
@@ -213,7 +213,7 @@ fun GeneralFeedScreen(
 
 
     var selectedTab by remember {
-        mutableIntStateOf(0)
+        mutableIntStateOf(initialTab)
     }
 
     var selectedTopic by remember {

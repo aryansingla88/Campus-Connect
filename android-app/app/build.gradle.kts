@@ -23,12 +23,13 @@ android {
         applicationId = "com.example.campusconnect"
         minSdk = 21
         targetSdk = 34
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 1
         versionName = "1.0"
 
         val apiBaseUrl =
             localProperties.getProperty("API_BASE_URL")
-                ?: "http://10.70.175.87:8000/"
+                ?: "http://10.246.194.121:8000/"
 
         buildConfigField(
             "String",
@@ -115,5 +116,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
 
     ksp("androidx.room:room-compiler:2.6.1")
+
+    testImplementation(libs.junit)
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 }
 

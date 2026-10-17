@@ -1,8 +1,9 @@
 package com.example.campusconnect.feature.map.data.repo
 
-import com.example.campusconnect.feature.map.mapengine.model.MapMarker
+import com.example.campusconnect.feature.map.model.MapMarker
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.EventFilter
+import com.example.campusconnect.feature.map.model.MapFilterOption
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.map.model.MapPoiInfo
 import com.example.campusconnect.feature.map.model.MapShopInfo
@@ -11,7 +12,9 @@ import com.example.campusconnect.feature.map.model.MapUserProfile
 interface MapRepo {
 
     suspend fun getMarkers(
-        type: MarkerType? = null
+        type: MarkerType? = null,
+        eventCategoryId: Int? = null,
+        poiCategory: String? = null
     ): Result<List<MapMarker>>
 
     // Backend user ID
@@ -53,4 +56,6 @@ interface MapRepo {
 
     // Event Categories / Filters
     suspend fun getEventCategories(): Result<List<EventFilter>>
+
+    suspend fun getPoiCategories(): Result<List<MapFilterOption>>
 }

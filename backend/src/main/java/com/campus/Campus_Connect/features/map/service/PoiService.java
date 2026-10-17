@@ -114,7 +114,7 @@ public class PoiService {
 
     public ApiResponse<List<PoiResponse>> getAllPois() {
 
-        List<Poi> pois = poiRepository.findAll();
+        List<Poi> pois = poiRepository.findAllBasePois();
 
         List<PoiResponse> response = new ArrayList<>();
 

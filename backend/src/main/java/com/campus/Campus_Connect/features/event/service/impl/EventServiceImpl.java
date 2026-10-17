@@ -19,6 +19,7 @@ import com.campus.Campus_Connect.common.storage.MediaStorageService;
 import com.campus.Campus_Connect.common.storage.MediaType;
 import com.campus.Campus_Connect.features.honor.service.BadgeEvaluatorService;
 import com.campus.Campus_Connect.features.honor.enums.StatisticType;
+import com.campus.Campus_Connect.features.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class EventServiceImpl implements EventService {
     private final EventCategoryRepository eventCategoryRepository;
     private final BadgeEvaluatorService badgeEvaluatorService;
     private final MediaStorageService mediaStorageService;
+    private final NotificationService notificationService;
 
     @Override
     public ApiResponse<List<EventResponse>> getEventFeed() {
@@ -182,6 +184,8 @@ public class EventServiceImpl implements EventService {
         }
 
         event = eventRepository.save(event);
+
+        notificationService.notifyEventCreated(event);
 
         EventMember creatorMember =
                 EventMember.builder()

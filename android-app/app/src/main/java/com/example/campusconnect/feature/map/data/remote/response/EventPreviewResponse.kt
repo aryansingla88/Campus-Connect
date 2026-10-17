@@ -1,14 +1,16 @@
 package com.example.campusconnect.feature.map.data.remote.response
 
-import com.example.campusconnect.feature.map.model.HostInfo
-import com.example.campusconnect.feature.map.model.MapEventInfo
-import com.google.gson.annotations.SerializedName
-
 data class EventPreviewResponse(
     val id: Int,
     val title: String,
     val description: String? = null,
     val posterUrl: String? = null,
+    val hostName: String? = null,
+    val creatorName: String? = null,
+    val clubName: String? = null,
+    val registrationCount: Int? = null,
+    val eventType: String? = null,
+    val categories: List<EventCategoryResponse>? = null,
     val startTime: String? = null,
     val endTime: String? = null,
     val venue: String? = null,
@@ -20,31 +22,11 @@ data class EventPreviewResponse(
     val hosts: List<EventHostResponse>? = null
 )
 
-fun EventPreviewResponse.toMapEventInfo(): MapEventInfo {
-    val hostList = hosts?.map { host ->
-        HostInfo(
-            id = host.userId,
-            name = host.fullName,
-            avatarUrl = host.avatarUrl
-        )
-    } ?: emptyList()
 
-    return MapEventInfo(
-        id = id,
-        title = title,
-        hostName = hostList.firstOrNull()?.name ?: "Campus Team",
-        date = startTime ?: "TBA",
-        time = if (startTime != null && endTime != null) {
-            "$startTime - $endTime"
-        } else {
-            "TBA"
-        },
-        description = description ?: "",
-        venue = venue ?: "Campus Complex",
-        posterUrl = posterUrl,
-        posterResId = null,
-        hosts = hostList,
-        isJoined = isJoined ?: false
-    )
-}
+data class EventHostResponse(
 
+    val userId: Int,
+    val fullName: String,
+    val avatarUrl: String? = null,
+    val role: String? = null
+)

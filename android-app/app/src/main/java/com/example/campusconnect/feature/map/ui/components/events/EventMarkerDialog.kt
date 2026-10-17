@@ -1,0 +1,778 @@
+package com.example.campusconnect.feature.map.ui.components.events
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.campusconnect.R
+import com.example.campusconnect.feature.map.model.MapEventInfo
+import com.example.campusconnect.feature.map.ui.util.formatEventDate
+import com.example.campusconnect.feature.map.ui.util.formatEventTimeRange
+import kotlin.math.roundToInt
+
+
+internal val OrangePrimary = Color(0xFFFE5200)
+internal val TextDark = Color(0xFF000000)
+private val TextMuted = Color(0xFF666B71)
+internal val BorderOrange = Color(0xFFFE5200)
+
+private val StatCardBg = Color(0xFFFDF4EF)
+private val PillBg = Color(0xFFFDE5D9)
+private val PillText = Color(0xFFD53A0C)
+
+
+// ============================================================================
+// MAIN BOTTOM SHEET
+// ============================================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EventMarkerDialog(
+    event: MapEventInfo,
+    onDismiss: () -> Unit,
+    onNavigateClick: () -> Unit = {},
+    onRegisterClick: () -> Unit = {},
+    onNotifyClick: () -> Unit = {},
+    endTime: String? = null,
+    description: String? = null,
+    registrationsCount: Int? = null,
+    eventType: String? = null,
+    onViewAllHostsClick: () -> Unit = {},
+    nearbyEvents: List<MapEventInfo> = emptyList(),
+    onNearbyEventClick: (MapEventInfo) -> Unit = {}
+) {
+
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = false
+    )
+
+    /*
+     * IMPORTANT
+     *
+     * Use currentValue and NOT targetValue.
+     *
+     * targetValue changes while the user is dragging.
+     * If we use targetValue, the content starts changing before
+     * the sheet has actually reached the expanded/collapsed anchor.
+     *
+     * currentValue changes only after the sheet reaches its anchor.
+     */
+    val isExpanded =
+        sheetState.currentValue == SheetValue.Expanded
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color.White,
+        tonalElevation = 0.dp,
+        shape = RoundedCornerShape(
+            topStart = 28.dp,
+            topEnd = 28.dp
+        ),
+        dragHandle = {
+            SheetDragHandle()
+        }
+    ) {
+
+        EventQuickPreviewContent(
+            event = event,
+            endTime = endTime,
+            description = description,
+            registrationsCount = registrationsCount,
+            eventType = eventType,
+            onViewAllHostsClick = onViewAllHostsClick,
+            nearbyEvents = nearbyEvents,
+            isExpanded = isExpanded,
+            onDismiss = onDismiss,
+            onNavigateClick = onNavigateClick,
+            onRegisterClick = onRegisterClick,
+            onNotifyClick = onNotifyClick,
+            onNearbyEventClick = onNearbyEventClick
+        )
+    }
+}
+
+
+// ============================================================================
+// DRAG HANDLE
+// ============================================================================
+
+@Composable
+private fun SheetDragHandle() {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                top = 8.dp,
+                bottom = 8.dp
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Box(
+            modifier = Modifier
+                .width(40.dp)
+                .height(4.dp)
+                .clip(
+                    RoundedCornerShape(4.dp)
+                )
+                .background(
+                    Color(0xFFC7C7C7)
+                )
+        )
+    }
+}
+
+
+// ============================================================================
+// MAIN CONTENT
+// ============================================================================
+
+/*
+ * IMPORTANT — WHY THIS LOOKS DIFFERENT FROM THE ORIGINAL:
+ *
+ * The original composable swapped between wrap-content and fillMaxHeight()
+ * based on isExpanded (an instant, un-animated jump) AND wrapped the
+ * "details" section in a separate AnimatedVisibility animation. Two height
+ * animations fought over the same space — the sheet's own native
+ * drag/offset animation, and our manual one — causing visible flicker.
+ *
+ * Removing fillMaxHeight() entirely fixed the flicker but introduced a new
+ * bug: the white background only extended as far as the actual content, so
+ * once the sheet dragged past that point, the dark scrim behind the sheet
+ * showed through as a black gap at the bottom.
+ *
+ * THE FIX: apply fillMaxHeight() UNCONDITIONALLY — not gated on isExpanded.
+ * Because it's always on, the content's measured height never changes when
+ * isExpanded flips, so there is nothing left to animate at the content
+ * level. The white background always reaches the bottom of the sheet (no
+ * black gap), and the ModalBottomSheet's own anchor system (PartiallyExpanded
+ * vs Expanded) is the only thing moving — it reveals more or less of this
+ * already-full-height column via its native offset animation, which is
+ * already smooth.
+ *
+ * isExpanded is now only used for the tiny "QUICK PREVIEW" vs "EVENT" text
+ * label swap, which is a text-only change and doesn't affect layout height,
+ * so it can't cause jank.
+ */
+@Composable
+private fun EventQuickPreviewContent(
+    event: MapEventInfo,
+    endTime: String?,
+    description: String?,
+    registrationsCount: Int?,
+    eventType: String?,
+    onViewAllHostsClick: () -> Unit,
+    nearbyEvents: List<MapEventInfo>,
+    isExpanded: Boolean,
+    onDismiss: () -> Unit,
+    onNavigateClick: () -> Unit,
+    onRegisterClick: () -> Unit,
+    onNotifyClick: () -> Unit,
+    onNearbyEventClick: (MapEventInfo) -> Unit
+) {
+
+    val scrollState = rememberScrollState()
+    val aboutScrollState = rememberScrollState()
+
+    /*
+     * IMPORTANT — fillMaxHeight(sheetHeightFraction) here is UNCONDITIONAL
+     * (not gated on isExpanded) and capped at a FRACTION, not the full
+     * screen.
+     *
+     * Why unconditional: if this only applied when isExpanded was true, the
+     * content's measured height would change the moment the sheet settles
+     * into the Expanded anchor — competing with the sheet's own native
+     * drag/offset animation and causing a visible jump (flicker).
+     *
+     * Why capped at a fraction (not a bare fillMaxHeight()): filling 100% of
+     * the available height lets the sheet cover the entire screen with no
+     * visible gap above it. Capping it at 90% keeps a small barrier/gap at
+     * the top at all times, showing the map behind it, while still being a
+     * CONSTANT value across both peek and expanded states — nothing about
+     * layout changes when isExpanded flips, so the sheet's own native
+     * offset animation is the only thing moving, and it's already smooth.
+     *
+     * isExpanded is only used for the tiny "QUICK PREVIEW" vs "EVENT" text
+     * label swap, which is a text-only change and doesn't affect layout
+     * height, so it can't cause jank.
+     */
+    val sheetHeightFraction = 0.80f
+
+    val displayRegistrationsCount = registrationsCount ?: event.registrationCount
+    val displayEventType = eventType ?: event.eventType
+    val displayHosts = event.hosts.map { it.name }
+    val hostLabel = event.creatorName?.takeIf { it.isNotBlank() }
+        ?: event.clubName?.takeIf { it.isNotBlank() }
+        ?: event.hostName.takeIf { it.isNotBlank() }
+        ?: event.hosts.firstOrNull()?.name
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(sheetHeightFraction)
+            .background(Color.White)
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .verticalScroll(scrollState)
+                .padding(
+                    start = 20.dp,
+                    end = 20.dp,
+                    top = 2.dp
+                )
+        ) {
+
+            // ================================================================
+            // HEADER
+            // ================================================================
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+
+                EventPoster(
+                    event = event,
+                    modifier = Modifier
+                        .width(118.dp)
+                        .height(185.dp)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 26.dp)
+                ) {
+
+                    EventTag(
+                        expanded = isExpanded
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(4.dp)
+                    )
+
+                    Text(
+                        text = event.title,
+                        color = TextDark,
+                        fontSize = 20.sp,
+                        lineHeight = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(2.dp)
+                    )
+
+                    Text(
+                        text = hostLabel?.let { "By $it" } ?: "Host information unavailable",
+                        color = TextMuted,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
+
+                    MetaRow(
+                        icon = Icons.Default.CalendarToday,
+                        text = formatEventDate(event.date)
+                    )
+
+                    MetaRow(
+                        icon = Icons.Default.AccessTime,
+                        text = formatEventTimeRange(
+                            event.time,
+                            endTime
+                        )
+                    )
+
+                    MetaRow(
+                        icon = Icons.Default.LocationOn,
+                        text = event.venue?.takeIf { it.isNotBlank() } ?: "Venue unavailable"
+                    )
+                }
+            }
+
+
+            // ================================================================
+            // ACTION BUTTONS
+            // ================================================================
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                NotifyMeButton(
+                    onClick = onNotifyClick,
+                    modifier = Modifier.weight(1f)
+                )
+
+                RegisterActionButton(
+                    isJoined = event.isJoined,
+                    onClick = onRegisterClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+
+            // ================================================================
+            // DETAILS (always composed — revealed by the sheet's own drag
+            // animation, not by AnimatedVisibility)
+            // ================================================================
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        top = 16.dp
+                    )
+            ) {
+
+                // ----------------------------------------------------
+                // STATS
+                // ----------------------------------------------------
+
+                StatsRow(
+                    registrationsCount = displayRegistrationsCount,
+                    eventType = displayEventType
+                )
+
+
+                // ----------------------------------------------------
+                // ABOUT
+                // ----------------------------------------------------
+
+                Spacer(
+                    modifier = Modifier.height(24.dp)
+                )
+
+                Text(
+                    text = "About",
+                    color = TextDark,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
+
+                // Fixed height (not just a max) so About always reserves
+                // the same amount of space whether the description is one
+                // line or ten — short text just leaves blank space below
+                // it, long text scrolls within this same fixed area.
+                Text(
+                    text = description
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "Event description unavailable",
+                    color = TextMuted,
+                    fontSize = 14.sp,
+                    lineHeight = 21.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp)
+                        .verticalScroll(aboutScrollState)
+                )
+
+
+                // ----------------------------------------------------
+                // HOSTS
+                // ----------------------------------------------------
+
+                Spacer(
+                    modifier = Modifier.height(22.dp)
+                )
+
+                if (displayHosts.isNotEmpty()) {
+                    HostsSection(
+                        hosts = displayHosts,
+                        onViewAllClick = onViewAllHostsClick
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(28.dp)
+                )
+            }
+        }
+
+
+        // ================================================================
+        // FLOATING NAVIGATE BUTTON
+        // ================================================================
+
+        /*
+         * No statusBarsPadding().
+         *
+         * This button belongs to the bottom sheet, not the screen.
+         * statusBarsPadding() here can make the button jump when the
+         * sheet changes position.
+         */
+        NavigateIconButton(
+            onClick = onNavigateClick,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 10.dp)
+        )
+    }
+}
+
+
+// ============================================================================
+// NAVIGATE BUTTON
+// ============================================================================
+
+@Composable
+private fun NavigateIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(
+                OrangePrimary
+            )
+            .clickable(
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Icon(
+            imageVector = Icons.Default.NearMe,
+            contentDescription = "Navigate",
+            tint = Color.White,
+            modifier = Modifier.size(19.dp)
+        )
+    }
+}
+
+
+// ============================================================================
+// EVENT TAG
+// ============================================================================
+
+@Composable
+private fun EventTag(
+    expanded: Boolean
+) {
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(
+                    OrangePrimary
+                )
+        )
+
+        Spacer(
+            modifier = Modifier.width(6.dp)
+        )
+
+        Text(
+            text = if (expanded) {
+                "EVENT"
+            } else {
+                "QUICK PREVIEW"
+            },
+            color = OrangePrimary,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
+        )
+    }
+}
+
+
+// ============================================================================
+// META ROW
+// ============================================================================
+
+@Composable
+private fun MetaRow(
+    icon: ImageVector,
+    text: String
+) {
+
+    Row(
+        modifier = Modifier.padding(
+            vertical = 3.dp
+        ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = OrangePrimary,
+            modifier = Modifier.size(18.dp)
+        )
+
+        Spacer(
+            modifier = Modifier.width(8.dp)
+        )
+
+        Text(
+            text = text,
+            color = TextDark,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+
+// ============================================================================
+// STATS
+// ============================================================================
+
+@Composable
+private fun StatsRow(
+    registrationsCount: Int?,
+    eventType: String?
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Max),
+        horizontalArrangement =
+            Arrangement.spacedBy(12.dp)
+    ) {
+
+        if (registrationsCount != null) {
+
+            StatCard(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement =
+                    Arrangement.SpaceBetween
+            ) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.Group,
+                        contentDescription = null,
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+
+                    Text(
+                        text = "Registrations",
+                        color = TextMuted,
+                        fontSize = 12.sp
+                    )
+                }
+
+                Column {
+
+                    Text(
+                        text = registrationsCount.toString(),
+                        color = TextDark,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+
+                    Text(
+                        text = "students",
+                        color = TextMuted,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
+
+        if (!eventType.isNullOrBlank()) {
+
+            StatCard(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement =
+                    Arrangement.SpaceBetween
+            ) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.ConfirmationNumber,
+                        contentDescription = null,
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+
+                    Text(
+                        text = "Event Type",
+                        color = TextMuted,
+                        fontSize = 12.sp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(
+                            RoundedCornerShape(10.dp)
+                        )
+                        .background(
+                            PillBg
+                        )
+                        .padding(
+                            horizontal = 10.dp,
+                            vertical = 4.dp
+                        )
+                ) {
+
+                    Text(
+                        text = eventType,
+                        color = PillText,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+// ============================================================================
+// STAT CARD
+// ============================================================================
+
+@Composable
+private fun StatCard(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    content: @Composable ColumnScope.() -> Unit
+) {
+
+    Column(
+        modifier = modifier
+            .clip(
+                RoundedCornerShape(16.dp)
+            )
+            .background(
+                StatCardBg
+            )
+            .padding(14.dp),
+        verticalArrangement = verticalArrangement,
+        content = content
+    )
+}
+
+
+// ============================================================================
+// DATE FORMAT
+// ============================================================================
+

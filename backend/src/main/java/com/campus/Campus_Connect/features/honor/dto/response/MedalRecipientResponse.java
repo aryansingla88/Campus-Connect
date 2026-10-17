@@ -13,8 +13,6 @@ public class MedalRecipientResponse {
 
     private String name;
 
-    private String subtitle;
-
     private Boolean team;
 
 }

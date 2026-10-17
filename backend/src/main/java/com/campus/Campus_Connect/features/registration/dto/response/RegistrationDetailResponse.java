@@ -12,17 +12,51 @@ import java.util.List;
 @Builder
 public class RegistrationDetailResponse {
 
-    private Integer registrationId;
+    private List<Answer> teamAnswers;
+    private List<Member> members;
 
-    private Integer eventId;
+    //    ---------------------------
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Member {
 
-    private Integer userId;
+        private Integer registrationId;
 
-    private Integer teamId;
+        private Integer userId;
+        private List<QuickField> quickFields;
+        private List<Answer> individualAnswers;
+    }
 
-    private String status;
+    //    ---------------------------
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class QuickField {
 
-    private Instant submittedAt;
+        private String field;
 
-    private List<RegistrationAnswerResponse> answers;
+        private String value;
+    }
+
+    //    ---------------------------
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Answer {
+
+        private Integer fieldId;
+
+        private String fieldLabel;
+
+        private String fieldType;
+
+        private String answer;
+    }
 }

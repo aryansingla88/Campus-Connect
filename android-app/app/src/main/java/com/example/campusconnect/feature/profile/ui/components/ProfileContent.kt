@@ -33,26 +33,54 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalTextStyle
-import java.time.LocalDate
-import java.time.Period
-import java.time.format.DateTimeFormatter
-
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 // -- Constants ----------------------------------------------------
-
-private val COURSE_OPTIONS = listOf("B.Tech","M.Tech","MBA","MCA","BCA","B.Sc","M.Sc","BBA","PhD","B.Arch","Other")
 private val HOSTEL_OPTIONS = listOf("Hostel 1","Hostel 2","Hostel 3","Hostel 4","Hostel 5","Day Scholar")
-private val GENDER_OPTIONS = listOf("Male","Female","Others")
+private const val DOB_ISO = "yyyy-MM-dd"
+private const val DOB_DISPLAY = "dd MMM yyyy"
+private fun dobToAge(dob: String): Int? {
+    return runCatching {
+        val format = SimpleDateFormat(DOB_ISO, Locale.getDefault())
+        val birthDate = format.parse(dob) ?: return null
 
-private val DOB_ISO     = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-private val DOB_DISPLAY = DateTimeFormatter.ofPattern("dd MMM yyyy")
+        val today = Calendar.getInstance()
+        val birth = Calendar.getInstance().apply {
+            time = birthDate
+        }
 
-private fun dobToAge(dob: String)     = runCatching { Period.between(LocalDate.parse(dob, DOB_ISO), LocalDate.now()).years }.getOrNull()
-private fun dobToDisplay(dob: String) = runCatching { LocalDate.parse(dob, DOB_ISO).format(DOB_DISPLAY) }.getOrElse { dob }
-private fun millisToDob(ms: Long)     = LocalDate.ofEpochDay(ms / 86_400_000L).format(DOB_ISO)
-private fun dobToMillis(dob: String)  = runCatching { LocalDate.parse(dob, DOB_ISO).toEpochDay() * 86_400_000L }.getOrElse { System.currentTimeMillis() }
+        var age = today.get(Calendar.YEAR) - birth.get(Calendar.YEAR)
 
-// --- ProfileContent -----------------------------------------------------------
+        if (
+            today.get(Calendar.MONTH) < birth.get(Calendar.MONTH) ||
+            (
+                    today.get(Calendar.MONTH) == birth.get(Calendar.MONTH) &&
+                            today.get(Calendar.DAY_OF_MONTH) < birth.get(Calendar.DAY_OF_MONTH)
+                    )
+        ) {
+            age--
+        }
+
+        age
+    }.getOrNull()
+}
+
+private fun dobToDisplay(dob: String): String {
+    return runCatching {
+        val input = SimpleDateFormat(DOB_ISO, Locale.getDefault())
+        val output = SimpleDateFormat(DOB_DISPLAY, Locale.getDefault())
+
+        val date = input.parse(dob) ?: return dob
+
+        output.format(date)
+    }.getOrElse { dob }
+}
+
+//-------------------------------
+// Profile Content
+//-------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,257 +90,398 @@ fun ProfileContent(
     isEditMode: Boolean = false,
     onValueChange: (PublicUserProfile) -> Unit = {}
 ) {
-    val canShowPhone   = mode == ProfileMode.OWN || profile.showPhone
-    val canShowSocials = mode == ProfileMode.OWN || profile.showSocials
-    val context        = LocalContext.current
+    val canShowPhone =
+        mode == ProfileMode.OWN || profile.showPhone
 
-    fun openUrl(url: String) {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-    }
+    val canShowSocials =
+        mode == ProfileMode.OWN || profile.showSocials
 
-    // DOB picker state — owned here, passed down to GenderAgeRow
-    var showDobPicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dobToMillis(profile.dob))
+    val context = LocalContext.current
 
-    if (showDobPicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDobPicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDobPicker = false
-                        datePickerState.selectedDateMillis?.let {
-                            onValueChange(
-                                profile.copy(
-                                    dob = millisToDob(it)
-                                )
-                            )
-                        }
-                    }
+    //-------------------------------
+    // Open Social URL
+    //-------------------------------
+
+    fun openSocialUrl(
+        value: String,
+        platform: String
+    ) {
+        if (value.isBlank()) return
+
+        val url = when (platform) {
+
+            "github" -> {
+                if (
+                    value.startsWith("http://") ||
+                    value.startsWith("https://")
                 ) {
-                    Text(
-                        text = "Done",
-                        color = Orange,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDobPicker = false
-                    }
-                ) {
-                    Text(
-                        text = "Cancel",
-                        color = TextMuted
-                    )
+                    value
+                } else {
+                    "https://github.com/$value"
                 }
             }
-        ) {
-            DatePicker(
-                state          = datePickerState,
-                colors = DatePickerDefaults.colors(
-                    selectedDayContainerColor = Orange,
-                    selectedDayContentColor = Color.White,
-                    todayDateBorderColor = Orange,
-                    todayContentColor = Orange
-                ),
-                showModeToggle = false,
-                headline       = null,
-                title          = { Text("Date of birth", modifier = Modifier.padding(start = 24.dp, top = 16.dp)) }
-            )
+
+            "linkedin" -> {
+                if (
+                    value.startsWith("http://") ||
+                    value.startsWith("https://")
+                ) {
+                    value
+                } else {
+                    "https://linkedin.com/in/$value"
+                }
+            }
+
+            "instagram" -> {
+                if (
+                    value.startsWith("http://") ||
+                    value.startsWith("https://")
+                ) {
+                    value
+                } else {
+                    "https://instagram.com/${value.removePrefix("@")}"
+                }
+            }
+
+            else -> value
         }
+
+        context.startActivity(
+            Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse(url)
+            )
+        )
     }
+
+    //-------------------------------
+    // Profile Content
+    //-------------------------------
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 16.dp),
+            .padding(
+                start = 12.dp,
+                end = 12.dp,
+                top = 0.dp,
+                bottom = 16.dp
+            ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        // --- Basic Information -----------------------------------------
-        ProfileSection(title = "BASIC INFORMATION") {
-            if (mode == ProfileMode.OWN && (profile.fullName.isNotBlank() || isEditMode)) {
-                InfoRow(Icons.Outlined.Person, "FULL NAME", profile.fullName, isEditMode) { onValueChange(profile.copy(fullName = it)) }
-                SectionDivider()
-            }
-            if (profile.programName.isNotBlank() || isEditMode) {
-                InfoRow(Icons.Outlined.School, "COURSE", profile.programName, isEditMode,
-                    inputType = InputType.Dropdown(COURSE_OPTIONS)) { onValueChange(profile.copy(programName = it)) }
-                SectionDivider()
-            }
-            if (profile.academicYear.isNotBlank() &&
-                profile.batch.isNotBlank() || isEditMode) {
-                InfoRow(Icons.Outlined.CalendarToday, "YEAR (BATCH)",
-                    "${profile.academicYear} (${profile.batch})",
-                    isEditMode,
-                    inputType = InputType.Int("e.g. 2022")) { onValueChange(profile.copy(academicYear = it)) }
-                SectionDivider()
-            }
-            if (profile.hostel.isNotBlank() || isEditMode) {
-                InfoRow(Icons.Outlined.House, "HOSTEL", profile.hostel, isEditMode,
-                    inputType = InputType.Dropdown(HOSTEL_OPTIONS)) { onValueChange(profile.copy(hostel = it)) }
-                SectionDivider()
-            }
-            if (profile.hometown.isNotBlank() || isEditMode) {
-                InfoRow(Icons.Outlined.LocationOn, "HOMETOWN", profile.hometown, isEditMode) { onValueChange(profile.copy(hometown = it)) }
-                SectionDivider()
-            }
-            if (profile.gender.isNotBlank() || profile.dob.isNotBlank() || isEditMode) {
-                GenderAgeRow(
-                    gender         = profile.gender,
-                    dob            = profile.dob,
-                    isEditMode     = isEditMode,
-                    onGenderChange = { onValueChange(profile.copy(gender = it)) },
-                    onDobClick     = { showDobPicker = true }
-                )
-            }
-        }
+        //-------------------------------
+        // EDIT MODE
+        //-------------------------------
 
-        // --- Social Presence ------------------------------------------
-        if (canShowSocials) {
+        if (isEditMode) {
 
-            val hasAnySocial =
-                profile.github.isNotBlank() ||
-                        profile.linkedin.isNotBlank() ||
-                        profile.instagram.isNotBlank()
+            //-------------------------------
+            // Editable Basic Information
+            //-------------------------------
 
-            if (hasAnySocial || isEditMode) {
+            ProfileSection(
+                title = "Basic Information"
+            ) {
 
-                ProfileSection(title = "SOCIAL PRESENCE") {
-
-                    if (isEditMode) {
-
-                        InfoRow(
-                            icon = Icons.Outlined.Link,
-                            label = "GITHUB",
-                            value = profile.github,
-                            isEditMode = true
-                        ) {
-                            onValueChange(
-                                profile.copy(github = it)
-                            )
-                        }
-
-                        SectionDivider()
-
-                        InfoRow(
-                            icon = Icons.Outlined.Link,
-                            label = "LINKEDIN",
-                            value = profile.linkedin,
-                            isEditMode = true
-                        ) {
-                            onValueChange(
-                                profile.copy(linkedin = it)
-                            )
-                        }
-
-                        SectionDivider()
-
-                        InfoRow(
-                            icon = Icons.Outlined.Link,
-                            label = "INSTAGRAM",
-                            value = profile.instagram,
-                            isEditMode = true
-                        ) {
-                            onValueChange(
-                                profile.copy(instagram = it)
-                            )
-                        }
-
-                    } else {
-
-                        if (profile.github.isNotBlank()) {
-                            SocialLinkRow(
-                                Color(0xFF1A1A1A),
-                                "gh",
-                                "GITHUB",
-                                profile.github
-                            ) {
-                                openUrl("https://${profile.github}")
-                            }
-
-                            if (
-                                profile.linkedin.isNotBlank() ||
-                                profile.instagram.isNotBlank()
-                            ) {
-                                SectionDivider()
-                            }
-                        }
-
-                        if (profile.linkedin.isNotBlank()) {
-                            SocialLinkRow(
-                                Color(0xFF0077B5),
-                                "in",
-                                "LINKEDIN",
-                                profile.linkedin
-                            ) {
-                                openUrl("https://${profile.linkedin}")
-                            }
-
-                            if (profile.instagram.isNotBlank()) {
-                                SectionDivider()
-                            }
-                        }
-
-                        if (profile.instagram.isNotBlank()) {
-                            SocialLinkRow(
-                                Color(0xFFE1306C),
-                                "ig",
-                                "INSTAGRAM",
-                                profile.instagram
-                            ) {
-                                openUrl(
-                                    "https://instagram.com/${
-                                        profile.instagram.removePrefix("@")
-                                    }"
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- Contact Details ------------------------------------------
-        // --- Contact Details ------------------------------------------
-        val hasContact =
-            isEditMode ||
-                    (canShowPhone && profile.phone.isNotBlank()) ||
-                    profile.email.isNotBlank()
-
-        if (hasContact) {
-            ProfileSection(title = "CONTACT DETAILS") {
-                if (canShowPhone && (profile.phone.isNotBlank() || isEditMode)) {
-                    InfoRow(
-                        Icons.Outlined.Phone,
-                        "PHONE",
-                        profile.phone,
-                        isEditMode
-                    ) {
-                        onValueChange(profile.copy(phone = it))
-                    }
-
-                    if (profile.email.isNotBlank()) SectionDivider()
+                InfoRow(
+                    icon = Icons.Outlined.House,
+                    label = "HOSTEL",
+                    value = profile.hostel,
+                    isEditMode = true,
+                    inputType = InputType.Dropdown(HOSTEL_OPTIONS)
+                ) {
+                    onValueChange(
+                        profile.copy(hostel = it)
+                    )
                 }
 
-                if (profile.email.isNotBlank()) {
-                    InfoRow(
-                        Icons.Outlined.Email,
-                        "EMAIL",
-                        profile.email
+                SectionDivider()
+
+                InfoRow(
+                    icon = Icons.Outlined.LocationOn,
+                    label = "HOMETOWN",
+                    value = profile.hometown,
+                    isEditMode = true
+                ) {
+                    onValueChange(
+                        profile.copy(hometown = it)
                     )
                 }
             }
-        }
 
-        // --- Account Info ---------------------------------------------
-        if (profile.memberSince.isNotBlank()) {
-            ProfileSection(title = "ACCOUNT INFO") {
-                InfoRow(Icons.Outlined.AccessTime, "MEMBER SINCE", profile.memberSince)
+            //-------------------------------
+            // Editable Social Presence
+            //-------------------------------
+
+            if (canShowSocials) {
+
+                ProfileSection(
+                    title = "Social Presence"
+                ) {
+
+                    InfoRow(
+                        icon = Icons.Outlined.Link,
+                        label = "GITHUB",
+                        value = profile.github,
+                        isEditMode = true
+                    ) {
+                        onValueChange(
+                            profile.copy(
+                                github = it
+                            )
+                        )
+                    }
+
+                    SectionDivider()
+
+                    InfoRow(
+                        icon = Icons.Outlined.Link,
+                        label = "LINKEDIN",
+                        value = profile.linkedin,
+                        isEditMode = true
+                    ) {
+                        onValueChange(
+                            profile.copy(
+                                linkedin = it
+                            )
+                        )
+                    }
+
+                    SectionDivider()
+
+                    InfoRow(
+                        icon = Icons.Outlined.Link,
+                        label = "INSTAGRAM",
+                        value = profile.instagram,
+                        isEditMode = true
+                    ) {
+                        onValueChange(
+                            profile.copy(
+                                instagram = it
+                            )
+                        )
+                    }
+                }
+            }
+
+            //-------------------------------
+            // Editable Contact Details
+            //-------------------------------
+
+            if (canShowPhone) {
+
+                ProfileSection(
+                    title = "Contact Details"
+                ) {
+
+                    InfoRow(
+                        icon = Icons.Outlined.Phone,
+                        label = "PHONE",
+                        value = profile.phone,
+                        isEditMode = true
+                    ) {
+                        onValueChange(
+                            profile.copy(
+                                phone = it
+                            )
+                        )
+                    }
+                }
+            }
+
+        } else {
+
+            //-------------------------------
+            // NORMAL MODE
+            //-------------------------------
+
+            //-------------------------------
+            // Basic Information
+            //-------------------------------
+
+            ProfileSection(
+                title = "Basic Information"
+            ) {
+
+                if (
+                    mode == ProfileMode.OWN &&
+                    profile.fullName.isNotBlank()
+                ) {
+                    InfoRow(
+                        Icons.Outlined.Person,
+                        "FULL NAME",
+                        profile.fullName
+                    )
+
+                    SectionDivider()
+                }
+
+                if (profile.programName.isNotBlank()) {
+                    InfoRow(
+                        Icons.Outlined.School,
+                        "COURSE",
+                        profile.programName
+                    )
+
+                    SectionDivider()
+                }
+
+                if (
+                    profile.academicYear.isNotBlank() &&
+                    profile.batch.isNotBlank()
+                ) {
+                    InfoRow(
+                        Icons.Outlined.CalendarToday,
+                        "YEAR (BATCH)",
+                        "${profile.academicYear} (${profile.batch})"
+                    )
+
+                    SectionDivider()
+                }
+
+                if (profile.hostel.isNotBlank()) {
+                    InfoRow(
+                        Icons.Outlined.House,
+                        "HOSTEL",
+                        profile.hostel
+                    )
+
+                    SectionDivider()
+                }
+
+                if (profile.hometown.isNotBlank()) {
+                    InfoRow(
+                        Icons.Outlined.LocationOn,
+                        "HOMETOWN",
+                        profile.hometown
+                    )
+
+                    SectionDivider()
+                }
+
+                if (
+                    profile.gender.isNotBlank() ||
+                    profile.dob.isNotBlank()
+                ) {
+                    GenderAgeRow(
+                        gender = profile.gender,
+                        dob = profile.dob
+                    )
+                }
+            }
+
+            //-------------------------------
+            // Social Presence
+            //-------------------------------
+
+            if (canShowSocials) {
+
+                val hasAnySocial =
+                    profile.github.isNotBlank() ||
+                            profile.linkedin.isNotBlank() ||
+                            profile.instagram.isNotBlank()
+
+                if (hasAnySocial) {
+
+                    ProfileSection(
+                        title = "Social Presence"
+                    ) {
+
+                        SocialPresenceCard(
+                            github = profile.github
+                                .takeIf { it.isNotBlank() },
+
+                            linkedin = profile.linkedin
+                                .takeIf { it.isNotBlank() },
+
+                            instagram = profile.instagram
+                                .takeIf { it.isNotBlank() },
+
+                            other = null,
+
+                            onGithubClick = {
+                                openSocialUrl(
+                                    profile.github,
+                                    "github"
+                                )
+                            },
+
+                            onLinkedInClick = {
+                                openSocialUrl(
+                                    profile.linkedin,
+                                    "linkedin"
+                                )
+                            },
+
+                            onInstagramClick = {
+                                openSocialUrl(
+                                    profile.instagram,
+                                    "instagram"
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            //-------------------------------
+            // Contact Details
+            //-------------------------------
+
+            val hasContact =
+                (
+                        canShowPhone &&
+                                profile.phone.isNotBlank()
+                        ) || profile.email.isNotBlank()
+
+            if (hasContact) {
+
+                ProfileSection(
+                    title = "Contact Details"
+                ) {
+
+                    if (
+                        canShowPhone &&
+                        profile.phone.isNotBlank()
+                    ) {
+                        InfoRow(
+                            Icons.Outlined.Phone,
+                            "PHONE",
+                            profile.phone
+                        )
+
+                        if (profile.email.isNotBlank()) {
+                            SectionDivider()
+                        }
+                    }
+
+                    if (profile.email.isNotBlank()) {
+                        InfoRow(
+                            Icons.Outlined.Email,
+                            "EMAIL",
+                            profile.email
+                        )
+                    }
+                }
+            }
+
+            //-------------------------------
+            // Account Info
+            //-------------------------------
+
+            if (profile.memberSince.isNotBlank()) {
+
+                ProfileSection(
+                    title = "Account Info"
+                ) {
+                    InfoRow(
+                        Icons.Outlined.AccessTime,
+                        "MEMBER SINCE",
+                        profile.memberSince
+                    )
+                }
             }
         }
     }
@@ -338,7 +507,7 @@ private fun InfoRow(
     onValueChange: (String) -> Unit = {}
 ) {
     Row(
-        modifier          = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier          = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconChip(icon)
@@ -355,36 +524,38 @@ private fun InfoRow(
                 ViewText(value)
             }
         }
+        if (!isEditMode) {
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = TextMuted,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 
 // --- Gender + Age row -----------------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GenderAgeRow(
     gender: String,
-    dob: String,
-    isEditMode: Boolean,
-    onGenderChange: (String) -> Unit,
-    onDobClick: () -> Unit
+    dob: String
 ) {
     Row(
-        modifier              = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier              = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment     = Alignment.CenterVertically
     ) {
         // Gender half
         SmallInfoItem(Icons.Outlined.Wc, "GENDER", modifier = Modifier.weight(1f)) {
-            if (isEditMode) DropdownInput(gender, GENDER_OPTIONS, "Select") { onGenderChange(it) }
-            else ViewText(gender)
+            ViewText(gender)
         }
 
         Box(Modifier.width(1.dp).height(34.dp).background(DividerColor))
 
-        // Age (view) / DOB (edit) half
-        SmallInfoItem(Icons.Outlined.Cake, if (isEditMode) "DATE OF BIRTH" else "AGE", modifier = Modifier.weight(1f)) {
-            if (isEditMode) DobInput(dob, onDobClick)
-            else ViewText(dobToAge(dob)?.toString() ?: "—")
+        // Age half
+        SmallInfoItem(Icons.Outlined.Cake, "AGE", modifier = Modifier.weight(1f)) {
+            ViewText(dobToAge(dob)?.toString() ?: "—")
         }
     }
 }
@@ -395,14 +566,13 @@ private fun ProfileSection(title: String, content: @Composable ColumnScope.() ->
     Column {
         Text(
             text          = title,
-            fontSize      = 11.sp,
+            fontSize      = 18.sp,
             fontWeight    = FontWeight.Bold,
-            color         = Orange,
-            letterSpacing = 0.9.sp,
-            modifier      = Modifier.padding(start = 2.dp, bottom = 10.dp)
+            color         = TextPrimary,
+            modifier      = Modifier.padding(start = 2.dp, bottom = 8.dp)
         )
         Card(
-            shape     = RoundedCornerShape(16.dp),
+            shape     = RoundedCornerShape(18.dp),
             colors    = CardDefaults.cardColors(containerColor = CardBg),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
@@ -433,7 +603,7 @@ private fun SmallInfoItem(
 @Composable
 private fun SocialLinkRow(iconColor: Color, iconText: String, label: String, value: String, onClick: () -> Unit) {
     Row(
-        modifier          = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier          = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.size(32.dp).clip(CircleShape).background(iconColor), Alignment.Center) {
@@ -624,3 +794,4 @@ private fun DobInput(dob: String, onPickRequest: () -> Unit) {
         }
     }
 }
+

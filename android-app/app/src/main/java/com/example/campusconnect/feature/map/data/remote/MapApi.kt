@@ -6,7 +6,7 @@ import com.example.campusconnect.feature.map.data.remote.response.EventMarkerRes
 import com.example.campusconnect.feature.map.data.remote.response.EventPreviewResponse
 import com.example.campusconnect.feature.map.data.remote.response.PoiResponse
 //import com.example.campusconnect.feature.map.data.remote.response.ShopResponse
-import com.example.campusconnect.feature.map.data.remote.response.UserMapRes
+import com.example.campusconnect.feature.map.data.remote.response.UserMapResponse
 import com.example.campusconnect.feature.map.data.remote.response.UserPreviewResponse
 import com.example.campusconnect.feature.map.data.remote.request.UpdatePresenceRequest
 import com.example.campusconnect.feature.map.data.remote.response.PresenceResponse
@@ -17,13 +17,15 @@ interface MapApi {
     // Domain List Endpoints -----------------------------------------------------
 
     @GET("map/presence")
-    suspend fun getVisibleUsers(): ApiResponse<List<UserMapRes>>
+    suspend fun getVisibleUsers(): ApiResponse<List<UserMapResponse>>
 
     @GET("map/poi")
     suspend fun getPois(): ApiResponse<List<PoiResponse>>
 
     @GET("map/events")
-    suspend fun getEventMarkers(): ApiResponse<List<EventMarkerResponse>>
+    suspend fun getEventMarkers(
+        @Query("categoryId") categoryId: Int? = null
+    ): ApiResponse<List<EventMarkerResponse>>
 
    // @GET("shops") //todo
    // suspend fun getShops(): ApiResponse<List<ShopResponse>>

@@ -23,5 +23,22 @@ public class RegistrationFieldResponse {
 
     private Integer fieldOrder;
 
-    private List<RegistrationFieldOptionResponse> options;
+    private Boolean individual;
+
+    private List<Option> options;
+
+    //    ---------------------------
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Option {
+
+        private Integer id;
+
+        private String optionValue;
+
+        private Integer optionOrder;
+    }
 }

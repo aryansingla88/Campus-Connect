@@ -16,6 +16,9 @@ object ProfileRoutes {
     const val VIEW_PROFILE = "profile/{userId}"
 
     fun viewProfile(userId: Int) = "profile/$userId"
+
+    fun myProfile(edit: Boolean = false): String =
+        if (edit) "profile/me?edit=true" else MY_PROFILE
 }
 
 // - Nav graph -----------------------------------------------------------------
@@ -28,12 +31,26 @@ fun NavGraphBuilder.ProfileNav(
     ) {
 
         // -- My Profile -----------------------------------------------------------------
-        composable(ProfileRoutes.MY_PROFILE) {
+        composable(
+            route = "profile/me?edit={edit}",
+            arguments = listOf(
+                navArgument("edit") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+
+            val editMode =
+                backStackEntry.arguments?.getBoolean("edit") ?: false
+
             MyProfileScreen(
-                onBack        = { navController.popBackStack() },
-                onSettings    = { navController.navigate("settings") },
-                onEditProfile = { navController.navigate("edit_profile") },
-                onNavigateToProfile = { userId -> navController.navigate(ProfileRoutes.viewProfile(userId)) }
+                initialEditMode = editMode,
+                onBack = { navController.popBackStack() },
+                onSettings = { navController.navigate("settings") },
+                onNavigateToProfile = { userId ->
+                    navController.navigate(ProfileRoutes.viewProfile(userId))
+                }
             )
         }
 

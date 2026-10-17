@@ -1,32 +1,45 @@
 package com.example.campusconnect.core.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.campusconnect.core.session.SessionManager
 import com.example.campusconnect.feature.auth.authNav
 import com.example.campusconnect.feature.events.eventNav
-import com.example.campusconnect.feature.events.registrations.RegisterationNav
-import com.example.campusconnect.feature.events.registrations.navigateToFormBuilder
+import com.example.campusconnect.feature.registrations.RegistrationNav
+import com.example.campusconnect.feature.registrations.navigateToFormBuilder
 import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.posts.navigation.POSTS_FEED_ROUTE
 import com.example.campusconnect.feature.posts.navigation.postNav
 import com.example.campusconnect.feature.profile.ProfileNav
 import com.example.campusconnect.feature.profile.ProfileRoutes
+import com.example.campusconnect.feature.registrations.navigateToRegistrationSetup
+import com.example.campusconnect.feature.settings.SettingsNav
 import com.example.campusconnect.feature.splash.navigation.SPLASH_ROUTE
 import com.example.campusconnect.feature.splash.navigation.splashNav
 import com.example.campusconnect.feature.test.TestScreen
+import com.example.campusconnect.feature.map.ui.components.controls.CloudTransitionOverlay
+import com.example.campusconnect.feature.map.ui.components.controls.LocalCloudTransitionState
+import com.example.campusconnect.feature.map.ui.components.controls.rememberCloudTransitionState
 
 @Composable
 fun AppNavHost() {
 
     val navController = rememberNavController()
+    val cloudTransitionState = rememberCloudTransitionState()
 
-    NavHost(
-        navController = navController,
-        startDestination = "test"
-    ) {
+    CompositionLocalProvider(LocalCloudTransitionState provides cloudTransitionState) {
+        Box(Modifier.fillMaxSize()) {
+            NavHost(
+                modifier = Modifier.fillMaxSize(),
+                navController = navController,
+                startDestination = "test"
+            ) {
 
         // ---------------------------------------------------------
         // TESTING SCREEN 1
@@ -56,8 +69,13 @@ fun AppNavHost() {
                 },
 
                 onFormBuilder = {
-                    navController.navigateToFormBuilder(1)
-                }
+                    navController.navigateToRegistrationSetup(1)
+                },
+
+                onSettings = {
+                    navController.navigate("settings_graph")
+                },
+
             )
         }
 
@@ -85,7 +103,11 @@ fun AppNavHost() {
                 },
 
                 onFormBuilder = {
-                    navController.navigateToFormBuilder(1)
+                    navController.navigateToRegistrationSetup(1)
+                },
+
+                onSettings = {
+                    navController.navigate("settings_graph")
                 },
 
                 onLogout = {
@@ -97,6 +119,10 @@ fun AppNavHost() {
                             inclusive = true
                         }
                     }
+                },
+
+                onContinue = {
+                    navController.navigate("map")
                 }
             )
         }
@@ -117,6 +143,11 @@ fun AppNavHost() {
 
         ProfileNav(navController)
 
-        RegisterationNav(navController)
+        RegistrationNav(navController)
+
+        SettingsNav(navController)
+            }
+            CloudTransitionOverlay(cloudTransitionState)
+        }
     }
 }

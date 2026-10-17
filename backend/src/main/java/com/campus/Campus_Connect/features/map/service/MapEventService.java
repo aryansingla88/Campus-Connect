@@ -1,14 +1,18 @@
 package com.campus.Campus_Connect.features.map.service;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
-import com.campus.Campus_Connect.common.security.SecurityUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.entity.Event;
+import com.campus.Campus_Connect.features.event.entity.EventCategory;
 import com.campus.Campus_Connect.features.event.entity.EventMember;
 import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.event.repository.EventMemberRepository;
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
+import com.campus.Campus_Connect.features.club.repository.ClubRepository;
+import com.campus.Campus_Connect.features.registration.repository.EventRegistrationRepository;
 import com.campus.Campus_Connect.features.map.dto.response.EventMarkerResponse;
 import com.campus.Campus_Connect.features.map.dto.response.EventPreviewResponse;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
@@ -29,6 +33,8 @@ public class MapEventService {
     private final EventRepository eventRepository;
     private final EventMemberRepository eventMemberRepository;
     private final UserProfileRepository userProfileRepository;
+    private final ClubRepository clubRepository;
+    private final EventRegistrationRepository eventRegistrationRepository;
 
     // ---------------------------------------------------------
     // Get Event Preview for Map Card (Poster & Detail View)
@@ -74,11 +80,19 @@ public class MapEventService {
         // ---------------------------------------------------------
         // Dynamic isJoined Check from DB
         // ---------------------------------------------------------
-        User currentUser = SecurityUtils.getCurrentUser();
-        boolean isJoined = false;
+        // Event previews are also used by unauthenticated map visitors.
+        // A missing session must not turn the preview endpoint into HTTP 500.
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
 
-        if (currentUser != null) {
-            isJoined = eventMemberRepository.existsByEventIdAndUserId(eventId, currentUser.getId());
+        boolean isJoined = false;
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof User currentUser) {
+            isJoined = eventMemberRepository.existsByEventIdAndUserId(
+                    eventId,
+                    currentUser.getId()
+            );
         }
 
         boolean isReminderEnabled = false;
@@ -89,6 +103,21 @@ public class MapEventService {
                 .title(event.getTitle())
                 .description(event.getDescription())
                 .posterUrl(null)
+                .hostName(event.getHostName())
+                .creatorName(getCreatorName(event))
+                .clubName(getClubName(event.getClubId()))
+                .registrationCount(Math.toIntExact(eventRegistrationRepository.countByEventId(eventId)))
+                .eventType(event.getCategories().stream()
+                        .min(java.util.Comparator.comparing(EventCategory::getId))
+                        .map(EventCategory::getName)
+                        .orElse(null))
+                .categories(event.getCategories().stream()
+                        .sorted(java.util.Comparator.comparing(EventCategory::getId))
+                        .map(category -> EventPreviewResponse.CategoryPreview.builder()
+                                .id(category.getId())
+                                .name(category.getName())
+                                .build())
+                        .toList())
                 .startTime(event.getStartTime())
                 .endTime(event.getEndTime())
                 .venue(event.getVenue())
@@ -110,9 +139,11 @@ public class MapEventService {
         );
     }
 
-    public ApiResponse<List<EventMarkerResponse>> getEventMarkers() {
+    public ApiResponse<List<EventMarkerResponse>> getEventMarkers(Integer categoryId) {
 
-        List<Event> events = eventRepository.findAll();
+        List<Event> events = categoryId == null
+                ? eventRepository.findAll()
+                : eventRepository.findEventsByCategoryId(categoryId);
 
         List<EventMarkerResponse> markers = events.stream()
                 .filter(event ->
@@ -133,5 +164,17 @@ public class MapEventService {
                 markers,
                 "Event markers fetched successfully."
         );
+    }
+
+    private String getCreatorName(Event event) {
+        if (event.getCreator() == null) return null;
+        return userProfileRepository.findById(event.getCreator().getId())
+                .map(UserProfile::getFullName)
+                .orElse(event.getCreator().getUsername());
+    }
+
+    private String getClubName(Integer clubId) {
+        if (clubId == null) return null;
+        return clubRepository.findById(clubId).map(club -> club.getName()).orElse(null);
     }
 }

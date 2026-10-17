@@ -272,7 +272,7 @@ private fun TeamCard(
                 val leader = team.members.firstOrNull { it.isLeader }
                 if (leader != null) {
                     Text(
-                        text = "Lead by ${leader.name}",
+                        text = "Led by ${leader.name}",
                         fontSize = 10.sp,
                         color = TextMuted,
                         maxLines = 1,

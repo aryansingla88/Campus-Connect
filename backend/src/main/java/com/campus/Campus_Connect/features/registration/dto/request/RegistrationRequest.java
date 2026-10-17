@@ -11,5 +11,22 @@ import java.util.List;
 @Builder
 public class RegistrationRequest {
 
-    private List<RegistrationAnswerRequest> answers;
+    private Integer teamId;
+
+    private String teamName;
+
+    private List<Answer> answers;
+
+    //    ---------------------------
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Answer {
+
+        private Integer fieldId;
+
+        private String answer;
+    }
 }

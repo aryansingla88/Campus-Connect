@@ -23,6 +23,18 @@ public class EventPreviewResponse {
 
     private String posterUrl;
 
+    private String hostName;
+
+    private String creatorName;
+
+    private String clubName;
+
+    private Integer registrationCount;
+
+    private String eventType;
+
+    private List<CategoryPreview> categories;
+
     private Instant startTime;
 
     private Instant endTime;
@@ -40,6 +52,16 @@ public class EventPreviewResponse {
     private Integer priority;
 
     private List<HostPreview> hosts;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CategoryPreview {
+        private Integer id;
+        private String name;
+    }
 
 
     @Getter

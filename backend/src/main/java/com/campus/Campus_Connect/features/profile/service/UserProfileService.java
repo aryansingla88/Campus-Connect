@@ -5,6 +5,8 @@ import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberStatus;
+import com.campus.Campus_Connect.features.connection.ConnectionService;
+import com.campus.Campus_Connect.features.connection.dto.ConnectionRelationshipStatus;
 import com.campus.Campus_Connect.features.connection.entity.ConnectionStatus;
 import com.campus.Campus_Connect.features.connection.repository.ConnectionRepository;
 import com.campus.Campus_Connect.features.honor.repository.UserHonorRepository;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import com.campus.Campus_Connect.common.storage.MediaStorageService;
 import com.campus.Campus_Connect.common.storage.MediaType;
 import org.springframework.web.multipart.MultipartFile;
+
 
 
 import com.campus.Campus_Connect.features.club.repository.ClubMemberRepository;
@@ -43,17 +46,20 @@ public class UserProfileService {
     private final ConnectionRepository connectionRepository;
 
     private final MediaStorageService mediaStorageService;
-
+    private final ConnectionService connectionService;
 
     public ApiResponse<UserProfileResponse> getMyProfile() {
 
         User currentUser = SecurityUtils.getCurrentUser();
 
-        UserProfile profile = getUserProfileEntity(currentUser.getId());
+        UserProfile profile = userProfileRepository
+                .findByUserIdWithUser(currentUser.getId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Profile not found."));
 
         UserPreference preference = getUserPreference(currentUser.getId());
 
-        UserProfileResponse response = buildUserProfileResponse(profile, preference);
+        UserProfileResponse response = buildUserProfileResponse(profile, preference, null);
 
         return ApiResponse.success(
                 response,
@@ -67,14 +73,23 @@ public class UserProfileService {
 
         UserProfile profile = getUserProfileEntity(userId);
 
-        UserPreference preference = getUserPreference(userId);
+        UserPreference preference = getUserPreference(profile.getUserId());
 
-        UserProfileResponse response = buildUserProfileResponse(profile, preference);
+        User currentUser = SecurityUtils.getCurrentUser();
+
+        ConnectionRelationshipStatus relationshipStatus =
+                connectionService.getRelationshipStatus(
+                        currentUser.getId(),
+                        userId
+                );
 
         return ApiResponse.success(
-                response,
+                buildUserProfileResponse(
+                        profile,
+                        preference,
+                        relationshipStatus
+                ),
                 "Profile fetched successfully."
-
         );
     }
 
@@ -108,10 +123,7 @@ public class UserProfileService {
                 getUserPreference(currentUser.getId());
 
         UserProfileResponse response =
-                buildUserProfileResponse(
-                        profile,
-                        preference
-                );
+                buildUserProfileResponse(profile, preference, null);
 
         return ApiResponse.success(
                 response,
@@ -133,8 +145,6 @@ public class UserProfileService {
     }
 
     public ApiResponse<ProfileStatsResponse> getProfileStats(Integer userId) {
-
-        getUserProfileEntity(userId);
 
         ProfileStatsResponse response =
                 buildProfileStats(userId);
@@ -185,7 +195,8 @@ public class UserProfileService {
 
     private UserProfileResponse buildUserProfileResponse(
             UserProfile profile,
-            UserPreference preference
+            UserPreference preference,
+            ConnectionRelationshipStatus relationshipStatus
     ) {
 
         User user = profile.getUser();
@@ -211,6 +222,7 @@ public class UserProfileService {
                 .linkedin(profile.getLinkedin())
                 .instagram(profile.getInstagram())
                 .memberSince(formatMemberSince(profile.getCreatedAt()))
+                .relationshipStatus(relationshipStatus)
 
                 // Preferences
                 .showPhone(preference.getShowPhone())
