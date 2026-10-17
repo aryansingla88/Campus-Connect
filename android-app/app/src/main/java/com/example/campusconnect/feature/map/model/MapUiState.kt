@@ -14,8 +14,12 @@ data class MapUiState(
     val selectedPoiInfo: MapPoiInfo? = null,
     val selectedEventInfo: MapEventInfo? = null,
 
-    val activeFilter: MarkerType? = null,
+    val activeUserFilterId: String? = null,
+    val isPoiFilterActive: Boolean = false,
     val activePoiCategory: String? = null,
+    /** Legacy construction compatibility; new map state uses independent filters above. */
+    @Deprecated("Use activeUserFilterId and isPoiFilterActive")
+    val activeFilter: MarkerType? = null,
     val activeEventCategoryId: Int? = null,
     val filterContext: MapFilterContext = MapFilterContext.HOME_MARKERS,
     val eventCategories: List<EventFilter> = emptyList(),

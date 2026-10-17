@@ -89,7 +89,8 @@ class MapViewModel(
             selectedUserProfile = null,
             selectedPoiInfo = null,
             selectedEventInfo = null,
-            activeFilter = null,
+            activeUserFilterId = null,
+            isPoiFilterActive = false,
             activePoiCategory = null,
             activeEventCategoryId = null,
             filterContext = filterContext,
@@ -138,7 +139,9 @@ class MapViewModel(
             markers = modeMarkers,
             mode = mode,
             selectedMarkerId = null,
-            activeFilter = null,
+            activeUserFilterId = null,
+            isPoiFilterActive = false,
+            activePoiCategory = null,
             selectedMarkerOverride = null,
             selectedUserProfileOverride = null,
             selectedPoiInfoOverride = null,
@@ -179,7 +182,6 @@ class MapViewModel(
         updateState(
             markers = _uiState.value.markers,
             selectedMarkerId = markerId,
-            activeFilter = _uiState.value.activeFilter,
             selectedMarkerOverride = selectedMarker,
             selectedUserProfileOverride = null,
             selectedPoiInfoOverride = null,
@@ -258,7 +260,6 @@ class MapViewModel(
         updateState(
             markers = _uiState.value.markers,
             selectedMarkerId = null,
-            activeFilter = _uiState.value.activeFilter,
             selectedMarkerOverride = null,
             selectedUserProfileOverride = null,
             selectedPoiInfoOverride = null,
@@ -268,19 +269,16 @@ class MapViewModel(
         )
     }
 
-    fun setFilter(type: MarkerType?) {
+    fun setUserFilter(filterId: String?) {
         val state = _uiState.value
         if (state.mode != MapMode.HOME) return
-        if (type != null && type !in markerTypesForMode(MapMode.HOME)) return
 
         detailLoadJob?.cancel()
         updateState(
             markers = state.markers,
             mode = state.mode,
             selectedMarkerId = null,
-            activeFilter = type,
-            activePoiCategory = null,
-            activeEventCategoryId = null,
+            activeUserFilterId = filterId,
             selectedMarkerOverride = null,
             selectedUserProfileOverride = null,
             selectedPoiInfoOverride = null,
@@ -296,9 +294,26 @@ class MapViewModel(
         detailLoadJob?.cancel()
         updateState(
             markers = state.markers,
-            activeFilter = MarkerType.POI,
+            isPoiFilterActive = true,
             activePoiCategory = category,
-            activeEventCategoryId = null,
+            selectedMarkerId = null,
+            selectedMarkerOverride = null,
+            selectedUserProfileOverride = null,
+            selectedPoiInfoOverride = null,
+            selectedEventInfoOverride = null,
+            isDetailLoading = false,
+            detailErrorMessage = null
+        )
+    }
+
+    fun clearPoiFilter() {
+        val state = _uiState.value
+        if (state.mode != MapMode.HOME) return
+        detailLoadJob?.cancel()
+        updateState(
+            markers = state.markers,
+            isPoiFilterActive = false,
+            activePoiCategory = null,
             selectedMarkerId = null,
             selectedMarkerOverride = null,
             selectedUserProfileOverride = null,
@@ -316,7 +331,9 @@ class MapViewModel(
         detailLoadJob?.cancel()
         _uiState.value = _uiState.value.copy(
             activeEventCategoryId = categoryId,
-            activeFilter = null,
+            activeUserFilterId = null,
+            isPoiFilterActive = false,
+            activePoiCategory = null,
             markers = emptyList(),
             renderMarkers = emptyList(),
             selectedMarkerId = null,
@@ -333,7 +350,9 @@ class MapViewModel(
                         updateState(
                             markers = markers.map(::positionMarker),
                             activeEventCategoryId = categoryId,
-                            activeFilter = null,
+                            activeUserFilterId = null,
+                            isPoiFilterActive = false,
+                            activePoiCategory = null,
                             selectedMarkerId = null,
                             selectedMarkerOverride = null,
                             selectedUserProfileOverride = null,
@@ -402,7 +421,8 @@ class MapViewModel(
         markers: List<MapMarker> = _uiState.value.markers,
         mode: MapMode = _uiState.value.mode,
         selectedMarkerId: String? = _uiState.value.selectedMarkerId,
-        activeFilter: MarkerType? = _uiState.value.activeFilter,
+        activeUserFilterId: String? = _uiState.value.activeUserFilterId,
+        isPoiFilterActive: Boolean = _uiState.value.isPoiFilterActive,
         activePoiCategory: String? = _uiState.value.activePoiCategory,
         activeEventCategoryId: Int? = _uiState.value.activeEventCategoryId,
 
@@ -418,18 +438,20 @@ class MapViewModel(
         detailErrorMessage: String? = _uiState.value.detailErrorMessage
     ) {
         val modeMarkerTypes = markerTypesForMode(mode)
-        val validFilter = activeFilter?.takeIf {
-            mode == MapMode.HOME && it in modeMarkerTypes
-        }
         val modeMarkers = markers.filter { it.type in modeMarkerTypes }
-        val typeFilteredMarkers = if (validFilter == null) modeMarkers else {
-            modeMarkers.filter { it.type == validFilter }
-        }
-        val visibleMarkers = when {
-            mode == MapMode.HOME && activePoiCategory != null ->
-                typeFilteredMarkers.filterIsInstance<PoiMarkerData>()
-                    .filter { it.category.equals(activePoiCategory, ignoreCase = true) }
-            else -> typeFilteredMarkers
+        val visibleMarkers = if (mode == MapMode.HOME) {
+            modeMarkers.filter { marker ->
+                when (marker) {
+                    // The current Users option means all user markers; future
+                    // user-specific predicates stay scoped to this marker type.
+                    is UserMarkerData -> true
+                    is PoiMarkerData -> !isPoiFilterActive || activePoiCategory == null ||
+                            marker.category.equals(activePoiCategory, ignoreCase = true)
+                    else -> true
+                }
+            }
+        } else {
+            modeMarkers
         }
 
         val renderMarkers = visibleMarkers.map { marker ->
@@ -450,7 +472,8 @@ class MapViewModel(
             selectedUserProfile = selectedUserProfileOverride,
             selectedPoiInfo = selectedPoiInfoOverride,
             selectedEventInfo = selectedEventInfoOverride,
-            activeFilter = validFilter,
+            activeUserFilterId = activeUserFilterId.takeIf { mode == MapMode.HOME },
+            isPoiFilterActive = isPoiFilterActive && mode == MapMode.HOME,
             activePoiCategory = activePoiCategory.takeIf { mode == MapMode.HOME },
             activeEventCategoryId = activeEventCategoryId.takeIf { mode == MapMode.EVENT },
             filterContext = filterContextForMode(mode),

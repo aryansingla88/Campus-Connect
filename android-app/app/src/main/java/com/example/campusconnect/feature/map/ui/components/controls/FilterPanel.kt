@@ -58,7 +58,7 @@ internal fun FilterPanel(
     userOptions: List<MapFilterOption>,
     poiCategories: List<MapFilterOption>,
     eventCategories: List<MapFilterOption>,
-    selectedFilterKey: String?,
+    selectedFilterKeys: Set<String>,
     expandedSection: String?,
     onExpandedSectionChange: (String?, Int) -> Unit,
     onOptionSelected: (String, MapFilterOption) -> Unit,
@@ -75,7 +75,12 @@ internal fun FilterPanel(
     }
 
     BoxWithConstraints(modifier = modifier) {
-        val drawerWidth = minOf(maxWidth * 0.42f, 180.dp)
+        // Keep the pre-refactor reading width on regular phones, then scale up
+        // on wider layouts without letting the drawer dominate the map.
+        val drawerWidth = minOf(
+            maxWidth,
+            maxOf(210.dp, minOf(maxWidth * 0.62f, 250.dp))
+        )
         val drawerMaxHeight = minOf(maxHeight * 0.84f, 720.dp)
 
         Box {
@@ -140,7 +145,7 @@ internal fun FilterPanel(
                                 verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 items(group.options, key = { "${group.title}-${it.id}" }) { option ->
-                                    val selected = selectedFilterKey == "${group.title}:${option.id}"
+                                    val selected = "${group.title}:${option.id}" in selectedFilterKeys
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()

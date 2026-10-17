@@ -1,6 +1,8 @@
 package com.example.campusconnect.feature.map.ui.components.controls
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -99,24 +101,48 @@ internal fun RoundIconButton(
 internal fun RightSideTabs(
     showFilters: Boolean,
     filtersAvailable: Boolean,
+    expandedFilterRows: Int,
     selectedSidePanel: SidePanel,
     onFiltersClick: () -> Unit,
     onBoardClick: () -> Unit,
     onPostsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val boardPostsOffset by animateDpAsState(
+        targetValue = if (showFilters) {
+            (24 + expandedFilterRows.coerceIn(0, 3) * 52).dp
+        } else {
+            0.dp
+        },
+        animationSpec = tween(durationMillis = 240),
+        label = "filter_tabs_alignment"
+    )
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (filtersAvailable) {
-            SideTab(
-                text = "FILTERS",
-                icon = Icons.Default.FilterList,
-                selected = showFilters,
-                onClick = onFiltersClick
-            )
+            // Keep the rail's original slot while the drawer is open, but hide
+            // the Filters tab because the drawer itself is now attached to the
+            // screen edge in that space.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(108.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                if (!showFilters) {
+                    SideTab(
+                        text = "FILTERS",
+                        icon = Icons.Default.FilterList,
+                        selected = false,
+                        onClick = onFiltersClick
+                    )
+                }
+            }
+            if (showFilters) Spacer(Modifier.height(boardPostsOffset))
         }
 
         SideTab(

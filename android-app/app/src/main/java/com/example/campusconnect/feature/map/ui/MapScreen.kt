@@ -32,7 +32,7 @@ import com.example.campusconnect.feature.map.model.MapFilterContext
 import com.example.campusconnect.feature.map.model.ALL_POIS_FILTER_ID
 import com.example.campusconnect.feature.map.model.MapFilterAction
 import com.example.campusconnect.feature.map.model.resolveMapFilterTap
-import com.example.campusconnect.feature.map.model.selectedMapFilterKey
+import com.example.campusconnect.feature.map.model.selectedMapFilterKeys
 import androidx.compose.foundation.shape.CircleShape
 import com.example.campusconnect.feature.map.ui.components.events.EventMarkerDialog
 import com.example.campusconnect.feature.map.ui.components.markers.PoiMarkerDialog
@@ -74,6 +74,7 @@ fun MapScreen(
     var showFilters by remember { mutableStateOf(false) }
     var selectedSidePanel by remember { mutableStateOf(SidePanel.NONE) }
     var expandedFilterSection by remember { mutableStateOf<String?>(null) }
+    var expandedFilterRows by remember { mutableIntStateOf(0) }
 
     var lastSelectedMarker by remember { mutableStateOf(uiState.selectedMarker) }
     var lastSelectedProfile by remember { mutableStateOf(uiState.selectedUserProfile) }
@@ -82,6 +83,7 @@ fun MapScreen(
     LaunchedEffect(uiState.mode) {
         showFilters = false
         expandedFilterSection = null
+        expandedFilterRows = 0
         selectedSidePanel = SidePanel.NONE
     }
 
@@ -146,6 +148,9 @@ fun MapScreen(
                     },
                     onMapTap = { _, _ ->
                         selectedSidePanel = SidePanel.NONE
+                        if (uiState.selectedMarker?.type == MarkerType.POI) {
+                            viewModel.clearSelection()
+                        }
                     },
                     labelVisibilityResolver = { visibleMarkers, bounds, scale, offset ->
                         PoiLabelResolver.resolvePoiLabelVisibility(
@@ -170,7 +175,6 @@ fun MapScreen(
                 onSettingsClick = onSettingsClick
             )
 
-            // AFTER (Positioned near the top-right, just below the top search bar)
             if (uiState.mode != MapMode.POSTER) {
 
                 RightSideTabs(
@@ -181,7 +185,9 @@ fun MapScreen(
                     onFiltersClick = {
                         showFilters = !showFilters
                         expandedFilterSection = null
+                        expandedFilterRows = 0
                     },
+                    expandedFilterRows = expandedFilterRows,
 
                     onBoardClick = {
                         selectedSidePanel =
@@ -269,11 +275,11 @@ fun MapScreen(
                         ),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 94.dp, end = 72.dp)
+                    .padding(top = 90.dp)
             ) {
                 val allPoiOption = MapFilterOption(ALL_POIS_FILTER_ID, "All POIs")
                 val filterOptions = listOf(allPoiOption) + uiState.poiCategories
-                val selectedFilterKey = selectedMapFilterKey(uiState)
+                val selectedFilterKeys = selectedMapFilterKeys(uiState)
                 FilterPanel(
                     filterContext = uiState.filterContext,
                     userOptions = listOf(MapFilterOption("users", "Users")),
@@ -281,13 +287,22 @@ fun MapScreen(
                     eventCategories = uiState.eventCategories.map {
                         MapFilterOption(it.id.toString(), it.name)
                     },
-                    selectedFilterKey = selectedFilterKey,
+                    selectedFilterKeys = selectedFilterKeys,
                     expandedSection = expandedFilterSection,
-                    onExpandedSectionChange = { section, _ -> expandedFilterSection = section },
+                    onExpandedSectionChange = { section, visibleRows ->
+                        expandedFilterSection = section
+                        expandedFilterRows = visibleRows
+                    },
                     onOptionSelected = { section, option ->
                         when (val action = resolveMapFilterTap(uiState, section, option.id)) {
-                            MapFilterAction.ClearHomeFilters -> viewModel.setFilter(null)
-                            MapFilterAction.SelectUsers -> viewModel.setFilter(MarkerType.USER)
+                            MapFilterAction.ClearHomeFilters -> when (section) {
+                                "Users" -> viewModel.setUserFilter(null)
+                                "Places" -> viewModel.clearPoiFilter()
+                                else -> Unit
+                            }
+                            MapFilterAction.ClearUserFilter -> viewModel.setUserFilter(null)
+                            is MapFilterAction.SelectUserFilter -> viewModel.setUserFilter(action.filterId)
+                            MapFilterAction.ClearPoiFilter -> viewModel.clearPoiFilter()
                             MapFilterAction.SelectAllPois -> viewModel.setPoiCategory(null)
                             is MapFilterAction.SelectPoiCategory -> viewModel.setPoiCategory(action.category)
                             MapFilterAction.ShowAllEvents -> viewModel.setEventCategory(null)
@@ -295,12 +310,11 @@ fun MapScreen(
                                 viewModel.setEventCategory(action.categoryId)
                             MapFilterAction.Ignore -> Unit
                         }
-                        showFilters = false
-                        expandedFilterSection = null
                     },
                     onClose = {
                         showFilters = false
                         expandedFilterSection = null
+                        expandedFilterRows = 0
                     }
                 )
             }
