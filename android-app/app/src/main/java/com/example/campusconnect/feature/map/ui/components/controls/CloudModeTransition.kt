@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.example.campusconnect.R
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -34,21 +36,35 @@ import kotlin.random.Random
 /** Shared transition controller so any screen can run work while the app is cloud-covered. */
 class CloudTransitionState {
     val progress = Animatable(0f)
+    private val transitionMutex = Mutex()
+    private var pendingTransitions = 0
 
     var isRunning by mutableStateOf(false)
         private set
 
-    suspend fun run(action: suspend () -> Unit) {
-        if (isRunning) return
+    suspend fun runEntry(action: suspend () -> Unit) {
+        pendingTransitions += 1
         isRunning = true
+
         try {
-            progress.snapTo(0f)
-            progress.animateTo(1f, tween(1400, easing = FastOutSlowInEasing))
-            action()
-            delay(200)
-            progress.animateTo(0f, tween(1400, easing = FastOutSlowInEasing))
+            transitionMutex.withLock {
+                // Cover the screen immediately instead of animating in
+                // from an uncovered state.
+                progress.snapTo(1f)
+
+                action()
+
+                delay(200)
+
+                // Reveal the map only after it is ready.
+                progress.animateTo(
+                    0f,
+                    tween(1400, easing = FastOutSlowInEasing)
+                )
+            }
         } finally {
-            isRunning = false
+            pendingTransitions -= 1
+            isRunning = pendingTransitions > 0
         }
     }
 }

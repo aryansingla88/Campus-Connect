@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CompletableDeferred
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -54,11 +55,28 @@ fun MapScreen(
     onEventPostsClick: () -> Unit = {},
     onEventFeatureClick: () -> Unit = {},
     onPosterClick: () -> Unit = {},
+    isFeatureActive: Boolean = true,
     viewModel: MapViewModel = viewModel()
 ) {
     val cloudTransition = LocalCloudTransitionState.current
     val coroutineScope = rememberCoroutineScope()
+    val mapLoadComplete = remember(cloudTransition) { CompletableDeferred<Unit>() }
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(isFeatureActive, cloudTransition, mapLoadComplete) {
+        if (isFeatureActive) {
+            cloudTransition.runEntry {
+                mapLoadComplete.await()
+            }
+        }
+    }
+
+    LaunchedEffect(uiState.mode, mapLoadComplete) {
+        if (uiState.mode == MapMode.POSTER) {
+            // Poster mode does not compose MapView, so there is no map bitmap to await.
+            mapLoadComplete.complete(Unit)
+        }
+    }
 
     val showCenteredMarkerDialog =
         uiState.selectedMarker?.type == MarkerType.USER ||
@@ -128,6 +146,7 @@ fun MapScreen(
                     modifier = Modifier.fillMaxSize(),
                     viewportState = viewportState,
                     markers = uiState.renderMarkers,
+                    onMapLoadComplete = { mapLoadComplete.complete(Unit) },
                     markerPriority = { marker ->
                         when (marker) {
                             is PoiMarkerData -> marker.priority
