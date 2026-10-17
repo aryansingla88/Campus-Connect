@@ -267,39 +267,13 @@ private fun EventQuickPreviewContent(
      */
     val sheetHeightFraction = 0.80f
 
-    // Fallback values so the Registrations / Event Type stat cards always
-    // render even when the caller hasn't wired up real data — mirrors the
-    // same fallback pattern already used by formatEventDate/
-    // formatEventTimeRange further down (placeholder defaults when input
-    // is blank).
-    val displayRegistrationsCount =
-        registrationsCount ?: 320
-
-    val displayEventType =
-        eventType
-            ?.takeIf { it.isNotBlank() }
-            ?: "Technical"
-
-    // Fallback so the Hosts section always has something to render even
-    // when the caller hasn't wired up real host data yet — same pattern as
-    // the stats fallbacks above. 10 names to verify horizontal scrolling.
-    val displayHosts =
-        event.hosts
-            .map { it.name }
-            .ifEmpty {
-                listOf(
-                    "Alex",
-                    "Maria",
-                    "Chen",
-                    "Fatima",
-                    "Ravi",
-                    "Sofia",
-                    "Liam",
-                    "Aisha",
-                    "Diego",
-                    "Priya"
-                )
-            }
+    val displayRegistrationsCount = registrationsCount ?: event.registrationCount
+    val displayEventType = eventType ?: event.eventType
+    val displayHosts = event.hosts.map { it.name }
+    val hostLabel = event.creatorName?.takeIf { it.isNotBlank() }
+        ?: event.clubName?.takeIf { it.isNotBlank() }
+        ?: event.hostName.takeIf { it.isNotBlank() }
+        ?: event.hosts.firstOrNull()?.name
 
     Box(
         modifier = Modifier
@@ -366,10 +340,7 @@ private fun EventQuickPreviewContent(
                     )
 
                     Text(
-                        text = "By ${
-                            event.hosts.firstOrNull()?.name
-                                ?: "CS Club"
-                        }",
+                        text = hostLabel?.let { "By $it" } ?: "Host information unavailable",
                         color = TextMuted,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
@@ -396,11 +367,7 @@ private fun EventQuickPreviewContent(
 
                     MetaRow(
                         icon = Icons.Default.LocationOn,
-                        text = event.venue
-                            ?.ifBlank {
-                                "Main Auditorium"
-                            }
-                            ?: "Main Auditorium"
+                        text = event.venue?.takeIf { it.isNotBlank() } ?: "Venue unavailable"
                     )
                 }
             }
@@ -450,10 +417,8 @@ private fun EventQuickPreviewContent(
                 // ----------------------------------------------------
 
                 StatsRow(
-                    registrationsCount =
-                        displayRegistrationsCount,
-                    eventType =
-                        displayEventType
+                    registrationsCount = displayRegistrationsCount,
+                    eventType = displayEventType
                 )
 
 
@@ -482,10 +447,8 @@ private fun EventQuickPreviewContent(
                 // it, long text scrolls within this same fixed area.
                 Text(
                     text = description
-                        ?.takeIf {
-                            it.isNotBlank()
-                        }
-                        ?: "An open mic or open mike (shortened from \"open microphone\") is a live show at a venue such as a coffeehouse, nightclub, comedy club, strip club, or pub, often taking place at night (an open mic night), in which audience members may perform on stage whether they are amateurs or professionals, often for the first time or to promote an upcoming performance.[1] As the name suggests, performers are usually provided with a microphone plugged into a PA system so that they can be better heard by the audience",
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "Event description unavailable",
                     color = TextMuted,
                     fontSize = 14.sp,
                     lineHeight = 21.sp,
@@ -504,11 +467,12 @@ private fun EventQuickPreviewContent(
                     modifier = Modifier.height(22.dp)
                 )
 
-                HostsSection(
-                    hosts = displayHosts,
-                    onViewAllClick =
-                        onViewAllHostsClick
-                )
+                if (displayHosts.isNotEmpty()) {
+                    HostsSection(
+                        hosts = displayHosts,
+                        onViewAllClick = onViewAllHostsClick
+                    )
+                }
 
                 Spacer(
                     modifier = Modifier.height(28.dp)

@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
 import com.example.campusconnect.feature.map.data.repo.MapRepo
+import com.example.campusconnect.feature.map.data.PoiRepositoryProvider
 import com.example.campusconnect.feature.map.mapengine.MapCalibration
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.*
@@ -30,12 +31,15 @@ class MapViewModel(
 
     private val repository: MapRepo =
         ApiMapRepo(
-            courseRepository = courseRepository
+            courseRepository = courseRepository,
+            poiRepository = PoiRepositoryProvider.get(application.applicationContext)
         )
     private val coordinateConverter = MapCalibration.converter
     private var markerLoadJob: Job? = null
     private var markerLoadRequestId = 0L
     private var detailLoadJob: Job? = null
+    private var categoryLoadJob: Job? = null
+    private var categoryLoadRequestId = 0L
     private val markerCache = mutableMapOf<MarkerType, List<MapMarker>>()
     private val loadedMarkerTypes = mutableSetOf<MarkerType>()
 
@@ -44,6 +48,15 @@ class MapViewModel(
 
     init {
         loadMarkersForMode(_uiState.value.mode)
+        loadFilterOptions()
+    }
+
+    private fun loadFilterOptions() {
+        viewModelScope.launch {
+            val events = repository.getEventCategories().getOrDefault(emptyList())
+            val pois = repository.getPoiCategories().getOrDefault(emptyList())
+            _uiState.value = _uiState.value.copy(eventCategories = events, poiCategories = pois)
+        }
     }
 
     /** All mode changes enter through this transition and clear incompatible UI state. */
@@ -57,6 +70,8 @@ class MapViewModel(
 
     private fun loadMarkersForMode(mode: MapMode) {
         markerLoadJob?.cancel()
+        categoryLoadJob?.cancel()
+        categoryLoadRequestId++
         val requestId = ++markerLoadRequestId
         detailLoadJob?.cancel()
         detailLoadJob = null
@@ -75,6 +90,8 @@ class MapViewModel(
             selectedPoiInfo = null,
             selectedEventInfo = null,
             activeFilter = null,
+            activePoiCategory = null,
+            activeEventCategoryId = null,
             filterContext = filterContext,
             isLoading = missingTypes.isNotEmpty(),
             errorMessage = null,
@@ -262,6 +279,8 @@ class MapViewModel(
             mode = state.mode,
             selectedMarkerId = null,
             activeFilter = type,
+            activePoiCategory = null,
+            activeEventCategoryId = null,
             selectedMarkerOverride = null,
             selectedUserProfileOverride = null,
             selectedPoiInfoOverride = null,
@@ -269,6 +288,73 @@ class MapViewModel(
             isDetailLoading = false,
             detailErrorMessage = null
         )
+    }
+
+    fun setPoiCategory(category: String?) {
+        val state = _uiState.value
+        if (state.mode != MapMode.HOME) return
+        detailLoadJob?.cancel()
+        updateState(
+            markers = state.markers,
+            activeFilter = MarkerType.POI,
+            activePoiCategory = category,
+            activeEventCategoryId = null,
+            selectedMarkerId = null,
+            selectedMarkerOverride = null,
+            selectedUserProfileOverride = null,
+            selectedPoiInfoOverride = null,
+            selectedEventInfoOverride = null,
+            isDetailLoading = false,
+            detailErrorMessage = null
+        )
+    }
+
+    fun setEventCategory(categoryId: Int?) {
+        if (_uiState.value.mode != MapMode.EVENT) return
+        categoryLoadJob?.cancel()
+        val requestId = ++categoryLoadRequestId
+        detailLoadJob?.cancel()
+        _uiState.value = _uiState.value.copy(
+            activeEventCategoryId = categoryId,
+            activeFilter = null,
+            markers = emptyList(),
+            renderMarkers = emptyList(),
+            selectedMarkerId = null,
+            selectedMarker = null,
+            selectedEventInfo = null,
+            isLoading = true,
+            isDetailLoading = false,
+            detailErrorMessage = null
+        )
+        categoryLoadJob = viewModelScope.launch {
+            repository.getMarkers(MarkerType.EVENT, eventCategoryId = categoryId)
+                .onSuccess { markers ->
+                    if (requestId == categoryLoadRequestId && _uiState.value.mode == MapMode.EVENT) {
+                        updateState(
+                            markers = markers.map(::positionMarker),
+                            activeEventCategoryId = categoryId,
+                            activeFilter = null,
+                            selectedMarkerId = null,
+                            selectedMarkerOverride = null,
+                            selectedUserProfileOverride = null,
+                            selectedPoiInfoOverride = null,
+                            selectedEventInfoOverride = null,
+                            isLoading = false,
+                            errorMessage = null,
+                            isDetailLoading = false,
+                            detailErrorMessage = null
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    if (requestId == categoryLoadRequestId) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "Unable to load events"
+                        )
+                    }
+                }
+        }
     }
 
     fun sendConnectionRequest(userId: Int) {
@@ -317,6 +403,8 @@ class MapViewModel(
         mode: MapMode = _uiState.value.mode,
         selectedMarkerId: String? = _uiState.value.selectedMarkerId,
         activeFilter: MarkerType? = _uiState.value.activeFilter,
+        activePoiCategory: String? = _uiState.value.activePoiCategory,
+        activeEventCategoryId: Int? = _uiState.value.activeEventCategoryId,
 
         selectedMarkerOverride: MapMarker? = _uiState.value.selectedMarker,
         selectedUserProfileOverride: MapUserProfile? = _uiState.value.selectedUserProfile,
@@ -334,8 +422,14 @@ class MapViewModel(
             mode == MapMode.HOME && it in modeMarkerTypes
         }
         val modeMarkers = markers.filter { it.type in modeMarkerTypes }
-        val visibleMarkers = if (validFilter == null) modeMarkers else {
+        val typeFilteredMarkers = if (validFilter == null) modeMarkers else {
             modeMarkers.filter { it.type == validFilter }
+        }
+        val visibleMarkers = when {
+            mode == MapMode.HOME && activePoiCategory != null ->
+                typeFilteredMarkers.filterIsInstance<PoiMarkerData>()
+                    .filter { it.category.equals(activePoiCategory, ignoreCase = true) }
+            else -> typeFilteredMarkers
         }
 
         val renderMarkers = visibleMarkers.map { marker ->
@@ -357,6 +451,8 @@ class MapViewModel(
             selectedPoiInfo = selectedPoiInfoOverride,
             selectedEventInfo = selectedEventInfoOverride,
             activeFilter = validFilter,
+            activePoiCategory = activePoiCategory.takeIf { mode == MapMode.HOME },
+            activeEventCategoryId = activeEventCategoryId.takeIf { mode == MapMode.EVENT },
             filterContext = filterContextForMode(mode),
             isLoading = isLoading,
             errorMessage = errorMessage,

@@ -15,8 +15,11 @@ data class MapUiState(
     val selectedEventInfo: MapEventInfo? = null,
 
     val activeFilter: MarkerType? = null,
+    val activePoiCategory: String? = null,
+    val activeEventCategoryId: Int? = null,
     val filterContext: MapFilterContext = MapFilterContext.HOME_MARKERS,
     val eventCategories: List<EventFilter> = emptyList(),
+    val poiCategories: List<MapFilterOption> = emptyList(),
 
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
@@ -25,7 +28,6 @@ data class MapUiState(
     val detailErrorMessage: String? = null
 )
 
-/** Context supplied to the shared filter UI; category data is intentionally empty for now. */
 enum class MapFilterContext {
     HOME_MARKERS,
     EVENT_CATEGORIES,

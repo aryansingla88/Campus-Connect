@@ -5,6 +5,12 @@ data class EventPreviewResponse(
     val title: String,
     val description: String? = null,
     val posterUrl: String? = null,
+    val hostName: String? = null,
+    val creatorName: String? = null,
+    val clubName: String? = null,
+    val registrationCount: Int? = null,
+    val eventType: String? = null,
+    val categories: List<EventCategoryResponse>? = null,
     val startTime: String? = null,
     val endTime: String? = null,
     val venue: String? = null,
@@ -15,6 +21,7 @@ data class EventPreviewResponse(
     val priority: Int? = null,
     val hosts: List<EventHostResponse>? = null
 )
+
 
 data class EventHostResponse(
 

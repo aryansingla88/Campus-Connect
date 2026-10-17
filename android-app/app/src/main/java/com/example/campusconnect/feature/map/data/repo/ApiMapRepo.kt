@@ -2,6 +2,7 @@ package com.example.campusconnect.feature.map.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.map.data.remote.MapApi
+import com.example.campusconnect.feature.map.data.PoiRepository
 import com.example.campusconnect.feature.map.data.mapper.MapEventMapper
 import com.example.campusconnect.feature.map.data.mapper.MapPoiMapper
 import com.example.campusconnect.feature.map.data.mapper.MapUserMapper
@@ -11,6 +12,7 @@ import com.example.campusconnect.feature.map.model.MapMarker
 import com.example.campusconnect.feature.map.model.MapPoiInfo
 import com.example.campusconnect.feature.map.model.MapShopInfo
 import com.example.campusconnect.feature.map.model.MapUserProfile
+import com.example.campusconnect.feature.map.model.MapFilterOption
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.ShopMarkerData
 import com.example.campusconnect.feature.metadata.courses.CourseRepository
@@ -19,10 +21,15 @@ import kotlinx.coroutines.coroutineScope
 
 class ApiMapRepo(
     private val api: MapApi = RetrofitClient.mapApi,
-    private val courseRepository: CourseRepository
+    private val courseRepository: CourseRepository,
+    private val poiRepository: PoiRepository
 ) : MapRepo {
 
-    override suspend fun getMarkers(type: MarkerType?): Result<List<MapMarker>> = runCatching {
+    override suspend fun getMarkers(
+        type: MarkerType?,
+        eventCategoryId: Int?,
+        poiCategory: String?
+    ): Result<List<MapMarker>> = runCatching {
         when (type) {
             MarkerType.USER -> {
                 val response = api.getVisibleUsers()
@@ -30,12 +37,11 @@ class ApiMapRepo(
                     .map { MapUserMapper.toMarker(it) }
             }
             MarkerType.POI -> {
-                val response = api.getPois()
-                requireData(response.success, response.message, response.data, "Unable to load POIs")
+                poiRepository.getPois(poiCategory).getOrThrow()
                     .mapNotNull(MapPoiMapper::toMarker)
             }
             MarkerType.EVENT -> {
-                val response = api.getEventMarkers()
+                val response = api.getEventMarkers(eventCategoryId)
                 requireData(response.success, response.message, response.data, "Unable to load events")
                     .mapNotNull(MapEventMapper::toMarker)
             }
@@ -52,9 +58,7 @@ class ApiMapRepo(
                 .map { MapUserMapper.toMarker(it) }
         }
         val pois = async {
-            runCatching { api.getPois() }.getOrNull()
-                ?.takeIf { it.success }
-                ?.data.orEmpty()
+                poiRepository.getPois().getOrDefault(emptyList())
                 .mapNotNull(MapPoiMapper::toMarker)
         }
         val events = async {
@@ -111,6 +115,16 @@ class ApiMapRepo(
         requireData(response.success, response.message, response.data, "Unable to load event categories")
             .map(MapEventMapper::toFilter)
     }
+
+    override suspend fun getPoiCategories(): Result<List<MapFilterOption>> =
+        poiRepository.getCategories().map { categories ->
+            categories.map { category ->
+                MapFilterOption(
+                    category,
+                    category.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }
+                )
+            }
+        }
 
     private fun temporaryShopMarkers(): List<MapMarker> = listOf(
         ShopMarkerData(sourceId = 1, latitude = 29.945000, longitude = 76.816000, name = "Campus Cafe"),

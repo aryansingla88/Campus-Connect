@@ -31,15 +31,25 @@ object MapEventMapper {
         return MapEventInfo(
             id = response.id,
             title = response.title,
-            hostName = hosts.firstOrNull()?.name ?: "Campus Team",
-            date = response.startTime ?: "TBA",
-            time = if (response.startTime != null && response.endTime != null) "${response.startTime} - ${response.endTime}" else "TBA",
+            hostName = response.hostName ?: hosts.firstOrNull()?.name.orEmpty(),
+            date = response.startTime.orEmpty(),
+            time = response.startTime.orEmpty(),
             description = response.description.orEmpty(),
-            venue = response.venue ?: "Campus Complex",
+            venue = response.venue,
             posterUrl = response.posterUrl,
             posterResId = null,
             hosts = hosts,
-            isJoined = response.isJoined ?: false
+            isJoined = response.isJoined ?: false,
+            endTime = response.endTime,
+            creatorName = response.creatorName,
+            clubName = response.clubName,
+            registrationCount = response.registrationCount,
+            eventType = response.eventType,
+            categories = response.categories.orEmpty().map { EventFilter(it.id, it.name) },
+            registrationType = response.registrationType,
+            registrationLink = response.registrationLink,
+            isReminderEnabled = response.isReminderEnabled,
+            priority = response.priority
         )
     }
 
@@ -48,6 +58,7 @@ object MapEventMapper {
     private fun toHostInfo(response: EventHostResponse): HostInfo = HostInfo(
         id = response.userId,
         name = response.fullName,
-        avatarUrl = response.avatarUrl
+        avatarUrl = response.avatarUrl,
+        role = response.role
     )
 }

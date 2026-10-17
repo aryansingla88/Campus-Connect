@@ -22,6 +22,8 @@ public interface EventRegistrationRepository
             Integer eventId
     );
 
+    long countByEventId(Integer eventId);
+
     List<EventRegistration> findByUserId(
             Integer userId
     );

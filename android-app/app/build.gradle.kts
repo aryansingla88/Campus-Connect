@@ -23,6 +23,7 @@ android {
         applicationId = "com.example.campusconnect"
         minSdk = 21
         targetSdk = 34
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 1
         versionName = "1.0"
 
@@ -117,5 +118,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     testImplementation(libs.junit)
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 }
 

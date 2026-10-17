@@ -23,7 +23,9 @@ interface MapApi {
     suspend fun getPois(): ApiResponse<List<PoiResponse>>
 
     @GET("map/events")
-    suspend fun getEventMarkers(): ApiResponse<List<EventMarkerResponse>>
+    suspend fun getEventMarkers(
+        @Query("categoryId") categoryId: Int? = null
+    ): ApiResponse<List<EventMarkerResponse>>
 
    // @GET("shops") //todo
    // suspend fun getShops(): ApiResponse<List<ShopResponse>>

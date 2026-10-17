@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -26,6 +27,12 @@ import com.example.campusconnect.feature.map.styling.PoiLabelResolver
 import com.example.campusconnect.feature.map.model.EventMarkerData
 import com.example.campusconnect.feature.map.model.PoiMarkerData
 import com.example.campusconnect.feature.map.model.MapMode
+import com.example.campusconnect.feature.map.model.MapFilterOption
+import com.example.campusconnect.feature.map.model.MapFilterContext
+import com.example.campusconnect.feature.map.model.ALL_POIS_FILTER_ID
+import com.example.campusconnect.feature.map.model.MapFilterAction
+import com.example.campusconnect.feature.map.model.resolveMapFilterTap
+import com.example.campusconnect.feature.map.model.selectedMapFilterKey
 import androidx.compose.foundation.shape.CircleShape
 import com.example.campusconnect.feature.map.ui.components.events.EventMarkerDialog
 import com.example.campusconnect.feature.map.ui.components.markers.PoiMarkerDialog
@@ -49,6 +56,8 @@ fun MapScreen(
     onPosterClick: () -> Unit = {},
     viewModel: MapViewModel = viewModel()
 ) {
+    val cloudTransition = LocalCloudTransitionState.current
+    val coroutineScope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
 
     val showCenteredMarkerDialog =
@@ -64,6 +73,7 @@ fun MapScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showFilters by remember { mutableStateOf(false) }
     var selectedSidePanel by remember { mutableStateOf(SidePanel.NONE) }
+    var expandedFilterSection by remember { mutableStateOf<String?>(null) }
 
     var lastSelectedMarker by remember { mutableStateOf(uiState.selectedMarker) }
     var lastSelectedProfile by remember { mutableStateOf(uiState.selectedUserProfile) }
@@ -71,6 +81,7 @@ fun MapScreen(
 
     LaunchedEffect(uiState.mode) {
         showFilters = false
+        expandedFilterSection = null
         selectedSidePanel = SidePanel.NONE
     }
 
@@ -164,10 +175,12 @@ fun MapScreen(
 
                 RightSideTabs(
                     showFilters = showFilters,
+                    filtersAvailable = uiState.filterContext != MapFilterContext.NONE,
                     selectedSidePanel = selectedSidePanel,
 
                     onFiltersClick = {
                         showFilters = !showFilters
+                        expandedFilterSection = null
                     },
 
                     onBoardClick = {
@@ -207,19 +220,17 @@ fun MapScreen(
             ModeBar(
                 selectedMode = uiState.mode,
                 onModeSelected = { mode ->
-                    viewModel.selectMode(mode)
-
-                    when (mode) {
-
-                        MapMode.POSTER -> {
-                            onPosterClick()
+                    if (mode != uiState.mode && !cloudTransition.isRunning) {
+                        coroutineScope.launch {
+                            cloudTransition.run {
+                                viewModel.selectMode(mode)
+                                when (mode) {
+                                    MapMode.POSTER -> onPosterClick()
+                                    MapMode.HOME -> viewportState.resetViewport()
+                                    MapMode.EVENT, MapMode.SHOP -> Unit
+                                }
+                            }
                         }
-
-                        MapMode.HOME -> {
-                            viewportState.resetViewport()
-                        }
-
-                        MapMode.EVENT, MapMode.SHOP -> Unit
                     }
                 },
                 modifier = Modifier
@@ -260,14 +271,37 @@ fun MapScreen(
                     .align(Alignment.TopEnd)
                     .padding(top = 94.dp, end = 72.dp)
             ) {
+                val allPoiOption = MapFilterOption(ALL_POIS_FILTER_ID, "All POIs")
+                val filterOptions = listOf(allPoiOption) + uiState.poiCategories
+                val selectedFilterKey = selectedMapFilterKey(uiState)
                 FilterPanel(
                     filterContext = uiState.filterContext,
-                    eventCategories = uiState.eventCategories,
-                    onFilterSelected = { type ->
-                        viewModel.setFilter(type)
-                        showFilters = false
+                    userOptions = listOf(MapFilterOption("users", "Users")),
+                    poiCategories = filterOptions,
+                    eventCategories = uiState.eventCategories.map {
+                        MapFilterOption(it.id.toString(), it.name)
                     },
-                    onEventCategorySelected = { showFilters = false }
+                    selectedFilterKey = selectedFilterKey,
+                    expandedSection = expandedFilterSection,
+                    onExpandedSectionChange = { section, _ -> expandedFilterSection = section },
+                    onOptionSelected = { section, option ->
+                        when (val action = resolveMapFilterTap(uiState, section, option.id)) {
+                            MapFilterAction.ClearHomeFilters -> viewModel.setFilter(null)
+                            MapFilterAction.SelectUsers -> viewModel.setFilter(MarkerType.USER)
+                            MapFilterAction.SelectAllPois -> viewModel.setPoiCategory(null)
+                            is MapFilterAction.SelectPoiCategory -> viewModel.setPoiCategory(action.category)
+                            MapFilterAction.ShowAllEvents -> viewModel.setEventCategory(null)
+                            is MapFilterAction.SelectEventCategory ->
+                                viewModel.setEventCategory(action.categoryId)
+                            MapFilterAction.Ignore -> Unit
+                        }
+                        showFilters = false
+                        expandedFilterSection = null
+                    },
+                    onClose = {
+                        showFilters = false
+                        expandedFilterSection = null
+                    }
                 )
             }
         }
@@ -290,6 +324,10 @@ fun MapScreen(
             EventMarkerDialog(
                 event = selectedEventInfo,
                 onDismiss = viewModel::clearSelection,
+                endTime = selectedEventInfo.endTime,
+                description = selectedEventInfo.description,
+                registrationsCount = selectedEventInfo.registrationCount,
+                eventType = selectedEventInfo.eventType,
                 onNavigateClick = {},
                 onRegisterClick = {
                     // Registration actions remain owned by the Events feature.

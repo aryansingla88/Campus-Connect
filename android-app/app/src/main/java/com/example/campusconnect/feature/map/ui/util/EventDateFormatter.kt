@@ -20,7 +20,7 @@ fun formatEventDate(
 ): String {
 
     if (raw.isBlank()) {
-        return "20 May 2025"
+        return "Date unavailable"
     }
 
     val inputPatterns = listOf(
@@ -184,7 +184,7 @@ fun formatEventTimeRange(
 ): String {
 
     if (raw.isBlank()) {
-        return "10:00 AM – 04:00 PM"
+        return "Time unavailable"
     }
 
     if (!endTimeRaw.isNullOrBlank()) {

@@ -17,6 +17,17 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
             Integer creatorId
     );
 
+    @Query("""
+    SELECT DISTINCT e
+    FROM Event e
+    JOIN e.categories c
+    WHERE c.id = :categoryId
+    """)
+    List<Event> findEventsByCategoryId(
+            @org.springframework.data.repository.query.Param("categoryId")
+            Integer categoryId
+    );
+
     // 1. App ki Feed ke liye: Seedha Level (6 to 1) aur Score ke basis par sorted
     // Note: Agar tumhara EventState enum me 'ACTIVE' ki jagah 'PUBLISHED' ya 'ONGOING' hai, toh usko replace kar lena.
     @Query("SELECT e FROM Event e WHERE e.eventState = 'ACTIVE' ORDER BY e.priorityLevel DESC, e.priorityScore DESC")

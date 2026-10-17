@@ -98,6 +98,7 @@ internal fun RoundIconButton(
 @Composable
 internal fun RightSideTabs(
     showFilters: Boolean,
+    filtersAvailable: Boolean,
     selectedSidePanel: SidePanel,
     onFiltersClick: () -> Unit,
     onBoardClick: () -> Unit,
@@ -109,12 +110,14 @@ internal fun RightSideTabs(
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        SideTab(
-            text = "FILTERS",
-            icon = Icons.Default.FilterList,
-            selected = showFilters,
-            onClick = onFiltersClick
-        )
+        if (filtersAvailable) {
+            SideTab(
+                text = "FILTERS",
+                icon = Icons.Default.FilterList,
+                selected = showFilters,
+                onClick = onFiltersClick
+            )
+        }
 
         SideTab(
             text = "BOARD",
