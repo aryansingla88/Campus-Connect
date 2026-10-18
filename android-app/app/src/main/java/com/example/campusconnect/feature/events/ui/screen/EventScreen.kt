@@ -4,7 +4,6 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,13 +35,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -52,7 +49,6 @@ import com.example.campusconnect.feature.events.model.EventFilter
 import com.example.campusconnect.feature.events.model.EventStatus
 import com.example.campusconnect.feature.events.ui.components.BackButton
 import com.example.campusconnect.feature.events.ui.components.CreateEventButton
-import com.example.campusconnect.feature.events.ui.components.EventMarker
 import com.example.campusconnect.feature.events.ui.components.MapViewButton
 import com.example.campusconnect.feature.events.ui.components.ModeToggle
 import com.example.campusconnect.feature.events.ui.dialog.EventAccessDialog
@@ -62,9 +58,26 @@ import com.example.campusconnect.feature.events.ui.drawer.EventParticipantsDrawe
 import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
 import com.example.campusconnect.feature.map.mapengine.MapCalibration
+import com.example.campusconnect.feature.map.mapengine.MapView
+import com.example.campusconnect.feature.map.mapengine.model.MapMarkerItem
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
+import com.example.campusconnect.feature.map.mapengine.rendering.StandardMarkerPainter
+import com.example.campusconnect.feature.map.mapengine.viewport.DEFAULT_ZOOM
+import com.example.campusconnect.feature.map.mapengine.viewport.MAP_IMAGE_HEIGHT
+import com.example.campusconnect.feature.map.mapengine.viewport.MAP_IMAGE_WIDTH
+import com.example.campusconnect.feature.map.mapengine.viewport.rememberMapViewportState
 import kotlinx.coroutines.delay
-private const val MAP_IMAGE_WIDTH = 3000f
-private const val MAP_IMAGE_HEIGHT = 3000f
+
+private data class EventMapMarker(
+    override val id: String,
+    override val x: Float,
+    override val y: Float,
+    override val label: String,
+    override val isSelected: Boolean,
+    val priority: Int
+) : MapMarkerItem {
+    override val type: MarkerType = MarkerType.EVENT
+}
 
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
@@ -102,11 +115,32 @@ fun EventScreen(
 
     var toastMessage        by remember { mutableStateOf<String?>(null) }
 
-    val boxWidth  = remember { mutableStateOf(0) }
-    val boxHeight = remember { mutableStateOf(0) }
+    val mapViewportState = rememberMapViewportState(initialZoom = DEFAULT_ZOOM)
 
     val clubs by viewModel.clubs.collectAsState()
     val categories by viewModel.categories.collectAsState()
+
+    val eventMapMarkers = remember(events, activeIndex) {
+        events.mapIndexedNotNull { index, event ->
+            if (event.status == EventStatus.PAST) {
+                return@mapIndexedNotNull null
+            }
+
+            val point = MapCalibration.converter.latLngToPoint(
+                lat = event.latitude,
+                lng = event.longitude
+            )
+
+            EventMapMarker(
+                id = event.id.toString(),
+                x = point.x,
+                y = point.y,
+                label = event.title,
+                isSelected = index == activeIndex,
+                priority = if (index == activeIndex) 2 else 0
+            )
+        }
+    }
 
 
     // Only non-past events appear in the preview pager
@@ -147,63 +181,42 @@ fun EventScreen(
         if (showPreview) showHistoryDrawer = false
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFE0E0E0))
-            .onSizeChanged { boxWidth.value = it.width; boxHeight.value = it.height }
-            .pointerInput(isSelectingLocation) {
-                if (isSelectingLocation) {
-                    detectTapGestures { offset ->
+    Box(modifier = Modifier.fillMaxSize()) {
 
-                        val mapX =
-                            offset.x / boxWidth.value.toFloat() * MAP_IMAGE_WIDTH
-
-                        val mapY =
-                            offset.y / boxHeight.value.toFloat() * MAP_IMAGE_HEIGHT
-
-                        val (latitude, longitude) =
-                            MapCalibration.converter.pointToLatLng(
-                                mapX,
-                                mapY
-                            )
-
-                        viewModel.setLocation(
-                            lat = latitude,
-                            lng = longitude
-                        )
-
-                        isSelectingLocation = false
-                        showDialog = true
-                    }
-                }
-            }
-    ) {
-
-        // ── BACKGROUND ────────────────────────────────────────────────────────
-        Box(modifier = Modifier.fillMaxSize())
-
-        // ── MARKERS ───────────────────────────────────────────────────────────
-        events.forEachIndexed { index, event ->
-
-            val isPast = event.status == EventStatus.PAST
-
-            EventMarker(
-                event = event,
-                isActive = index == activeIndex && !isPast,
-                onClick = {
-                    if (!isSelectingLocation && !isPast) {
+        MapView(
+            modifier = Modifier.fillMaxSize(),
+            viewportState = mapViewportState,
+            markers = eventMapMarkers,
+            markerPriority = { marker -> marker.priority },
+            markerPainter = StandardMarkerPainter,
+            initialFocusPosition = Offset(
+                MAP_IMAGE_WIDTH / 2f,
+                MAP_IMAGE_HEIGHT / 2f
+            ),
+            initialZoom = DEFAULT_ZOOM,
+            onMarkerClick = { markerId ->
+                if (!isSelectingLocation) {
+                    val index = events.indexOfFirst { it.id.toString() == markerId }
+                    if (index >= 0 && events[index].status != EventStatus.PAST) {
                         viewModel.onMarkerTapped(index)
                     }
-                },
-                modifier = Modifier.offset {
-                    IntOffset(
-                        x = (event.xRatio * boxWidth.value).toInt(),
-                        y = (event.yRatio * boxHeight.value).toInt()
-                    )
                 }
-            )
-        }
+            },
+            onMapTap = { mapX, mapY ->
+                if (isSelectingLocation) {
+                    val (latitude, longitude) =
+                        MapCalibration.converter.pointToLatLng(mapX, mapY)
+
+                    viewModel.setLocation(
+                        lat = latitude,
+                        lng = longitude
+                    )
+
+                    isSelectingLocation = false
+                    showDialog = true
+                }
+            }
+        )
 
         // ── TAP ANYWHERE HINT ─────────────────────────────────────────────────
         if (isSelectingLocation) {
