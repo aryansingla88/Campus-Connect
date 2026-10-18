@@ -5,6 +5,7 @@ import com.example.campusconnect.feature.map.data.remote.response.UserMapRespons
 import com.example.campusconnect.feature.map.data.remote.response.UserPreviewResponse
 import com.example.campusconnect.feature.map.model.MapUserProfile
 import com.example.campusconnect.feature.map.model.UserMarkerData
+import com.example.campusconnect.feature.profile.model.ConnectionStatus
 import com.example.campusconnect.feature.metadata.courses.Course
 
 object MapUserMapper {
@@ -17,7 +18,11 @@ object MapUserMapper {
         userGender = response.gender?.lowercase()
     )
 
-    fun toProfile(response: UserPreviewResponse, course: Course?): MapUserProfile {
+    fun toProfile(
+        response: UserPreviewResponse,
+        course: Course?,
+        relationshipStatus: String? = null
+    ): MapUserProfile {
         val courseName = course?.let(AcademicUtils::getCourseName) ?: "Unknown Course"
         val batch = if (course != null && response.admissionYear != null) {
             AcademicUtils.getBatch(response.admissionYear, course.durationYears)
@@ -30,7 +35,12 @@ object MapUserMapper {
             description = response.bio.orEmpty(),
             badges = emptyList(),
             medals = emptyList(),
-            mutualFriendsCount = response.mutualConnectionsCount ?: 0
+            mutualFriendsCount = response.mutualConnectionsCount ?: 0,
+            connectionStatus = when (relationshipStatus) {
+                "PENDING_SENT", "PENDING_RECEIVED" -> ConnectionStatus.PENDING
+                "CONNECTED" -> ConnectionStatus.CONNECTED
+                else -> ConnectionStatus.NOT_CONNECTED
+            }
         )
     }
 }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,12 +26,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.map.model.MapUserProfile
+import com.example.campusconnect.feature.profile.model.ConnectionStatus
 
 private val OrangePrimary = Color(0xFFFF6F00)
 private val AvatarBg = Color(0xFFF4ECD9)
 private val TextDark = Color(0xFF222222)
 private val TextMuted = Color(0xFF6F6F6F)
 private val DividerColor = Color(0xFFBDBDBD)
+private val PendingGray = Color(0xFFE9E9E9)
+private val PendingIconGray = Color(0xFF747474)
+private val ConnectedGreen = Color(0xFF2E9D58)
 
 @Composable
 fun UserMarkerDialog(
@@ -135,19 +141,45 @@ fun UserMarkerDialog(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
+                        val connectionStatus = profile.connectionStatus
+                        val connectButtonColor = when (connectionStatus) {
+                            ConnectionStatus.NOT_CONNECTED -> OrangePrimary
+                            ConnectionStatus.PENDING -> PendingGray
+                            ConnectionStatus.CONNECTED -> ConnectedGreen
+                        }
+                        val connectIcon = when (connectionStatus) {
+                            ConnectionStatus.NOT_CONNECTED -> Icons.Default.PersonAdd
+                            ConnectionStatus.PENDING -> Icons.Default.AccessTime
+                            ConnectionStatus.CONNECTED -> Icons.Default.Check
+                        }
+                        val connectIconColor = when (connectionStatus) {
+                            ConnectionStatus.NOT_CONNECTED,
+                            ConnectionStatus.CONNECTED -> Color.White
+                            ConnectionStatus.PENDING -> PendingIconGray
+                        }
+                        val connectDescription = when (connectionStatus) {
+                            ConnectionStatus.NOT_CONNECTED -> "Add Friend"
+                            ConnectionStatus.PENDING -> "Connection Pending"
+                            ConnectionStatus.CONNECTED -> "Already Connected"
+                        }
+
                         Box(
                             modifier = Modifier
                                 .padding(top = 8.dp)
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(OrangePrimary)
-                                .clickable { onAddFriendClick() },
+                                .background(connectButtonColor)
+                                .then(
+                                    if (connectionStatus == ConnectionStatus.NOT_CONNECTED) {
+                                        Modifier.clickable { onAddFriendClick() }
+                                    } else Modifier
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PersonAdd,
-                                contentDescription = "Add Friend",
-                                tint = Color.White,
+                                imageVector = connectIcon,
+                                contentDescription = connectDescription,
+                                tint = connectIconColor,
                                 modifier = Modifier.size(22.dp)
                             )
                         }

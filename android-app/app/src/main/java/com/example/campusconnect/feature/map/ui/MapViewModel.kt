@@ -378,7 +378,16 @@ class MapViewModel(
 
     fun sendConnectionRequest(userId: Int) {
         viewModelScope.launch {
-            repository.sendConnectionRequest(userId)
+            repository.sendConnectionRequest(userId).onSuccess {
+                val profile = _uiState.value.selectedUserProfile
+                if (profile?.id == userId) {
+                    updateState(
+                        selectedUserProfileOverride = profile.copy(
+                            connectionStatus = com.example.campusconnect.feature.profile.model.ConnectionStatus.PENDING
+                        )
+                    )
+                }
+            }
         }
     }
 

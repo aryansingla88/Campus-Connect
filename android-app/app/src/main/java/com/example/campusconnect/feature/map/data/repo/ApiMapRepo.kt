@@ -74,7 +74,12 @@ class ApiMapRepo(
         val response = api.getUserProfile(userId)
         val user = requireData(response.success, response.message, response.data, "Unable to load user profile")
         val course = user.courseId?.let { courseId -> courseRepository.getCourseById(courseId) }
-        MapUserMapper.toProfile(user, course)
+        val relationshipStatus = runCatching {
+            val profileResponse = RetrofitClient.profileApi.getProfile(userId)
+            profileResponse.body()?.takeIf { profileResponse.isSuccessful && it.success }
+                ?.data?.relationshipStatus
+        }.getOrNull()
+        MapUserMapper.toProfile(user, course, relationshipStatus)
     }
 
     override suspend fun getPoiInfo(poiId: Int, fallbackName: String): Result<MapPoiInfo> = runCatching {
