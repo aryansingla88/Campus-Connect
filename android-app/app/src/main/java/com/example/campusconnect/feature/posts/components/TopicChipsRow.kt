@@ -24,17 +24,23 @@ import androidx.compose.ui.unit.dp
 
 import com.example.campusconnect.core.ui.theme.*
 
-import com.example.campusconnect.feature.posts.models.dummyPosts
 import com.example.campusconnect.feature.posts.models.PostTag
+import com.example.campusconnect.feature.posts.models.PostTagCount
 
 @Composable
 fun TopicChipsRow(
 
     tags: List<PostTag>,
 
-    selectedTopic: String?,
+    tagCounts: List<PostTagCount>?,
 
-    onTopicSelected: (String?) -> Unit
+    countsLoading: Boolean,
+
+    countsError: String?,
+
+    selectedTopic: Int?,
+
+    onTopicSelected: (Int?) -> Unit
 ){
     Row(
         verticalAlignment=Alignment.CenterVertically
@@ -69,16 +75,9 @@ fun TopicChipsRow(
          */
 
             items(tags) { tag ->
-
-                val postCount =
-
-                    dummyPosts.count {
-
-                        it.tags.any { postTag ->
-
-                            postTag.name == tag.name
-                        }
-                    }
+                val postCount = tagCounts
+                    ?.firstOrNull { count -> count.id == tag.id }
+                    ?.postCount
 
                 TopicChip(
 
@@ -86,14 +85,19 @@ fun TopicChipsRow(
 
                     postCount = postCount,
 
-                    isSelected = selectedTopic == tag.name,
+                    isSelected = selectedTopic == tag.id,
 
                     onClick = {
 
-                        onTopicSelected(tag.name)
+                        onTopicSelected(tag.id)
                     }
                 )
             }
         }
+    }
+
+    when {
+        countsLoading -> Text("Loading topic counts…")
+        countsError != null -> Text("Topic counts unavailable: $countsError")
     }
 }

@@ -8,7 +8,9 @@ import com.campus.Campus_Connect.features.post.dto.request.UpdatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.response.CommentResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
+import com.campus.Campus_Connect.features.post.dto.response.PostTagCountResponse;
 import com.campus.Campus_Connect.features.post.service.PostService;
+import com.campus.Campus_Connect.common.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +43,10 @@ public class PostController {
             @RequestParam(value = "image", required = false)
             MultipartFile image
     ) {
+
+        if (tags == null || tags.isEmpty()) {
+            throw new BadRequestException("At least one tag must be selected.");
+        }
 
         CreatePostRequest request = CreatePostRequest.builder()
                 .title(title)
@@ -171,6 +177,17 @@ public class PostController {
 
         return ApiResponse.success(
                 tags,
+                null
+        );
+    }
+
+    @GetMapping("/tags/counts")
+    public ApiResponse<List<PostTagCountResponse>> getGeneralPostTagCounts() {
+
+        List<PostTagCountResponse> counts = postService.getGeneralPostTagCounts();
+
+        return ApiResponse.success(
+                counts,
                 null
         );
     }

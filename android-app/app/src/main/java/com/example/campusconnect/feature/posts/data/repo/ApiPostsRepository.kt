@@ -15,6 +15,7 @@ import com.example.campusconnect.feature.posts.data.remote.request.UpdatePostReq
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
+import com.example.campusconnect.feature.posts.models.PostTagCount
 
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
@@ -88,6 +89,20 @@ class ApiPostsRepository(
 
         } catch (e: Exception) {
 
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getGeneralTagCounts(): Result<List<PostTagCount>> {
+        return try {
+            val response = api.getGeneralTagCounts()
+            val counts = response.body()?.data
+            if (response.isSuccessful && counts != null) {
+                Result.success(counts)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Failed to fetch topic counts"))
+            }
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }
@@ -176,12 +191,18 @@ class ApiPostsRepository(
                 response.isSuccessful &&
                 response.body()?.data != null
             ) {
+
                 Result.success(
+
                     response.body()!!.data!!
                 )
+
             } else {
+
                 Result.failure(
+
                     Exception(
+
                         response.body()?.message
                             ?: "Failed to create post"
                     )
@@ -189,7 +210,15 @@ class ApiPostsRepository(
             }
 
         } catch (e: Exception) {
-            Result.failure(e)
+
+            e.printStackTrace()
+
+            Result.failure(
+                Exception(
+                    "${e::class.simpleName}: ${e.message ?: "Unknown error"}",
+                    e
+                )
+            )
         }
     }
 

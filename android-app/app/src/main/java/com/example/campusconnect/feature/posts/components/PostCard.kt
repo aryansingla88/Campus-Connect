@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.posts.components
 
 /*This line imports the clickable modifier from Compose Foundation library.*/
+import android.util.Log
 import androidx.compose.foundation.background
 import com.example.campusconnect.core.util.formatBackendDateTime
 import androidx.compose.foundation.clickable
@@ -34,6 +35,7 @@ import coil.compose.AsyncImage
 import com.example.campusconnect.core.ui.theme.*
 
 import com.example.campusconnect.feature.posts.models.Post
+import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
 
 @Composable
 fun PostCard(
@@ -111,7 +113,7 @@ fun PostCard(
 
                         Text(
 
-                            text = post.username.first().uppercase(),
+                            text = post.username.firstOrNull()?.uppercase() ?: "?",
 
                             color = OrangePrimary,
 
@@ -239,12 +241,14 @@ fun PostCard(
             ---------------- IMAGE ----------------
              */
 
-            if (post.imageUrl != null) {
+            val resolvedImageUrl = resolvePostImageUrl(post.imageUrl)
+            if (resolvedImageUrl != null) {
+                Log.d("POST_IMAGE", "Image URL = ${post.imageUrl}")
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 AsyncImage(
-                    model = post.imageUrl,
+                    model = resolvedImageUrl,
                     contentDescription = null,
 
                     modifier = Modifier

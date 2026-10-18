@@ -7,6 +7,7 @@ import com.campus.Campus_Connect.features.post.dto.request.UpdatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.response.CommentResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
+import com.campus.Campus_Connect.features.post.dto.response.PostTagCountResponse;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ public interface PostService {
     PostResponse getPostById(Integer postId);
 
     List<PostTagResponse> getAllTags();
+
+    List<PostTagCountResponse> getGeneralPostTagCounts();
 
     PostResponse createPost(CreatePostRequest request);
 

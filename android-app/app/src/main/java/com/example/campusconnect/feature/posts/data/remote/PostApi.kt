@@ -13,10 +13,13 @@ import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.PostTag
+import com.example.campusconnect.feature.posts.models.PostTagCount
 
 import com.example.campusconnect.feature.posts.data.remote.request.CreateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdatePostRequest
+
+import kotlin.jvm.JvmSuppressWildcards
 
 interface PostsApi {
 
@@ -30,6 +33,10 @@ interface PostsApi {
     suspend fun getTags():
 
             Response<ApiResponse<List<PostTag>>>
+
+    @GET("posts/tags/counts")
+    suspend fun getGeneralTagCounts():
+            Response<ApiResponse<List<PostTagCount>>>
     @GET("posts/{postId}")
     suspend fun getPost(
 
@@ -58,8 +65,7 @@ interface PostsApi {
         image: MultipartBody.Part?,
 
         @Part("tags")
-        tags: List<RequestBody>
-
+        tags: List<@JvmSuppressWildcards RequestBody>
     ): Response<ApiResponse<Post>>
 
     @PUT("posts/{postId}")

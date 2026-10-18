@@ -21,6 +21,7 @@ import coil.compose.AsyncImage
 import com.example.campusconnect.core.ui.theme.*
 import com.example.campusconnect.core.util.formatBackendDateTime
 import com.example.campusconnect.feature.posts.models.Post
+import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
 
 @Composable
 fun PostDetailCard(
@@ -71,7 +72,7 @@ fun PostDetailCard(
 
                     Text(
 
-                        text = post.username.first().uppercase(),
+                        text = post.username.firstOrNull()?.uppercase() ?: "?",
 
                         color = OrangePrimary
                     )
@@ -158,7 +159,8 @@ fun PostDetailCard(
             ---------------- IMAGE ----------------
              */
 
-            if (post.imageUrl != null) {
+            val resolvedImageUrl = resolvePostImageUrl(post.imageUrl)
+            if (resolvedImageUrl != null) {
 
                 Spacer(
                     modifier = Modifier.height(16.dp)
@@ -166,7 +168,7 @@ fun PostDetailCard(
 
                 AsyncImage(
 
-                    model = post.imageUrl,
+                    model = resolvedImageUrl,
 
                     contentDescription = null,
 
