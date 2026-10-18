@@ -11,6 +11,7 @@ data class MapUserProfile(
     val badges: List<String>,
     val medals: List<Int>,
     val mutualFriendsCount: Int,
+    val avatarUrl: String? = null,
     val connectionStatus: ConnectionStatus = ConnectionStatus.NOT_CONNECTED
 )
 

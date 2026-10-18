@@ -25,9 +25,10 @@ internal sealed interface MapFilterAction {
 @Suppress("DEPRECATION")
 internal fun selectedMapFilterKeys(state: MapUiState): Set<String> = when (state.filterContext) {
     MapFilterContext.HOME_MARKERS -> buildSet {
-        (state.activeUserFilterId
-            ?: state.activeFilter?.takeIf { it == MarkerType.USER }?.let { "users" })
-            ?.let { add("Users:$it") }
+        state.activeUserFilterId?.let { filterId ->
+            if (filterId.startsWith("club:")) add("Clubs:$filterId")
+            else add("Users:$filterId")
+        } ?: state.activeFilter?.takeIf { it == MarkerType.USER }?.let { add("Users:users") }
         when {
             (state.isPoiFilterActive || state.activeFilter == MarkerType.POI) &&
                     state.activePoiCategory == null ->
@@ -57,6 +58,11 @@ internal fun resolveMapFilterTap(
             if (state.activeFilter == MarkerType.USER) {
                 MapFilterAction.ClearHomeFilters
             } else MapFilterAction.ClearUserFilter
+        } else {
+            MapFilterAction.SelectUserFilter(optionId)
+        }
+        "Clubs" -> if (selected) {
+            MapFilterAction.ClearUserFilter
         } else {
             MapFilterAction.SelectUserFilter(optionId)
         }

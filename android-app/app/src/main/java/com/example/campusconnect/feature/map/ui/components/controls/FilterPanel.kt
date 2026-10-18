@@ -30,6 +30,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +60,7 @@ private data class FilterGroup(
 internal fun FilterPanel(
     filterContext: MapFilterContext,
     userOptions: List<MapFilterOption>,
+    clubOptions: List<MapFilterOption> = emptyList(),
     poiCategories: List<MapFilterOption>,
     eventCategories: List<MapFilterOption>,
     selectedFilterKeys: Set<String>,
@@ -65,6 +70,8 @@ internal fun FilterPanel(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var clubsExpanded by remember { mutableStateOf(false) }
+
     val groups = when (filterContext) {
         MapFilterContext.HOME_MARKERS -> listOf(
             FilterGroup("Users", userOptions),
@@ -138,14 +145,23 @@ internal fun FilterPanel(
                         }
 
                         if (expandedSection == group.title) {
+                            val visibleOptionRows = minOf(group.options.size, 3)
+                            val visibleClubRows = if (group.title == "Users" && clubsExpanded) {
+                                minOf(clubOptions.size, 3)
+                            } else {
+                                0
+                            }
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(52.dp * minOf(group.options.size, 3).toFloat()),
+                                    .height(52.dp * (visibleOptionRows + visibleClubRows).toFloat()),
                                 verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 items(group.options, key = { "${group.title}-${it.id}" }) { option ->
-                                    val selected = "${group.title}:${option.id}" in selectedFilterKeys
+                                    val isClubDisclosure = group.title == "Users" && option.id == "clubs"
+                                    val clubOptionEnabled = clubOptions.isNotEmpty()
+                                    val selected = "${group.title}:${option.id}" in selectedFilterKeys ||
+                                            (isClubDisclosure && clubsExpanded)
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -157,16 +173,62 @@ internal fun FilterPanel(
                                                 color = if (selected) Color(0xFFFFB98F) else FilterBorder,
                                                 shape = RoundedCornerShape(13.dp)
                                             )
-                                            .clickable { onOptionSelected(group.title, option) }
+                                            .clickable(enabled = !isClubDisclosure || clubOptionEnabled) {
+                                                if (isClubDisclosure) {
+                                                    clubsExpanded = !clubsExpanded
+                                                } else {
+                                                    onOptionSelected(group.title, option)
+                                                }
+                                            }
                                             .padding(horizontal = 14.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                             text = option.name,
-                                            color = if (selected) FilterOrange else FilterText,
+                                            color = when {
+                                                isClubDisclosure && !clubOptionEnabled -> FilterText.copy(alpha = 0.42f)
+                                                selected -> FilterOrange
+                                                else -> FilterText
+                                            },
                                             fontSize = 14.sp,
                                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
                                         )
+                                        if (isClubDisclosure) {
+                                            Icon(
+                                                imageVector = if (clubsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                contentDescription = if (clubsExpanded) "Collapse clubs" else "Show joined clubs",
+                                                tint = if (clubOptionEnabled) FilterOrange else FilterText.copy(alpha = 0.35f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                if (group.title == "Users" && clubsExpanded) {
+                                    items(clubOptions, key = { "joined-${it.id}" }) { club ->
+                                        val selected = "Clubs:${club.id}" in selectedFilterKeys
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(46.dp)
+                                                .padding(start = 16.dp)
+                                                .clip(RoundedCornerShape(11.dp))
+                                                .background(if (selected) FilterOrangeLight else Color.White)
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = if (selected) Color(0xFFFFB98F) else FilterBorder,
+                                                    shape = RoundedCornerShape(11.dp)
+                                                )
+                                                .clickable { onOptionSelected("Clubs", club) }
+                                                .padding(horizontal = 14.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = club.name,
+                                                color = if (selected) FilterOrange else FilterText,
+                                                fontSize = 13.sp,
+                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                                            )
+                                        }
                                     }
                                 }
                             }

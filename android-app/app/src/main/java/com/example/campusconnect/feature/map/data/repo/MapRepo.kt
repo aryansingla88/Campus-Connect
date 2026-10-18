@@ -14,8 +14,13 @@ interface MapRepo {
     suspend fun getMarkers(
         type: MarkerType? = null,
         eventCategoryId: Int? = null,
-        poiCategory: String? = null
+        poiCategory: String? = null,
+        clubId: Int? = null
     ): Result<List<MapMarker>>
+
+    suspend fun getMyConnectionUserIds(): Result<Set<Int>>
+
+    suspend fun getMyJoinedClubs(): Result<List<MapFilterOption>>
 
     // Backend user ID
     suspend fun getUserProfile(

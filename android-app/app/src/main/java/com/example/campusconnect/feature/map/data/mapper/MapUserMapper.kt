@@ -36,6 +36,7 @@ object MapUserMapper {
             badges = emptyList(),
             medals = emptyList(),
             mutualFriendsCount = response.mutualConnectionsCount ?: 0,
+            avatarUrl = response.avatarUrl,
             connectionStatus = when (relationshipStatus) {
                 "PENDING_SENT", "PENDING_RECEIVED" -> ConnectionStatus.PENDING
                 "CONNECTED" -> ConnectionStatus.CONNECTED

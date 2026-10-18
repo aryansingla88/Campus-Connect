@@ -28,11 +28,12 @@ class ApiMapRepo(
     override suspend fun getMarkers(
         type: MarkerType?,
         eventCategoryId: Int?,
-        poiCategory: String?
+        poiCategory: String?,
+        clubId: Int?
     ): Result<List<MapMarker>> = runCatching {
         when (type) {
             MarkerType.USER -> {
-                val response = api.getVisibleUsers()
+                val response = api.getVisibleUsers(clubId)
                 requireData(response.success, response.message, response.data, "Unable to load users")
                     .map { MapUserMapper.toMarker(it) }
             }
@@ -48,6 +49,32 @@ class ApiMapRepo(
             MarkerType.SHOP -> temporaryShopMarkers()
             null -> loadAllMarkers()
         }
+    }
+
+    override suspend fun getMyConnectionUserIds(): Result<Set<Int>> = runCatching {
+        val response = RetrofitClient.profileApi.getMyConnections()
+        val body = response.body()
+        require(response.isSuccessful && body?.success == true) {
+            body?.message ?: "Unable to load connections"
+        }
+        body?.data.orEmpty()
+            .asSequence()
+            .filter { it.status.equals("CONNECTED", ignoreCase = true) }
+            .map { it.userId }
+            .toSet()
+    }
+
+    override suspend fun getMyJoinedClubs(): Result<List<MapFilterOption>> = runCatching {
+        val response = RetrofitClient.profileApi.getMyClubs()
+        val body = response.body()
+        require(response.isSuccessful && body?.success == true) {
+            body?.message ?: "Unable to load joined clubs"
+        }
+        body?.data.orEmpty()
+            .asSequence()
+            .filter { it.memberStatus.equals("APPROVED", ignoreCase = true) }
+            .map { MapFilterOption("club:${it.clubId}", it.name) }
+            .toList()
     }
 
     private suspend fun loadAllMarkers(): List<MapMarker> = coroutineScope {

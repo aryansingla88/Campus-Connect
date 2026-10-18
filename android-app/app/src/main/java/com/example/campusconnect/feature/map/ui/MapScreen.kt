@@ -202,7 +202,11 @@ fun MapScreen(
                     selectedSidePanel = selectedSidePanel,
 
                     onFiltersClick = {
-                        showFilters = !showFilters
+                        val openingFilters = !showFilters
+                        showFilters = openingFilters
+                        if (openingFilters && uiState.mode == MapMode.HOME) {
+                            viewModel.refreshJoinedClubs()
+                        }
                         expandedFilterSection = null
                         expandedFilterRows = 0
                     },
@@ -301,7 +305,12 @@ fun MapScreen(
                 val selectedFilterKeys = selectedMapFilterKeys(uiState)
                 FilterPanel(
                     filterContext = uiState.filterContext,
-                    userOptions = listOf(MapFilterOption("users", "Users")),
+                    userOptions = listOf(
+                        MapFilterOption("connections", "Connections"),
+                        MapFilterOption("course", "Course"),
+                        MapFilterOption("clubs", "Clubs")
+                    ),
+                    clubOptions = uiState.joinedClubs,
                     poiCategories = filterOptions,
                     eventCategories = uiState.eventCategories.map {
                         MapFilterOption(it.id.toString(), it.name)

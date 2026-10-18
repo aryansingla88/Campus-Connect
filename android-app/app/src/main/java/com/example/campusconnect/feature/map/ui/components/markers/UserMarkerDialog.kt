@@ -20,16 +20,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
+import com.example.campusconnect.core.components.ApiUrlResolver
+import com.example.campusconnect.core.components.avatarColorsFor
+import com.example.campusconnect.core.utils.toInitials
 import com.example.campusconnect.feature.map.model.MapUserProfile
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
 
 private val OrangePrimary = Color(0xFFFF6F00)
-private val AvatarBg = Color(0xFFF4ECD9)
 private val TextDark = Color(0xFF222222)
 private val TextMuted = Color(0xFF6F6F6F)
 private val DividerColor = Color(0xFFBDBDBD)
@@ -92,24 +97,12 @@ fun UserMarkerDialog(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(96.dp)
-                                .clip(CircleShape)
-                                .background(AvatarBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = profile.fullName
-                                    .split(" ")
-                                    .take(2)
-                                    .mapNotNull { it.firstOrNull()?.toString() }
-                                    .joinToString(""),
-                                color = OrangePrimary,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        UserProfileAvatar(
+                            entityId = profile.id,
+                            displayName = profile.fullName,
+                            imageUrl = profile.avatarUrl,
+                            modifier = Modifier.size(96.dp)
+                        )
 
                         Spacer(modifier = Modifier.width(16.dp))
 
@@ -206,6 +199,58 @@ fun UserMarkerDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun UserProfileAvatar(
+    entityId: Int,
+    displayName: String,
+    imageUrl: String?,
+    modifier: Modifier = Modifier
+) {
+    val avatarColors = avatarColorsFor(entityId)
+    val initials = displayName.toInitials().ifBlank { "?" }
+    val avatarModifier = modifier.clip(CircleShape)
+
+    if (imageUrl.isNullOrBlank()) {
+        InitialsAvatar(initials, avatarColors.background, avatarColors.foreground, avatarModifier)
+    } else {
+        SubcomposeAsyncImage(
+            model = ApiUrlResolver.resolve(imageUrl),
+            contentDescription = displayName,
+            contentScale = ContentScale.Crop,
+            modifier = avatarModifier,
+            loading = {
+                InitialsAvatar(initials, avatarColors.background, avatarColors.foreground)
+            },
+            error = {
+                InitialsAvatar(initials, avatarColors.background, avatarColors.foreground)
+            },
+            success = { SubcomposeAsyncImageContent() }
+        )
+    }
+}
+
+@Composable
+private fun InitialsAvatar(
+    initials: String,
+    backgroundColor: Color,
+    foregroundColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .background(backgroundColor)
+            .size(96.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initials,
+            color = foregroundColor,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
