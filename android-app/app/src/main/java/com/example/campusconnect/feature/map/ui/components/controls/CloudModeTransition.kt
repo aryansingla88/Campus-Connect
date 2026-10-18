@@ -67,6 +67,36 @@ class CloudTransitionState {
             isRunning = pendingTransitions > 0
         }
     }
+
+    suspend fun run(action: suspend () -> Unit) {
+        pendingTransitions += 1
+        isRunning = true
+
+        try {
+            transitionMutex.withLock {
+                // Cover the screen with clouds.
+                progress.animateTo(
+                    1f,
+                    tween(900, easing = FastOutSlowInEasing)
+                )
+
+                // Change map mode while the map is covered.
+                action()
+
+                delay(200)
+
+                // Reveal the new mode.
+                progress.animateTo(
+                    0f,
+                    tween(900, easing = FastOutSlowInEasing)
+                )
+            }
+        } finally {
+            pendingTransitions -= 1
+            isRunning = pendingTransitions > 0
+        }
+    }
+    
 }
 
 val LocalCloudTransitionState = staticCompositionLocalOf<CloudTransitionState> {
