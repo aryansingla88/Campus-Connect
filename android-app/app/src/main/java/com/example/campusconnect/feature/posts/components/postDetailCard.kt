@@ -39,7 +39,8 @@ fun PostDetailCard(
     commentCount: Int,
     onUpvoteClick: () -> Unit = {},
     onDownvoteClick: () -> Unit = {},
-    onDeleteClick: () -> Unit = {}
+    onDeleteClick: () -> Unit = {},
+    onEditClick: () -> Unit = {}
 ) {
     var showMenu by remember(post.id) { mutableStateOf(false) }
 
@@ -111,6 +112,7 @@ fun PostDetailCard(
 
                         color = HintColor
                     )
+                    if (post.isEdited) Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 if (post.canDelete) {
@@ -128,6 +130,10 @@ fun PostDetailCard(
                                 expanded = showMenu,
                                 onDismissRequest = { showMenu = false }
                             ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Edit post") },
+                                        onClick = { showMenu = false; onEditClick() }
+                                    )
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text("Delete post") },
                                     onClick = { showMenu = false; onDeleteClick() }
@@ -257,7 +263,8 @@ fun PostDetailCard(
                     userVote = post.userVote,
 
                     onUpvoteClick = onUpvoteClick,
-                    onDownvoteClick = onDownvoteClick
+                    onDownvoteClick = onDownvoteClick,
+                    useLargeTouchTargets = true
                 )
 
                 Text(

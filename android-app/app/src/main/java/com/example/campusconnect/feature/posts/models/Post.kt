@@ -26,4 +26,5 @@ data class Post(
     val commentCount: Int,
 
     val canDelete: Boolean = false,
+    val isEdited: Boolean = false,
 )

@@ -59,6 +59,7 @@ import com.example.campusconnect.core.ui.theme.OrangePrimary
 import com.example.campusconnect.core.ui.theme.White
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.utils.toTemporaryImageFile
+import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 import kotlinx.coroutines.launch
 
@@ -66,6 +67,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CreatePostScreen(
     initialPostType: String = "GENERAL",
+    editPostId: Int? = null,
     onBackClick: () -> Unit,
     onPostCreated: () -> Unit,
     viewModel: FeedViewModel = FeedViewModel()
@@ -83,6 +85,8 @@ fun CreatePostScreen(
     var imageFile by remember { mutableStateOf<java.io.File?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var existingPost by remember(editPostId) { mutableStateOf<com.example.campusconnect.feature.posts.models.Post?>(null) }
+    var isLoadingPost by remember(editPostId) { mutableStateOf(editPostId != null) }
 
     val imagePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -94,7 +98,23 @@ fun CreatePostScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(editPostId) {
+        if (editPostId != null) {
+            viewModel.getPost(editPostId)
+                .onSuccess { post ->
+                    existingPost = post
+                    title = post.title
+                    body = post.body
+                    selectedTags = post.tags.map { it.id }.toSet()
+                    postType = initialPostType
+                    if (!post.canDelete) errorMessage = "Only the post author can edit this post."
+                }
+                .onFailure { errorMessage = it.message ?: "Failed to load post." }
+            isLoadingPost = false
+        }
+    }
+
+    LaunchedEffect(editPostId) {
         viewModel.getTags().onSuccess { tags = it }
             .onFailure { errorMessage = it.message ?: "Failed to load tags." }
     }
@@ -102,7 +122,7 @@ fun CreatePostScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create Post") },
+                title = { Text(if (editPostId == null) "Create Post" else "Edit Post") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
@@ -121,9 +141,9 @@ fun CreatePostScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Post type", style = MaterialTheme.typography.titleMedium)
+            if (editPostId == null) Text("Post type", style = MaterialTheme.typography.titleMedium)
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (editPostId == null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("GENERAL", "EVENTS", "CUSTOM").forEach { type ->
                     FilterChip(
                         selected = postType == type,
@@ -153,6 +173,7 @@ fun CreatePostScreen(
                     cursorColor = OrangePrimary
                 ),
                 onValueChange = { title = it },
+                readOnly = editPostId != null,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Title") },
                 singleLine = true,
@@ -211,7 +232,7 @@ fun CreatePostScreen(
                 }
             }
 
-            OutlinedButton(
+            if ((editPostId == null || existingPost != null) && existingPost?.imageUrl == null) OutlinedButton(
                 onClick = { imagePicker.launch("image/*") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -225,6 +246,15 @@ fun CreatePostScreen(
                 )
                 Spacer(Modifier.size(8.dp))
                 Text(if (imageUri == null) "Add image" else "Change image", color=OrangePrimary)
+            }
+
+            if (existingPost?.imageUrl != null) {
+                AsyncImage(
+                    model = resolvePostImageUrl(existingPost?.imageUrl),
+                    contentDescription = "Post image (read only)",
+                    modifier = Modifier.fillMaxWidth().height(220.dp),
+                    contentScale = ContentScale.Crop
+                )
             }
 
             imageUri?.let { uri ->
@@ -249,7 +279,7 @@ fun CreatePostScreen(
                 ),
                 onClick = {
                     errorMessage = when {
-                        title.isBlank() -> "Title is required."
+                        editPostId == null && title.isBlank() -> "Title is required."
                         body.isBlank() -> "Body is required."
                         selectedTags.isEmpty() -> "Select at least one tag."
                         else -> null
@@ -261,18 +291,18 @@ fun CreatePostScreen(
                     scope.launch {
                         val selected = tags.filter { selectedTags.contains(it.id) }
 
-                        println("IMAGE FILE = $imageFile")
-                        println("IMAGE EXISTS = ${imageFile?.exists()}")
-                        println("IMAGE SIZE = ${imageFile?.length()} bytes")
-                        println("IMAGE PATH = ${imageFile?.absolutePath}")
-
-                        viewModel.createPost(
-                            postType = postType,
-                            title = title.trim(),
-                            body = body.trim(),
-                            tags = selected,
-                            image = imageUri
-                        ).onSuccess {
+                        val result = if (editPostId != null) {
+                            viewModel.updatePost(editPostId, body.trim(), selected, imageUri)
+                        } else {
+                            viewModel.createPost(
+                                postType = postType,
+                                title = title.trim(),
+                                body = body.trim(),
+                                tags = selected,
+                                image = imageUri
+                            )
+                        }
+                        result.onSuccess {
                             onPostCreated()
                         }.onFailure {
                             errorMessage = it.message ?: "Failed to create post."
@@ -281,10 +311,10 @@ fun CreatePostScreen(
                         isLoading = false
                     }
                 },
-                enabled = !isLoading,
+                enabled = !isLoading && !isLoadingPost && (editPostId == null || existingPost?.canDelete == true),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isLoading) "Creating..." else "Create Post")
+                Text(when { isLoading -> if (editPostId == null) "Creating..." else "Saving..."; isLoadingPost -> "Loading..."; editPostId != null -> "Save Changes"; else -> "Create Post" })
             }
         }
     }

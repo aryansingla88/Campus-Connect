@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.posts.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,7 +24,8 @@ fun VoteSection(
 
     onUpvoteClick: () -> Unit,
 
-    onDownvoteClick: () -> Unit
+    onDownvoteClick: () -> Unit,
+    useLargeTouchTargets: Boolean = false
 ) {
     Row(
 
@@ -41,6 +43,7 @@ fun VoteSection(
                     Color.Unspecified,
 
             modifier = Modifier
+                .then(if (useLargeTouchTargets) Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp) else Modifier)
                 .clickable {
 
                 onUpvoteClick()
@@ -58,6 +61,7 @@ fun VoteSection(
                     Color.Unspecified,
 
             modifier = Modifier
+                .then(if (useLargeTouchTargets) Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp) else Modifier)
                 .clickable {
 
                 onDownvoteClick()

@@ -38,11 +38,11 @@ interface PostsRepository {
 
         postId: Int,
 
-        title: String,
-
         body : String,
 
-        tags: List<PostTag>
+        tags: List<PostTag>,
+
+        image: Uri?
     ): Result<Post>
 
     suspend fun deletePost(

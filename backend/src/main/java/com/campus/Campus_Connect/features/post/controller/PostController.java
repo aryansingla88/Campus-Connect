@@ -101,13 +101,19 @@ public class PostController {
         );
     }
 
-    @PutMapping("/{postId}")
+    @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<PostResponse> updatePost(
             @PathVariable Integer postId,
-            @RequestBody UpdatePostRequest request
+            @RequestParam("body") String body,
+            @RequestParam("tags") List<Integer> tags,
+            @RequestParam(value = "image", required = false) MultipartFile image
     ) {
 
-        PostResponse response = postService.updatePost(postId, request);
+        PostResponse response = postService.updatePost(
+                postId,
+                UpdatePostRequest.builder().body(body).tags(tags).build(),
+                image
+        );
 
         return ApiResponse.success(
                 response,

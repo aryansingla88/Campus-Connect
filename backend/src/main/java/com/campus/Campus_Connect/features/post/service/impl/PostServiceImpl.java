@@ -180,9 +180,9 @@ public class PostServiceImpl implements PostService {
     }
     @Transactional
     @Override
-    public PostResponse updatePost(Integer postId, UpdatePostRequest request) {
+    public PostResponse updatePost(Integer postId, UpdatePostRequest request, org.springframework.web.multipart.MultipartFile image) {
 
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdForUpdate(postId)
                 .orElseThrow(() ->
                         new PostNotFoundException("Post not found with id: " + postId)
                 );
@@ -196,6 +196,11 @@ public class PostServiceImpl implements PostService {
             throw new ForbiddenException("You are not allowed to edit this post.");
         }
 
+        if (request == null || request.getBody() == null || request.getBody().isBlank()
+                || request.getTags() == null || request.getTags().isEmpty()) {
+            throw new BadRequestException("Body and at least one tag are required.");
+        }
+
         // Validate tags
         List<PostTag> tags = postTagRepository.findAllById(request.getTags());
 
@@ -203,10 +208,26 @@ public class PostServiceImpl implements PostService {
             throw new BadRequestException("One or more tags are invalid.");
         }
 
-        // Update fields
-        post.setTitle(request.getTitle());
+        // The title is intentionally immutable after creation.
         post.setContentRaw(request.getBody());
         post.setTags(new HashSet<>(tags));
+
+        if (image != null && !image.isEmpty()) {
+            if (!post.getImages().isEmpty()) {
+                throw new BadRequestException("A post image cannot be replaced once added.");
+            }
+            String contentType = image.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                throw new BadRequestException("Only image files are allowed.");
+            }
+            String imagePath = mediaStorageService.store(image, MediaType.POST_IMAGE);
+            post.getImages().add(PostImage.builder()
+                    .post(post)
+                    .imageUrl(imagePath)
+                    .imageOrder(1)
+                    .createdAt(LocalDateTime.now())
+                    .build());
+        }
         post.setUpdatedAt(LocalDateTime.now());
 
         Post updatedPost = postRepository.save(post);

@@ -18,7 +18,6 @@ import com.example.campusconnect.feature.posts.models.PostTagCount
 
 import com.example.campusconnect.feature.posts.data.remote.request.CreateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdateCommentRequest
-import com.example.campusconnect.feature.posts.data.remote.request.UpdatePostRequest
 
 import kotlin.jvm.JvmSuppressWildcards
 
@@ -69,14 +68,18 @@ interface PostsApi {
         tags: List<@JvmSuppressWildcards RequestBody>
     ): Response<ApiResponse<Post>>
 
+    @Multipart
     @PUT("posts/{postId}")
     suspend fun updatePost(
 
         @Path("postId")
         postId: Int,
 
-        @Body
-        request: UpdatePostRequest
+        @Part("body") body: RequestBody,
+
+        @Part image: MultipartBody.Part?,
+
+        @Part("tags") tags: List<@JvmSuppressWildcards RequestBody>
 
     ): Response<ApiResponse<Post>>
 /*

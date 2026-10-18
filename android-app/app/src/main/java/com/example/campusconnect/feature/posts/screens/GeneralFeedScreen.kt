@@ -54,6 +54,7 @@ fun GeneralFeedScreen(
     initialTab: Int = 0,
     onPostClick: (Int) -> Unit,
     onCreatePostClick: () -> Unit,
+    onEditPostClick: (Int) -> Unit = {},
     refreshTrigger: Int = 0,
     viewModel: FeedViewModel = FeedViewModel()
 ) {
@@ -520,7 +521,8 @@ fun GeneralFeedScreen(
                                     onDeleteClick = {
                                         postToDelete = post
                                         deleteError = null
-                                    }
+                                    },
+                                    onEditClick = { onEditPostClick(post.id) }
 
                                 )
                             }

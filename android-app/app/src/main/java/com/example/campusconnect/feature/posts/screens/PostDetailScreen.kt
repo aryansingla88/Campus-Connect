@@ -35,17 +35,21 @@ import kotlinx.coroutines.launch
 @Composable
 fun PostDetailScreen(
     postId: Int,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onEditPost: (Int) -> Unit = {},
+    refreshTrigger: Int = 0
 ) {
     key(postId) {
-        PostDetailContent(postId, onBackClick)
+        PostDetailContent(postId, onBackClick, onEditPost, refreshTrigger)
     }
 }
 
 @Composable
 private fun PostDetailContent(
     postId: Int,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onEditPost: (Int) -> Unit,
+    refreshTrigger: Int
 ) {
     val viewModel: PostDetailViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
@@ -63,6 +67,7 @@ private fun PostDetailContent(
     var isDeleting by remember(postId) { mutableStateOf(false) }
     var deleteError by remember(postId) { mutableStateOf<String?>(null) }
     var voteError by remember(postId) { mutableStateOf<String?>(null) }
+    var isVoting by remember(postId) { mutableStateOf(false) }
     var commentToDelete by remember(postId) { mutableStateOf<Comment?>(null) }
     var isDeletingComment by remember(postId) { mutableStateOf(false) }
     var commentDeleteError by remember(postId) { mutableStateOf<String?>(null) }
@@ -71,7 +76,7 @@ private fun PostDetailContent(
     var isSavingCommentEdit by remember(postId) { mutableStateOf(false) }
     var commentEditError by remember(postId) { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(postId) {
+    LaunchedEffect(postId, refreshTrigger) {
         post = null
         isLoadingPost = true
         postLoadError = null
@@ -101,6 +106,56 @@ private fun PostDetailContent(
     }
 
     val topLevelComments = commentsForPost.filter { it.parentCommentId == null }
+
+    suspend fun submitVote(voteType: VoteType) {
+        val currentPost = post ?: return
+        if (isVoting) return
+
+        isVoting = true
+        voteError = null
+        try {
+            val result = when {
+                currentPost.userVote == voteType -> viewModel.removePostVote(postId)
+                voteType == VoteType.UPVOTE -> viewModel.upvotePost(postId)
+                else -> viewModel.downvotePost(postId)
+            }
+
+            result.onSuccess {
+                post = post?.let { latest ->
+                    when (voteType) {
+                        VoteType.UPVOTE -> when (latest.userVote) {
+                            VoteType.UPVOTE -> latest.copy(
+                                upvotes = (latest.upvotes - 1).coerceAtLeast(0),
+                                userVote = null
+                            )
+                            VoteType.DOWNVOTE -> latest.copy(
+                                upvotes = latest.upvotes + 1,
+                                downvotes = (latest.downvotes - 1).coerceAtLeast(0),
+                                userVote = VoteType.UPVOTE
+                            )
+                            null -> latest.copy(upvotes = latest.upvotes + 1, userVote = VoteType.UPVOTE)
+                        }
+                        VoteType.DOWNVOTE -> when (latest.userVote) {
+                            VoteType.DOWNVOTE -> latest.copy(
+                                downvotes = (latest.downvotes - 1).coerceAtLeast(0),
+                                userVote = null
+                            )
+                            VoteType.UPVOTE -> latest.copy(
+                                upvotes = (latest.upvotes - 1).coerceAtLeast(0),
+                                downvotes = latest.downvotes + 1,
+                                userVote = VoteType.DOWNVOTE
+                            )
+                            null -> latest.copy(downvotes = latest.downvotes + 1, userVote = VoteType.DOWNVOTE)
+                        }
+                    }
+                }
+            }.onFailure { error ->
+                voteError = error.message ?: "Couldn't update your vote."
+            }
+        } finally {
+            isVoting = false
+        }
+    }
 
     fun startCommentEdit(comment: Comment) {
         if (!isSavingCommentEdit && comment.canEdit && !comment.isDeleted) {
@@ -172,42 +227,9 @@ private fun PostDetailContent(
                         post = currentPost,
                         commentCount = commentsForPost.size,
                         onDeleteClick = { showDeleteConfirmation = true },
-                        onUpvoteClick = {
-                            coroutineScope.launch {
-                                voteError = null
-                                val result = if (currentPost.userVote == VoteType.UPVOTE) {
-                                    viewModel.removePostVote(postId)
-                                } else viewModel.upvotePost(postId)
-                                result.onSuccess {
-                                    post = post?.let { current ->
-                                        when (current.userVote) {
-                                            VoteType.UPVOTE -> current.copy(upvotes = (current.upvotes - 1).coerceAtLeast(0), userVote = null)
-                                            VoteType.DOWNVOTE -> current.copy(upvotes = current.upvotes + 1, downvotes = (current.downvotes - 1).coerceAtLeast(0), userVote = VoteType.UPVOTE)
-                                            null -> current.copy(upvotes = current.upvotes + 1, userVote = VoteType.UPVOTE)
-                                        }
-                                    }
-                                }
-                                result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
-                            }
-                        },
-                        onDownvoteClick = {
-                            coroutineScope.launch {
-                                voteError = null
-                                val result = if (currentPost.userVote == VoteType.DOWNVOTE) {
-                                    viewModel.removePostVote(postId)
-                                } else viewModel.downvotePost(postId)
-                                result.onSuccess {
-                                    post = post?.let { current ->
-                                        when (current.userVote) {
-                                            VoteType.DOWNVOTE -> current.copy(downvotes = (current.downvotes - 1).coerceAtLeast(0), userVote = null)
-                                            VoteType.UPVOTE -> current.copy(upvotes = (current.upvotes - 1).coerceAtLeast(0), downvotes = current.downvotes + 1, userVote = VoteType.DOWNVOTE)
-                                            null -> current.copy(downvotes = current.downvotes + 1, userVote = VoteType.DOWNVOTE)
-                                        }
-                                    }
-                                }
-                                result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
-                            }
-                        }
+                        onEditClick = { onEditPost(postId) },
+                        onUpvoteClick = { coroutineScope.launch { submitVote(VoteType.UPVOTE) } },
+                        onDownvoteClick = { coroutineScope.launch { submitVote(VoteType.DOWNVOTE) } }
                     )
                 }
                 voteError?.let { message ->

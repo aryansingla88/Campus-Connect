@@ -79,6 +79,8 @@ public class PostMapper {
                 .userVote(userVote)
                 .commentCount(commentCount)
                 .createdAt(post.getCreatedAt())
+                .isEdited(post.getUpdatedAt() != null && post.getCreatedAt() != null
+                        && post.getUpdatedAt().isAfter(post.getCreatedAt().plusSeconds(1)))
                 .canDelete(canDelete)
                 .build();
     }

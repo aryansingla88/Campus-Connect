@@ -15,6 +15,7 @@ const val POSTS_FEED_ROUTE = "posts"
 const val EVENTS_FEED_ROUTE = "posts/events"
 const val POST_DETAIL_ROUTE = "post_detail/{postId}"
 const val CREATE_POST_ROUTE = "create_post/{postType}"
+private const val EDIT_POST_ROUTE = "edit_post/{postId}"
 
 private const val CREATE_POST_ROUTE_BASE = "create_post"
 private const val POST_REFRESH_KEY = "post_refresh"
@@ -61,7 +62,31 @@ fun NavGraphBuilder.postNav(navController: NavController) {
         )
     }
 
+    composable(
+        route = EDIT_POST_ROUTE,
+        arguments = listOf(navArgument("postId") { type = NavType.IntType })
+    ) { backStackEntry ->
+        val postId = backStackEntry.arguments?.getInt("postId")
+        if (postId != null) {
+            CreatePostScreen(
+                editPostId = postId,
+                onBackClick = { navController.popBackStack() },
+                onPostCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.let { state ->
+                            state[POST_REFRESH_KEY] = (state.get<Int>(POST_REFRESH_KEY) ?: 0) + 1
+                        }
+                    navController.popBackStack()
+                }
+            )
+        }
+    }
+
     composable(POST_DETAIL_ROUTE) { backStackEntry ->
+        val refreshTrigger by backStackEntry.savedStateHandle
+            .getStateFlow(POST_REFRESH_KEY, 0)
+            .collectAsState()
         val postId = backStackEntry.arguments
             ?.getString("postId")
             ?.toIntOrNull()
@@ -69,7 +94,14 @@ fun NavGraphBuilder.postNav(navController: NavController) {
         if (postId != null) {
             PostDetailScreen(
                 postId = postId,
-                onBackClick = { navController.popBackStack() }
+                refreshTrigger = refreshTrigger,
+                onBackClick = {
+                    navController.previousBackStackEntry?.savedStateHandle?.let { state ->
+                        state[POST_REFRESH_KEY] = (state.get<Int>(POST_REFRESH_KEY) ?: 0) + 1
+                    }
+                    navController.popBackStack()
+                },
+                onEditPost = { id -> navController.navigate("edit_post/$id") }
             )
         }
     }
@@ -94,7 +126,8 @@ private fun NavGraphBuilder.feedDestination(
             },
             onCreatePostClick = {
                 navController.navigate("$CREATE_POST_ROUTE_BASE/$postType")
-            }
+            },
+            onEditPostClick = { postId -> navController.navigate("edit_post/$postId") }
         )
     }
 }

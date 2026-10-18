@@ -58,7 +58,8 @@ fun PostCard(
 
     onDownvoteClick: () -> Unit,
 
-    onDeleteClick: () -> Unit = {}
+    onDeleteClick: () -> Unit = {},
+    onEditClick: () -> Unit = {}
 ) {
     var showMenu by remember(post.id) { mutableStateOf(false) }
 
@@ -164,6 +165,7 @@ fun PostCard(
 
                             color = HintColor
                         )
+                        if (post.isEdited) Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
                     }
                 }
 
@@ -197,6 +199,10 @@ fun PostCard(
                                 )
                             ) {
                                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text("Edit post") },
+                                        onClick = { showMenu = false; onEditClick() }
+                                    )
                                     DropdownMenuItem(
                                         text = { Text("Delete post") },
                                         onClick = { showMenu = false; onDeleteClick() }
