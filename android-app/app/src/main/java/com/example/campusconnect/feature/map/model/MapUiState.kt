@@ -1,11 +1,14 @@
 package com.example.campusconnect.feature.map.model
 
+import com.example.campusconnect.core.location.model.LocationStatus
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 
 data class MapUiState(
     val mode: MapMode = MapMode.HOME,
     val markers: List<MapMarker> = emptyList(),
     val renderMarkers: List<MapMarker> = emptyList(),
+    val localLocationMarker: LocalUserMarkerData? = null,
+    val locationStatus: LocationStatus = LocationStatus.Unavailable,
 
     val selectedMarkerId: String? = null,
     val selectedMarker: MapMarker? = null,

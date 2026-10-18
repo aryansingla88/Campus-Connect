@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.map.data.repo
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.map.data.remote.MapApi
 import com.example.campusconnect.feature.map.data.PoiRepository
+import com.example.campusconnect.feature.map.data.remote.request.UpdatePresenceRequest
 import com.example.campusconnect.feature.map.data.mapper.MapEventMapper
 import com.example.campusconnect.feature.map.data.mapper.MapPoiMapper
 import com.example.campusconnect.feature.map.data.mapper.MapUserMapper
@@ -48,6 +49,18 @@ class ApiMapRepo(
             MarkerType.SHOP -> temporaryShopMarkers()
             null -> loadAllMarkers()
         }
+    }
+
+    override suspend fun updateMyPresence(
+        latitude: Double,
+        longitude: Double,
+        bearerToken: String
+    ): Result<Unit> = runCatching {
+        val response = api.updateMyPresence(
+            request = UpdatePresenceRequest(latitude = latitude, longitude = longitude),
+            authorization = "Bearer $bearerToken"
+        )
+        if (!response.success) error(response.message ?: "Unable to update presence")
     }
 
     private suspend fun loadAllMarkers(): List<MapMarker> = coroutineScope {

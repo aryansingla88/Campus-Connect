@@ -44,6 +44,7 @@ fun <T : MapMarkerItem> MapView(
     viewportState: MapViewportState = rememberMapViewportState(),
     markers: List<T> = emptyList(),
     markerPriority: (T) -> Int = { 0 },
+    isMarkerTappable: (T) -> Boolean = { true },
     markerPainter: MarkerCanvasPainter<T> = StandardMarkerPainter,
     onMarkerClick: (String) -> Unit = {},
     onMapTap: (Float, Float) -> Unit = { _, _ -> },
@@ -259,12 +260,16 @@ fun <T : MapMarkerItem> MapView(
             }
         }
 
+        val tappableMarkers = remember(visibleMarkers, isMarkerTappable) {
+            visibleMarkers.filter(isMarkerTappable)
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .mapGestureHandler(
                     viewportState = viewportState,
-                    tappableMarkers = visibleMarkers,
+                    tappableMarkers = tappableMarkers,
                     bounds = bounds,
                     scale = currentScale,
                     offset = currentOffset,

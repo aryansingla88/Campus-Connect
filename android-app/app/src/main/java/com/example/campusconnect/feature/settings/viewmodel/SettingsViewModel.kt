@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
+import com.example.campusconnect.core.location.TrackingMode
+import com.example.campusconnect.core.location.TrackingModePreferences
 import com.example.campusconnect.feature.settings.model.*
 
 // --- Which modal sheet (if any) is currently showing over the Settings list -----------
@@ -13,7 +15,7 @@ import com.example.campusconnect.feature.settings.model.*
 // Select Clubs from within Location Visibility, then closing it, returns to Location
 // Visibility rather than closing everything.
 enum class SettingsSheet {
-    LOCATION_VISIBILITY, SELECT_CLUBS, APP_APPEARANCE, LANGUAGE, DELETE_ACCOUNT
+    LOCATION_VISIBILITY, SELECT_CLUBS, LOCATION_TRACKING_MODE, APP_APPEARANCE, LANGUAGE, DELETE_ACCOUNT
 }
 
 // --- Settings screen state holder --------------------------------------------------
@@ -33,6 +35,12 @@ class SettingsViewModel : ViewModel() {
 
     fun openSheet(sheet: SettingsSheet) { activeSheet = sheet }
     fun closeSheet() { activeSheet = null }
+
+    val trackingMode = TrackingModePreferences.mode
+
+    fun selectTrackingMode(mode: TrackingMode) {
+        TrackingModePreferences.setMode(mode)
+    }
 
     // --- Profile Visibility (full screen) -------------------------------------------
     val alwaysVisibleFields: List<AlwaysVisibleField> = ProfileVisibilityDefaults.alwaysVisibleFields()

@@ -85,7 +85,8 @@ interface MapApi {
 
     @PATCH("map/presence/me")
     suspend fun updateMyPresence(
-        @Body request: UpdatePresenceRequest
+        @Body request: UpdatePresenceRequest,
+        @Header("Authorization") authorization: String
     ): ApiResponse<PresenceResponse>
 
     @GET("map/presence/me")

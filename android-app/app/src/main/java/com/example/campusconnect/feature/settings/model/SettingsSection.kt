@@ -101,6 +101,14 @@ object SettingsContent {
                     iconBackground = IconRedBg
                 ),
                 SettingsItem(
+                    id = SettingsItemId.LOCATION_TRACKING_MODE,
+                    title = "Location Tracking Mode",
+                    subtitle = "Choose a balance between battery life and accuracy",
+                    icon = Icons.Outlined.MyLocation,
+                    iconTint = IconOrange,
+                    iconBackground = IconOrangeBg
+                ),
+                SettingsItem(
                     id = SettingsItemId.APP_APPEARANCE,
                     title = "App Appearance",
                     subtitle = "Light, dark or system theme",

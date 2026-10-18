@@ -26,11 +26,10 @@ object RetrofitClient {
 
         val builder = chain.request().newBuilder()
 
-        SessionManager.getToken()?.takeIf { it.isNotBlank() }?.let { token ->
-            builder.addHeader(
-                ApiConfig.HEADER_AUTH,
-                "Bearer $token"
-            )
+        if (builder.build().header(ApiConfig.HEADER_AUTH) == null) {
+            SessionManager.getToken()?.takeIf { it.isNotBlank() }?.let { token ->
+                builder.header(ApiConfig.HEADER_AUTH, "Bearer $token")
+            }
         }
 
         builder.addHeader(
@@ -42,7 +41,9 @@ object RetrofitClient {
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        redactHeader(ApiConfig.HEADER_AUTH)
+        // Presence requests contain precise coordinates. Do not log request/response bodies.
+        level = HttpLoggingInterceptor.Level.HEADERS
     }
 
     // OkHttp client ---------------------------------------------

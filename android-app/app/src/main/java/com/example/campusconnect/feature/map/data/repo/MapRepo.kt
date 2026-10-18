@@ -17,6 +17,12 @@ interface MapRepo {
         poiCategory: String? = null
     ): Result<List<MapMarker>>
 
+    suspend fun updateMyPresence(
+        latitude: Double,
+        longitude: Double,
+        bearerToken: String
+    ): Result<Unit>
+
     // Backend user ID
     suspend fun getUserProfile(
         userId: Int

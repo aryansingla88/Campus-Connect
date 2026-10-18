@@ -6,6 +6,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,6 +26,7 @@ import com.example.campusconnect.feature.settings.ui.sheets.LanguageSheet
 import com.example.campusconnect.feature.settings.ui.sheets.LocationVisibilityFlowSheet
 import com.example.campusconnect.feature.settings.viewmodel.SettingsSheet
 import com.example.campusconnect.feature.settings.viewmodel.SettingsViewModel
+import com.example.campusconnect.feature.settings.ui.sheets.LocationTrackingModeSheet
 
 //-------------------------------
 // Settings Screen
@@ -45,6 +48,7 @@ fun SettingsScreen(
     onConfirmDeleteAccount: () -> Unit = {},
     vm: SettingsViewModel = viewModel()
 ) {
+    val trackingMode by vm.trackingMode.collectAsState()
     val fullScreenIds = remember {
         setOf(
             SettingsItemId.PROFILE_VISIBILITY,
@@ -57,6 +61,7 @@ fun SettingsScreen(
     fun handleClick(item: SettingsItem) {
         when {
             item.id == SettingsItemId.LOCATION_VISIBILITY -> vm.openSheet(SettingsSheet.LOCATION_VISIBILITY)
+            item.id == SettingsItemId.LOCATION_TRACKING_MODE -> vm.openSheet(SettingsSheet.LOCATION_TRACKING_MODE)
             item.id == SettingsItemId.APP_APPEARANCE -> vm.openSheet(SettingsSheet.APP_APPEARANCE)
             item.id == SettingsItemId.LANGUAGE -> vm.openSheet(SettingsSheet.LANGUAGE)
             item.id == SettingsItemId.DELETE_ACCOUNT -> vm.openSheet(SettingsSheet.DELETE_ACCOUNT)
@@ -147,6 +152,14 @@ fun SettingsScreen(
                 onSelect = vm::selectLanguage,
                 onDismiss = vm::closeSheet,
                 onDone = vm::closeSheet
+            )
+        }
+
+        SettingsSheet.LOCATION_TRACKING_MODE -> {
+            LocationTrackingModeSheet(
+                selectedMode = trackingMode,
+                onSelectMode = vm::selectTrackingMode,
+                onDismiss = vm::closeSheet
             )
         }
 
