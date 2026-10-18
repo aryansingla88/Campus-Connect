@@ -9,6 +9,14 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,8 +36,12 @@ fun PostDetailCard(
 
     post: Post,
 
-    commentCount: Int
+    commentCount: Int,
+    onUpvoteClick: () -> Unit = {},
+    onDownvoteClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
 ) {
+    var showMenu by remember(post.id) { mutableStateOf(false) }
 
     ElevatedCard(
 
@@ -99,6 +111,30 @@ fun PostDetailCard(
 
                         color = HintColor
                     )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                if (post.canDelete) {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "Post options", tint = HintColor)
+                        }
+                        MaterialTheme(
+                            colorScheme = MaterialTheme.colorScheme.copy(
+                                surface = OrangeLight,
+                                primary = OrangePrimary
+                            )
+                        ) {
+                            androidx.compose.material3.DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("Delete post") },
+                                    onClick = { showMenu = false; onDeleteClick() }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -220,13 +256,8 @@ fun PostDetailCard(
 
                     userVote = post.userVote,
 
-                    onUpvoteClick = {
-
-                    },
-
-                    onDownvoteClick = {
-
-                    }
+                    onUpvoteClick = onUpvoteClick,
+                    onDownvoteClick = onDownvoteClick
                 )
 
                 Text(

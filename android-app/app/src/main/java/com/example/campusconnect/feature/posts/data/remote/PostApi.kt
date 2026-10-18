@@ -12,6 +12,7 @@ import retrofit2.http.*
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.feature.posts.models.CommentDeleteResponse
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
 
@@ -138,7 +139,7 @@ DELETE https://myserver.com/posts/5
         @Path("commentId")
         commentId: Int
 
-    ): Response<ApiResponse<Unit>>
+    ): Response<ApiResponse<CommentDeleteResponse>>
 
 
     // Voting -------------------------------------------------------------

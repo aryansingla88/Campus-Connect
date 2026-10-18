@@ -24,4 +24,6 @@ data class Post(
     val createdAt: String,
 
     val commentCount: Int,
+
+    val canDelete: Boolean = false,
 )

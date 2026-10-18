@@ -6,6 +6,7 @@ import com.example.campusconnect.feature.posts.data.repo.ApiPostsRepository
 import com.example.campusconnect.feature.posts.data.repo.PostsRepository
 
 import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.feature.posts.models.CommentDeleteResponse
 import com.example.campusconnect.feature.posts.models.Post
 
 
@@ -65,4 +66,18 @@ class PostDetailViewModel(
     ): Result<Comment> {
         return repository.createReply(postId, parentCommentId, body)
     }
+
+    suspend fun updateComment(commentId: Int, body: String): Result<Comment> =
+        repository.updateComment(commentId, body)
+
+    suspend fun deleteComment(commentId: Int): Result<CommentDeleteResponse> =
+        repository.deleteComment(commentId)
+
+    suspend fun deletePost(postId: Int): Result<Unit> = repository.deletePost(postId)
+
+    suspend fun upvotePost(postId: Int): Result<Unit> = repository.upvotePost(postId)
+
+    suspend fun downvotePost(postId: Int): Result<Unit> = repository.downvotePost(postId)
+
+    suspend fun removePostVote(postId: Int): Result<Unit> = repository.removePostVote(postId)
 }

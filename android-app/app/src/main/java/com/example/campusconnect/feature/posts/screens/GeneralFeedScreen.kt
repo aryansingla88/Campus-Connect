@@ -21,6 +21,8 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -89,6 +91,12 @@ fun GeneralFeedScreen(
         mutableStateOf<String?>(null)
     }
 
+    var voteError by remember { mutableStateOf<String?>(null) }
+
+    var postToDelete by remember { mutableStateOf<Post?>(null) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
+
     LaunchedEffect(refreshTrigger) {
         isLoading = true
         errorMessage = null
@@ -127,6 +135,8 @@ fun GeneralFeedScreen(
 
 
     suspend fun handleUpvote(post: Post) {
+
+        voteError = null
 
         val result =
 
@@ -187,10 +197,13 @@ fun GeneralFeedScreen(
                 }
             }
         }
+        result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
     }
 
 
     suspend fun handleDownvote(post: Post) {
+
+        voteError = null
 
         val result =
 
@@ -251,6 +264,7 @@ fun GeneralFeedScreen(
                 }
             }
         }
+        result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
     }
 
 
@@ -461,6 +475,10 @@ fun GeneralFeedScreen(
 
                         ) {
 
+                            voteError?.let { message ->
+                                item(key = "vote-error") { Text(message, color = ErrorRed) }
+                            }
+
                             if (isLoading && posts.isEmpty()) {
                                 item { Text("Loading posts…") }
                             } else if (errorMessage != null && posts.isEmpty()) {
@@ -498,6 +516,10 @@ fun GeneralFeedScreen(
 
                                             handleDownvote(post)
                                         }
+                                    },
+                                    onDeleteClick = {
+                                        postToDelete = post
+                                        deleteError = null
                                     }
 
                                 )
@@ -527,5 +549,55 @@ fun GeneralFeedScreen(
                 }
             }
         }
+    }
+
+    postToDelete?.let { post ->
+        AlertDialog(
+            onDismissRequest = { if (!isDeleting) postToDelete = null },
+            title = { Text("Delete post?") },
+            text = { Text("The post content and media will be removed. Its comments, replies, and votes will remain.") },
+            confirmButton = {
+                TextButton(
+                    enabled = !isDeleting,
+                    onClick = {
+                        isDeleting = true
+                        coroutineScope.launch {
+                            val deleteResult = viewModel.deletePost(post.id)
+                            deleteResult
+                                .onSuccess {
+                                    posts = posts.filterNot { current -> current.id == post.id }
+                                    postToDelete = null
+                                }
+                                .onFailure { deleteError = it.message ?: "Couldn't delete the post." }
+
+                            if (deleteResult.isSuccess) {
+                                countsLoading = true
+                                countsError = null
+                                tagCounts = null
+                                viewModel.getGeneralTagCounts()
+                                    .onSuccess { tagCounts = it }
+                                    .onFailure { countsError = it.message ?: "Failed to load topic counts" }
+                                countsLoading = false
+                            }
+                            isDeleting = false
+                        }
+                    }
+                ) { Text(if (isDeleting) "Deleting…" else "Delete") }
+            },
+            dismissButton = {
+                TextButton(enabled = !isDeleting, onClick = { postToDelete = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    deleteError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { deleteError = null; postToDelete = null },
+            title = { Text("Couldn't delete post") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { deleteError = null; postToDelete = null }) { Text("OK") }
+            }
+        )
     }
 }

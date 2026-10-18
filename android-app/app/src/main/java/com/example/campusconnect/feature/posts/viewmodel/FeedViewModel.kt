@@ -65,4 +65,6 @@ class FeedViewModel(
 
         return repository.removePostVote(postId)
     }
+
+    suspend fun deletePost(postId: Int): Result<Unit> = repository.deletePost(postId)
 }

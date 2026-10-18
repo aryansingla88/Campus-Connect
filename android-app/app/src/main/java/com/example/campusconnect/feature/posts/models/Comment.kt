@@ -14,5 +14,11 @@ data class Comment(
 
     val createdAt: String,
 
-    val replies: List<Comment> = emptyList()
+    val replies: List<Comment> = emptyList(),
+
+    val isDeleted: Boolean = false,
+
+    val canDelete: Boolean = false,
+
+    val canEdit: Boolean = false
 )

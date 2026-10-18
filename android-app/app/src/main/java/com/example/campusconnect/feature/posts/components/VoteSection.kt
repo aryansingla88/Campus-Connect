@@ -25,7 +25,6 @@ fun VoteSection(
 
     onDownvoteClick: () -> Unit
 ) {
-
     Row(
 
         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -41,7 +40,8 @@ fun VoteSection(
                 else
                     Color.Unspecified,
 
-            modifier = Modifier.clickable {
+            modifier = Modifier
+                .clickable {
 
                 onUpvoteClick()
             }
@@ -57,7 +57,8 @@ fun VoteSection(
                 else
                     Color.Unspecified,
 
-            modifier = Modifier.clickable {
+            modifier = Modifier
+                .clickable {
 
                 onDownvoteClick()
             }

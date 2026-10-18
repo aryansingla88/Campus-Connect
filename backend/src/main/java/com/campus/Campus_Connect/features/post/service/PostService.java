@@ -5,6 +5,7 @@ import com.campus.Campus_Connect.features.post.dto.request.CreatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.request.UpdateCommentRequest;
 import com.campus.Campus_Connect.features.post.dto.request.UpdatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.response.CommentResponse;
+import com.campus.Campus_Connect.features.post.dto.response.CommentDeleteResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagCountResponse;
@@ -33,7 +34,7 @@ public interface PostService {
 
     CommentResponse updateComment(Integer commentId, UpdateCommentRequest request);
 
-    void deleteComment(Integer commentId);
+    CommentDeleteResponse deleteComment(Integer commentId);
 
     void upvotePost(Integer postId);
 

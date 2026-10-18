@@ -13,6 +13,7 @@ import com.example.campusconnect.feature.posts.data.remote.request.CreateComment
 import com.example.campusconnect.feature.posts.data.remote.request.UpdateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdatePostRequest
 import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.feature.posts.models.CommentDeleteResponse
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
@@ -487,15 +488,15 @@ class ApiPostsRepository(
 
     override suspend fun deleteComment(
         commentId: Int
-    ): Result<Unit> {
+    ): Result<CommentDeleteResponse> {
 
         return try {
 
             val response = api.deleteComment(commentId)
 
-            if (response.isSuccessful) {
+            if (response.isSuccessful && response.body()?.data != null) {
 
-                Result.success(Unit)
+                Result.success(response.body()!!.data!!)
 
             } else {
 
