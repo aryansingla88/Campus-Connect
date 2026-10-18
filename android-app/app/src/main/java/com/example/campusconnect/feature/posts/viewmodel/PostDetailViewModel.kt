@@ -50,4 +50,19 @@ class PostDetailViewModel(
 
         return repository.getComments(postId)
     }
+
+    suspend fun createComment(
+        postId: Int,
+        body: String
+    ): Result<Comment> {
+        return repository.createComment(postId, body)
+    }
+
+    suspend fun createReply(
+        postId: Int,
+        parentCommentId: Int,
+        body: String
+    ): Result<Comment> {
+        return repository.createReply(postId, parentCommentId, body)
+    }
 }

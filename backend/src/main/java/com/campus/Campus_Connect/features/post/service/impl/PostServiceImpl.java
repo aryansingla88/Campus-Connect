@@ -1,6 +1,8 @@
 package com.campus.Campus_Connect.features.post.service.impl;
 
 import com.campus.Campus_Connect.common.security.SecurityUtils;
+import com.campus.Campus_Connect.common.exception.BadRequestException;
+import com.campus.Campus_Connect.common.exception.ForbiddenException;
 import com.campus.Campus_Connect.common.storage.MediaStorageService;
 import com.campus.Campus_Connect.common.storage.MediaType;
 import com.campus.Campus_Connect.features.post.dto.request.CreateCommentRequest;
@@ -10,6 +12,7 @@ import com.campus.Campus_Connect.features.post.dto.request.UpdatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.response.CommentResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
+import com.campus.Campus_Connect.features.post.dto.response.PostTagCountResponse;
 import com.campus.Campus_Connect.features.post.entity.*;
 import com.campus.Campus_Connect.features.post.exception.PostNotFoundException;
 import com.campus.Campus_Connect.features.post.mapper.PostMapper;
@@ -25,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,12 +53,25 @@ public class PostServiceImpl implements PostService {
 
         Integer currentUserId = SecurityUtils.getCurrentUserId();
 
-        return postRepository.findAllByOrderByCreatedAtDesc()
+        List<Post> posts = postRepository.findAllByPostTypeOrderByCreatedAtDesc("GENERAL");
+        if (posts.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> postIds = posts.stream().map(Post::getId).toList();
+        Map<Integer, Long> commentCounts = commentRepository.countByPostIds(postIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        CommentRepository.CommentCountProjection::getPostId,
+                        CommentRepository.CommentCountProjection::getCommentCount
+                ));
+
+        return posts
                 .stream()
                 .map(post -> postMapper.toPostResponse(
                         post,
                 currentUserId,
-                        commentRepository.countByPost(post)
+                        commentCounts.getOrDefault(post.getId(), 0L)
                 ))
                 .toList();
     }
@@ -78,6 +96,18 @@ public class PostServiceImpl implements PostService {
                 postTagRepository.findAllByOrderByNameAsc()
         );
     }
+
+    @Override
+    public List<PostTagCountResponse> getGeneralPostTagCounts() {
+        return postTagRepository.findGeneralPostCountsByTag()
+                .stream()
+                .map(tag -> PostTagCountResponse.builder()
+                        .id(tag.getId())
+                        .name(tag.getName())
+                        .postCount(tag.getPostCount())
+                        .build())
+                .toList();
+    }
     @Transactional
     @Override
     public PostResponse createPost(CreatePostRequest request) {
@@ -101,7 +131,7 @@ public class PostServiceImpl implements PostService {
         List<PostTag> tags = postTagRepository.findAllById(request.getTags());
 
         if (tags.size() != request.getTags().size()) {
-            throw new IllegalArgumentException("One or more tags are invalid.");
+            throw new BadRequestException("One or more tags are invalid.");
         }
 
         post.setTags(new HashSet<>(tags));
@@ -115,6 +145,11 @@ public class PostServiceImpl implements PostService {
 
         // Image
         if (request.getImage() != null && !request.getImage().isEmpty()) {
+
+            String contentType = request.getImage().getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                throw new BadRequestException("Only image files are allowed.");
+            }
 
             String imagePath =
                     mediaStorageService.store(
@@ -151,14 +186,14 @@ public class PostServiceImpl implements PostService {
 
         // Only creator can update
         if (!post.getCreator().getId().equals(SecurityUtils.getCurrentUserId())) {
-            throw new IllegalArgumentException("You are not allowed to edit this post.");
+            throw new ForbiddenException("You are not allowed to edit this post.");
         }
 
         // Validate tags
         List<PostTag> tags = postTagRepository.findAllById(request.getTags());
 
         if (tags.size() != request.getTags().size()) {
-            throw new IllegalArgumentException("One or more tags are invalid.");
+            throw new BadRequestException("One or more tags are invalid.");
         }
 
         // Update fields
@@ -186,7 +221,7 @@ public class PostServiceImpl implements PostService {
 
         // Only creator can delete
         if (!post.getCreator().getId().equals(SecurityUtils.getCurrentUserId())) {
-            throw new IllegalArgumentException("You are not allowed to delete this post.");
+            throw new ForbiddenException("You are not allowed to delete this post.");
         }
 
         postRepository.delete(post);

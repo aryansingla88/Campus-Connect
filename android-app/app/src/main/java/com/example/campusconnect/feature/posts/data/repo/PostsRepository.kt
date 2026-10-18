@@ -6,6 +6,7 @@ import android.net.Uri
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
+import com.example.campusconnect.feature.posts.models.PostTagCount
 
 interface PostsRepository {
 
@@ -14,6 +15,8 @@ interface PostsRepository {
     suspend fun getPosts(): Result<List<Post>>
 
     suspend fun getTags(): Result<List<PostTag>>
+
+    suspend fun getGeneralTagCounts(): Result<List<PostTagCount>>
 
     suspend fun getPost(
         postId: Int

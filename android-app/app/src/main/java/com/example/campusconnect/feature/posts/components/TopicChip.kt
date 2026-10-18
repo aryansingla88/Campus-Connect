@@ -28,7 +28,7 @@ fun TopicChip(
 
     tag: PostTag,
 
-    postCount: Int,
+    postCount: Long?,
 
     isSelected: Boolean,
 
@@ -96,7 +96,7 @@ fun TopicChip(
 
         Text(
 
-            text = postCount.toString(),
+            text = postCount?.toString() ?: "…",
 
             color =
                 if (isSelected)

@@ -1,5 +1,4 @@
 package com.example.campusconnect.feature.posts.components
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 

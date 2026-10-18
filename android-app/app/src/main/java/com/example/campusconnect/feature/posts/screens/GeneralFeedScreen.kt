@@ -10,8 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,9 +38,9 @@ import com.example.campusconnect.core.ui.theme.*
 import com.example.campusconnect.feature.posts.components.FeedTopBar
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
+import com.example.campusconnect.feature.posts.models.PostTagCount
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
-import com.example.campusconnect.feature.posts.data.repo.ApiPostsRepository
 import com.example.campusconnect.feature.posts.models.VoteType
 import kotlinx.coroutines.launch
 
@@ -42,8 +48,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralFeedScreen(
-    onPostClick: (Int) -> Unit,
+
     initialTab: Int = 0,
+    onPostClick: (Int) -> Unit,
+    onCreatePostClick: () -> Unit,
+    refreshTrigger: Int = 0,
     viewModel: FeedViewModel = FeedViewModel()
 ) {
     var posts by remember {
@@ -56,6 +65,22 @@ fun GeneralFeedScreen(
         mutableStateOf<List<PostTag>>(emptyList())
     }
 
+    var tagCounts by remember {
+        mutableStateOf<List<PostTagCount>?>(null)
+    }
+
+    var countsLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var countsError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var tagsError by remember {
+        mutableStateOf<String?>(null)
+    }
+
     var isLoading by remember {
         mutableStateOf(true)
     }
@@ -64,8 +89,9 @@ fun GeneralFeedScreen(
         mutableStateOf<String?>(null)
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshTrigger) {
         isLoading = true
+        errorMessage = null
 
         viewModel.getPosts()
             .onSuccess {
@@ -75,10 +101,26 @@ fun GeneralFeedScreen(
                 errorMessage = it.message ?: "Failed to load posts"
             }
 
+        tagsError = null
         viewModel.getTags()
             .onSuccess {
                 tags = it
             }
+            .onFailure {
+                tagsError = it.message ?: "Failed to load topics"
+            }
+
+        countsLoading = true
+        countsError = null
+        tagCounts = null
+        viewModel.getGeneralTagCounts()
+            .onSuccess {
+                tagCounts = it
+            }
+            .onFailure {
+                countsError = it.message ?: "Failed to load topic counts"
+            }
+        countsLoading = false
 
         isLoading = false
     }
@@ -216,14 +258,14 @@ fun GeneralFeedScreen(
         mutableIntStateOf(initialTab)
     }
 
-    var selectedTopic by remember {
+    var selectedTopicId by remember {
 
-        mutableStateOf<String?>(null)
+        mutableStateOf<Int?>(null)
     }
 
     val filteredPosts =
 
-        if (selectedTopic == null) {
+        if (selectedTopicId == null) {
 
             posts
         }
@@ -233,12 +275,24 @@ fun GeneralFeedScreen(
 
                 it.tags.any { tag ->
 
-                    tag.name == selectedTopic
+                    tag.id == selectedTopicId
                 }
             }
         }
 
     Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onCreatePostClick,
+                containerColor = OrangePrimary
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Outlined.Add,
+                    contentDescription = "Create post",
+                    tint = Color.White
+                )
+            }
+        },
         bottomBar = {
 
             NavigationBar(
@@ -356,20 +410,27 @@ fun GeneralFeedScreen(
                             }
                         )
 
-                        // When a topic chip is clicked, update selectedTopic with that topic's name.
-                        // This triggers recomposition, causing filteredPosts to be recalculated and
-                        // only posts matching the selected topic to be displayed.
                         TopicChipsRow(
 
                             tags = tags,
 
-                            selectedTopic = selectedTopic,
+                            tagCounts = tagCounts,
+
+                            countsLoading = countsLoading,
+
+                            countsError = countsError,
+
+                            selectedTopic = selectedTopicId,
 
                             onTopicSelected = {
 
-                                selectedTopic = it
+                                selectedTopicId = it
                             }
                         )
+
+                        tagsError?.let { message ->
+                            Text("Topics unavailable: $message")
+                        }
 
                         /*
                         In Jetpack Compose, LazyColumn is a vertically scrolling list that only renders
@@ -400,7 +461,18 @@ fun GeneralFeedScreen(
 
                         ) {
 
-                            items(filteredPosts) { post ->
+                            if (isLoading && posts.isEmpty()) {
+                                item { Text("Loading posts…") }
+                            } else if (errorMessage != null && posts.isEmpty()) {
+                                item { Text(errorMessage!!) }
+                            } else if (filteredPosts.isEmpty()) {
+                                item {
+                                    Text(
+                                        if (selectedTopicId == null) "No posts yet."
+                                        else "No posts for this topic."
+                                    )
+                                }
+                            } else items(filteredPosts) { post ->
 
                                 com.example.campusconnect.feature.posts.components.PostCard(
 

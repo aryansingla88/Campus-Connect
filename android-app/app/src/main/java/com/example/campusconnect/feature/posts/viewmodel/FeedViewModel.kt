@@ -1,11 +1,14 @@
 package com.example.campusconnect.feature.posts.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import com.example.campusconnect.feature.posts.data.repo.ApiPostsRepository
 
 import com.example.campusconnect.feature.posts.data.repo.PostsRepository
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
+import com.example.campusconnect.feature.posts.models.PostTagCount
+import java.io.File
 class FeedViewModel(
     private val repository: PostsRepository = ApiPostsRepository()
 ) : ViewModel() {
@@ -25,6 +28,21 @@ class FeedViewModel(
     suspend fun getTags(): Result<List<PostTag>> {
 
         return repository.getTags()
+    }
+
+    suspend fun getGeneralTagCounts(): Result<List<PostTagCount>> {
+        return repository.getGeneralTagCounts()
+    }
+
+    suspend fun createPost(
+        postType: String,
+        title: String,
+        body: String,
+        tags: List<PostTag>,
+        image: Uri?
+    ): Result<Post> {
+        return repository.createPost(postType, title, body, tags, image)
+
     }
 
     suspend fun upvotePost(

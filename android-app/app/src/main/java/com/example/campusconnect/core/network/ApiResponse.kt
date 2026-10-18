@@ -7,4 +7,5 @@ data class ApiResponse<T>(
     @SerializedName("success") val success : Boolean,
     @SerializedName("data")    val data    : T?,
     @SerializedName("message") val message : String?,
-)
+
+    )
