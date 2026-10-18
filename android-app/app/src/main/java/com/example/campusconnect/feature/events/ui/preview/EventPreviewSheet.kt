@@ -5,15 +5,49 @@ package com.example.campusconnect.feature.events.ui.preview
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,11 +72,12 @@ private val HintColor     = Color(0xFFAAAAAA)
  *
  * Sync strategy — avoids the feedback loop:
  *  • Marker tap  → [activeIndex] changes → [LaunchedEffect] scrolls pager
- *                  → we set [markerTriggered] = true so the settle callback
+ *                  → we set markerTriggered = true so the settle callback
  *                    knows NOT to call [onPageChanged] for that scroll.
- *  • Pager swipe → settle detected via [snapshotFlow] on [isScrollInProgress]
- *                  → only calls [onPageChanged] when [markerTriggered] is false.
+ *  • Pager swipe → settle detected via [snapshotFlow] when isScrollInProgress
+ *                  → only calls [onPageChanged] when markerTriggered is false.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventPreviewSheet(
     events: List<Event>,
@@ -83,7 +118,7 @@ fun EventPreviewSheet(
     }
 
     // ── Pager swipe → update ViewModel ────────────────────────────────────────
-    // Watch isScrollInProgress: when it flips false the pager has settled.
+    // Watch pagerState.isScrollInProgress: when it flips false the pager has settled.
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.isScrollInProgress }
             .collect { scrolling ->
@@ -93,38 +128,23 @@ fun EventPreviewSheet(
             }
     }
 
-    Surface(
-        modifier        = Modifier.fillMaxWidth(),
-        shape           = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color           = Color.White,
-        tonalElevation  = 0.dp,
-        shadowElevation = 8.dp
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
-            // ── Handle + close ────────────────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(36.dp).height(4.dp)
-                        .background(Color(0xFFE0E0E0), CircleShape)
-                        .align(Alignment.TopCenter)
-                )
-                IconButton(
-                    onClick  = onClose,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(end = 8.dp)
-                ) {
-                    Icon(
-                        imageVector        = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint               = HintColor
-                    )
-                }
-            }
+    ModalBottomSheet(
+        onDismissRequest = onClose,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor = Color.White,
+        tonalElevation = 0.dp,
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(color = Color(0xFFE0E0E0))
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
 
             // ── Pager ─────────────────────────────────────────────────────────
             HorizontalPager(

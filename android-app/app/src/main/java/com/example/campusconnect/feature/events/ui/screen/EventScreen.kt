@@ -531,7 +531,7 @@ fun EventScreen(
                         onStartTimeChange        = viewModel::updateStartTime,
                         onEndTimeChange          = viewModel::updateEndTime,
                         onPosterToggle           = viewModel::updatePosterEnabled,
-                        onPosterUrlChange        = viewModel::updatePosterUrl,
+                        onPosterImagePicked      = viewModel::updatePosterImage,
                         onClubChange             = viewModel::updateClub,
                         clubOptions = clubs,
                         categoryOptions = categories,

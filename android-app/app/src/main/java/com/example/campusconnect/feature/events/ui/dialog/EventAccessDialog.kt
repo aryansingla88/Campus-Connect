@@ -250,7 +250,8 @@ fun EventAccessDialog(
                             } else {
                                 items(
                                     searchResults.filter { result ->
-                                        addedUsers.none { it.id == result.id }
+                                        result.id != event.createdBy &&
+                                            addedUsers.none { it.id == result.id }
                                     },
                                     key = { it.id }
                                 ) { user ->
@@ -326,18 +327,33 @@ fun EventAccessDialog(
                                             ""
                                         }
                                     ) {
-                                        OutlinedButton(
-                                            onClick        = { pendingRemove = user },
-                                            shape          = RoundedCornerShape(10.dp),
-                                            border         = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
-                                            colors         = ButtonDefaults.outlinedButtonColors(
-                                                containerColor = RemoveRedLight,
-                                                contentColor   = RemoveRed
-                                            ),
-                                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                                            modifier       = Modifier.height(34.dp)
-                                        ) {
-                                            Text("Remove", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RemoveRed)
+                                        if (user.id == event.createdBy) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(OrangeLight, RoundedCornerShape(10.dp))
+                                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                            ) {
+                                                Text(
+                                                    "Creator",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = OrangePrimary
+                                                )
+                                            }
+                                        } else {
+                                            Button(
+                                                onClick        = { pendingRemove = user },
+                                                shape          = RoundedCornerShape(10.dp),
+                                                colors         = ButtonDefaults.buttonColors(
+                                                    containerColor = RemoveRedLight,
+                                                    contentColor   = RemoveRed
+                                                ),
+                                                contentPadding = PaddingValues(0.dp),
+                                                elevation      = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                                                modifier       = Modifier.width(70.dp).height(34.dp)
+                                            ) {
+                                                Text("Remove", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RemoveRed)
+                                            }
                                         }
                                     }
                                 }
