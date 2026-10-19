@@ -139,6 +139,7 @@ fun EventResponse.toEvent(): Event {
         // ORGANIZATION
         createdBy = createdBy,
         clubName = frontendClubName,
+        clubId = clubId,
 
         // MEDIA
         isPoster = posterUrl != null,

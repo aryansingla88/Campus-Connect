@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -31,22 +32,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
@@ -87,6 +97,8 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.map.model.MapEventInfo
+import com.example.campusconnect.feature.map.model.HostInfo
 import com.example.campusconnect.feature.metadata.clubs.Club
 import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
 import kotlinx.coroutines.launch
@@ -132,6 +144,8 @@ fun EventViewModeScreen(
     showActionButtons: Boolean = true,
     categories: List<EventCategory> = emptyList(),
     clubs: List<Club> = emptyList(),
+    eventPreviews: Map<Int, MapEventInfo> = emptyMap(),
+    onLoadEventPreview: (Int) -> Unit = {},
 ) {
     if (events.isEmpty()) {
         EmptyViewMode(onBack)
@@ -142,6 +156,7 @@ fun EventViewModeScreen(
     var showFilter  by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedClub by remember { mutableStateOf<String?>(null) }
+    var detailsEventId by remember { mutableStateOf<Int?>(null) }
 
     // Per-event registered / notified state (local fake state — wire to VM later)
     var registeredIds by remember { mutableStateOf(setOf<Int>()) }
@@ -188,7 +203,12 @@ fun EventViewModeScreen(
     LaunchedEffect(filtered) {
         if (filtered.isNotEmpty()) {
             pagerState.scrollToPage(startPage)
+            detailsEventId = null
         }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        detailsEventId = null
     }
 
     val currentEvent = filtered.getOrNull(
@@ -202,6 +222,10 @@ fun EventViewModeScreen(
             0
         }
     )
+
+    LaunchedEffect(currentEvent?.id) {
+        currentEvent?.id?.let(onLoadEventPreview)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -362,6 +386,7 @@ fun EventViewModeScreen(
                         } else {
                             page
                         }
+                        val isSelectedPage = page == pagerState.currentPage
 
                         Box(
                             modifier = Modifier
@@ -385,13 +410,51 @@ fun EventViewModeScreen(
                                 }
                                 // Center card (distance ~0) always paints last,
                                 // i.e. on top of both neighbours.
-                                .zIndex(if (isCircular) 2f - distance else 1f)
+                                .zIndex(if (isSelectedPage) 10f else 1f - distance)
                                 .clip(RoundedCornerShape(24.dp))
                         ) {
                             // `page % filtered.size` is the wraparound: this is
                             // what makes the poster to the right of the last
                             // event be the first event again.
-                            PosterCard(event = filtered[actualIndex])
+                            val cardEvent = filtered[actualIndex]
+                            val showingDetails = detailsEventId == cardEvent.id
+                            val flipRotation by animateFloatAsState(
+                                targetValue = if (showingDetails) 180f else 0f,
+                                animationSpec = tween(420),
+                                label = "poster_flip_$page"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        rotationY = flipRotation
+                                        cameraDistance = 12f * density
+                                    }
+                                    .then(
+                                        if (isSelectedPage) {
+                                            Modifier.clickable {
+                                                detailsEventId = if (showingDetails) null else cardEvent.id
+                                            }
+                                        } else Modifier
+                                    )
+                            ) {
+                                if (flipRotation <= 90f) {
+                                    PosterCard(event = cardEvent)
+                                } else {
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer { rotationY = 180f }
+                                    ) {
+                                        EventDetailsCard(
+                                            event = cardEvent,
+                                            preview = eventPreviews[cardEvent.id],
+                                            clubName = clubs.firstOrNull { it.clubId == cardEvent.clubId }?.name
+                                                ?: cardEvent.clubName
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -403,6 +466,7 @@ fun EventViewModeScreen(
                     event = event,
                     isRegistered = event.id in registeredIds,
                     isNotified = event.id in notifiedIds,
+                    showingDetails = detailsEventId == event.id,
 
                     onRegister = {
                         registeredIds =
@@ -427,7 +491,7 @@ fun EventViewModeScreen(
                     },
 
                     onExpand = {
-                        onOpenDetail(event)
+                        detailsEventId = if (detailsEventId == event.id) null else event.id
                     }
                 )
             }
@@ -632,6 +696,332 @@ private fun PosterCard(event: Event) {
     }
 }
 
+@Composable
+private fun EventDetailsCard(event: Event, preview: MapEventInfo?, clubName: String) {
+    val aboutScrollState = rememberScrollState()
+    val hostsListState = rememberLazyListState()
+    val hasClub = event.clubId != null
+    val hostByline = if (hasClub) {
+        clubName.ifBlank { preview?.clubName?.takeIf(String::isNotBlank) ?: "Campus Club" }
+    } else {
+        preview?.creatorName?.takeIf(String::isNotBlank)
+            ?: event.clubName.takeIf(String::isNotBlank)
+            ?: "Event host"
+    }
+    val hosts = preview?.hosts.orEmpty()
+        .filter { host ->
+            hasClub || host.role.orEmpty().contains("CREATOR", ignoreCase = true) ||
+                host.role.orEmpty().contains("ADMIN", ignoreCase = true)
+        }
+        .toMutableList()
+    if (!hasClub) {
+        preview?.creatorName?.takeIf(String::isNotBlank)?.let { creator ->
+            if (hosts.none { it.name.equals(creator, ignoreCase = true) }) {
+                hosts.add(0, HostInfo(id = event.createdBy, name = creator, role = "CREATOR"))
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Spacer(Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier
+                    .width(82.dp)
+                    .height(108.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF1A1A2E)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!event.posterUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = event.posterUrl,
+                        contentDescription = "${event.title} poster",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        event.title.take(2).uppercase(),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Orange
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    event.title,
+                    fontSize = 21.sp,
+                    lineHeight = 25.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "By $hostByline",
+                    fontSize = 14.sp,
+                    color = TextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                EventMetaLine(Icons.Default.CalendarToday, event.date.ifBlank { "Date TBD" })
+                EventMetaLine(
+                    Icons.Default.AccessTime,
+                    buildString {
+                        append(event.startTime.ifBlank { "Time TBD" })
+                        event.endTime?.takeIf(String::isNotBlank)?.let { append(" – $it") }
+                    }
+                )
+                EventMetaLine(Icons.Default.LocationOn, event.venue.ifBlank { "Venue TBD" })
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFFFE0D2), RoundedCornerShape(16.dp))
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            EventDetailsSectionTitle("About")
+            Row(
+                modifier = Modifier.fillMaxWidth().height(100.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    event.description?.takeIf(String::isNotBlank) ?: "Event description unavailable.",
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .verticalScroll(aboutScrollState),
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp,
+                    color = TextMuted
+                )
+                if (aboutScrollState.maxValue > 0) {
+                    VerticalScrollIndicator(aboutScrollState, Modifier.fillMaxHeight())
+                }
+            }
+        }
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFFFE0D2), RoundedCornerShape(16.dp))
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            Row(
+                modifier = Modifier.weight(1f).padding(start = 4.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(Modifier.size(32.dp).background(OrangeLight, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Group, null, tint = Orange, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text(preview?.registrationCount?.toString() ?: "—", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                    Text("Participants", fontSize = 10.sp, color = TextMuted, maxLines = 1)
+                }
+            }
+            Box(Modifier.width(1.dp).height(42.dp).background(Color(0xFFFFD8C8)))
+            Row(
+                modifier = Modifier.weight(1f).padding(start = 8.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(Modifier.size(32.dp).background(OrangeLight, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.LocalOffer, null, tint = Orange, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text(
+                        event.category.ifBlank { preview?.eventType?.takeIf(String::isNotBlank) ?: "Event" },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text("Category", fontSize = 10.sp, color = TextMuted)
+                }
+            }
+        }
+
+        if (hosts.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFFFE0D2), RoundedCornerShape(16.dp))
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                EventDetailsSectionTitle("Hosts")
+                LazyRow(
+                    state = hostsListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(hosts.distinctBy { it.id }, key = { it.id }) { host ->
+                        EventHostAvatar(host)
+                    }
+                }
+                if (hostsListState.canScrollBackward || hostsListState.canScrollForward) {
+                    HorizontalScrollIndicator(hostsListState, hosts.distinctBy { it.id }.size)
+                }
+            }
+        }
+        }
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun VerticalScrollIndicator(state: ScrollState, modifier: Modifier = Modifier) {
+    val viewport = state.viewportSize.toFloat()
+    val content = (state.viewportSize + state.maxValue).toFloat().coerceAtLeast(1f)
+    val thumbFraction = (viewport / content).coerceIn(0.12f, 1f)
+    val progress = if (state.maxValue == 0) 0f else state.value.toFloat() / state.maxValue
+    BoxWithConstraints(
+        modifier = modifier
+            .width(4.dp)
+            .clip(CircleShape)
+            .background(OrangeLight)
+    ) {
+        val thumbHeight = maxHeight * thumbFraction
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(thumbHeight)
+                .offset(y = (maxHeight - thumbHeight) * progress)
+                .clip(CircleShape)
+                .background(Orange.copy(alpha = 0.7f))
+        )
+    }
+}
+
+@Composable
+private fun HorizontalScrollIndicator(state: LazyListState, itemCount: Int) {
+    val visibleItems = state.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+    val thumbFraction = (visibleItems.toFloat() / itemCount.coerceAtLeast(1)).coerceIn(0.12f, 1f)
+    val maxFirstIndex = (itemCount - visibleItems).coerceAtLeast(1)
+    val progress = (state.firstVisibleItemIndex.toFloat() / maxFirstIndex).coerceIn(0f, 1f)
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .clip(CircleShape)
+            .background(OrangeLight)
+    ) {
+        val thumbWidth = maxWidth * thumbFraction
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(thumbWidth)
+                .offset(x = (maxWidth - thumbWidth) * progress)
+                .clip(CircleShape)
+                .background(Orange.copy(alpha = 0.7f))
+        )
+    }
+}
+
+@Composable
+private fun EventDetailsSectionTitle(title: String) {
+    Text(title, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = TextDark)
+}
+
+@Composable
+private fun EventHostAvatar(host: HostInfo) {
+    Column(
+        modifier = Modifier
+            .width(58.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(OrangeLight),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!host.avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = host.avatarUrl,
+                    contentDescription = host.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(CircleShape)
+                )
+            } else {
+                Text(hostInitials(host.name), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Orange)
+            }
+        }
+        Text(
+            host.name,
+            fontSize = 10.sp,
+            color = TextDark,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun EventMetaLine(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(icon, null, tint = Orange, modifier = Modifier.size(16.dp))
+        Text(text, fontSize = 12.sp, color = Color(0xFF444444), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private fun hostInitials(name: String): String = name
+    .trim()
+    .split(Regex("\\s+"))
+    .filter(String::isNotBlank)
+    .take(2)
+    .joinToString("") { it.take(1).uppercase() }
+    .ifBlank { "?" }
+
+@Composable
+private fun DetailPill(label: String) {
+    Text(
+        label,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(OrangeLight)
+            .padding(horizontal = 11.dp, vertical = 6.dp),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = Orange,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
 // ─── TopBar ───────────────────────────────────────────────────────────────────
 
 @SuppressLint("ResourceAsColor")
@@ -776,6 +1166,7 @@ private fun BottomActions(
     event: Event,
     isRegistered: Boolean,
     isNotified: Boolean,
+    showingDetails: Boolean,
     onRegister: () -> Unit,
     onNotify: () -> Unit,
     onExpand: () -> Unit
@@ -800,6 +1191,7 @@ private fun BottomActions(
             )
 
             ViewDetailsButton(
+                showingDetails = showingDetails,
                 onClick = onExpand,
                 modifier = Modifier.weight(1f)
             )
@@ -1217,6 +1609,7 @@ private fun RegisterActionButton(
 
 @Composable
 private fun ViewDetailsButton(
+    showingDetails: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1237,8 +1630,8 @@ private fun ViewDetailsButton(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.Info,
-            contentDescription = "View Details",
+            imageVector = if (showingDetails) Icons.Default.ArrowBack else Icons.Default.Info,
+            contentDescription = if (showingDetails) "View Poster" else "View Details",
             tint = Orange,
             modifier = Modifier.size(18.dp)
         )
@@ -1246,7 +1639,7 @@ private fun ViewDetailsButton(
         Spacer(Modifier.width(6.dp))
 
         Text(
-            text = "View Details",
+            text = if (showingDetails) "View Poster" else "View Details",
             color = Orange,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold

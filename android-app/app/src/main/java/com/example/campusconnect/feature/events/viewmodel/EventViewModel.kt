@@ -24,6 +24,9 @@ import com.example.campusconnect.feature.events.model.ParticipantTeam
 import com.example.campusconnect.feature.events.model.SoloParticipant
 import com.example.campusconnect.feature.events.model.TeamMember
 import com.example.campusconnect.feature.events.model.UserAccess
+import com.example.campusconnect.feature.map.data.PoiRepositoryProvider
+import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
+import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.metadata.clubs.Club
 import com.example.campusconnect.feature.metadata.clubs.ClubRepositoryProvider
 import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
@@ -50,6 +53,15 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
 
     private val courseRepository =
         CourseRepositoryProvider.getRepository(application)
+
+    private val mapRepository = ApiMapRepo(
+        courseRepository = courseRepository,
+        poiRepository = PoiRepositoryProvider.get(application.applicationContext)
+    )
+
+    private val _eventPreviews = MutableStateFlow<Map<Int, MapEventInfo>>(emptyMap())
+    val eventPreviews: StateFlow<Map<Int, MapEventInfo>> = _eventPreviews
+    private val loadingEventPreviewIds = mutableSetOf<Int>()
 
     private val _clubs =
         MutableStateFlow<List<Club>>(emptyList())
@@ -275,6 +287,20 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                 _teams.value = emptyList()
                 _soloParticipants.value = emptyList()
                 _participantsCount.value = 0
+            }
+        }
+    }
+
+    fun loadEventPreview(eventId: Int) {
+        if (_eventPreviews.value.containsKey(eventId) || !loadingEventPreviewIds.add(eventId)) return
+
+        viewModelScope.launch {
+            try {
+                mapRepository.getEventInfo(eventId).onSuccess { preview ->
+                    _eventPreviews.update { it + (eventId to preview) }
+                }
+            } finally {
+                loadingEventPreviewIds.remove(eventId)
             }
         }
     }

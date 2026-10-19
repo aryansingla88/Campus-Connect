@@ -119,6 +119,7 @@ fun EventScreen(
 
     val clubs by viewModel.clubs.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val eventPreviews by viewModel.eventPreviews.collectAsState()
 
     val eventMapMarkers = remember(events, activeIndex) {
         events.mapIndexedNotNull { index, event ->
@@ -561,7 +562,9 @@ fun EventScreen(
                     onOpenDetail = { showViewMode = false },
                     showActionButtons = false,
                     categories = categories,
-                    clubs = clubs
+                    clubs = clubs,
+                    eventPreviews = eventPreviews,
+                    onLoadEventPreview = viewModel::loadEventPreview
                 )
             }
         }
