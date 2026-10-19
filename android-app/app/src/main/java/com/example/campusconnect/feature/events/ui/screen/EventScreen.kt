@@ -119,6 +119,7 @@ fun EventScreen(
 
     val clubs by viewModel.clubs.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val eventPreviews by viewModel.eventPreviews.collectAsState()
 
     val eventMapMarkers = remember(events, activeIndex) {
         events.mapIndexedNotNull { index, event ->
@@ -174,11 +175,6 @@ fun EventScreen(
             toastMessage = "Event Deleted Successfully"
             viewModel.clearDeleteSuccess()
         }
-    }
-
-    // Force-close history drawer when preview opens
-    LaunchedEffect(showPreview) {
-        if (showPreview) showHistoryDrawer = false
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -274,15 +270,15 @@ fun EventScreen(
                 )
             }
 
-            // History nib — top-right corner, only when drawer closed AND preview not open
-            if (!showHistoryDrawer && !showPreview) {
+            // Keep history available while the event preview is open.
+            if (!showHistoryDrawer) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 16.dp, end = 16.dp)
                         .size(46.dp)
                         .background(
-                            color = Color(0xFFFF4D00),
+                            color = Color(0xFFFF6F00),
                             shape = RoundedCornerShape(14.dp)
                         )
                         .clickable(
@@ -399,7 +395,7 @@ fun EventScreen(
         }
 
         // ── HISTORY DRAWER ────────────────────────────────────────────────────
-        if (!isSelectingLocation && !showDialog && !showPreview) {
+        if (!isSelectingLocation && !showDialog) {
             Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
                 EventHistoryDrawer(
                     isOpen = showHistoryDrawer,
@@ -531,7 +527,7 @@ fun EventScreen(
                         onStartTimeChange        = viewModel::updateStartTime,
                         onEndTimeChange          = viewModel::updateEndTime,
                         onPosterToggle           = viewModel::updatePosterEnabled,
-                        onPosterUrlChange        = viewModel::updatePosterUrl,
+                        onPosterImagePicked      = viewModel::updatePosterImage,
                         onClubChange             = viewModel::updateClub,
                         clubOptions = clubs,
                         categoryOptions = categories,
@@ -563,7 +559,12 @@ fun EventScreen(
                     onBack       = { showViewMode = false },
                     onRegister   = { },
                     onNotify     = { },
-                    onOpenDetail = { showViewMode = false }
+                    onOpenDetail = { showViewMode = false },
+                    showActionButtons = false,
+                    categories = categories,
+                    clubs = clubs,
+                    eventPreviews = eventPreviews,
+                    onLoadEventPreview = viewModel::loadEventPreview
                 )
             }
         }

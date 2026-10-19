@@ -1,12 +1,14 @@
 package com.example.campusconnect.feature.events.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.core.utils.AcademicUtils
+import com.example.campusconnect.core.utils.Image.ImageConverter
 import com.example.campusconnect.feature.events.data.remote.request.CreateEventRequest
 import com.example.campusconnect.feature.events.data.remote.request.UpdateEventRequest
 import com.example.campusconnect.feature.events.data.remote.response.MedalCandidateResponse
@@ -22,6 +24,9 @@ import com.example.campusconnect.feature.events.model.ParticipantTeam
 import com.example.campusconnect.feature.events.model.SoloParticipant
 import com.example.campusconnect.feature.events.model.TeamMember
 import com.example.campusconnect.feature.events.model.UserAccess
+import com.example.campusconnect.feature.map.data.PoiRepositoryProvider
+import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
+import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.metadata.clubs.Club
 import com.example.campusconnect.feature.metadata.clubs.ClubRepositoryProvider
 import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
@@ -48,6 +53,15 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
 
     private val courseRepository =
         CourseRepositoryProvider.getRepository(application)
+
+    private val mapRepository = ApiMapRepo(
+        courseRepository = courseRepository,
+        poiRepository = PoiRepositoryProvider.get(application.applicationContext)
+    )
+
+    private val _eventPreviews = MutableStateFlow<Map<Int, MapEventInfo>>(emptyMap())
+    val eventPreviews: StateFlow<Map<Int, MapEventInfo>> = _eventPreviews
+    private val loadingEventPreviewIds = mutableSetOf<Int>()
 
     private val _clubs =
         MutableStateFlow<List<Club>>(emptyList())
@@ -125,25 +139,24 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
             _currentUserId,
             _eventFilter
         ) { events, currentUserId, filter ->
+            when (filter) {
 
-            if (currentUserId == null) {
-                emptyList()
-            } else {
-                when (filter) {
+                EventFilter.ALL ->
+                    events
 
-                    EventFilter.ALL ->
-                        events
-
-                    EventFilter.SELF ->
+                EventFilter.SELF ->
+                    currentUserId?.let { userId ->
                         events.filter {
-                            it.createdBy == currentUserId
+                            it.createdBy == userId
                         }
+                    } ?: emptyList()
 
-                    EventFilter.SHARED ->
+                EventFilter.SHARED ->
+                    currentUserId?.let { userId ->
                         events.filter {
-                            it.createdBy != currentUserId
+                            it.createdBy != userId
                         }
-                }
+                    } ?: emptyList()
             }
 
         }.stateIn(
@@ -274,6 +287,20 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                 _teams.value = emptyList()
                 _soloParticipants.value = emptyList()
                 _participantsCount.value = 0
+            }
+        }
+    }
+
+    fun loadEventPreview(eventId: Int) {
+        if (_eventPreviews.value.containsKey(eventId) || !loadingEventPreviewIds.add(eventId)) return
+
+        viewModelScope.launch {
+            try {
+                mapRepository.getEventInfo(eventId).onSuccess { preview ->
+                    _eventPreviews.update { it + (eventId to preview) }
+                }
+            } finally {
+                loadingEventPreviewIds.remove(eventId)
             }
         }
     }
@@ -594,6 +621,7 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
             description = event.description ?: "",
             isPoster = event.isPoster,
             posterUrl = event.posterUrl ?: "",
+            selectedPosterUri = null,
             selectedRatio = Pair(event.xRatio, event.yRatio),
             date = event.date,
             venue = event.venue,
@@ -625,14 +653,17 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
         if (state.date.isBlank())            { _uiState.value = state.copy(error = "Date required");             return }
         if (state.venue.isBlank())           { _uiState.value = state.copy(error = "Venue required");            return }
         if (state.startTime.isBlank())       { _uiState.value = state.copy(error = "Start time required");       return }
-        if (state.clubName.isBlank())        { _uiState.value = state.copy(error = "Club name required");        return }
         if (state.category.isBlank())        { _uiState.value = state.copy(error = "Category required");         return }
         if (state.visibilityType.isBlank())  { _uiState.value = state.copy(error = "Visibility type required");  return }
         if (state.visibilityValue.isBlank()) { _uiState.value = state.copy(error = "Visibility value required"); return }
         if (state.registrationType == "Link" && state.registrationLink.isBlank()) {
             _uiState.value = state.copy(error = "Registration link required"); return
         }
-
+        val visibilityType = toBackendVisibilityType(state.visibilityType)
+            ?: run {
+                _uiState.value = state.copy(error = "Unsupported visibility type")
+                return
+            }
         val registrationRequired = state.registrationType != "No"
         val inAppRegistration    = state.registrationType == "In-App"
 
@@ -653,17 +684,30 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
             startTime = start,
             endTime = end,
             venue = state.venue,
-            visibilityType = state.visibilityType,
+            visibilityType = visibilityType,
             visibilityValue = state.visibilityValue.ifBlank { null },
             registrationLink = state.registrationLink.ifBlank { null }
         )
 
         viewModelScope.launch {
 
+            val poster = if (state.isPoster) state.selectedPosterUri?.let { uri ->
+                runCatching {
+                    ImageConverter.uriToMultipart(
+                        context = getApplication(),
+                        uri = uri,
+                        partName = "poster"
+                    )
+                }.getOrNull() ?: run {
+                    _uiState.value = state.copy(error = "Unable to read selected poster image")
+                    return@launch
+                }
+            } else null
+
             val result = repository.updateEvent(
                 eventId = id,
                 request = request,
-                poster = null
+                poster = poster
             )
 
             result.onSuccess {
@@ -747,6 +791,7 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     fun updateEndTime(value: String)     { _uiState.value = _uiState.value.copy(endTime = value) }
     fun updatePosterEnabled(value: Boolean) { _uiState.value = _uiState.value.copy(isPoster = value) }
     fun updatePosterUrl(value: String)   { _uiState.value = _uiState.value.copy(posterUrl = value) }
+    fun updatePosterImage(uri: Uri) { _uiState.value = _uiState.value.copy(selectedPosterUri = uri) }
     fun updateClubName(value: String)    { _uiState.value = _uiState.value.copy(clubName = value) }
     fun updateCategory(value: String)    { _uiState.value = _uiState.value.copy(category = value) }
 
@@ -812,20 +857,48 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = state.copy(error = "Registration link required"); return
         }
 
+        val location = state.selectedLocation
+            ?: run {
+                _uiState.value = state.copy(error = "Location required")
+                return
+            }
+
+        val start = toIsoDateTime(state.date, state.startTime)
+            ?: run {
+                _uiState.value = state.copy(error = "Invalid start date or time")
+                return
+            }
+
+        val end = if (state.endTime.isBlank()) {
+            null
+        } else {
+            toIsoDateTime(state.date, state.endTime)
+                ?: run {
+                    _uiState.value = state.copy(error = "Invalid end date or time")
+                    return
+                }
+        }
+
         val registrationRequired = state.registrationType != "No"
         val inAppRegistration    = state.registrationType == "In-App"
+
+        val visibilityType = toBackendVisibilityType(state.visibilityType)
+            ?: run {
+                _uiState.value = state.copy(error = "Unsupported visibility type")
+                return
+            }
 
         val request = CreateEventRequest(
             title = state.title,
             description = state.description,
-            latitude = state.selectedLocation?.first ?: 0.0,
-            longitude = state.selectedLocation?.second ?: 0.0,
-            startTime = state.startTime,
-            endTime = if (state.endTime.isBlank()) null else state.endTime,
+            latitude = location.first,
+            longitude = location.second,
+            startTime = start,
+            endTime = end,
             clubId = state.selectedClubId,
             hostName = state.clubName,
             venue = state.venue,
-            visibilityType = state.visibilityType,
+            visibilityType = visibilityType,
             visibilityValue = state.visibilityValue.ifBlank { null },
             registrationType = when (state.registrationType) {
                 "In-App" -> "THROUGH_APP"
@@ -833,7 +906,7 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                 else -> "NONE"
             },
             registrationLink = state.registrationLink.ifBlank { null },
-            priority = 0,
+            priority = 1,
             categoryId = state.selectedCategoryId
                 ?: run {
                     _uiState.value = state.copy(error = "Category required")
@@ -843,16 +916,42 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
 
-            repository.createEvent(
+            val poster = if (state.isPoster) state.selectedPosterUri?.let { uri ->
+                runCatching {
+                    ImageConverter.uriToMultipart(
+                        context = getApplication(),
+                        uri = uri,
+                        partName = "poster"
+                    )
+                }.getOrNull() ?: run {
+                    _uiState.value = state.copy(error = "Unable to read selected poster image")
+                    return@launch
+                }
+            } else null
+
+            val result = repository.createEvent(
                 request = request,
-                poster = null
+                poster = poster
             )
 
-            _events.value =
+            result.onSuccess {
                 repository.getEvents()
-                    .getOrDefault(emptyList())
+                    .onSuccess { events ->
+                        _events.value = events
+                    }
+                    .onFailure { error ->
+                        println("EVENT REFRESH ERROR: ${error.message}")
+                    }
 
-            _uiState.value = EventUiState(success = true)
+                _uiState.value = EventUiState(success = true)
+            }.onFailure { error ->
+                println("CREATE EVENT ERROR: ${error.message}")
+
+                _uiState.value = state.copy(
+                    error = error.message ?: "Failed to create event",
+                    success = false
+                )
+            }
         }
 
         println("CreateEvent called: $request")
@@ -883,3 +982,15 @@ private fun toIsoDateTime(date: String, time: String): String? {
         null
     }
 }
+
+private fun toBackendVisibilityType(value: String): String? =
+    when (value.trim().uppercase()) {
+        "PUBLIC" -> "PUBLIC"
+        "PRIVATE", "CONNECTIONS" -> "CONNECTIONS"
+        "CLUB" -> "CLUB"
+        "COURSE" -> "COURSE"
+        "ACADEMIC_YEAR" -> "ACADEMIC_YEAR"
+        "BATCH" -> "BATCH"
+        "HOSTEL" -> "HOSTEL"
+        else -> null
+    }
