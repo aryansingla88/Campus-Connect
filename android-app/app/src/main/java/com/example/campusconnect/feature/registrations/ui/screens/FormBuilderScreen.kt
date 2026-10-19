@@ -48,150 +48,33 @@ data class FormField(
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Individual registration form: the shared [QuestionBuilderScreen] with the
+ * Quick Fields card and a single "Add Question" bottom button.
+ */
 @Composable
 fun FormBuilderScreen(
     eventId: Int,
     eventName: String,
     isPublished: Boolean,
+    fields: List<FormField>,
+    onFieldsChange: (List<FormField>) -> Unit,
     onPublish: (fields: List<FormField>) -> Unit,
     onBack: () -> Unit,
     initialQuickFieldIds: Set<String> = emptySet(),
     onQuickFieldsChanged: (Set<String>) -> Unit = {},
-    initialFields: List<FormField> = emptyList(),
 ) {
-    var fields by remember { mutableStateOf(initialFields) }
-    var selectedQuickFields by remember { mutableStateOf(initialQuickFieldIds) }
-    var nextId          by remember { mutableIntStateOf((initialFields.maxOfOrNull { it.id } ?: 0) + 1) }
-    var expandedFieldId by remember { mutableStateOf<Int?>(null) }
-    var showTypeSheet   by remember { mutableStateOf<Int?>(null) }
-
-    if (showTypeSheet != null) {
-        val targetId = showTypeSheet!!
-        ModalBottomSheet(
-            onDismissRequest = { showTypeSheet = null },
-            containerColor   = CardBg,
-            tonalElevation   = 0.dp,
-        ) {
-            FieldTypePicker(
-                current = fields.find { it.id == targetId }?.fieldType ?: FieldType.TEXT,
-                onPick  = { picked ->
-                    fields = fields.map { if (it.id == targetId) it.copy(fieldType = picked) else it }
-                    showTypeSheet = null
-                },
-            )
-            Spacer(Modifier.height(32.dp))
-        }
-    }
-
-    Scaffold(
-        containerColor = PageBg,
-
-        topBar = {
-            RegistrationHeader(
-                eventName = eventName,
-                isPublished = isPublished,
-                onBack = onBack,
-                action = {
-                    HeaderActionButton(
-                        text = "Publish",
-                        icon = Icons.Outlined.Send,
-                        onClick = { onPublish(fields) }
-                    )
-                }
-            )
-        },
-
-        bottomBar = {
-            RegistrationBottomBar {
-
-                OutlinedButton(
-                    onClick = {
-                        val newField = FormField(id = nextId++)
-                        fields = fields + newField
-                        expandedFieldId = newField.id
-                    },
-                    border = BorderStroke(
-                        1.5.dp,
-                        OrangePrimary
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = OrangePrimary
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                ) {
-                    Icon(
-                        Icons.Outlined.Add,
-                        contentDescription = null
-                    )
-
-                    Spacer(Modifier.width(8.dp))
-
-                    Text(
-                        "Add Question",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier            = Modifier.fillMaxSize().padding(padding),
-            contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                QuickFieldsCard(
-                    selectedIds = selectedQuickFields,
-                    onToggle = { id ->
-                        val updated = if (id in selectedQuickFields) {
-                            selectedQuickFields - id
-                        } else {
-                            selectedQuickFields + id
-                        }
-
-                        selectedQuickFields = updated
-                        onQuickFieldsChanged(updated)
-                    }
-                )
-            }
-
-            itemsIndexed(fields, key = { _, f -> f.id }) { index, field ->
-                FieldCard(
-                    field               = field,
-                    index               = index + 1,
-                    expanded            = expandedFieldId == field.id,
-                    onExpand            = { expandedFieldId = if (expandedFieldId == field.id) null else field.id },
-                    onDelete            = { fields = fields.filter { it.id != field.id } },
-                    onDuplicate         = {
-                        val copy = field.copy(id = nextId++, options = field.options.toMutableList())
-                        val idx  = fields.indexOfFirst { it.id == field.id }
-                        fields   = fields.toMutableList().apply { add(idx + 1, copy) }
-                    },
-                    onLabelChange       = { v -> fields = fields.map { if (it.id == field.id) it.copy(label = v) else it } },
-                    onPlaceholderChange = { v -> fields = fields.map { if (it.id == field.id) it.copy(placeholder = v) else it } },
-                    onRequiredToggle    = { fields = fields.map { if (it.id == field.id) it.copy(isRequired = !it.isRequired) else it } },
-                    onTypeClick         = { showTypeSheet = field.id },
-                    onAddOption         = { fields = fields.map { if (it.id == field.id) it.copy(options = it.options + "Option ${it.options.size + 1}") else it } },
-                    onOptionChange      = { optIdx, v ->
-                        fields = fields.map { f ->
-                            if (f.id == field.id) f.copy(options = f.options.toMutableList().also { it[optIdx] = v }) else f
-                        }
-                    },
-                    onOptionDelete = { optIdx ->
-                        fields = fields.map { f ->
-                            if (f.id == field.id) f.copy(options = f.options.toMutableList().also { it.removeAt(optIdx) }) else f
-                        }
-                    },
-                )
-            }
-
-            if (fields.isEmpty()) item { EmptyState() }
-        }
-    }
+    QuestionBuilderScreen(
+        eventName = eventName,
+        isPublished = isPublished,
+        fields = fields,
+        onFieldsChange = onFieldsChange,
+        onSave = { onPublish(fields) },
+        onBack = onBack,
+        showQuickFields = true,
+        initialQuickFieldIds = initialQuickFieldIds,
+        onQuickFieldsChanged = onQuickFieldsChanged,
+    )
 }
 
 // ── Field Card ────────────────────────────────────────────────────────────────
@@ -387,7 +270,7 @@ private val quickFieldOptions = listOf(
 )
 
 @Composable
-private fun QuickFieldsCard(
+internal fun QuickFieldsCard(
     selectedIds: Set<String>,
     onToggle: (String) -> Unit,
 ) {
@@ -619,7 +502,11 @@ fun FieldTypePicker(current: FieldType, onPick: (FieldType) -> Unit) {
 // ── Empty State ───────────────────────────────────────────────────────────────
 
 @Composable
-fun EmptyState() {
+fun EmptyState(
+    title: String = "No questions yet",
+    message: String = "Tap \"Add question\" to start\nbuilding your form",
+    icon: ImageVector = Icons.Outlined.ListAlt,
+) {
     Column(
         modifier              = Modifier.fillMaxWidth().padding(vertical = 48.dp),
         horizontalAlignment   = Alignment.CenterHorizontally,
@@ -629,10 +516,10 @@ fun EmptyState() {
             modifier         = Modifier.size(72.dp).clip(CircleShape).background(OrangeLight),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Outlined.ListAlt, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(32.dp))
+            Icon(icon, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(32.dp))
         }
-        Text("No questions yet", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-        Text("Tap \"Add question\" to start\nbuilding your form", fontSize = 14.sp, color = TextSecondary, textAlign = TextAlign.Center, lineHeight = 20.sp)
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+        Text(message, fontSize = 14.sp, color = TextSecondary, textAlign = TextAlign.Center, lineHeight = 20.sp, modifier = Modifier.padding(horizontal = 24.dp))
     }
 }
 
@@ -652,12 +539,15 @@ fun orangeTextFieldColors() = OutlinedTextFieldDefaults.colors(
 @Composable
 fun FormBuilderPreview() {
     MaterialTheme {
+        var fields by remember { mutableStateOf(emptyList<FormField>()) }
         FormBuilderScreen(
             eventId = 1,
             eventName = "Demo Event",
             isPublished = false,
+            fields = fields,
+            onFieldsChange = { fields = it },
             onPublish = { _ -> },
-            onBack = {}
+            onBack = {},
         )
     }
 }

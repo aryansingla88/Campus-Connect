@@ -24,6 +24,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.registrations.model.RegistrationSettings
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import java.util.Calendar
+import java.util.TimeZone
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 
 // ── Extra colors (only used on this screen) ───────────────────────────────────
 
@@ -37,6 +49,7 @@ private val ErrorRed   = Color(0xFFE53935)
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationSetupScreen(
     eventName: String,
@@ -44,13 +57,17 @@ fun RegistrationSetupScreen(
     initialSettings: RegistrationSettings,
     onBack: () -> Unit,
     onContinue: (RegistrationSettings) -> Unit,
-    onQuickFields: () -> Unit = {},
     onTeamQuestions: () -> Unit = {},
     onViewResponses: () -> Unit = {},
+    onSaveDraft: (RegistrationSettings) -> Unit = {},
 ) {
     var settings by remember { mutableStateOf(initialSettings) }
 
     val hasType = settings.allowIndividual || settings.allowTeam
+
+    var showDeadlinePicker by remember { mutableStateOf(false) }
+    var showDeadlineTimePicker by remember { mutableStateOf(false) }
+    var selectedDeadlineDateMillis by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
         containerColor = PageBg,
@@ -62,14 +79,43 @@ fun RegistrationSetupScreen(
                 onBack = onBack,
                 action = {
                     HeaderActionButton(
-                        text = "Save",
-                        icon = Icons.Outlined.Save,
+                        text = "Publish",
+                        icon = Icons.Outlined.Send,
                         onClick = {
                             onContinue(settings)
                         }
                     )
                 }
             )
+        },
+        bottomBar = {
+            RegistrationBottomBar {
+                OutlinedButton(
+                    onClick = { onSaveDraft(settings) },
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.25.dp, OrangePrimary),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = OrangePrimary,
+                        containerColor = Color.Transparent,
+                    ),
+                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Save,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(9.dp))
+                    Text(
+                        "Save draft",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                    )
+                }
+            }
         },
     ) { padding ->
 
@@ -80,7 +126,7 @@ fun RegistrationSetupScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 18.dp, vertical = 16.dp),
 
-            verticalArrangement = Arrangement.spacedBy(22.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
 
             // Intro
@@ -121,8 +167,18 @@ fun RegistrationSetupScreen(
                     title = "Individual registration",
                     subtitle = "Participants register on their own.",
                     checked = settings.allowIndividual,
-                    onChecked = {
-                        settings = settings.copy(allowIndividual = it)
+                    onChecked = { enabled ->
+                        settings = if (enabled) {
+                            settings.copy(allowIndividual = true)
+                        } else {
+                            // Without individual registration, team size must be at least 2.
+                            val minMembers = maxOf(settings.minMembers, 2)
+                            settings.copy(
+                                allowIndividual = false,
+                                minMembers = minMembers,
+                                maxMembers = maxOf(settings.maxMembers, minMembers),
+                            )
+                        }
                     }
                 )
 
@@ -165,9 +221,84 @@ fun RegistrationSetupScreen(
                 )
             }
 
+            // Registration deadline — keep it before the divider that separates the form section.
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(OrangeLight),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Filled.CalendarMonth,
+                                contentDescription = null,
+                                tint = OrangePrimary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "Registration deadline",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary,
+                            )
+                            Text(
+                                text = settings.deadline?.let {
+                                    SimpleDateFormat("dd MMM yyyy • hh:mm a", Locale.getDefault()).format(Date(it))
+                                } ?: "No deadline set",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (settings.deadline != null) TextPrimary else TextSecondary,
+                            )
+                        }
+                        if (settings.deadline != null) {
+                            IconButton(
+                                onClick = { settings = settings.copy(deadline = null) },
+                                modifier = Modifier.size(34.dp),
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Close,
+                                    contentDescription = "Remove deadline",
+                                    tint = TextSecondary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { showDeadlinePicker = true },
+                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        shape = RoundedCornerShape(11.dp),
+                        border = BorderStroke(1.dp, OrangeBorder),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary),
+                    ) {
+                        Icon(Icons.Outlined.EditCalendar, contentDescription = null, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (settings.deadline == null) "Set date & time" else "Change date & time", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFFE0E0E0)
+                color = Color(0xFFE0E0E0),
             )
 
             // Form configuration
@@ -181,6 +312,7 @@ fun RegistrationSetupScreen(
                     fontSize = 13.sp,
                     color = TextSecondary
                 )
+
 
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -238,10 +370,91 @@ fun RegistrationSetupScreen(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
         }
     }
+    if (showDeadlinePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = settings.deadline
+                ?: System.currentTimeMillis()
+        )
+
+        DatePickerDialog(
+            onDismissRequest = {
+                showDeadlinePicker = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { date ->
+                            selectedDeadlineDateMillis = date
+                            showDeadlinePicker = false
+                            showDeadlineTimePicker = true
+                        } ?: run {
+                            showDeadlinePicker = false
+                        }
+                    }
+                ) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeadlinePicker = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showDeadlineTimePicker) {
+        val existingDeadline = settings.deadline?.let { Calendar.getInstance().apply { timeInMillis = it } }
+        val timePickerState = rememberTimePickerState(
+            initialHour = existingDeadline?.get(Calendar.HOUR_OF_DAY) ?: 23,
+            initialMinute = existingDeadline?.get(Calendar.MINUTE) ?: 59,
+            is24Hour = false,
+        )
+
+        AlertDialog(
+            onDismissRequest = { showDeadlineTimePicker = false },
+            title = { Text("Choose deadline time") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedDeadlineDateMillis?.let { selectedDate ->
+                            val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                                timeInMillis = selectedDate
+                            }
+                            val localDeadline = Calendar.getInstance().apply {
+                                clear()
+                                set(
+                                    utcCalendar.get(Calendar.YEAR),
+                                    utcCalendar.get(Calendar.MONTH),
+                                    utcCalendar.get(Calendar.DAY_OF_MONTH),
+                                    timePickerState.hour,
+                                    timePickerState.minute,
+                                    0,
+                                )
+                            }
+                            settings = settings.copy(deadline = localDeadline.timeInMillis)
+                        }
+                        showDeadlineTimePicker = false
+                    }
+                ) { Text("Confirm") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeadlineTimePicker = false }) { Text("Cancel") }
+            },
+        )
+    }
 }
+
+
 // ── Registration type card ────────────────────────────────────────────────────
 
 @Composable
@@ -285,10 +498,11 @@ private fun TeamSettingsCard(
     settings: RegistrationSettings,
     onSettingsChange: (RegistrationSettings) -> Unit,
 ) {
-    val minAllowed = RegistrationSettings.MIN_TEAM_SIZE
+    // A one-person team is allowed only while individual registration is enabled.
+    val minAllowed = if (settings.allowIndividual) 1 else RegistrationSettings.MIN_TEAM_SIZE
     val maxAllowed = RegistrationSettings.MAX_TEAM_SIZE
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionLabel("Team settings")
         Card(
             shape    = RoundedCornerShape(18.dp),
@@ -296,8 +510,8 @@ private fun TeamSettingsCard(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
-                Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StepperRow(
                     label   = "Minimum members",
@@ -334,16 +548,16 @@ private fun StepperRow(
     onInc: () -> Unit,
 ) {
     Row(
-        modifier              = Modifier.fillMaxWidth(),
+        modifier              = Modifier.fillMaxWidth().heightIn(min = 38.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, fontSize = 14.sp, color = TextPrimary)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(label, fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StepperButton(Icons.Outlined.Remove, "Decrease $label", enabled = canDec, onClick = onDec)
             Text(
                 "$value",
-                fontSize   = 15.sp,
+                fontSize   = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color      = TextPrimary,
                 modifier   = Modifier.widthIn(min = 20.dp),
@@ -365,7 +579,7 @@ private fun StepperButton(
 
     Box(
         modifier = Modifier
-            .size(32.dp)
+            .size(28.dp)
             .clip(CircleShape)
             .border(1.dp, borderColor, CircleShape)
             .clickable(

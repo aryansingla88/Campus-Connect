@@ -15,6 +15,7 @@ data class RegistrationSettings(
     val minMembers: Int = MIN_TEAM_SIZE,
     val maxMembers: Int = 4,
     val quickFieldsSelected: Int = 0,
+    val deadline: Long? = null,
 ) {
     companion object {
         const val MIN_TEAM_SIZE = 2

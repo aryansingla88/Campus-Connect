@@ -1,6 +1,13 @@
 package com.example.campusconnect.feature.registrations.ui.screens
 import com.example.campusconnect.feature.registrations.ui.components.*
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +24,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -24,13 +33,17 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.registrations.data.FakeRegistrationResponses
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseItem
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseStatus
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseType
+import com.example.campusconnect.feature.registrations.viewmodel.RegistrationDetailState
+import com.example.campusconnect.feature.registrations.viewmodel.RegistrationResponsesViewModel
 
 private enum class ResponseTab(val label: String) {
     TOTAL("Total\nRegistrations"),
@@ -63,8 +76,13 @@ fun RegistrationResponsesScreen(
     onBack: () -> Unit,
     onExport: () -> Unit = {},
     onMore: () -> Unit = {},
-    onOpenResponse: (RegistrationResponseItem) -> Unit = {},
+    onFullResponse: (RegistrationResponseItem) -> Unit = {},
+    viewModel: RegistrationResponsesViewModel = viewModel(),
 ) {
+    val detailStates by viewModel.details.collectAsState()
+    val selectedMembers by viewModel.selectedMembers.collectAsState()
+    val expandedId by viewModel.expandedId.collectAsState()
+
     var selectedTab by remember { mutableStateOf(ResponseTab.TOTAL) }
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf(ResponseSort.LATEST) }
@@ -243,7 +261,16 @@ fun RegistrationResponsesScreen(
                 item { EmptyResponsesState() }
             } else {
                 items(filteredResponses, key = { it.id }) { response ->
-                    RegistrationResponseCard(response, onClick = { onOpenResponse(response) })
+                    RegistrationResponseCard(
+                        response = response,
+                        expanded = expandedId == response.id,
+                        detailState = detailStates[response.id],
+                        selectedUserId = selectedMembers[response.id],
+                        onToggle = { viewModel.toggleExpanded(response.id) },
+                        onSelectMember = { viewModel.selectMember(response.id, it) },
+                        onRetry = { viewModel.loadDetails(response.id, force = true) },
+                        onFullResponse = { onFullResponse(response) },
+                    )
                 }
             }
         }
@@ -382,40 +409,30 @@ private fun ResponseStatTabs(
 }
 
 @Composable
-private fun RegistrationResponseCard(response: RegistrationResponseItem, onClick: () -> Unit) {
-    val isTeam = response.type == RegistrationResponseType.TEAM
+private fun RegistrationResponseCard(
+    response: RegistrationResponseItem,
+    expanded: Boolean,
+    detailState: RegistrationDetailState?,
+    selectedUserId: Int?,
+    onToggle: () -> Unit,
+    onSelectMember: (Int) -> Unit,
+    onRetry: () -> Unit,
+    onFullResponse: () -> Unit,
+) {
+    val arrowRotation by animateFloatAsState(if (expanded) -90f else 0f, label = "arrowRotation")
 
     Card(
-        onClick = onClick,
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(1.dp, CardBorder),
-        modifier = Modifier.fillMaxWidth(),
+        border = BorderStroke(if (expanded) 1.5.dp else 1.dp, if (expanded) AccentPurple else CardBorder),
+        modifier = Modifier.fillMaxWidth().animateContentSize(),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(11.dp),
         ) {
-            if (isTeam) {
-                Box(
-                    modifier = Modifier.size(48.dp).background(TeamsBg, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Outlined.Groups,
-                        contentDescription = null,
-                        tint = TeamsFg,
-                        modifier = Modifier.size(26.dp),
-                    )
-                }
-            } else {
-                AppAvatar(
-                    entityId = response.id,
-                    displayName = response.name,
-                    size = 48.dp,
-                )
-            }
+            RegistrationAvatar(response)
 
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -426,12 +443,7 @@ private fun RegistrationResponseCard(response: RegistrationResponseItem, onClick
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    if (isTeam) "Team${response.memberCount?.let { " ($it members)" } ?: ""}"
-                    else "Individual",
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                )
+                Text(registrationTypeLabel(response), fontSize = 12.sp, color = TextSecondary)
                 Text(
                     response.email,
                     fontSize = 11.sp,
@@ -449,18 +461,112 @@ private fun RegistrationResponseCard(response: RegistrationResponseItem, onClick
                 Text(response.submittedAt, fontSize = 10.sp, color = TextSecondary, maxLines = 1)
             }
 
-            Icon(
-                Icons.Outlined.ChevronRight,
-                contentDescription = "Open response",
-                tint = TextPrimary,
-                modifier = Modifier.size(20.dp),
-            )
+            IconButton(onClick = onToggle) {
+                Icon(
+                    Icons.Outlined.ChevronRight,
+                    contentDescription = if (expanded) "Collapse response" else "Expand response",
+                    tint = TextPrimary,
+                    modifier = Modifier.size(20.dp).rotate(arrowRotation),
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            Column(Modifier.padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
+                SubtleDivider()
+                when (detailState) {
+                    null, RegistrationDetailState.Loading -> Box(
+                        Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = OrangePrimary,
+                        )
+                    }
+
+                    is RegistrationDetailState.Failed -> Column(
+                        Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(detailState.message, fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center)
+                        TextButton(onClick = onRetry) { Text("Retry", color = AccentPurple) }
+                    }
+
+                    is RegistrationDetailState.Loaded -> {
+                        RegistrationDetailBody(
+                            registrationId = response.id,
+                            detail = detailState.detail,
+                            selectedUserId = selectedUserId,
+                            onSelectMember = onSelectMember,
+                            limits = DetailLimits.Inline,
+                        )
+                        if (!detailState.detail.isEmpty) {
+                            Spacer(Modifier.height(4.dp))
+                            FullResponseButton(onClick = onFullResponse)
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ResponseStatusChip(status: RegistrationResponseStatus) {
+private fun FullResponseButton(onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = AccentPurpleLight,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = AccentPurple, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Full Response", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AccentPurple)
+        }
+    }
+}
+
+internal fun registrationTypeLabel(response: RegistrationResponseItem): String =
+    if (response.type == RegistrationResponseType.TEAM) {
+        "Team${response.memberCount?.let { " ($it members)" } ?: ""}"
+    } else {
+        "Individual"
+    }
+
+@Composable
+internal fun RegistrationAvatar(response: RegistrationResponseItem, size: Dp = 48.dp) {
+    if (response.type == RegistrationResponseType.TEAM) {
+        Box(
+            modifier = Modifier.size(size).background(TeamsBg, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.Groups,
+                contentDescription = null,
+                tint = TeamsFg,
+                modifier = Modifier.size(size * 0.54f),
+            )
+        }
+    } else {
+        AppAvatar(entityId = response.id, displayName = response.name, size = size)
+    }
+}
+
+@Composable
+internal fun ResponseStatusChip(status: RegistrationResponseStatus) {
     val background = when (status) {
         RegistrationResponseStatus.CONFIRMED -> Color(0xFFDDF6EA)
         RegistrationResponseStatus.PENDING -> Color(0xFFFFEFCF)
