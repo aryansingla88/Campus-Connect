@@ -40,6 +40,8 @@ fun NavGraphBuilder.eventNav(
             val viewModel: EventViewModel = viewModel()
 
             val events by viewModel.displayedEvents.collectAsState()
+            val categories by viewModel.categories.collectAsState()
+            val clubs by viewModel.clubs.collectAsState()
 
             val activeEvents = events.filter {
                 it.status != EventStatus.PAST
@@ -52,7 +54,9 @@ fun NavGraphBuilder.eventNav(
                 },
                 onRegister = {},
                 onNotify = {},
-                onOpenDetail = {}
+                onOpenDetail = {},
+                categories = categories,
+                clubs = clubs
             )
         }
     }

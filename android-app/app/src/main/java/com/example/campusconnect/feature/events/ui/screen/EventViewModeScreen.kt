@@ -3,14 +3,21 @@
 package com.example.campusconnect.feature.events.ui.screen
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,7 +36,9 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
@@ -49,9 +59,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,16 +72,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.metadata.clubs.Club
+import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -108,6 +129,9 @@ fun EventViewModeScreen(
     onRegister: (Event) -> Unit = {},
     onNotify: (Event) -> Unit = {},
     onOpenDetail: (Event) -> Unit = {},
+    showActionButtons: Boolean = true,
+    categories: List<EventCategory> = emptyList(),
+    clubs: List<Club> = emptyList(),
 ) {
     if (events.isEmpty()) {
         EmptyViewMode(onBack)
@@ -116,17 +140,24 @@ fun EventViewModeScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var showFilter  by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedClub by remember { mutableStateOf<String?>(null) }
 
     // Per-event registered / notified state (local fake state — wire to VM later)
     var registeredIds by remember { mutableStateOf(setOf<Int>()) }
     var notifiedIds   by remember { mutableStateOf(setOf<Int>()) }
 
-    val filtered = remember(searchQuery, events) {
-        if (searchQuery.isBlank()) events
-        else events.filter {
-            it.title.contains(searchQuery, ignoreCase = true) ||
-                    it.clubName.contains(searchQuery, ignoreCase = true) ||
-                    it.category.contains(searchQuery, ignoreCase = true)
+    val filtered = remember(searchQuery, selectedCategory, selectedClub, events) {
+        events.filter { event ->
+            val matchesSearch = searchQuery.isBlank() ||
+                event.title.contains(searchQuery, ignoreCase = true) ||
+                event.clubName.contains(searchQuery, ignoreCase = true) ||
+                event.category.contains(searchQuery, ignoreCase = true)
+            val matchesCategory = selectedCategory == null ||
+                event.category.equals(selectedCategory, ignoreCase = true)
+            val matchesClub = selectedClub == null ||
+                event.clubName.equals(selectedClub, ignoreCase = true)
+            matchesSearch && matchesCategory && matchesClub
         }
     }
 
@@ -339,6 +370,7 @@ fun EventViewModeScreen(
                                     scaleX = scale
                                     scaleY = scale
                                     this.alpha = alpha
+                                    translationY = if (showActionButtons) 0f else 36.dp.toPx()
                                     // Pull side cards IN, under the center card.
                                     // pageOffset is negative for the right
                                     // neighbour and positive for the left one,
@@ -366,7 +398,7 @@ fun EventViewModeScreen(
             }
 
             // ── BOTTOM ACTIONS ────────────────────────────────────────────────
-            currentEvent?.let { event ->
+            if (showActionButtons) currentEvent?.let { event ->
                 BottomActions(
                     event = event,
                     isRegistered = event.id in registeredIds,
@@ -400,13 +432,26 @@ fun EventViewModeScreen(
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            // Keep the carousel's available height unchanged when the event
+            // screen hides the action buttons, so posters do not grow taller.
+            Spacer(Modifier.height(if (showActionButtons) 24.dp else 132.dp))
         }
     }
 
     // ── FILTER BOTTOM SHEET (simple) ──────────────────────────────────────────
     if (showFilter) {
-        FilterSheet(onDismiss = { showFilter = false })
+        FilterSheet(
+            categories = categories,
+            clubs = clubs,
+            selectedCategory = selectedCategory,
+            selectedClub = selectedClub,
+            onApply = { category, club ->
+                selectedCategory = category
+                selectedClub = club
+                showFilter = false
+            },
+            onDismiss = { showFilter = false }
+        )
     }
 }
 
@@ -772,65 +817,220 @@ private fun BottomActions(
 // ─── FilterSheet ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun FilterSheet(onDismiss: () -> Unit) {
-    val categories = listOf("All", "Technology", "Cultural", "Sports", "Academic", "Workshop")
-    var selected by remember { mutableStateOf("All") }
+private fun FilterSheet(
+    categories: List<EventCategory>,
+    clubs: List<Club>,
+    selectedCategory: String?,
+    selectedClub: String?,
+    onApply: (String?, String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var showingClubs by remember { mutableStateOf(false) }
+    var categorySelection by remember(selectedCategory) { mutableStateOf(selectedCategory) }
+    var clubSelection by remember(selectedClub) { mutableStateOf(selectedClub) }
+    val scope = rememberCoroutineScope()
+    var sheetVisible by remember { mutableStateOf(false) }
+    var dismissing by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x66000000))
-            .clickable { onDismiss() },
-        contentAlignment = Alignment.BottomCenter
+    LaunchedEffect(Unit) { sheetVisible = true }
+
+    val dismissSheet = {
+        if (!dismissing) {
+            dismissing = true
+            scope.launch {
+                sheetVisible = false
+                delay(320)
+                onDismiss()
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = dismissSheet,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { /* absorb clicks */ },
-            shape          = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            color          = Color.White,
-            shadowElevation = 8.dp
+        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+        SideEffect {
+            // The dialog's platform dim stacks with the custom scrim and makes
+            // the background much darker than the preview bottom sheet.
+            dialogWindow?.setDimAmount(0f)
+        }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            AnimatedVisibility(
+                visible = sheetVisible,
+                enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(300)),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.32f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = dismissSheet
+                        )
+                )
+            }
+
+            AnimatedVisibility(
+                visible = sheetVisible,
+                enter = slideInVertically(tween(240)) { it } + fadeIn(tween(240)),
+                exit = slideOutVertically(tween(300)) { it } + fadeOut(tween(300)),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 560.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {}
+                        ),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                    color = Color.White,
+                    tonalElevation = 0.dp
+                ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                // Handle
                 Box(
                     modifier = Modifier
-                        .width(36.dp).height(4.dp)
-                        .background(Color(0xFFE0E0E0), CircleShape)
-                        .align(Alignment.CenterHorizontally)
-                )
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .pointerInput(Unit) {
+                            var dragDistance = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { dragDistance = 0f },
+                                onVerticalDrag = { change, dragAmount ->
+                                    dragDistance += dragAmount
+                                    change.consume()
+                                },
+                                onDragEnd = {
+                                    if (dragDistance >= 48.dp.toPx()) dismissSheet()
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        Modifier
+                            .width(36.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color(0xFFE0E0E0))
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Filter events", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextDark)
                 Spacer(Modifier.height(16.dp))
 
-                Text("Filter by category", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = TextDark)
-                Spacer(Modifier.height(14.dp))
-
-                // Category chips
-                categories.chunked(3).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { cat ->
-                            val isSelected = selected == cat
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(if (isSelected) Orange else Color(0xFFF0F0F0))
-                                    .clickable { selected = cat }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    cat,
-                                    fontSize   = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color      = if (isSelected) Color.White else TextMuted
-                                )
-                            }
+                // Keep the mode switch and sheet actions fixed while only the
+                // available options scroll.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFF4F4F4))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("Category", "Clubs").forEachIndexed { index, label ->
+                        val selected = showingClubs == (index == 1)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(if (selected) Orange else Color.Transparent)
+                                .clickable { showingClubs = index == 1 }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                label,
+                                color = if (selected) Color.White else TextMuted,
+                                fontSize = 14.sp,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                            )
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
+                }
+                Spacer(Modifier.height(12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        if (showingClubs) "CLUB" else "CATEGORY",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp,
+                        color = TextMuted
+                    )
+                    Spacer(Modifier.height(10.dp))
+
+                    val options: List<Pair<String?, String>> = if (showingClubs) {
+                        listOf(null to "All clubs") + clubs.map { it.name to it.name }
+                    } else {
+                        listOf(null to "All categories") + categories.map { it.name to it.name }
+                    }
+                    val activeSelection = if (showingClubs) clubSelection else categorySelection
+                    options.chunked(2).forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            row.forEach { (value, label) ->
+                                val isSelected = activeSelection == value
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(if (isSelected) OrangeLight else Color(0xFFF7F7F7))
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) Orange else Color(0xFFE8E8E8),
+                                            shape = RoundedCornerShape(20.dp)
+                                        )
+                                        .clickable {
+                                            if (showingClubs) clubSelection = value
+                                            else categorySelection = value
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        label,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (isSelected) Orange else TextMuted,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    val optionsAreEmpty = if (showingClubs) clubs.isEmpty() else categories.isEmpty()
+                    if (optionsAreEmpty) {
+                        Text(
+                            if (showingClubs) "No clubs are available right now."
+                            else "No event categories are available right now.",
+                            fontSize = 13.sp,
+                            color = TextMuted
+                        )
+                    }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick  = onDismiss,
+                    onClick  = { onApply(categorySelection, clubSelection) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape    = RoundedCornerShape(14.dp),
                     colors   = ButtonDefaults.buttonColors(containerColor = Orange)
@@ -838,6 +1038,8 @@ private fun FilterSheet(onDismiss: () -> Unit) {
                     Text("Apply", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
                 Spacer(Modifier.height(8.dp))
+        }
+                }
             }
         }
     }
