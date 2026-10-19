@@ -45,6 +45,7 @@ import com.example.campusconnect.feature.map.mapengine.viewport.rememberMapViewp
 import com.example.campusconnect.feature.map.styling.HomeMarkerPainter
 import com.example.campusconnect.feature.map.styling.PoiLabelResolver
 import com.example.campusconnect.feature.map.model.EventMarkerData
+import com.example.campusconnect.feature.map.model.MapMarker
 import com.example.campusconnect.feature.map.model.LocalUserMarkerData
 import com.example.campusconnect.feature.map.model.UserMarkerData
 import com.example.campusconnect.feature.map.model.PoiMarkerData
@@ -190,6 +191,24 @@ fun MapScreen(
     )
 
     var searchQuery by remember { mutableStateOf("") }
+    val searchSuggestions = remember(searchQuery, uiState.mode, uiState.renderMarkers) {
+        val query = searchQuery.trim()
+        if (query.length < 2) {
+            emptyList()
+        } else {
+            uiState.renderMarkers
+                .filter { marker ->
+                    when (uiState.mode) {
+                        MapMode.HOME -> marker is PoiMarkerData || marker is UserMarkerData
+                        MapMode.EVENT -> marker is EventMarkerData
+                        MapMode.SHOP, MapMode.POSTER -> false
+                    }
+                }
+                .filter { it.label.contains(query, ignoreCase = true) }
+                .sortedBy { if (it.label.startsWith(query, ignoreCase = true)) 0 else 1 }
+                .take(30)
+        }
+    }
     var showFilters by remember { mutableStateOf(false) }
     var selectedSidePanel by remember { mutableStateOf(SidePanel.NONE) }
     var expandedFilterSection by remember { mutableStateOf<String?>(null) }
@@ -321,6 +340,16 @@ fun MapScreen(
                 onSearchQueryChange = { query ->
                     searchQuery = query
                 },
+                searchSuggestions = searchSuggestions,
+                onSearchSuggestionSelected = { marker: MapMarker ->
+                    searchQuery = ""
+                    selectedSidePanel = SidePanel.NONE
+                    viewModel.selectMarker(marker.id)
+                    viewportState.focusOn(
+                        position = Offset(marker.x, marker.y),
+                        zoom = viewportState.scale.coerceAtLeast(4.5f)
+                    )
+                },
                 onProfileClick = onProfileClick,
                 onSettingsClick = onSettingsClick
             )
@@ -331,7 +360,7 @@ fun MapScreen(
                         val marker = uiState.localLocationMarker
                         if (locationPermissionGranted && marker != null &&
                             (uiState.locationStatus is LocationStatus.Available ||
-                                uiState.locationStatus is LocationStatus.Approximate)
+                                    uiState.locationStatus is LocationStatus.Approximate)
                         ) {
                             viewportState.focusOn(Offset(marker.x, marker.y), zoom = viewportState.scale.coerceAtLeast(4f))
                         } else {
@@ -364,7 +393,7 @@ fun MapScreen(
 
                 val locationHint = if (
                     (uiState.locationStatus is LocationStatus.Available ||
-                        uiState.locationStatus is LocationStatus.Approximate) && uiState.localLocationMarker == null
+                            uiState.locationStatus is LocationStatus.Approximate) && uiState.localLocationMarker == null
                 ) {
                     "Your position is outside the campus map area"
                 } else {
@@ -401,7 +430,11 @@ fun MapScreen(
                     selectedSidePanel = selectedSidePanel,
 
                     onFiltersClick = {
-                        showFilters = !showFilters
+                        val openingFilters = !showFilters
+                        showFilters = openingFilters
+                        if (openingFilters && uiState.mode == MapMode.HOME) {
+                            viewModel.refreshJoinedClubs()
+                        }
                         expandedFilterSection = null
                         expandedFilterRows = 0
                     },
@@ -500,7 +533,12 @@ fun MapScreen(
                 val selectedFilterKeys = selectedMapFilterKeys(uiState)
                 FilterPanel(
                     filterContext = uiState.filterContext,
-                    userOptions = listOf(MapFilterOption("users", "Users")),
+                    userOptions = listOf(
+                        MapFilterOption("connections", "Connections"),
+                        MapFilterOption("course", "Course"),
+                        MapFilterOption("clubs", "Clubs")
+                    ),
+                    clubOptions = uiState.joinedClubs,
                     poiCategories = filterOptions,
                     eventCategories = uiState.eventCategories.map {
                         MapFilterOption(it.id.toString(), it.name)
@@ -696,4 +734,5 @@ private fun locationStatusHint(
         "Location is temporarily unavailable"
     }
 }
+
 

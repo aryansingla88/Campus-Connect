@@ -46,8 +46,10 @@ public class UserPresenceController {
     // ---------------------------------------------------------
 
     @GetMapping
-    public ApiResponse<List<VisibleUserResponse>> getVisibleUsers() {
-        return userPresenceService.getVisibleUsers();
+    public ApiResponse<List<VisibleUserResponse>> getVisibleUsers(
+            @RequestParam(required = false) Integer clubId
+    ) {
+        return userPresenceService.getVisibleUsers(clubId);
     }
 
     // ---------------------------------------------------------

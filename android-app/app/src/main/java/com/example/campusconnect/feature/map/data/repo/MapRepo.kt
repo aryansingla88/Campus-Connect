@@ -1,10 +1,10 @@
 package com.example.campusconnect.feature.map.data.repo
 
-import com.example.campusconnect.feature.map.model.MapMarker
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.model.EventFilter
-import com.example.campusconnect.feature.map.model.MapFilterOption
 import com.example.campusconnect.feature.map.model.MapEventInfo
+import com.example.campusconnect.feature.map.model.MapFilterOption
+import com.example.campusconnect.feature.map.model.MapMarker
 import com.example.campusconnect.feature.map.model.MapPoiInfo
 import com.example.campusconnect.feature.map.model.MapShopInfo
 import com.example.campusconnect.feature.map.model.MapUserProfile
@@ -14,7 +14,8 @@ interface MapRepo {
     suspend fun getMarkers(
         type: MarkerType? = null,
         eventCategoryId: Int? = null,
-        poiCategory: String? = null
+        poiCategory: String? = null,
+        clubId: Int? = null
     ): Result<List<MapMarker>>
 
     suspend fun updateMyPresence(
@@ -22,6 +23,10 @@ interface MapRepo {
         longitude: Double,
         bearerToken: String
     ): Result<Unit>
+
+    suspend fun getMyConnectionUserIds(): Result<Set<Int>>
+
+    suspend fun getMyJoinedClubs(): Result<List<MapFilterOption>>
 
     // Backend user ID
     suspend fun getUserProfile(
@@ -48,7 +53,6 @@ interface MapRepo {
     suspend fun sendConnectionRequest(
         userId: Int
     ): Result<Unit>
-
 
     // Backend event ID
     suspend fun enableEventReminder(

@@ -17,7 +17,9 @@ interface MapApi {
     // Domain List Endpoints -----------------------------------------------------
 
     @GET("map/presence")
-    suspend fun getVisibleUsers(): ApiResponse<List<UserMapResponse>>
+    suspend fun getVisibleUsers(
+        @Query("clubId") clubId: Int? = null
+    ): ApiResponse<List<UserMapResponse>>
 
     @GET("map/poi")
     suspend fun getPois(): ApiResponse<List<PoiResponse>>

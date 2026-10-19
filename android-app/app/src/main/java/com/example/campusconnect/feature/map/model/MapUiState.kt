@@ -18,6 +18,8 @@ data class MapUiState(
     val selectedEventInfo: MapEventInfo? = null,
 
     val activeUserFilterId: String? = null,
+    val connectionUserIds: Set<Int>? = null,
+    val clubUserIds: Set<Int>? = null,
     val isPoiFilterActive: Boolean = false,
     val activePoiCategory: String? = null,
     /** Legacy construction compatibility; new map state uses independent filters above. */
@@ -27,6 +29,7 @@ data class MapUiState(
     val filterContext: MapFilterContext = MapFilterContext.HOME_MARKERS,
     val eventCategories: List<EventFilter> = emptyList(),
     val poiCategories: List<MapFilterOption> = emptyList(),
+    val joinedClubs: List<MapFilterOption> = emptyList(),
 
     val isLoading: Boolean = false,
     val errorMessage: String? = null,

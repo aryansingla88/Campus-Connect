@@ -73,6 +73,8 @@ class MapViewModel(
     private var markerLoadJob: Job? = null
     private var markerLoadRequestId = 0L
     private var detailLoadJob: Job? = null
+    private var userFilterJob: Job? = null
+    private var userFilterRequestId = 0L
     private var categoryLoadJob: Job? = null
     private var categoryLoadRequestId = 0L
     private val markerCache = mutableMapOf<MarkerType, List<MapMarker>>()
@@ -387,7 +389,20 @@ class MapViewModel(
         viewModelScope.launch {
             val events = repository.getEventCategories().getOrDefault(emptyList())
             val pois = repository.getPoiCategories().getOrDefault(emptyList())
-            _uiState.value = _uiState.value.copy(eventCategories = events, poiCategories = pois)
+            val clubs = repository.getMyJoinedClubs().getOrDefault(emptyList())
+            _uiState.value = _uiState.value.copy(
+                eventCategories = events,
+                poiCategories = pois,
+                joinedClubs = clubs
+            )
+        }
+    }
+
+    fun refreshJoinedClubs() {
+        viewModelScope.launch {
+            repository.getMyJoinedClubs().onSuccess { clubs ->
+                _uiState.value = _uiState.value.copy(joinedClubs = clubs)
+            }
         }
     }
 
@@ -402,6 +417,8 @@ class MapViewModel(
 
     private fun loadMarkersForMode(mode: MapMode) {
         markerLoadJob?.cancel()
+        userFilterJob?.cancel()
+        userFilterRequestId++
         categoryLoadJob?.cancel()
         categoryLoadRequestId++
         val requestId = ++markerLoadRequestId
@@ -423,6 +440,7 @@ class MapViewModel(
             selectedPoiInfo = null,
             selectedEventInfo = null,
             activeUserFilterId = null,
+            clubUserIds = null,
             isPoiFilterActive = false,
             activePoiCategory = null,
             activeEventCategoryId = null,
@@ -491,7 +509,6 @@ class MapViewModel(
             markers = modeMarkers,
             mode = mode,
             selectedMarkerId = null,
-            activeUserFilterId = null,
             isPoiFilterActive = false,
             activePoiCategory = null,
             selectedMarkerOverride = null,
@@ -628,12 +645,19 @@ class MapViewModel(
         val state = _uiState.value
         if (state.mode != MapMode.HOME) return
 
+        userFilterJob?.cancel()
+        val requestId = ++userFilterRequestId
         detailLoadJob?.cancel()
+        val selectedClubId = filterId
+            ?.takeIf { it.startsWith("club:") }
+            ?.removePrefix("club:")
+            ?.toIntOrNull()
         updateState(
             markers = state.markers,
             mode = state.mode,
             selectedMarkerId = null,
             activeUserFilterId = filterId,
+            clubUserIds = null,
             selectedMarkerOverride = null,
             selectedUserProfileOverride = null,
             selectedPoiInfoOverride = null,
@@ -641,6 +665,54 @@ class MapViewModel(
             isDetailLoading = false,
             detailErrorMessage = null
         )
+
+        if (filterId == "connections") {
+            userFilterJob = viewModelScope.launch {
+                repository.getMyConnectionUserIds()
+                    .onSuccess { connectionIds ->
+                        if (requestId == userFilterRequestId && _uiState.value.mode == MapMode.HOME) {
+                            updateState(
+                                markers = _uiState.value.markers,
+                                connectionUserIds = connectionIds,
+                                errorMessage = null
+                            )
+                        }
+                    }
+                    .onFailure { error ->
+                        if (requestId == userFilterRequestId && _uiState.value.mode == MapMode.HOME) {
+                            updateState(
+                                markers = _uiState.value.markers,
+                                activeUserFilterId = null,
+                                errorMessage = error.message ?: "Unable to load connections"
+                            )
+                        }
+                    }
+            }
+        } else if (selectedClubId != null) {
+            userFilterJob = viewModelScope.launch {
+                repository.getMarkers(MarkerType.USER, clubId = selectedClubId)
+                    .onSuccess { clubUsers ->
+                        if (requestId == userFilterRequestId && _uiState.value.mode == MapMode.HOME) {
+                            updateState(
+                                markers = _uiState.value.markers,
+                                activeUserFilterId = filterId,
+                                clubUserIds = clubUsers.mapTo(mutableSetOf()) { it.sourceId },
+                                errorMessage = null
+                            )
+                        }
+                    }
+                    .onFailure { error ->
+                        if (requestId == userFilterRequestId && _uiState.value.mode == MapMode.HOME) {
+                            updateState(
+                                markers = _uiState.value.markers,
+                                activeUserFilterId = null,
+                                clubUserIds = null,
+                                errorMessage = error.message ?: "Unable to load club members"
+                            )
+                        }
+                    }
+            }
+        }
     }
 
     fun setPoiCategory(category: String?) {
@@ -733,7 +805,16 @@ class MapViewModel(
 
     fun sendConnectionRequest(userId: Int) {
         viewModelScope.launch {
-            repository.sendConnectionRequest(userId)
+            repository.sendConnectionRequest(userId).onSuccess {
+                val profile = _uiState.value.selectedUserProfile
+                if (profile?.id == userId) {
+                    updateState(
+                        selectedUserProfileOverride = profile.copy(
+                            connectionStatus = com.example.campusconnect.feature.profile.model.ConnectionStatus.PENDING
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -777,6 +858,8 @@ class MapViewModel(
         mode: MapMode = _uiState.value.mode,
         selectedMarkerId: String? = _uiState.value.selectedMarkerId,
         activeUserFilterId: String? = _uiState.value.activeUserFilterId,
+        connectionUserIds: Set<Int>? = _uiState.value.connectionUserIds,
+        clubUserIds: Set<Int>? = _uiState.value.clubUserIds,
         isPoiFilterActive: Boolean = _uiState.value.isPoiFilterActive,
         activePoiCategory: String? = _uiState.value.activePoiCategory,
         activeEventCategoryId: Int? = _uiState.value.activeEventCategoryId,
@@ -799,7 +882,13 @@ class MapViewModel(
                 when (marker) {
                     // The current Users option means all user markers; future
                     // user-specific predicates stay scoped to this marker type.
-                    is UserMarkerData -> true
+                    is UserMarkerData -> when {
+                        activeUserFilterId == "connections" ->
+                            connectionUserIds?.contains(marker.sourceId) == true
+                        activeUserFilterId?.startsWith("club:") == true ->
+                            clubUserIds?.contains(marker.sourceId) == true
+                        else -> true
+                    }
                     is PoiMarkerData -> !isPoiFilterActive || activePoiCategory == null ||
                             marker.category.equals(activePoiCategory, ignoreCase = true)
                     else -> true
@@ -828,6 +917,8 @@ class MapViewModel(
             selectedPoiInfo = selectedPoiInfoOverride,
             selectedEventInfo = selectedEventInfoOverride,
             activeUserFilterId = activeUserFilterId.takeIf { mode == MapMode.HOME },
+            connectionUserIds = connectionUserIds,
+            clubUserIds = clubUserIds.takeIf { mode == MapMode.HOME },
             isPoiFilterActive = isPoiFilterActive && mode == MapMode.HOME,
             activePoiCategory = activePoiCategory.takeIf { mode == MapMode.HOME },
             activeEventCategoryId = activeEventCategoryId.takeIf { mode == MapMode.EVENT },
