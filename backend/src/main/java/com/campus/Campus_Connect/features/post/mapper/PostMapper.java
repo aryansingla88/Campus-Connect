@@ -1,6 +1,7 @@
 package com.campus.Campus_Connect.features.post.mapper;
 
 import com.campus.Campus_Connect.features.post.dto.response.CommentResponse;
+import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
 import com.campus.Campus_Connect.features.post.entity.Comment;
@@ -39,6 +40,9 @@ public class PostMapper {
             long commentCount
     ) {
 
+        boolean canDelete = currentUserId != null
+                && currentUserId.equals(post.getCreator().getId());
+
         String imageUrl = post.getImages()
                 .stream()
                 .sorted(Comparator.comparing(PostImage::getImageOrder))
@@ -75,10 +79,18 @@ public class PostMapper {
                 .userVote(userVote)
                 .commentCount(commentCount)
                 .createdAt(post.getCreatedAt())
+                .isEdited(post.getUpdatedAt() != null && post.getCreatedAt() != null
+                        && post.getUpdatedAt().isAfter(post.getCreatedAt().plusSeconds(1)))
+                .canDelete(canDelete)
                 .build();
     }
 
     public CommentResponse toCommentResponse(Comment comment) {
+
+        boolean deleted = comment.getDeletedAt() != null;
+        boolean canDelete = !deleted
+                && comment.getCreator().getId().equals(SecurityUtils.getCurrentUserId());
+        boolean canEdit = canDelete;
 
         return CommentResponse.builder()
                 .id(comment.getId())
@@ -89,8 +101,11 @@ public class PostMapper {
                                 : null
                 )
                 .username(comment.getCreator().getUsername())
-                .body(comment.getContent())
+                .body(deleted ? "Comment deleted" : comment.getContent())
                 .createdAt(comment.getCreatedAt())
+                .isDeleted(deleted)
+                .canDelete(canDelete)
+                .canEdit(canEdit)
                 .build();
     }
 }

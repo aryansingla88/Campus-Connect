@@ -11,8 +11,8 @@ import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.posts.data.remote.PostsApi
 import com.example.campusconnect.feature.posts.data.remote.request.CreateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdateCommentRequest
-import com.example.campusconnect.feature.posts.data.remote.request.UpdatePostRequest
 import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.feature.posts.models.CommentDeleteResponse
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
@@ -226,29 +226,22 @@ class ApiPostsRepository(
 
         postId: Int,
 
-        title: String,
-
         body: String,
 
-        tags: List<PostTag>
+        tags: List<PostTag>,
+
+        image: Uri?
 
     ): Result<Post> {
 
         return try {
 
-            val response = api.updatePost(
-
-                postId = postId,
-
-                request = UpdatePostRequest(
-
-                    title = title,
-
-                    body = body,
-
-                    tags = tags.map { it.id }
-                )
-            )
+            val bodyPart = body.toRequestBody("text/plain".toMediaType())
+            val tagParts = tags.map { it.id.toString().toRequestBody("text/plain".toMediaType()) }
+            val imagePart = image?.let {
+                ImageConverter.uriToMultipart(context = context, uri = it, partName = "image")
+            }
+            val response = api.updatePost(postId, bodyPart, imagePart, tagParts)
 
             if (
                 response.isSuccessful &&
@@ -487,15 +480,15 @@ class ApiPostsRepository(
 
     override suspend fun deleteComment(
         commentId: Int
-    ): Result<Unit> {
+    ): Result<CommentDeleteResponse> {
 
         return try {
 
             val response = api.deleteComment(commentId)
 
-            if (response.isSuccessful) {
+            if (response.isSuccessful && response.body()?.data != null) {
 
-                Result.success(Unit)
+                Result.success(response.body()!!.data!!)
 
             } else {
 

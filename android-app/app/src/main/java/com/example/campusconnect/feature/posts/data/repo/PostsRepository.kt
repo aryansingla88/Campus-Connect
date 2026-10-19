@@ -4,6 +4,7 @@ package com.example.campusconnect.feature.posts.data.repo
 import android.net.Uri
 
 import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.feature.posts.models.CommentDeleteResponse
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
@@ -37,11 +38,11 @@ interface PostsRepository {
 
         postId: Int,
 
-        title: String,
-
         body : String,
 
-        tags: List<PostTag>
+        tags: List<PostTag>,
+
+        image: Uri?
     ): Result<Post>
 
     suspend fun deletePost(
@@ -84,7 +85,7 @@ interface PostsRepository {
 
     suspend fun deleteComment(
         commentId: Int
-    ): Result<Unit>
+    ): Result<CommentDeleteResponse>
 
 
     // Voting -------------------------------------------------------------

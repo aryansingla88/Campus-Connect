@@ -1,6 +1,7 @@
 package com.campus.Campus_Connect.features.post.dto.response;
 
 import com.campus.Campus_Connect.features.post.entity.VoteType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,5 +35,11 @@ public class PostResponse {
     private VoteType userVote;
 
     private LocalDateTime createdAt;
+
+    private boolean canDelete;
+
     private long commentCount;
+
+    @JsonProperty("isEdited")
+    private boolean isEdited;
 }

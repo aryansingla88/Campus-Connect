@@ -6,6 +6,7 @@ import com.campus.Campus_Connect.features.post.dto.request.CreatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.request.UpdateCommentRequest;
 import com.campus.Campus_Connect.features.post.dto.request.UpdatePostRequest;
 import com.campus.Campus_Connect.features.post.dto.response.CommentResponse;
+import com.campus.Campus_Connect.features.post.dto.response.CommentDeleteResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagCountResponse;
@@ -100,13 +101,19 @@ public class PostController {
         );
     }
 
-    @PutMapping("/{postId}")
+    @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<PostResponse> updatePost(
             @PathVariable Integer postId,
-            @RequestBody UpdatePostRequest request
+            @RequestParam("body") String body,
+            @RequestParam("tags") List<Integer> tags,
+            @RequestParam(value = "image", required = false) MultipartFile image
     ) {
 
-        PostResponse response = postService.updatePost(postId, request);
+        PostResponse response = postService.updatePost(
+                postId,
+                UpdatePostRequest.builder().body(body).tags(tags).build(),
+                image
+        );
 
         return ApiResponse.success(
                 response,
@@ -144,14 +151,14 @@ public class PostController {
     }
 
     @DeleteMapping("/comments/{commentId}")
-    public ApiResponse<Void> deleteComment(
+    public ApiResponse<CommentDeleteResponse> deleteComment(
             @PathVariable Integer commentId
     ) {
 
-        postService.deleteComment(commentId);
+        CommentDeleteResponse response = postService.deleteComment(commentId);
 
         return ApiResponse.success(
-                null,
+                response,
                 "Comment deleted successfully."
         );
     }

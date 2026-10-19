@@ -14,6 +14,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 /*below line helps us import the @composable annotation*/
 import androidx.compose.runtime.Composable
@@ -48,8 +56,12 @@ fun PostCard(
 
     onUpvoteClick: () -> Unit,
 
-    onDownvoteClick: () -> Unit
+    onDownvoteClick: () -> Unit,
+
+    onDeleteClick: () -> Unit = {},
+    onEditClick: () -> Unit = {}
 ) {
+    var showMenu by remember(post.id) { mutableStateOf(false) }
 
     ElevatedCard(
 
@@ -153,55 +165,52 @@ fun PostCard(
 
                             color = HintColor
                         )
+                        if (post.isEdited) Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
                     }
                 }
-
-                /*
-                RIGHT SECTION
-                 */
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
-                    /*
-                    TAG CHIP
-                     */
-
-                    Surface(
-
+                    val topicName = post.tags.firstOrNull()?.name?.takeIf { it.isNotBlank() }
+                    if (topicName != null) Surface(
                         color = OrangeLight,
-
                         shape = RoundedCornerShape(50)
                     ) {
-
                         Text(
-
-                            post.tags.firstOrNull()?.name ?: "",
-
-                            modifier = Modifier.padding(
-                                horizontal = 12.dp,
-                                vertical = 6.dp
-                            ),
-
+                            text = topicName,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             color = OrangePrimary,
-
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
 
                     Spacer(modifier = Modifier.width(10.dp))
 
-                    /*
-                    THREE DOT MENU
-                     */
-
-                    Text(
-
-                        text = "⋮",
-
-                        color = HintColor
-                    )
+                    if (post.canDelete) {
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "Post options", tint = HintColor)
+                            }
+                            MaterialTheme(
+                                colorScheme = MaterialTheme.colorScheme.copy(
+                                    surface = OrangeLight,
+                                    primary = OrangePrimary
+                                )
+                            ) {
+                                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text("Edit post") },
+                                        onClick = { showMenu = false; onEditClick() }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete post") },
+                                        onClick = { showMenu = false; onDeleteClick() }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

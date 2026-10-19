@@ -45,6 +45,13 @@ class FeedViewModel(
 
     }
 
+    suspend fun updatePost(
+        postId: Int,
+        body: String,
+        tags: List<PostTag>,
+        image: Uri?
+    ): Result<Post> = repository.updatePost(postId, body, tags, image)
+
     suspend fun upvotePost(
         postId: Int
     ): Result<Unit> {
@@ -65,4 +72,6 @@ class FeedViewModel(
 
         return repository.removePostVote(postId)
     }
+
+    suspend fun deletePost(postId: Int): Result<Unit> = repository.deletePost(postId)
 }

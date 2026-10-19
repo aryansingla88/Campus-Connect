@@ -15,9 +15,6 @@ import java.util.List;
 @Builder
 public class UpdatePostRequest {
 
-    @NotBlank(message = "Title is required")
-    private String title;
-
     @NotBlank(message = "Body is required")
     private String body;
 
