@@ -26,7 +26,9 @@ import com.example.campusconnect.feature.map.mapengine.viewport.rememberMapViewp
 import com.example.campusconnect.feature.map.styling.HomeMarkerPainter
 import com.example.campusconnect.feature.map.styling.PoiLabelResolver
 import com.example.campusconnect.feature.map.model.EventMarkerData
+import com.example.campusconnect.feature.map.model.MapMarker
 import com.example.campusconnect.feature.map.model.PoiMarkerData
+import com.example.campusconnect.feature.map.model.UserMarkerData
 import com.example.campusconnect.feature.map.model.MapMode
 import com.example.campusconnect.feature.map.model.MapFilterOption
 import com.example.campusconnect.feature.map.model.MapFilterContext
@@ -89,6 +91,24 @@ fun MapScreen(
     )
 
     var searchQuery by remember { mutableStateOf("") }
+    val searchSuggestions = remember(searchQuery, uiState.mode, uiState.renderMarkers) {
+        val query = searchQuery.trim()
+        if (query.length < 2) {
+            emptyList()
+        } else {
+            uiState.renderMarkers
+                .filter { marker ->
+                    when (uiState.mode) {
+                        MapMode.HOME -> marker is PoiMarkerData || marker is UserMarkerData
+                        MapMode.EVENT -> marker is EventMarkerData
+                        MapMode.SHOP, MapMode.POSTER -> false
+                    }
+                }
+                .filter { it.label.contains(query, ignoreCase = true) }
+                .sortedBy { if (it.label.startsWith(query, ignoreCase = true)) 0 else 1 }
+                .take(30)
+        }
+    }
     var showFilters by remember { mutableStateOf(false) }
     var selectedSidePanel by remember { mutableStateOf(SidePanel.NONE) }
     var expandedFilterSection by remember { mutableStateOf<String?>(null) }
@@ -189,6 +209,16 @@ fun MapScreen(
                 searchQuery = searchQuery,
                 onSearchQueryChange = { query ->
                     searchQuery = query
+                },
+                searchSuggestions = searchSuggestions,
+                onSearchSuggestionSelected = { marker: MapMarker ->
+                    searchQuery = ""
+                    selectedSidePanel = SidePanel.NONE
+                    viewModel.selectMarker(marker.id)
+                    viewportState.focusOn(
+                        position = Offset(marker.x, marker.y),
+                        zoom = viewportState.scale.coerceAtLeast(4.5f)
+                    )
                 },
                 onProfileClick = onProfileClick,
                 onSettingsClick = onSettingsClick
