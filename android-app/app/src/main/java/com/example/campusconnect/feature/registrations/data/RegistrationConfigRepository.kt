@@ -59,6 +59,7 @@ class RegistrationConfigRepository {
             minTeamMembers = settings.minMembers,
             maxTeamMembers = settings.maxMembers,
             quickFieldMask = settings.quickFieldMask,
+            autoConfirm = settings.autoConfirm,
             registrationCreatedAt = settings.registrationCreatedAt,
             registrationEndAt = settings.deadline?.let { Instant.ofEpochMilli(it).toString() },
         )
@@ -103,7 +104,7 @@ class RegistrationConfigRepository {
         data class Failure(val message: String) : LoadResult
     }
 
-    private fun RegistrationConfigResponse.toSettings(): RegistrationSettings {
+    internal fun RegistrationConfigResponse.toSettings(): RegistrationSettings {
         val deadline = registrationEndAt?.let {
             try { Instant.parse(it).toEpochMilli() } catch (_: DateTimeParseException) { null }
         }
@@ -111,6 +112,7 @@ class RegistrationConfigRepository {
             minMembers = minTeamMembers,
             maxMembers = maxTeamMembers,
             quickFieldMask = quickFieldMask,
+            autoConfirm = autoConfirm ?: true,
             registrationCreatedAt = registrationCreatedAt,
             deadline = deadline,
         )

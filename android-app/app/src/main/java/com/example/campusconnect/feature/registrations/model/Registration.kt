@@ -13,6 +13,7 @@ data class RegistrationSettings(
     val minMembers: Int = 1,
     val maxMembers: Int = 4,
     val quickFieldMask: Long = 0L,
+    val autoConfirm: Boolean = true,
     val registrationCreatedAt: String? = null,
     val deadline: Long? = null,
 ) {

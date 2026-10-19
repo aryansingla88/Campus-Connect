@@ -7,6 +7,7 @@ import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.event.repository.EventTeamRepository;
 import com.campus.Campus_Connect.features.registration.dto.request.AnswerType;
 import com.campus.Campus_Connect.features.registration.dto.request.SaveRegistrationAnswersRequest;
+import com.campus.Campus_Connect.features.registration.dto.request.RegistrationRequest;
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
 import com.campus.Campus_Connect.features.registration.entity.RegistrationAnswer;
@@ -49,6 +50,64 @@ class UserRegistrationServiceValidationTest {
         assertFalse(response.isSuccess());
         assertEquals("User is not authenticated.", response.getMessage());
         verifyNoInteractions(eventRepository, registrationRepository);
+    }
+
+    @Test
+    void onlyPendingDraftCanBeResumed() {
+        User participant = User.builder().id(10).build();
+        authenticate(participant);
+        Event event = Event.builder().id(3).approvalStatus(com.campus.Campus_Connect.features.event.entity.enums.ApprovalStatus.VERIFIED)
+                .eventState(com.campus.Campus_Connect.features.event.entity.enums.EventState.UPCOMING)
+                .registrationType(com.campus.Campus_Connect.features.event.entity.enums.RegistrationType.THROUGH_APP).build();
+        when(eventRepository.findById(3)).thenReturn(Optional.of(event));
+        when(configRepository.findByEventId(3)).thenReturn(Optional.of(
+                com.campus.Campus_Connect.features.registration.entity.RegistrationConfig.builder()
+                        .eventId(3).event(event).minTeamMembers(1).maxTeamMembers(1).build()));
+        EventRegistration draft = EventRegistration.builder().id(19).event(event).user(participant)
+                .status(RegistrationStatus.PENDING).build();
+        when(registrationRepository.findByEventIdAndUserId(3, 10)).thenReturn(Optional.of(draft));
+
+        ApiResponse<RegistrationResponse> resumed = service.registerForEvent(3, new RegistrationRequest());
+        assertTrue(resumed.isSuccess());
+        assertEquals("PENDING", resumed.getData().getStatus());
+
+        draft.setStatus(RegistrationStatus.WAITLISTED);
+        ApiResponse<RegistrationResponse> submitted = service.registerForEvent(3, new RegistrationRequest());
+        assertFalse(submitted.isSuccess());
+        assertEquals("WAITLISTED", draft.getStatus().name());
+        verify(registrationRepository, never()).save(any(EventRegistration.class));
+    }
+
+    @Test
+    void submittedRegistrationCannotBeEditedAsDraft() {
+        User participant = User.builder().id(10).build();
+        authenticate(participant);
+        EventRegistration submitted = EventRegistration.builder().id(19).event(Event.builder().id(3).build())
+                .user(participant).status(RegistrationStatus.WAITLISTED).build();
+        when(registrationRepository.findById(19)).thenReturn(Optional.of(submitted));
+
+        ApiResponse<RegistrationResponse> response = service.saveAnswers(19,
+                request(AnswerType.INDIVIDUAL, List.of(answer(55, "changed"))));
+
+        assertFalse(response.isSuccess());
+        assertEquals("Editable registration not found.", response.getMessage());
+        verifyNoInteractions(fieldRepository, answerRepository);
+    }
+
+    @Test
+    void pendingDraftCanBeCancelled() {
+        User participant = User.builder().id(10).build();
+        authenticate(participant);
+        Event event = Event.builder().id(3).build();
+        EventRegistration draft = EventRegistration.builder().id(19).event(event).user(participant)
+                .status(RegistrationStatus.PENDING).build();
+        when(registrationRepository.findByEventIdAndUserId(3, 10)).thenReturn(Optional.of(draft));
+        when(registrationRepository.findByIdForUpdate(19)).thenReturn(Optional.of(draft));
+
+        ApiResponse<Void> response = service.cancelRegistration(3);
+
+        assertTrue(response.isSuccess());
+        verify(registrationRepository).delete(draft);
     }
 
     @Test
@@ -202,9 +261,12 @@ class UserRegistrationServiceValidationTest {
         EventTeam team = EventTeam.builder().id(7).event(event).leader(leader).teamName("Team").build();
         EventRegistration registration = EventRegistration.builder().id(19).event(event)
                 .user(User.builder().id(11).build()).team(team).status(RegistrationStatus.PENDING).build();
+        EventRegistration leaderRegistration = EventRegistration.builder().id(21).event(event)
+                .user(leader).team(team).status(RegistrationStatus.PENDING).build();
         RegistrationField field = RegistrationField.builder().id(56).event(event).individual(false)
                 .fieldType("TEXT").required(false).build();
         when(registrationRepository.findById(19)).thenReturn(Optional.of(registration));
+        when(registrationRepository.findByEventIdAndUserId(3, 10)).thenReturn(Optional.of(leaderRegistration));
         when(fieldRepository.findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(3)).thenReturn(List.of(field));
         when(answerRepository.findById(any())).thenReturn(Optional.empty());
 
@@ -213,7 +275,7 @@ class UserRegistrationServiceValidationTest {
 
         assertTrue(response.isSuccess());
         verify(answerRepository).save(argThat(saved -> saved.getField().getId().equals(56)
-                && saved.getRegistration().getId().equals(19)
+                && saved.getRegistration().getId().equals(21)
                 && saved.getAnswer().equals("team answer")));
     }
 

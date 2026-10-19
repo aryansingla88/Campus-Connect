@@ -5,6 +5,7 @@ import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.registration.dto.request.QuickFieldsConfigRequest;
+import com.campus.Campus_Connect.features.registration.dto.request.RegistrationConfigRequest;
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationConfigResponse;
 import com.campus.Campus_Connect.features.registration.entity.RegistrationConfig;
 import com.campus.Campus_Connect.features.registration.repository.*;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Optional;
 
@@ -100,5 +102,37 @@ class HostRegistrationServiceQuickFieldsTest {
         assertFalse(response.isSuccess());
         verify(configRepository, never()).findByEventId(any());
         verify(configRepository, never()).save(any());
+    }
+
+    @Test
+    void newConfigurationDefaultsAutoConfirmToTrueAndExposesSnakeCaseJson() throws Exception {
+        when(configRepository.findByEventId(EVENT_ID)).thenReturn(Optional.empty());
+        when(configRepository.save(any(RegistrationConfig.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        RegistrationConfigRequest request = RegistrationConfigRequest.builder()
+                .minTeamMembers(1).maxTeamMembers(1).quickFieldMask(0L).build();
+
+        ApiResponse<RegistrationConfigResponse> response = service.createRegistrationConfig(EVENT_ID, request);
+
+        assertTrue(response.isSuccess());
+        assertEquals(true, response.getData().getAutoConfirm());
+        ObjectMapper mapper = new ObjectMapper();
+        RegistrationConfigRequest parsed = mapper.readValue("{\"minTeamMembers\":1,\"maxTeamMembers\":1,\"quickFieldMask\":0,\"auto_confirm\":false}", RegistrationConfigRequest.class);
+        assertEquals(false, parsed.getAutoConfirm());
+        assertEquals(true, mapper.readTree(mapper.writeValueAsString(response.getData())).get("auto_confirm").asBoolean());
+    }
+
+    @Test
+    void omittedAutoConfirmUpdatePreservesExistingFalse() {
+        config.setAutoConfirm(false);
+        when(configRepository.findByEventId(EVENT_ID)).thenReturn(Optional.of(config));
+        when(configRepository.save(any(RegistrationConfig.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        RegistrationConfigRequest request = RegistrationConfigRequest.builder()
+                .minTeamMembers(2).maxTeamMembers(6).quickFieldMask(1L).build();
+
+        ApiResponse<RegistrationConfigResponse> response = service.updateRegistrationConfig(EVENT_ID, request);
+
+        assertTrue(response.isSuccess());
+        assertEquals(false, config.getAutoConfirm());
+        assertEquals(false, response.getData().getAutoConfirm());
     }
 }

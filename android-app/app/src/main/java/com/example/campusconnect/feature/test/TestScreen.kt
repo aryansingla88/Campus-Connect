@@ -18,6 +18,7 @@ fun TestScreen(
     onLogout: (() -> Unit)? = null,
     onSettings: () -> Unit,
     onContinue: (() -> Unit)? = null,
+    onUserRegistration: () -> Unit,
 ) {
 
     var currentUser by remember {
@@ -90,6 +91,13 @@ fun TestScreen(
 
         Button(onClick = onSettings) {
             Text("Settings")
+        }
+
+        Button(
+            onClick = onUserRegistration,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("User Registration Flow")
         }
 
         if (onLogout != null) {

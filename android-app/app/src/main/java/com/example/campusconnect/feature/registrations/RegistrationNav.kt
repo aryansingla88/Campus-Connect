@@ -11,7 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.example.campusconnect.feature.registrations.data.RegistrationConfigRepository
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationResponseDetailScreen
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationFormViewModel
@@ -22,12 +24,25 @@ import com.example.campusconnect.feature.registrations.ui.screens.FormBuilderScr
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationSetupScreen
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationResponsesScreen
 import com.example.campusconnect.feature.registrations.ui.screens.TeamQuestionsScreen
+import com.example.campusconnect.feature.registrations.userflow.model.ParticipationMode
+import com.example.campusconnect.feature.registrations.userflow.ui.UserRegistrationFlow
+import com.example.campusconnect.feature.registrations.userflow.ui.RegistrationSubmitFlow
 
 fun NavGraphBuilder.RegistrationNav(
     navController: NavController,
     onQuickFields: (eventId: Int) -> Unit = {},
     onViewResponses: (eventId: Int) -> Unit = {},
 ) {
+
+    // TestScreen's participant entry point. The wrapper keeps participant answers and
+    // selected team/mode while switching between the existing flow composables.
+    composable(route = "user_registration") {
+        val eventId = RegistrationConfigRepository.TEMP_EVENT_ID
+        ParticipantRegistrationHost(
+            eventId = eventId,
+            navController = navController,
+        )
+    }
 
     composable(
         route = "registration_setup/{eventId}",
@@ -262,6 +277,61 @@ fun NavGraphBuilder.RegistrationNav(
             onBack = {
                 navController.popBackStack()
             },
+        )
+    }
+}
+
+private enum class ParticipantRegistrationStage { DETAILS, SUBMISSION }
+
+@Composable
+private fun ParticipantRegistrationHost(
+    eventId: Int,
+    navController: NavController,
+) {
+    var stage by remember { mutableStateOf(ParticipantRegistrationStage.DETAILS) }
+    var mode by remember { mutableStateOf<ParticipationMode?>(null) }
+    var participantAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var teamId by remember { mutableStateOf<Int?>(null) }
+
+    val leaveFlow: () -> Unit = { navController.popBackStack() }
+    val continueToSubmission = { selectedMode: ParticipationMode, answers: Map<Int, String>, selectedTeamId: Int? ->
+        mode = selectedMode
+        participantAnswers = answers.toMap()
+        teamId = selectedTeamId
+        stage = ParticipantRegistrationStage.SUBMISSION
+    }
+
+    when (stage) {
+        ParticipantRegistrationStage.DETAILS -> UserRegistrationFlow(
+            eventId = eventId,
+            onExit = leaveFlow,
+            onCreateTeam = { answers ->
+                continueToSubmission(ParticipationMode.CREATE_TEAM, answers, null)
+            },
+            onContinueSolo = { answers ->
+                continueToSubmission(ParticipationMode.SOLO, answers, null)
+            },
+            onJoinRequested = { team, answers ->
+                // A request remains pending in the portal until a leader approves it.
+                mode = ParticipationMode.JOIN_TEAM
+                participantAnswers = answers.toMap()
+                teamId = team.id
+            },
+            onInviteAccepted = { invite, answers ->
+                continueToSubmission(ParticipationMode.JOIN_TEAM, answers, invite.teamId)
+            },
+        )
+
+        ParticipantRegistrationStage.SUBMISSION -> RegistrationSubmitFlow(
+            eventId = eventId,
+            eventName = "Event #$eventId",
+            mode = mode ?: ParticipationMode.SOLO,
+            teamId = teamId,
+            participantAnswers = participantAnswers,
+            onExit = { stage = ParticipantRegistrationStage.DETAILS },
+            // There is no participant registration-details destination in the current app.
+            onViewRegistration = { leaveFlow() },
+            onBackToEvent = { leaveFlow() },
         )
     }
 }

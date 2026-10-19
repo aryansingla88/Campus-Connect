@@ -6,6 +6,9 @@ import com.campus.Campus_Connect.features.registration.dto.request.SaveRegistrat
 import com.campus.Campus_Connect.features.registration.dto.response.AvailableTeamResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.SavedRegistrationAnswerResponse;
+import com.campus.Campus_Connect.features.registration.dto.request.CreateTeamJoinRequest;
+import com.campus.Campus_Connect.features.registration.dto.request.CreateTeamInvitationRequest;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamRequestResponse;
 import com.campus.Campus_Connect.features.registration.service.UserRegistrationService;
 import com.campus.Campus_Connect.features.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
@@ -45,6 +48,13 @@ class UserRegistrationControllerRoutingTest {
                 "/events/{eventId}/registration/teams",
                 "/events/registrations/{registrationId}/team",
                 "/events/registrations/{registrationId}/finalize",
+                "/events/registrations/{registrationId}/team-requests",
+                "/events/teams/{teamId}/invitations",
+                "/events/registrations/team-requests",
+                "/events/teams/{teamId}/requests",
+                "/events/team-requests/{requestId}/accept",
+                "/events/team-requests/{requestId}/reject",
+                "/events/team-requests/{requestId}/cancel",
                 "/events/{eventId}/registration",
                 "/events/registrations")
                 .doesNotContain(
@@ -135,7 +145,7 @@ class UserRegistrationControllerRoutingTest {
         RegistrationResponse pending = RegistrationResponse.builder().registrationId(19).eventId(3).status("PENDING").build();
         when(service.createTeam(19, "Alpha Team")).thenReturn(ApiResponse.success(pending, "ok"));
         when(service.finalizeRegistration(19)).thenReturn(ApiResponse.success(
-                RegistrationResponse.builder().registrationId(19).eventId(3).status("COMPLETE").build(), "ok"));
+                RegistrationResponse.builder().registrationId(19).eventId(3).status("CONFIRMED").build(), "ok"));
 
         mockMvc.perform(get("/events/registrations")).andExpect(status().isOk()).andExpect(jsonPath("$.data").isArray());
         mockMvc.perform(delete("/events/3/registration")).andExpect(status().isOk());
@@ -145,7 +155,7 @@ class UserRegistrationControllerRoutingTest {
                         .content("{\"teamName\":\"Alpha Team\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.registrationId").value(19));
         mockMvc.perform(post("/events/registrations/19/finalize"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("COMPLETE"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("CONFIRMED"));
 
         verify(service).getMyRegistrations();
         verify(service).cancelRegistration(3);
@@ -182,5 +192,37 @@ class UserRegistrationControllerRoutingTest {
     @Test
     void unknownRouteReturnsNotFound() throws Exception {
         mockMvc.perform(get("/events/3/registration/not-a-route")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void teamRequestEndpointsBindAndDelegateToService() throws Exception {
+        TeamRequestResponse response = TeamRequestResponse.builder().requestId(31).status("PENDING").build();
+        when(service.createTeamJoinRequest(eq(19), any())).thenReturn(ApiResponse.success(response, "ok"));
+        when(service.createTeamInvitation(eq(7), any())).thenReturn(ApiResponse.success(response, "ok"));
+        when(service.acceptTeamRequest(31)).thenReturn(ApiResponse.success(response, "ok"));
+        when(service.rejectTeamRequest(31)).thenReturn(ApiResponse.success(response, "ok"));
+        when(service.cancelTeamRequest(31)).thenReturn(ApiResponse.success(response, "ok"));
+        when(service.getMyTeamRequests()).thenReturn(ApiResponse.success(List.of(response), "ok"));
+        when(service.getTeamRequests(7)).thenReturn(ApiResponse.success(List.of(response), "ok"));
+
+        mockMvc.perform(post("/events/registrations/19/team-requests").contentType("application/json")
+                        .content("{\"teamId\":7}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.requestId").value(31));
+        mockMvc.perform(post("/events/teams/7/invitations").contentType("application/json")
+                        .content("{\"registrationId\":19}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/events/registrations/team-requests")).andExpect(status().isOk());
+        mockMvc.perform(get("/events/teams/7/requests")).andExpect(status().isOk());
+        mockMvc.perform(post("/events/team-requests/31/accept")).andExpect(status().isOk());
+        mockMvc.perform(post("/events/team-requests/31/reject")).andExpect(status().isOk());
+        mockMvc.perform(post("/events/team-requests/31/cancel")).andExpect(status().isOk());
+
+        verify(service).createTeamJoinRequest(eq(19), any(CreateTeamJoinRequest.class));
+        verify(service).createTeamInvitation(eq(7), any(CreateTeamInvitationRequest.class));
+        verify(service).getMyTeamRequests();
+        verify(service).getTeamRequests(7);
+        verify(service).acceptTeamRequest(31);
+        verify(service).rejectTeamRequest(31);
+        verify(service).cancelTeamRequest(31);
     }
 }

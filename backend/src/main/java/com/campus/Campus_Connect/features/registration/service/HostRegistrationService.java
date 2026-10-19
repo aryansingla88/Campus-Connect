@@ -66,6 +66,7 @@ public class HostRegistrationService {
                     .minTeamMembers(request.getMinTeamMembers())
                     .maxTeamMembers(request.getMaxTeamMembers())
                     .quickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L)
+                    .autoConfirm(request.getAutoConfirm() == null || request.getAutoConfirm())
                     .registrationCreatedAt(request.getRegistrationCreatedAt())
                     .registrationEndAt(request.getRegistrationEndAt())
                     .build();
@@ -73,6 +74,7 @@ public class HostRegistrationService {
             config.setMinTeamMembers(request.getMinTeamMembers());
             config.setMaxTeamMembers(request.getMaxTeamMembers());
             config.setQuickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L);
+            if (request.getAutoConfirm() != null) config.setAutoConfirm(request.getAutoConfirm());
             config.setRegistrationCreatedAt(request.getRegistrationCreatedAt());
             config.setRegistrationEndAt(request.getRegistrationEndAt());
         }
@@ -97,6 +99,7 @@ public class HostRegistrationService {
                     .minTeamMembers(request.getMinTeamMembers())
                     .maxTeamMembers(request.getMaxTeamMembers())
                     .quickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L)
+                    .autoConfirm(request.getAutoConfirm() == null || request.getAutoConfirm())
                     .registrationCreatedAt(request.getRegistrationCreatedAt())
                     .registrationEndAt(request.getRegistrationEndAt())
                     .build();
@@ -104,6 +107,7 @@ public class HostRegistrationService {
             config.setMinTeamMembers(request.getMinTeamMembers());
             config.setMaxTeamMembers(request.getMaxTeamMembers());
             config.setQuickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L);
+            if (request.getAutoConfirm() != null) config.setAutoConfirm(request.getAutoConfirm());
             config.setRegistrationCreatedAt(request.getRegistrationCreatedAt());
             config.setRegistrationEndAt(request.getRegistrationEndAt());
         }
@@ -728,8 +732,12 @@ public class HostRegistrationService {
         if (event == null) return ApiResponse.failure("Event not found.");
         if (!isOrganizer(event)) return ApiResponse.failure("Only the event organizer can manage registrations.");
 
-        EventRegistration registration = registrationRepository.findByIdAndEventId(registrationId, eventId).orElse(null);
+        EventRegistration registration = registrationRepository.findByIdForUpdate(registrationId).orElse(null);
+        if (registration != null && !registration.getEvent().getId().equals(eventId)) registration = null;
         if (registration == null) return ApiResponse.failure("Registration not found.");
+
+        if (registration.getStatus() != RegistrationStatus.WAITLISTED)
+            return ApiResponse.failure("Only submitted registrations awaiting host approval can be reviewed.");
 
         if (registration.getStatus() == targetStatus) {
             return ApiResponse.failure("Registration is already " + targetStatus.name());
@@ -771,6 +779,7 @@ public class HostRegistrationService {
                 .minTeamMembers(config.getMinTeamMembers())
                 .maxTeamMembers(config.getMaxTeamMembers())
                 .quickFieldMask(config.getQuickFieldMask())
+                .autoConfirm(config.getAutoConfirm() == null || config.getAutoConfirm())
                 .registrationCreatedAt(config.getRegistrationCreatedAt())
                 .registrationEndAt(config.getRegistrationEndAt())
                 .build();

@@ -75,6 +75,9 @@ fun AppNavHost() {
                 onSettings = {
                     navController.navigate("settings_graph")
                 },
+                onUserRegistration = {
+                    navController.navigate("user_registration")
+                },
 
             )
         }
@@ -119,6 +122,9 @@ fun AppNavHost() {
                             inclusive = true
                         }
                     }
+                },
+                onUserRegistration = {
+                    navController.navigate("user_registration")
                 },
 
                 onContinue = {
