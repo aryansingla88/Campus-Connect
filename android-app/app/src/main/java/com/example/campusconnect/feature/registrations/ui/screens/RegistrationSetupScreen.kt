@@ -57,11 +57,17 @@ fun RegistrationSetupScreen(
     initialSettings: RegistrationSettings,
     onBack: () -> Unit,
     onContinue: (RegistrationSettings) -> Unit,
-    onTeamQuestions: () -> Unit = {},
+    onPublish: (RegistrationSettings) -> Unit = {},
+    isLoading: Boolean = false,
+    isSaving: Boolean = false,
+    publishError: String? = null,
+    loadFailed: Boolean = false,
+    publishSucceeded: Boolean = false,
+    onRetryLoad: () -> Unit = {},
+    onTeamQuestions: (RegistrationSettings) -> Unit = {},
     onViewResponses: () -> Unit = {},
-    onSaveDraft: (RegistrationSettings) -> Unit = {},
 ) {
-    var settings by remember { mutableStateOf(initialSettings) }
+    var settings by remember(initialSettings) { mutableStateOf(initialSettings) }
 
     val hasType = settings.allowIndividual || settings.allowTeam
 
@@ -81,41 +87,11 @@ fun RegistrationSetupScreen(
                     HeaderActionButton(
                         text = "Publish",
                         icon = Icons.Outlined.Send,
-                        onClick = {
-                            onContinue(settings)
-                        }
+                        onClick = { onPublish(settings) },
+                        enabled = !isLoading && !isSaving && hasType,
                     )
                 }
             )
-        },
-        bottomBar = {
-            RegistrationBottomBar {
-                OutlinedButton(
-                    onClick = { onSaveDraft(settings) },
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.25.dp, OrangePrimary),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = OrangePrimary,
-                        containerColor = Color.Transparent,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                ) {
-                    Icon(
-                        Icons.Outlined.Save,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(9.dp))
-                    Text(
-                        "Save draft",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                    )
-                }
-            }
         },
     ) { padding ->
 
@@ -128,6 +104,22 @@ fun RegistrationSetupScreen(
 
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+
+            if (isLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            if (publishError != null) {
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(publishError, modifier = Modifier.weight(1f), color = ErrorRed, fontSize = 13.sp)
+                        if (loadFailed) TextButton(onClick = onRetryLoad) { Text("Retry") }
+                    }
+                }
+            } else if (publishSucceeded) {
+                Text("Registration settings published successfully.", color = GreenText, fontSize = 13.sp)
+            }
 
             // Intro
             Column(
@@ -169,14 +161,19 @@ fun RegistrationSetupScreen(
                     checked = settings.allowIndividual,
                     onChecked = { enabled ->
                         settings = if (enabled) {
-                            settings.copy(allowIndividual = true)
+                            if (settings.allowTeam) {
+                                // individual + team: (1, max > 1)
+                                settings.copy(minMembers = 1, maxMembers = maxOf(settings.maxMembers, 2))
+                            } else {
+                                // individual-only: (1, 1)
+                                settings.copy(minMembers = 1, maxMembers = 1)
+                            }
                         } else {
-                            // Without individual registration, team size must be at least 2.
-                            val minMembers = maxOf(settings.minMembers, 2)
+                            // team-only: (min >= 2, max >= min)
+                            val newMin = maxOf(settings.minMembers, 2)
                             settings.copy(
-                                allowIndividual = false,
-                                minMembers = minMembers,
-                                maxMembers = maxOf(settings.maxMembers, minMembers),
+                                minMembers = newMin,
+                                maxMembers = maxOf(settings.maxMembers, newMin),
                             )
                         }
                     }
@@ -187,8 +184,23 @@ fun RegistrationSetupScreen(
                     title = "Team registration",
                     subtitle = "Participants register together as a team.",
                     checked = settings.allowTeam,
-                    onChecked = {
-                        settings = settings.copy(allowTeam = it)
+                    onChecked = { enabled ->
+                        settings = if (enabled) {
+                            if (settings.allowIndividual) {
+                                // individual + team: (1, max > 1)
+                                settings.copy(minMembers = 1, maxMembers = maxOf(settings.maxMembers, 2))
+                            } else {
+                                // team-only: (min >= 2, max >= min)
+                                val newMin = maxOf(settings.minMembers, 2)
+                                settings.copy(
+                                    minMembers = newMin,
+                                    maxMembers = maxOf(settings.maxMembers, newMin),
+                                )
+                            }
+                        } else {
+                            // individual-only: (1, 1)
+                            settings.copy(minMembers = 1, maxMembers = 1)
+                        }
                     }
                 )
 
@@ -345,7 +357,7 @@ fun RegistrationSetupScreen(
                                 iconColor = BlueIcon,
                                 title = "Team Questions",
                                 subtitle = "Build questions answered once per team",
-                                onClick = onTeamQuestions
+                            onClick = { onTeamQuestions(settings) }
                             )
                         }
                     }
@@ -528,7 +540,7 @@ private fun TeamSettingsCard(
                 StepperRow(
                     label   = "Maximum members",
                     value   = settings.maxMembers,
-                    canDec  = settings.maxMembers > settings.minMembers,
+                    canDec  = settings.maxMembers > maxOf(settings.minMembers, 2),
                     canInc  = settings.maxMembers < maxAllowed,
                     onDec   = { onSettingsChange(settings.copy(maxMembers = settings.maxMembers - 1)) },
                     onInc   = { onSettingsChange(settings.copy(maxMembers = settings.maxMembers + 1)) },

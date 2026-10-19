@@ -18,6 +18,12 @@ fun TeamQuestionsScreen(
     onMoveQuestions: (ids: List<Int>) -> Unit,
     onPublish: (fields: List<FormField>) -> Unit,
     onBack: () -> Unit,
+    isLoading: Boolean = false,
+    isSaving: Boolean = false,
+    isLoaded: Boolean = true,
+    saveError: String? = null,
+    saveSucceeded: Boolean = false,
+    onRetry: () -> Unit = {},
 ) {
     QuestionBuilderScreen(
         eventName = eventName,
@@ -40,5 +46,11 @@ fun TeamQuestionsScreen(
             candidates = movableQuestions,
             onMove = onMoveQuestions,
         ),
+        isLoading = isLoading,
+        isSaving = isSaving,
+        isLoaded = isLoaded,
+        saveError = saveError,
+        saveSucceeded = saveSucceeded,
+        onRetry = onRetry,
     )
 }

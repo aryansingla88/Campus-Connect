@@ -2,6 +2,7 @@ package com.campus.Campus_Connect.features.registration.controller;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.features.registration.dto.request.RegistrationConfigRequest;
+import com.campus.Campus_Connect.features.registration.dto.request.QuickFieldsConfigRequest;
 import com.campus.Campus_Connect.features.registration.dto.request.RegistrationFieldRequest;
 import com.campus.Campus_Connect.features.registration.dto.response.*;
 import com.campus.Campus_Connect.features.registration.service.HostRegistrationService;
@@ -39,6 +40,13 @@ public class HostRegistrationController {
             @PathVariable Integer eventId,
             @RequestBody RegistrationConfigRequest request) {
         return hostRegistrationService.updateRegistrationConfig(eventId, request);
+    }
+
+    @PatchMapping("/{eventId}/registration/config/quick-fields")
+    public ApiResponse<RegistrationConfigResponse> updateQuickFieldsConfig(
+            @PathVariable Integer eventId,
+            @RequestBody QuickFieldsConfigRequest request) {
+        return hostRegistrationService.updateQuickFieldsConfig(eventId, request);
     }
 
     // ============================================================

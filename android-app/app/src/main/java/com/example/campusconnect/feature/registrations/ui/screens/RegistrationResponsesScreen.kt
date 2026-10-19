@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.core.components.AppAvatar
-import com.example.campusconnect.feature.registrations.data.FakeRegistrationResponses
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseItem
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseStatus
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseType
@@ -71,17 +70,20 @@ private val CardBorder = Color(0xFFE0E3E8)
 
 @Composable
 fun RegistrationResponsesScreen(
+    eventId: Int,
     eventName: String,
     isPublished: Boolean,
     onBack: () -> Unit,
     onExport: () -> Unit = {},
-    onMore: () -> Unit = {},
     onFullResponse: (RegistrationResponseItem) -> Unit = {},
+    onRefresh: () -> Unit = {},
     viewModel: RegistrationResponsesViewModel = viewModel(),
 ) {
     val detailStates by viewModel.details.collectAsState()
     val selectedMembers by viewModel.selectedMembers.collectAsState()
     val expandedId by viewModel.expandedId.collectAsState()
+    val listState by viewModel.listState.collectAsState()
+    LaunchedEffect(eventId) { viewModel.loadRegistrations(eventId) }
 
     var selectedTab by remember { mutableStateOf(ResponseTab.TOTAL) }
     var query by remember { mutableStateOf("") }
@@ -90,8 +92,8 @@ fun RegistrationResponsesScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     var showFilterMenu by remember { mutableStateOf(false) }
 
-    val allResponses = FakeRegistrationResponses.responses
-    val filteredResponses = remember(selectedTab, query, sort, statusFilter) {
+    val allResponses = if (listState.eventId == eventId && listState.loaded) listState.registrations else emptyList()
+    val filteredResponses = remember(selectedTab, query, sort, statusFilter, allResponses) {
         allResponses
             .asSequence()
             .filter { response ->
@@ -105,14 +107,14 @@ fun RegistrationResponsesScreen(
             .filter { response -> statusFilter == null || response.status == statusFilter }
             .filter { response ->
                 query.isBlank() ||
-                        response.name.contains(query, ignoreCase = true) ||
-                        response.email.contains(query, ignoreCase = true)
+                        response.name.orEmpty().contains(query, ignoreCase = true) ||
+                        response.email.orEmpty().contains(query, ignoreCase = true)
             }
             .let { sequence ->
                 when (sort) {
-                    ResponseSort.LATEST -> sequence.sortedByDescending { it.id }
-                    ResponseSort.OLDEST -> sequence.sortedBy { it.id }
-                    ResponseSort.NAME -> sequence.sortedBy { it.name.lowercase() }
+                    ResponseSort.LATEST -> sequence.sortedByDescending { it.submittedAtEpochMillis ?: Long.MIN_VALUE }
+                    ResponseSort.OLDEST -> sequence.sortedBy { it.submittedAtEpochMillis ?: Long.MAX_VALUE }
+                    ResponseSort.NAME -> sequence.sortedBy { it.name.orEmpty().lowercase() }
                 }
             }
             .toList()
@@ -126,10 +128,10 @@ fun RegistrationResponsesScreen(
                 isPublished = isPublished,
                 onBack = onBack,
                 action = {
-                    IconButton(onClick = onMore) {
+                    IconButton(onClick = onRefresh) {
                         Icon(
-                            Icons.Outlined.MoreVert,
-                            contentDescription = "More options",
+                            Icons.Outlined.Refresh,
+                            contentDescription = "Refresh registrations",
                             tint = TextPrimary
                         )
                     }
@@ -178,7 +180,7 @@ fun RegistrationResponsesScreen(
                 )
             }
 
-            item {
+            if (listState.loaded) item {
                 ResponseStatTabs(
                     selectedTab = selectedTab,
                     responses = allResponses,
@@ -186,7 +188,7 @@ fun RegistrationResponsesScreen(
                 )
             }
 
-            item {
+            if (listState.loaded) item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -246,9 +248,9 @@ fun RegistrationResponsesScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Cancelled") },
+                                text = { Text("Rejected") },
                                 onClick = {
-                                    statusFilter = RegistrationResponseStatus.CANCELLED
+                                    statusFilter = RegistrationResponseStatus.REJECTED
                                     showFilterMenu = false
                                 },
                             )
@@ -257,20 +259,35 @@ fun RegistrationResponsesScreen(
                 }
             }
 
-            if (filteredResponses.isEmpty()) {
-                item { EmptyResponsesState() }
-            } else {
-                items(filteredResponses, key = { it.id }) { response ->
-                    RegistrationResponseCard(
-                        response = response,
-                        expanded = expandedId == response.id,
-                        detailState = detailStates[response.id],
-                        selectedUserId = selectedMembers[response.id],
-                        onToggle = { viewModel.toggleExpanded(response.id) },
-                        onSelectMember = { viewModel.selectMember(response.id, it) },
-                        onRetry = { viewModel.loadDetails(response.id, force = true) },
-                        onFullResponse = { onFullResponse(response) },
-                    )
+            when {
+                listState.eventId != eventId || listState.loading -> item {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = OrangePrimary)
+                    }
+                }
+                listState.error != null -> item {
+                    Card(colors = CardDefaults.cardColors(containerColor = CardBg)) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(listState.error.orEmpty(), color = TextSecondary, textAlign = TextAlign.Center)
+                            TextButton(onClick = onRefresh) { Text("Retry", color = AccentPurple) }
+                        }
+                    }
+                }
+                listState.registrations.isEmpty() -> item { EmptyResponsesState(genuinelyEmpty = true) }
+                filteredResponses.isEmpty() -> item { EmptyResponsesState(genuinelyEmpty = false) }
+                else -> {
+                    items(filteredResponses, key = { it.id }) { response ->
+                        RegistrationResponseCard(
+                            response = response,
+                            expanded = expandedId == response.id,
+                            detailState = detailStates[response.id],
+                            selectedUserId = selectedMembers[response.id],
+                            onToggle = { viewModel.toggleExpanded(response.id) },
+                            onSelectMember = { viewModel.selectMember(response.id, it) },
+                            onRetry = { viewModel.loadDetails(eventId, response.id, force = true) },
+                            onFullResponse = { onFullResponse(response) },
+                        )
+                    }
                 }
             }
         }
@@ -436,7 +453,7 @@ private fun RegistrationResponseCard(
 
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    response.name,
+                    response.name?.takeIf(String::isNotBlank) ?: "Registrant",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary,
@@ -444,7 +461,7 @@ private fun RegistrationResponseCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(registrationTypeLabel(response), fontSize = 12.sp, color = TextSecondary)
-                Text(
+                if (!response.email.isNullOrBlank()) Text(
                     response.email,
                     fontSize = 11.sp,
                     color = TextSecondary,
@@ -457,8 +474,8 @@ private fun RegistrationResponseCard(
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                ResponseStatusChip(response.status)
-                Text(response.submittedAt, fontSize = 10.sp, color = TextSecondary, maxLines = 1)
+                response.status?.let { ResponseStatusChip(it) }
+                response.submittedAt?.let { Text(it, fontSize = 10.sp, color = TextSecondary, maxLines = 1) }
             }
 
             IconButton(onClick = onToggle) {
@@ -540,10 +557,10 @@ private fun FullResponseButton(onClick: () -> Unit) {
 }
 
 internal fun registrationTypeLabel(response: RegistrationResponseItem): String =
-    if (response.type == RegistrationResponseType.TEAM) {
-        "Team${response.memberCount?.let { " ($it members)" } ?: ""}"
-    } else {
-        "Individual"
+    when (response.type) {
+        RegistrationResponseType.TEAM -> "Team${response.memberCount?.let { " ($it members)" } ?: ""}"
+        RegistrationResponseType.INDIVIDUAL -> "Individual"
+        RegistrationResponseType.OTHER -> "Registration"
     }
 
 @Composable
@@ -561,7 +578,7 @@ internal fun RegistrationAvatar(response: RegistrationResponseItem, size: Dp = 4
             )
         }
     } else {
-        AppAvatar(entityId = response.id, displayName = response.name, size = size)
+        AppAvatar(entityId = response.id, displayName = response.name ?: "Registrant", size = size)
     }
 }
 
@@ -570,12 +587,16 @@ internal fun ResponseStatusChip(status: RegistrationResponseStatus) {
     val background = when (status) {
         RegistrationResponseStatus.CONFIRMED -> Color(0xFFDDF6EA)
         RegistrationResponseStatus.PENDING -> Color(0xFFFFEFCF)
-        RegistrationResponseStatus.CANCELLED -> Color(0xFFFDE1E3)
+        RegistrationResponseStatus.REJECTED -> Color(0xFFFDE1E3)
+        RegistrationResponseStatus.WAITLISTED -> Color(0xFFEDEBFC)
+        RegistrationResponseStatus.UNKNOWN -> Color(0xFFF0F1F3)
     }
     val foreground = when (status) {
         RegistrationResponseStatus.CONFIRMED -> Color(0xFF087443)
         RegistrationResponseStatus.PENDING -> Color(0xFF9A5B00)
-        RegistrationResponseStatus.CANCELLED -> Color(0xFFC62828)
+        RegistrationResponseStatus.REJECTED -> Color(0xFFC62828)
+        RegistrationResponseStatus.WAITLISTED -> Color(0xFF6C4CF1)
+        RegistrationResponseStatus.UNKNOWN -> TextSecondary
     }
 
     Surface(shape = RoundedCornerShape(50), color = background) {
@@ -590,7 +611,7 @@ internal fun ResponseStatusChip(status: RegistrationResponseStatus) {
 }
 
 @Composable
-private fun EmptyResponsesState() {
+private fun EmptyResponsesState(genuinelyEmpty: Boolean) {
     Card(
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg),
@@ -602,8 +623,12 @@ private fun EmptyResponsesState() {
         ) {
             Icon(Icons.Outlined.Inbox, null, tint = TextSecondary, modifier = Modifier.size(34.dp))
             Spacer(Modifier.height(8.dp))
-            Text("No responses found", fontWeight = FontWeight.SemiBold, color = TextPrimary)
-            Text("Try another search or filter.", fontSize = 12.sp, color = TextSecondary)
+            Text(if (genuinelyEmpty) "No registrations yet" else "No responses found", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            Text(
+                if (genuinelyEmpty) "Submitted registrations will appear here." else "Try another search or filter.",
+                fontSize = 12.sp,
+                color = TextSecondary,
+            )
         }
     }
 }

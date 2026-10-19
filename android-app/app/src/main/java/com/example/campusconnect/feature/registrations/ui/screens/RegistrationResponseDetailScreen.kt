@@ -55,21 +55,23 @@ import com.example.campusconnect.feature.registrations.viewmodel.RegistrationRes
  */
 @Composable
 fun RegistrationResponseDetailScreen(
-    response: RegistrationResponseItem,
+    eventId: Int,
+    registrationId: Int,
+    response: RegistrationResponseItem?,
     viewModel: RegistrationResponsesViewModel,
     onBack: () -> Unit,
     onMore: () -> Unit = {},
 ) {
     val detailStates by viewModel.details.collectAsState()
     val selectedMembers by viewModel.selectedMembers.collectAsState()
-    val state = detailStates[response.id]
+    val state = detailStates[registrationId]
 
     // No-op when the list already loaded this registration.
-    LaunchedEffect(response.id) { viewModel.loadDetails(response.id) }
+    LaunchedEffect(eventId, registrationId) { viewModel.loadDetails(eventId, registrationId) }
 
     Scaffold(
         containerColor = CardBg,
-        topBar = { DetailTopBar(response, onBack, onMore) },
+            topBar = { DetailTopBar(response, onBack, onMore) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -84,26 +86,26 @@ fun RegistrationResponseDetailScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                RegistrationAvatar(response)
+                response?.let { RegistrationAvatar(it) }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        response.name,
+                        response?.name?.takeIf(String::isNotBlank) ?: "Registrant",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = TextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(registrationTypeLabel(response), fontSize = 12.sp, color = TextSecondary)
-                    Text(
-                        response.email,
+                    response?.let { Text(registrationTypeLabel(it), fontSize = 12.sp, color = TextSecondary) }
+                    if (!response?.email.isNullOrBlank()) Text(
+                        response?.email.orEmpty(),
                         fontSize = 12.sp,
                         color = TextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Text(response.submittedAt, fontSize = 11.sp, color = TextSecondary)
+                response?.submittedAt?.let { Text(it, fontSize = 11.sp, color = TextSecondary) }
             }
 
             SubtleDivider()
@@ -125,16 +127,16 @@ fun RegistrationResponseDetailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(state.message, fontSize = 14.sp, color = TextSecondary, textAlign = TextAlign.Center)
-                    TextButton(onClick = { viewModel.loadDetails(response.id, force = true) }) {
+                    TextButton(onClick = { viewModel.loadDetails(eventId, registrationId, force = true) }) {
                         Text("Retry", color = AccentPurple)
                     }
                 }
 
                 is RegistrationDetailState.Loaded -> RegistrationDetailBody(
-                    registrationId = response.id,
+                    registrationId = registrationId,
                     detail = state.detail,
-                    selectedUserId = selectedMembers[response.id],
-                    onSelectMember = { viewModel.selectMember(response.id, it) },
+                    selectedUserId = selectedMembers[registrationId],
+                    onSelectMember = { viewModel.selectMember(registrationId, it) },
                     limits = DetailLimits.Full,
                 )
             }
@@ -145,7 +147,7 @@ fun RegistrationResponseDetailScreen(
 }
 
 @Composable
-private fun DetailTopBar(response: RegistrationResponseItem, onBack: () -> Unit, onMore: () -> Unit) {
+private fun DetailTopBar(response: RegistrationResponseItem?, onBack: () -> Unit, onMore: () -> Unit) {
     Surface(color = CardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -160,14 +162,14 @@ private fun DetailTopBar(response: RegistrationResponseItem, onBack: () -> Unit,
             }
             Column(Modifier.weight(1f).padding(start = 4.dp, end = 8.dp)) {
                 Text(
-                    response.name,
+                    response?.name?.takeIf(String::isNotBlank) ?: "Registrant",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                ResponseStatusChip(response.status)
+                response?.status?.let { ResponseStatusChip(it) }
             }
             IconButton(onClick = onMore) {
                 Icon(Icons.Outlined.MoreVert, contentDescription = "More options", tint = TextPrimary)

@@ -34,10 +34,10 @@ data class QuickFieldValue(
 )
 
 data class ResponseAnswer(
-    val fieldId: Int,
-    val fieldLabel: String,
-    val fieldType: String,
-    val answer: String,
+    val fieldId: Int?,
+    val fieldLabel: String?,
+    val fieldType: String?,
+    val answer: String?,
 )
 
 /** Display name for a member tab: first word of the "Full Name" quick field. */

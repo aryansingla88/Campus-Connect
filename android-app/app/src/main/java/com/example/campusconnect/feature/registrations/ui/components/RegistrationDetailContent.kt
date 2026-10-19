@@ -143,15 +143,15 @@ private fun AnswerList(
             if (index > 0) SubtleDivider()
             Column(Modifier.padding(vertical = 10.dp)) {
                 Text(
-                    answer.fieldLabel,
+                    answer.fieldLabel?.takeIf(String::isNotBlank) ?: "Question",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
                 )
                 Spacer(Modifier.height(2.dp))
                 AnswerText(
-                    text = answer.answer.ifBlank { "—" },
-                    stateKey = "$keyPrefix-${answer.fieldId}",
+                    text = answer.answer?.takeIf(String::isNotBlank) ?: "—",
+                    stateKey = "$keyPrefix-${answer.fieldId ?: index}",
                     collapsedLines = collapsedLines,
                 )
             }

@@ -54,8 +54,14 @@ fun QuestionBuilderScreen(
     initialQuickFieldIds: Set<String> = emptySet(),
     onQuickFieldsChanged: (Set<String>) -> Unit = {},
     moveExisting: MoveExistingConfig? = null,
+    isLoading: Boolean = false,
+    isSaving: Boolean = false,
+    isLoaded: Boolean = true,
+    saveError: String? = null,
+    saveSucceeded: Boolean = false,
+    onRetry: () -> Unit = {},
 ) {
-    var selectedQuickFields by remember { mutableStateOf(initialQuickFieldIds) }
+    var selectedQuickFields by remember(initialQuickFieldIds) { mutableStateOf(initialQuickFieldIds) }
     var expandedFieldId by remember { mutableStateOf<Int?>(null) }
     var showTypeSheet by remember { mutableStateOf<Int?>(null) }
     var showMoveSheet by remember { mutableStateOf(false) }
@@ -79,7 +85,7 @@ fun QuestionBuilderScreen(
             FieldTypePicker(
                 current = fields.find { it.id == targetId }?.fieldType ?: FieldType.TEXT,
                 onPick = { picked ->
-                    updateField(targetId) { it.copy(fieldType = picked) }
+                    updateField(targetId) { it.copy(fieldType = picked, rawFieldType = null) }
                     showTypeSheet = null
                 },
             )
@@ -107,9 +113,10 @@ fun QuestionBuilderScreen(
                 onBack = onBack,
                 action = {
                     HeaderActionButton(
-                        text = "Save",
+                        text = if (isSaving) "Saving…" else "Save",
                         icon = Icons.Outlined.Save,
-                        onClick = onSave
+                        onClick = onSave,
+                        enabled = isLoaded && !isLoading && !isSaving,
                     )
                 },
             )
@@ -118,6 +125,7 @@ fun QuestionBuilderScreen(
             RegistrationBottomBar {
                 Button(
                     onClick = ::addQuestion,
+                    enabled = isLoaded && !isLoading && !isSaving,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = OrangePrimary,
@@ -140,6 +148,7 @@ fun QuestionBuilderScreen(
 
                     OutlinedButton(
                         onClick = { showMoveSheet = true },
+                        enabled = isLoaded && !isLoading && !isSaving,
                         border = BorderStroke(1.5.dp, OrangePrimary),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -165,6 +174,21 @@ fun QuestionBuilderScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (isLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+            if (saveError != null) item {
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(saveError, modifier = Modifier.weight(1f), color = Color(0xFFE53935))
+                        TextButton(onClick = onRetry) { Text("Retry") }
+                    }
+                }
+            }
+            if (saveSucceeded) item {
+                Text("Changes saved.", color = Color(0xFF2E7D32), modifier = Modifier.padding(horizontal = 4.dp))
+            }
             if (heading != null) {
                 item {
                     Column {
@@ -201,7 +225,7 @@ fun QuestionBuilderScreen(
                     onExpand = { expandedFieldId = if (expandedFieldId == field.id) null else field.id },
                     onDelete = { onFieldsChange(fields.filter { it.id != field.id }) },
                     onDuplicate = {
-                        val copy = field.copy(id = nextId())
+                        val copy = field.copy(id = nextId(), backendId = null, fieldOrder = 0)
                         val idx = fields.indexOfFirst { it.id == field.id }
                         onFieldsChange(fields.toMutableList().apply { add(idx + 1, copy) })
                     },
@@ -219,7 +243,9 @@ fun QuestionBuilderScreen(
                 )
             }
 
-            if (fields.isEmpty()) item { EmptyState(title = emptyTitle, message = emptyMessage, icon = emptyIcon) }
+            if (fields.isEmpty() && isLoaded && !isLoading && saveError == null) {
+                item { EmptyState(title = emptyTitle, message = emptyMessage, icon = emptyIcon) }
+            }
         }
     }
 }

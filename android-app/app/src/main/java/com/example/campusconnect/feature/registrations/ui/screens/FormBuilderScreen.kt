@@ -39,11 +39,16 @@ enum class FieldType(val label: String, val icon: ImageVector) {
 // var → val, MutableList → List (immutable, safe for Compose state)
 data class FormField(
     val id: Int,
+    /** Null for a newly created field; existing backend IDs are retained on update. */
+    val backendId: Int? = null,
     val label: String        = "",
     val fieldType: FieldType = FieldType.TEXT,
+    val rawFieldType: String? = null,
     val placeholder: String  = "",
     val isRequired: Boolean  = false,
-    val options: List<String> = listOf("Option 1"),
+    val options: List<String> = emptyList(),
+    val individual: Boolean = true,
+    val fieldOrder: Int = 0,
 )
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -63,6 +68,12 @@ fun FormBuilderScreen(
     onBack: () -> Unit,
     initialQuickFieldIds: Set<String> = emptySet(),
     onQuickFieldsChanged: (Set<String>) -> Unit = {},
+    isLoading: Boolean = false,
+    isSaving: Boolean = false,
+    isLoaded: Boolean = true,
+    saveError: String? = null,
+    saveSucceeded: Boolean = false,
+    onRetry: () -> Unit = {},
 ) {
     QuestionBuilderScreen(
         eventName = eventName,
@@ -74,6 +85,12 @@ fun FormBuilderScreen(
         showQuickFields = true,
         initialQuickFieldIds = initialQuickFieldIds,
         onQuickFieldsChanged = onQuickFieldsChanged,
+        isLoading = isLoading,
+        isSaving = isSaving,
+        isLoaded = isLoaded,
+        saveError = saveError,
+        saveSucceeded = saveSucceeded,
+        onRetry = onRetry,
     )
 }
 
