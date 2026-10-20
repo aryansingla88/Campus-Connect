@@ -20,6 +20,8 @@ import com.campus.Campus_Connect.features.registration.dto.response.AvailableTea
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.SavedRegistrationAnswerResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.TeamRequestResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamMemberResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamInviteCandidateResponse;
 import com.campus.Campus_Connect.features.registration.entity.*;
 import com.campus.Campus_Connect.features.registration.entity.enums.RegistrationStatus;
 import com.campus.Campus_Connect.features.registration.entity.enums.TeamRequestInitiator;
@@ -123,6 +125,38 @@ public class UserRegistrationService {
     }
 
     @Transactional
+    public ApiResponse<Boolean> isTeamNameAvailable(Integer eventId, String teamName) {
+        User user = currentParticipant();
+        if (user == null) return ApiResponse.failure("User is not authenticated.");
+        if (teamName == null || teamName.trim().length() < 3 || teamName.trim().length() > 100)
+            return ApiResponse.failure("Team name must be between 3 and 100 characters.");
+        EventRegistration registration = registrationRepository.findByEventIdAndUserId(eventId, user.getId()).orElse(null);
+        if (registration == null || registration.getStatus() != RegistrationStatus.PENDING || registration.getTeam() != null)
+            return ApiResponse.failure("Start an unassigned registration draft before checking a team name.");
+        return ApiResponse.success(!teamRepository.existsByEvent_IdAndTeamNameIgnoreCase(eventId, teamName.trim()), "Team name availability checked.");
+    }
+
+    @Transactional
+    public ApiResponse<AvailableTeamResponse> getTeamSummary(Integer teamId) {
+        User user = currentParticipant();
+        if (user == null) return ApiResponse.failure("User is not authenticated.");
+        EventTeam team = teamRepository.findById(teamId).orElse(null);
+        if (team == null) return ApiResponse.failure("Team not found.");
+        boolean member = registrationRepository.findByEventIdAndUserId(team.getEvent().getId(), user.getId())
+                .map(r -> r.getTeam() != null && r.getTeam().getId().equals(teamId)
+                        && List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED).contains(r.getStatus()))
+                .orElse(false);
+        if (!member) return ApiResponse.failure("Only current team members can view this team.");
+        RegistrationConfig config = configRepository.findByEventId(team.getEvent().getId()).orElse(null);
+        if (config == null) return ApiResponse.failure("Registration is not configured for this event.");
+        int count = (int) registrationRepository.countByEventIdAndTeamIdAndStatusIn(team.getEvent().getId(), teamId,
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED));
+        return ApiResponse.success(AvailableTeamResponse.builder().teamId(teamId).teamName(team.getTeamName())
+                .memberCount(count).capacity(config.getMaxTeamMembers())
+                .leaderName(team.getLeader() == null ? null : team.getLeader().getUsername()).build(), "Team details fetched.");
+    }
+
+    @Transactional
     public ApiResponse<RegistrationResponse> saveAnswers(Integer registrationId, SaveRegistrationAnswersRequest request) {
         if (request == null || request.getType() == null)
             return ApiResponse.failure("Answer type is required.");
@@ -141,15 +175,20 @@ public class UserRegistrationService {
                 return ApiResponse.failure("Editable registration not found.");
         } else {
             EventTeam assignedTeam = registration.getTeam();
-            if (assignedTeam == null || assignedTeam.getLeader() == null
-                    || !assignedTeam.getLeader().getId().equals(user.getId())
-                    || !assignedTeam.getEvent().getId().equals(registration.getEvent().getId()))
-                return ApiResponse.failure("Only the assigned team's leader can save team answers.");
-            answerRegistration = registrationRepository.findByEventIdAndUserId(
-                    registration.getEvent().getId(), user.getId()).orElse(null);
-            if (answerRegistration == null || answerRegistration.getTeam() == null
-                    || !answerRegistration.getTeam().getId().equals(assignedTeam.getId()))
-                return ApiResponse.failure("The team leader's registration is not assigned to this team.");
+            if (assignedTeam == null) {
+                RegistrationConfig config = configRepository.findByEventId(registration.getEvent().getId()).orElse(null);
+                if (!registration.getUser().getId().equals(user.getId()) || config == null || config.getMinTeamMembers() > 1)
+                    return ApiResponse.failure("Only an eligible solo participant can save shared answers without a team.");
+            } else {
+                if (assignedTeam.getLeader() == null || !assignedTeam.getLeader().getId().equals(user.getId())
+                        || !assignedTeam.getEvent().getId().equals(registration.getEvent().getId()))
+                    return ApiResponse.failure("Only the assigned team's leader can save team answers.");
+                answerRegistration = registrationRepository.findByEventIdAndUserId(
+                        registration.getEvent().getId(), user.getId()).orElse(null);
+                if (answerRegistration == null || answerRegistration.getTeam() == null
+                        || !answerRegistration.getTeam().getId().equals(assignedTeam.getId()))
+                    return ApiResponse.failure("The team leader's registration is not assigned to this team.");
+            }
         }
         final EventRegistration answerTarget = answerRegistration;
 
@@ -216,8 +255,8 @@ public class UserRegistrationService {
         String eligibilityError = validateRegistrationEligibility(r);
         if (eligibilityError != null) return ApiResponse.failure(eligibilityError);
         if (r.getTeam() != null) return ApiResponse.failure("Registration is already assigned to a team.");
-        if (teamName == null || teamName.isBlank() || teamName.length() > 100) return ApiResponse.failure("A valid team name is required.");
-        if (teamRepository.findByEvent_IdAndTeamName(r.getEvent().getId(), teamName.trim()).isPresent())
+        if (teamName == null || teamName.trim().length() < 3 || teamName.trim().length() > 100) return ApiResponse.failure("Team name must be between 3 and 100 characters.");
+        if (teamRepository.existsByEvent_IdAndTeamNameIgnoreCase(r.getEvent().getId(), teamName.trim()))
             return ApiResponse.failure("Team name is already taken for this event.");
         EventTeam team = teamRepository.save(EventTeam.builder().event(r.getEvent()).teamName(teamName.trim()).leader(r.getUser()).build());
         r.setTeam(team);
@@ -250,6 +289,9 @@ public class UserRegistrationService {
                 return ApiResponse.success(toTeamRequestResponse(pending), "Join request is already pending.");
             return ApiResponse.failure("A conflicting team request or invitation is already pending.");
         }
+        long members = registrationRepository.countByEventIdAndTeamIdAndStatusIn(registration.getEvent().getId(), team.getId(),
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED));
+        if (members >= config.getMaxTeamMembers()) return ApiResponse.failure("Team is full.");
         TeamRequest saved = teamRequestRepository.save(TeamRequest.builder().team(team).registration(registration)
                 .initiatedBy(TeamRequestInitiator.PARTICIPANT).status(TeamRequestStatus.PENDING).build());
         return ApiResponse.success(toTeamRequestResponse(saved), "Team join request created.");
@@ -264,6 +306,11 @@ public class UserRegistrationService {
         if (team == null) return ApiResponse.failure("Team not found.");
         if (team.getLeader() == null || !team.getLeader().getId().equals(leader.getId()))
             return ApiResponse.failure("Only the team leader can send invitations.");
+        RegistrationConfig teamConfig = configRepository.findByEventId(team.getEvent().getId()).orElse(null);
+        if (teamConfig == null) return ApiResponse.failure("Registration is not configured for this event.");
+        long currentMembers = registrationRepository.countByEventIdAndTeamIdAndStatusIn(team.getEvent().getId(), teamId,
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED));
+        if (currentMembers >= teamConfig.getMaxTeamMembers()) return ApiResponse.failure("Team is full.");
 
         EventRegistration registration = registrationRepository.findByIdForUpdate(request.getRegistrationId()).orElse(null);
         if (registration == null) return ApiResponse.failure("Participant registration not found.");
@@ -304,6 +351,50 @@ public class UserRegistrationService {
         return ApiResponse.success(teamRequestRepository.findByTeam_IdOrderByCreatedAtDesc(teamId).stream()
                 .filter(request -> request.getStatus() == TeamRequestStatus.PENDING)
                 .map(this::toTeamRequestResponse).toList(), "Pending team requests fetched.");
+    }
+
+    @Transactional
+    public ApiResponse<List<TeamMemberResponse>> getTeamMembers(Integer teamId) {
+        User user = currentParticipant();
+        if (user == null) return ApiResponse.failure("User is not authenticated.");
+        EventTeam team = teamRepository.findById(teamId).orElse(null);
+        if (team == null) return ApiResponse.failure("Team not found.");
+        boolean member = registrationRepository.findByEventIdAndUserId(team.getEvent().getId(), user.getId())
+                .map(r -> r.getTeam() != null && r.getTeam().getId().equals(teamId)
+                        && List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED).contains(r.getStatus()))
+                .orElse(false);
+        if (!member) return ApiResponse.failure("Only current team members can view team membership.");
+        List<TeamMemberResponse> members = registrationRepository.findByEventIdAndTeamId(team.getEvent().getId(), teamId).stream()
+                .filter(r -> List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED).contains(r.getStatus()))
+                .map(r -> TeamMemberResponse.builder().registrationId(r.getId()).userId(r.getUser().getId())
+                        .name(r.getUser().getUsername()).email(r.getUser().getEmail())
+                        .role(r.getUser().getId().equals(team.getLeader().getId()) ? "LEADER" : "MEMBER").build())
+                .toList();
+        return ApiResponse.success(members, "Team members fetched.");
+    }
+
+    @Transactional
+    public ApiResponse<List<TeamInviteCandidateResponse>> getTeamInviteCandidates(Integer teamId) {
+        User user = currentParticipant();
+        if (user == null) return ApiResponse.failure("User is not authenticated.");
+        EventTeam team = teamRepository.findById(teamId).orElse(null);
+        if (team == null) return ApiResponse.failure("Team not found.");
+        if (team.getLeader() == null || !team.getLeader().getId().equals(user.getId()))
+            return ApiResponse.failure("Only the team leader can view invitation candidates.");
+        RegistrationConfig config = configRepository.findByEventId(team.getEvent().getId()).orElse(null);
+        if (config == null) return ApiResponse.failure("Registration is not configured for this event.");
+        long members = registrationRepository.countByEventIdAndTeamIdAndStatusIn(team.getEvent().getId(), teamId,
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED));
+        if (members >= config.getMaxTeamMembers()) return ApiResponse.success(List.of(), "Team is full.");
+        List<TeamInviteCandidateResponse> candidates = registrationRepository.findByEventId(team.getEvent().getId()).stream()
+                .filter(r -> !r.getUser().getId().equals(user.getId()))
+                .filter(r -> r.getStatus() == RegistrationStatus.PENDING && r.getTeam() == null)
+                .filter(r -> validateRegistrationEligibility(r) == null)
+                .filter(r -> teamRequestRepository.findByRegistration_IdAndStatus(r.getId(), TeamRequestStatus.PENDING).isEmpty())
+                .map(r -> TeamInviteCandidateResponse.builder().registrationId(r.getId()).participantId(r.getUser().getId())
+                        .name(r.getUser().getUsername()).email(r.getUser().getEmail()).build())
+                .toList();
+        return ApiResponse.success(candidates, "Eligible invitation candidates fetched.");
     }
 
     @Transactional
@@ -426,9 +517,10 @@ public class UserRegistrationService {
                 return ApiResponse.failure("The team leader's registration is not assigned to this team.");
             teamAnswers = answerRepository.findByIdRegistrationId(leaderRegistration.getId());
         }
+        if (solo) teamAnswers = individualAnswers;
         for (RegistrationField field : fieldRepository.findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(r.getEvent().getId())) {
             if (!Boolean.TRUE.equals(field.getRequired())) continue;
-            boolean applies = Boolean.TRUE.equals(field.getIndividual()) || !solo;
+            boolean applies = true;
             List<RegistrationAnswer> source = Boolean.TRUE.equals(field.getIndividual()) ? individualAnswers : teamAnswers;
             if (applies && source.stream().noneMatch(a -> a.getField().getId().equals(field.getId())
                     && a.getAnswer() != null && !a.getAnswer().isBlank()))
@@ -506,6 +598,8 @@ public class UserRegistrationService {
         return RegistrationResponse.builder().registrationId(r.getId()).eventId(r.getEvent().getId())
                 .status(r.getStatus().name()).teamId(r.getTeam() == null ? null : r.getTeam().getId())
                 .teamName(r.getTeam() == null ? null : r.getTeam().getTeamName())
+                .teamLeader(r.getTeam() != null && r.getTeam().getLeader() != null
+                        && r.getTeam().getLeader().getId().equals(r.getUser().getId()))
                 .canResume(r.getStatus() == RegistrationStatus.PENDING).build();
     }
 
@@ -513,7 +607,7 @@ public class UserRegistrationService {
         List<SavedRegistrationAnswerResponse> answers = answerRepository
                 .findByIdRegistrationId(registration.getId()).stream()
                 .filter(saved -> Boolean.TRUE.equals(saved.getField().getIndividual())
-                        || isAssignedTeamLeader(registration, participant))
+                        || registration.getTeam() == null || isAssignedTeamLeader(registration, participant))
                 .map(saved -> SavedRegistrationAnswerResponse.builder()
                         .fieldId(saved.getField().getId())
                         .answer(saved.getAnswer())
@@ -524,6 +618,7 @@ public class UserRegistrationService {
                 .eventId(registration.getEvent().getId()).status(registration.getStatus().name())
                 .teamId(registration.getTeam() == null ? null : registration.getTeam().getId())
                 .teamName(registration.getTeam() == null ? null : registration.getTeam().getTeamName())
+                .teamLeader(isAssignedTeamLeader(registration, participant))
                 .canResume(registration.getStatus() == RegistrationStatus.PENDING)
                 .answers(answers).build();
     }

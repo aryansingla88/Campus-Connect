@@ -2,8 +2,8 @@ package com.example.campusconnect.feature.registrations.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.feature.registrations.data.RegistrationFieldRepository
-import com.example.campusconnect.feature.registrations.ui.screens.FormField
+import com.example.campusconnect.feature.registrations.data.repo.RegistrationFieldRepository
+import com.example.campusconnect.feature.registrations.model.FormField
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch

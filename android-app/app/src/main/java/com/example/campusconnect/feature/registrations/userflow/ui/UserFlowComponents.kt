@@ -1,10 +1,5 @@
 package com.example.campusconnect.feature.registrations.userflow.ui
 
-import android.content.Context
-import android.net.Uri
-import android.provider.OpenableColumns
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,23 +12,15 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -52,11 +39,9 @@ import com.example.campusconnect.feature.registrations.ui.components.OrangePrima
 import com.example.campusconnect.feature.registrations.ui.components.RegistrationBottomBar
 import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
-import com.example.campusconnect.feature.registrations.userflow.model.AttachedFile
 import com.example.campusconnect.feature.registrations.userflow.model.USER_REGISTRATION_TOTAL_STEPS
-import com.example.campusconnect.feature.registrations.userflow.model.UserFieldKind
-import com.example.campusconnect.feature.registrations.userflow.model.UserQuestion
-import com.example.campusconnect.feature.registrations.userflow.model.isMissing
+import com.example.campusconnect.feature.registrations.ui.screens.FieldType
+import com.example.campusconnect.feature.registrations.ui.screens.FormField
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -111,7 +96,6 @@ internal fun FlowTopBar(
         }
     }
 }
-
 /** Icon tile + title + subtitle used at the top of each step. */
 @Composable
 internal fun StepHeader(
@@ -162,74 +146,44 @@ internal fun NextBottomBar(onClick: () -> Unit, enabled: Boolean = true, label: 
 
 // ── Question inputs ───────────────────────────────────────────────────────────
 //
-// Every participant question, individual or team, is rendered through UserQuestionField so the
+// Every participant question, individual or team, is rendered through RegistrationQuestionField so the
 // label, required/optional marker, input style, error text and spacing are identical on all steps.
 
 private val FieldShape = RoundedCornerShape(10.dp)
 private val DisplayDate: DateTimeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault())
 
-/** File state for FILE questions. Screens that cannot collect files leave it out. */
-internal class QuestionAttachment(
-    val file: AttachedFile?,
-    val error: String?,
-    val onPicked: (AttachedFile) -> Unit,
-    val onRemoved: () -> Unit,
-)
-
 @Composable
-internal fun UserQuestionField(
-    question: UserQuestion,
+internal fun RegistrationQuestionField(
+    question: FormField,
     value: String,
     onValueChange: (String) -> Unit,
-    showError: Boolean,
+    error: String?,
     modifier: Modifier = Modifier,
-    attachment: QuestionAttachment? = null,
 ) {
     val enabled = !question.readOnly
-    val missing = showError && question.isMissing(value, attachment?.file)
-    val placeholder = question.placeholder
+    val hasError = error != null
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        FieldLabel(question.label, required = question.required, optional = !question.required && enabled)
+        FieldLabel(question.label, required = question.isRequired, optional = !question.isRequired && enabled)
 
-        when (question.kind) {
-            UserFieldKind.TEXT -> FlowTextInput(
-                value, { onValueChange(it.take(question.maxLength)) }, placeholder,
-                KeyboardType.Text, enabled, missing,
+        when (question.fieldType) {
+            FieldType.TEXT -> FlowTextInput(value, onValueChange, question.placeholder, KeyboardType.Text, enabled, hasError)
+            FieldType.NUMBER -> FlowTextInput(
+                value,
+                { raw -> onValueChange(raw.filter { it.isDigit() || it == '.' || it == '-' }) },
+                question.placeholder,
+                KeyboardType.Number,
+                enabled,
+                hasError,
             )
-
-            UserFieldKind.NUMBER -> FlowTextInput(
-                value, { onValueChange(it.filter { c -> c.isDigit() || c == '.' || c == '-' }.take(question.maxLength)) },
-                placeholder, KeyboardType.Number, enabled, missing,
+            FieldType.SELECT -> DropdownInput(
+                value, question.options, question.placeholder.ifBlank { "Select" }, enabled, hasError, onValueChange,
             )
-
-            UserFieldKind.LONG_TEXT -> LongTextInput(
-                value, { onValueChange(it.take(question.maxLength)) }, placeholder, question.maxLength, enabled, missing,
-            )
-
-            UserFieldKind.PHONE -> PhoneInput(value, onValueChange, enabled, missing)
-
-            UserFieldKind.DATE -> DateInput(value, placeholder.ifBlank { "Select date" }, enabled, missing, onValueChange)
-
-            UserFieldKind.DROPDOWN -> DropdownInput(
-                value, question.options, placeholder.ifBlank { "Select" }, enabled, missing, onValueChange,
-            )
-
-            UserFieldKind.MULTISELECT -> MultiSelectInput(value, question.options, enabled, missing, onValueChange)
-
-            UserFieldKind.FILE -> if (attachment != null) {
-                FileInput(question.maxFileBytes, attachment)
-            } else {
-                Text("File upload isn't available on this step.", fontSize = 12.sp, color = TextSecondary)
-            }
+            FieldType.MULTISELECT -> MultiSelectInput(value, question.options, enabled, hasError, onValueChange)
+            FieldType.DATE -> DateInput(value, question.placeholder.ifBlank { "Select date" }, enabled, hasError, onValueChange)
         }
 
-        val message = when {
-            question.kind == UserFieldKind.FILE && attachment?.error != null -> attachment.error
-            missing -> "This field is required"
-            else -> null
-        }
-        if (message != null) Text(message, fontSize = 12.sp, color = FlowDanger)
+        error?.let { Text(it, fontSize = 12.sp, color = FlowDanger) }
     }
 }
 
@@ -288,78 +242,6 @@ private fun FlowTextInput(
         colors = flowFieldColors(),
         modifier = modifier.fillMaxWidth(),
     )
-}
-
-@Composable
-private fun LongTextInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    maxLength: Int,
-    enabled: Boolean,
-    isError: Boolean,
-) {
-    Column {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            enabled = enabled,
-            isError = isError,
-            minLines = 4,
-            maxLines = 8,
-            placeholder = if (placeholder.isBlank()) null else ({ Text(placeholder, fontSize = 14.sp) }),
-            textStyle = InputTextStyle,
-            shape = FieldShape,
-            colors = flowFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            "${value.length}/$maxLength",
-            fontSize = 12.sp,
-            color = if (value.length >= maxLength) FlowDanger else TextSecondary,
-            textAlign = TextAlign.End,
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        )
-    }
-}
-
-// Phone: "+91 98765 43210" is stored as one string; the code is everything before the first space.
-private const val DEFAULT_COUNTRY_CODE = "+91"
-private val CountryCodes = listOf("+91", "+1", "+44", "+61", "+65", "+971")
-
-private fun splitPhone(value: String): Pair<String, String> {
-    val trimmed = value.trim()
-    return if (trimmed.startsWith("+")) {
-        trimmed.substringBefore(' ') to trimmed.substringAfter(' ', "")
-    } else {
-        DEFAULT_COUNTRY_CODE to trimmed
-    }
-}
-
-@Composable
-private fun PhoneInput(value: String, onValueChange: (String) -> Unit, enabled: Boolean, isError: Boolean) {
-    val (code, number) = splitPhone(value)
-
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        DropdownInput(
-            value = code,
-            options = CountryCodes,
-            placeholder = DEFAULT_COUNTRY_CODE,
-            enabled = enabled,
-            isError = false,
-            onSelect = { onValueChange("$it $number".trim()) },
-            modifier = Modifier.width(100.dp),
-        )
-        FlowTextInput(
-            value = number,
-            onValueChange = { raw -> onValueChange("$code ${raw.filter { it.isDigit() || it == ' ' }}".trim()) },
-            placeholder = "",
-            keyboardType = KeyboardType.Phone,
-            enabled = enabled,
-            isError = isError,
-            modifier = Modifier.weight(1f),
-        )
-    }
 }
 
 // ── Picker-style inputs (dropdown, date) share one field shell ────────────────
@@ -518,78 +400,4 @@ private fun MultiSelectInput(
             }
         }
     }
-}
-
-// ── File input ────────────────────────────────────────────────────────────────
-
-@Composable
-private fun FileInput(maxFileBytes: Long, attachment: QuestionAttachment) {
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) attachment.onPicked(readFileInfo(context, uri))
-    }
-    val file = attachment.file
-
-    if (file == null) {
-        val dash = OrangePrimary.copy(alpha = 0.6f)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(FieldShape)
-                .clickable { launcher.launch(arrayOf("*/*")) }
-                .drawBehind {
-                    drawRoundRect(
-                        color = dash,
-                        cornerRadius = CornerRadius(10.dp.toPx()),
-                        style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 10f))),
-                    )
-                }
-                .padding(vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Icon(Icons.Outlined.UploadFile, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(24.dp))
-            Text("Choose file", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OrangePrimary)
-            Text("Max ${maxFileBytes / (1024 * 1024)} MB", fontSize = 12.sp, color = TextSecondary)
-        }
-    } else {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(FieldShape)
-                .background(CardBg)
-                .border(1.dp, FlowFieldBorder, FieldShape)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(OrangeLight),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Outlined.Description, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
-            }
-            Column(Modifier.weight(1f)) {
-                Text(file.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (file.readableSize.isNotEmpty()) Text(file.readableSize, fontSize = 12.sp, color = TextSecondary)
-            }
-            IconButton(onClick = attachment.onRemoved) {
-                Icon(Icons.Outlined.Close, contentDescription = "Remove file", tint = TextSecondary)
-            }
-        }
-    }
-}
-
-private fun readFileInfo(context: Context, uri: Uri): AttachedFile {
-    var name = "attachment"
-    var size = 0L
-    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-        if (cursor.moveToFirst()) {
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (nameIndex >= 0) name = cursor.getString(nameIndex) ?: name
-            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-            if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) size = cursor.getLong(sizeIndex)
-        }
-    }
-    return AttachedFile(uri = uri.toString(), name = name, sizeBytes = size)
 }

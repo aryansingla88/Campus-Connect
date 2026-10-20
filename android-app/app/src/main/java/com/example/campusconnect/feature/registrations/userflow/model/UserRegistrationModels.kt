@@ -1,54 +1,46 @@
 package com.example.campusconnect.feature.registrations.userflow.model
 
-import com.example.campusconnect.feature.registrations.ui.screens.FieldType
 import com.example.campusconnect.feature.registrations.ui.screens.FormField
+import com.example.campusconnect.feature.registrations.ui.screens.FieldType
+import java.time.LocalDate
 
 const val USER_REGISTRATION_TOTAL_STEPS = 3
+const val TEAM_NAME_MIN_LENGTH = 3
+const val TEAM_NAME_MAX_LENGTH = 100
+
+fun teamNameLengthError(name: String): String? {
+    val length = name.trim().length
+    return when {
+        length < TEAM_NAME_MIN_LENGTH -> "Use at least $TEAM_NAME_MIN_LENGTH characters."
+        length > TEAM_NAME_MAX_LENGTH -> "Use no more than $TEAM_NAME_MAX_LENGTH characters."
+        else -> null
+    }
+}
 
 /** Screens of the participant-side registration flow, with the progress shown for each. */
 enum class UserRegistrationStep(val progress: Int?) {
     CREATING(null),
     DETAILS(1),
-    PARTICIPATION(1),
+    PARTICIPATION(2),
     TEAM_PORTAL(2),
 }
 
 enum class ParticipationMode { CREATE_TEAM, JOIN_TEAM, SOLO }
 
-enum class UserFieldKind { TEXT, LONG_TEXT, PHONE, NUMBER, DROPDOWN, MULTISELECT, DATE, FILE }
-
-/**
- * One question as the participant sees it, for both the individual and the team step.
- * Backend questions arrive as [FormField]s and are converted with [toUserQuestion], so both
- * steps render through the same input components.
- */
-data class UserQuestion(
-    val id: Int,
-    val label: String,
-    val kind: UserFieldKind = UserFieldKind.TEXT,
-    val required: Boolean = false,
-    /** Prefilled from the profile and not editable (e.g. email). */
-    val readOnly: Boolean = false,
-    val placeholder: String = "",
-    val options: List<String> = emptyList(),
-    /** Character limit for [UserFieldKind.TEXT] / [UserFieldKind.LONG_TEXT] answers. */
-    val maxLength: Int = 300,
-    /** Size limit for [UserFieldKind.FILE] answers. */
-    val maxFileBytes: Long = 10L * 1024 * 1024,
-)
-
-/** A required question is missing when it has no answer (file questions are answered by an attachment). */
-fun UserQuestion.isMissing(answer: String?, attachment: AttachedFile? = null): Boolean =
-    required && !readOnly && if (kind == UserFieldKind.FILE) attachment == null else answer.isNullOrBlank()
+enum class TeamRole { LEADER, MEMBER }
+enum class TeamMembershipStatus { NONE, REQUEST_PENDING, REQUEST_REJECTED, INVITED, INVITE_REJECTED, MEMBER, LEADER }
 
 /** Result of "Creating registration": the questions plus the event's participation rules. */
 data class RegistrationDraft(
     val registrationId: Int,
-    val questions: List<UserQuestion>,
+    val questions: List<FormField>,
     /** Answers prefilled from the participant's profile, by question id. */
     val initialAnswers: Map<Int, String> = emptyMap(),
     val allowSolo: Boolean = true,
     val allowTeam: Boolean = true,
+    val teamId: Int? = null,
+    val teamLeader: Boolean = false,
+    val teamName: String? = null,
 )
 
 data class TeamSummary(
@@ -58,9 +50,41 @@ data class TeamSummary(
     val memberCount: Int,
     val maxMembers: Int,
     val tags: List<String> = emptyList(),
+    /** Members shown in the team overview popup; empty when the backend doesn't send them. */
+    val members: List<TeamMember> = emptyList(),
 ) {
     val isFull: Boolean get() = memberCount >= maxMembers
 }
+
+data class TeamMember(
+    val id: Int,
+    val name: String,
+    val email: String,
+    val role: TeamRole = TeamRole.MEMBER,
+    /** Course and graduation year shown under the name, e.g. "MCA · 2027". */
+    val program: String = "",
+    val registrationId: Int? = null,
+)
+
+data class TeamJoinRequest(
+    val id: Int,
+    val teamId: Int,
+    val participantName: String,
+    val email: String,
+    val requestedAt: String = "Just now",
+    val participantId: Int = -1,
+    val program: String = "",
+)
+
+data class TeamInvitation(
+    val id: Int,
+    val teamId: Int,
+    val email: String,
+    val sentAt: String = "Just now",
+    val registrationId: Int = -1,
+    val participantName: String = email,
+    val program: String = "",
+)
 
 data class TeamInvite(
     val id: Int,
@@ -74,11 +98,33 @@ data class TeamInvite(
     val memberNames: List<String> = emptyList(),
     /** Team identifier used to continue registration after an invitation is accepted. */
     val teamId: Int = id,
+    val participantId: Int = -1,
+    /** Skill tags of the inviting team, shown as chips on the invitation card. */
+    val tags: List<String> = emptyList(),
+)
+
+data class TeamInviteCandidate(
+    val registrationId: Int,
+    val participantId: Int,
+    val name: String,
+    val email: String,
+    val program: String = "",
 )
 
 data class TeamPortalData(
     val teams: List<TeamSummary>,
     val invites: List<TeamInvite>,
+    val eventName: String = "Campus Connect Demo Event",
+    val myTeam: TeamSummary? = null,
+    val myTeamRole: TeamRole? = null,
+    val members: List<TeamMember> = emptyList(),
+    val incomingJoinRequests: List<TeamJoinRequest> = emptyList(),
+    val outgoingInvites: List<TeamInvitation> = emptyList(),
+    val membershipStatus: TeamMembershipStatus = TeamMembershipStatus.NONE,
+    val pendingTeam: TeamSummary? = null,
+    /** The participant's open join request, if any. The backend permits only one pending request per registration. */
+    val pendingTeamIds: Set<Int> = emptySet(),
+    val inviteCandidates: List<TeamInviteCandidate> = emptyList(),
 )
 
 /**
@@ -86,25 +132,41 @@ data class TeamPortalData(
  * participant-side model. Field types the builder doesn't know arrive in [FormField.rawFieldType];
  * the names matched below are assumptions to align with the backend's actual type strings.
  */
-fun FormField.toUserQuestion(readOnly: Boolean = false): UserQuestion = UserQuestion(
-    id = id,
-    label = label,
-    kind = rawFieldType?.let(::kindFromRawType) ?: when (fieldType) {
-        FieldType.TEXT -> UserFieldKind.TEXT
-        FieldType.NUMBER -> UserFieldKind.NUMBER
-        FieldType.SELECT -> UserFieldKind.DROPDOWN
-        FieldType.MULTISELECT -> UserFieldKind.MULTISELECT
-        FieldType.DATE -> UserFieldKind.DATE
-    },
-    required = isRequired,
-    readOnly = readOnly,
-    placeholder = placeholder,
-    options = options,
+/** Validation follows the host FormField type, required flag, and configured options. */
+fun FormField.validationError(answer: String?): String? {
+    val value = answer.orEmpty()
+    if (readOnly) return null
+    if (isRequired && value.isBlank()) return "This field is required"
+    if (value.isBlank()) return null
+    return when (fieldType) {
+        FieldType.TEXT -> null
+        FieldType.NUMBER -> if (runCatching { java.math.BigDecimal(value) }.isFailure) "Enter a valid number" else null
+        FieldType.SELECT -> if (options.isNotEmpty() && value !in options) "Choose an available option" else null
+        FieldType.MULTISELECT -> {
+            val selected = value.split(',', '\n').map(String::trim).filter(String::isNotBlank)
+            if (options.isNotEmpty() && selected.any { it !in options }) "Choose only available options" else null
+        }
+        FieldType.DATE -> if (runCatching { LocalDate.parse(value) }.isFailure) "Choose a valid date" else null
+    }
+}
+
+/** Shared answer/error state helpers used by both participant question steps. */
+data class QuestionAnswerState(
+    val answers: Map<Int, String>,
+    val validationErrors: Map<Int, String>,
 )
 
-private fun kindFromRawType(raw: String): UserFieldKind? = when (raw.trim().uppercase()) {
-    "TEXTAREA", "LONG_TEXT", "PARAGRAPH" -> UserFieldKind.LONG_TEXT
-    "FILE", "FILE_UPLOAD" -> UserFieldKind.FILE
-    "PHONE" -> UserFieldKind.PHONE
-    else -> null
+fun List<FormField>.updateAnswer(
+    answers: Map<Int, String>,
+    validationErrors: Map<Int, String>,
+    fieldId: Int,
+    value: String,
+): QuestionAnswerState {
+    val nextAnswers = answers + (fieldId to value)
+    val error = firstOrNull { it.id == fieldId }?.validationError(value)
+    val nextErrors = if (error == null) validationErrors - fieldId else validationErrors + (fieldId to error)
+    return QuestionAnswerState(nextAnswers, nextErrors)
 }
+
+fun List<FormField>.validateAnswers(answers: Map<Int, String>): Map<Int, String> =
+    mapNotNull { field -> field.validationError(answers[field.id])?.let { field.id to it } }.toMap()

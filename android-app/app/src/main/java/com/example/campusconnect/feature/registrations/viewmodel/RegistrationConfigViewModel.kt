@@ -2,7 +2,7 @@ package com.example.campusconnect.feature.registrations.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.feature.registrations.data.RegistrationConfigRepository
+import com.example.campusconnect.feature.registrations.data.repo.RegistrationConfigRepository
 import com.example.campusconnect.feature.registrations.model.RegistrationSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,13 +25,19 @@ class RegistrationConfigViewModel(
     val state = _state.asStateFlow()
     private var loadedQuickFieldMask: Long? = null
     private var loadedSettings: RegistrationSettings? = null
+    private var eventId: Int? = null
 
-    init { load() }
+    fun load(eventId: Int) {
+        if (this.eventId == eventId && !_state.value.loading && !_state.value.loadFailed) return
+        this.eventId = eventId
+        loadCurrentEvent()
+    }
 
-    private fun load() = viewModelScope.launch {
+    private fun loadCurrentEvent() = viewModelScope.launch {
+        val eventId = eventId ?: return@launch
         _state.value = _state.value.copy(loading = true, error = null, loadFailed = false)
         try {
-            when (val result = repository.load()) {
+            when (val result = repository.load(eventId)) {
                 is RegistrationConfigRepository.LoadResult.Existing -> {
                     loadedQuickFieldMask = result.settings.quickFieldMask
                     loadedSettings = result.settings
@@ -62,16 +68,18 @@ class RegistrationConfigViewModel(
         val current = _state.value
         if (current.loading || current.saving || current.error != null) return@launch
         _state.value = current.copy(saving = true, error = null, saved = false)
-        val result = repository.save(current.settings, current.configExists)
+        val eventId = eventId ?: return@launch
+        val result = repository.save(eventId, current.settings, current.configExists)
         _state.value = _state.value.copy(
             saving = false,
             configExists = if (result.isSuccess) true else current.configExists,
             saved = result.isSuccess,
+            settings = result.getOrNull() ?: current.settings,
             error = result.exceptionOrNull()?.message,
         )
         if (result.isSuccess) {
-            loadedQuickFieldMask = current.settings.quickFieldMask
-            loadedSettings = current.settings
+            loadedQuickFieldMask = result.getOrThrow().quickFieldMask
+            loadedSettings = result.getOrThrow()
         }
         onComplete(result.isSuccess)
     }
@@ -92,7 +100,8 @@ class RegistrationConfigViewModel(
             val settingsWithSavedMask = current.settings.copy(
                 quickFieldMask = loadedQuickFieldMask ?: 0L,
             )
-            val configResult = repository.save(settingsWithSavedMask, current.configExists)
+            val eventId = eventId ?: return@launch
+            val configResult = repository.save(eventId, settingsWithSavedMask, current.configExists)
             if (configResult.isFailure) {
                 val error = configResult.exceptionOrNull()
                 _state.value = _state.value.copy(saving = false, saved = false,
@@ -100,8 +109,8 @@ class RegistrationConfigViewModel(
                 onComplete(false)
                 return@launch
             }
-            loadedSettings = settingsWithSavedMask
-            loadedQuickFieldMask = settingsWithSavedMask.quickFieldMask
+            loadedSettings = configResult.getOrThrow()
+            loadedQuickFieldMask = configResult.getOrThrow().quickFieldMask
             _state.value = _state.value.copy(configExists = true)
         }
         if (current.settings.quickFieldMask == loadedQuickFieldMask) {
@@ -109,7 +118,8 @@ class RegistrationConfigViewModel(
             onComplete(true)
             return@launch
         }
-        repository.saveQuickFields(current.settings.quickFieldMask).fold(
+        val eventId = eventId ?: return@launch
+        repository.saveQuickFields(eventId, current.settings.quickFieldMask).fold(
             onSuccess = { savedSettings ->
                 loadedQuickFieldMask = savedSettings.quickFieldMask
                 loadedSettings = savedSettings
@@ -126,5 +136,5 @@ class RegistrationConfigViewModel(
         )
     }
 
-    fun retryLoad() = load()
+    fun retryLoad() { if (eventId != null) loadCurrentEvent() }
 }

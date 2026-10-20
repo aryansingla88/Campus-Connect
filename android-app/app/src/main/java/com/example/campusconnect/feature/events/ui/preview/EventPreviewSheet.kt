@@ -85,7 +85,7 @@ fun EventPreviewSheet(
     onPageChanged: (Int) -> Unit,
     onClose: () -> Unit,
     onEdit: (Event) -> Unit = {},
-    onRegistration: (Event) -> Unit = {},
+    onRegistration: (Event) -> Unit,
     onChat: (Event) -> Unit = {},
     onAccess: (Event) -> Unit = {},
     onDelete: (Event) -> Unit = {},

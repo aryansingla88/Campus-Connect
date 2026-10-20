@@ -12,6 +12,9 @@ import com.campus.Campus_Connect.features.event.repository.EventTeamRepository;
 import com.campus.Campus_Connect.features.registration.dto.request.CreateTeamInvitationRequest;
 import com.campus.Campus_Connect.features.registration.dto.request.CreateTeamJoinRequest;
 import com.campus.Campus_Connect.features.registration.dto.response.TeamRequestResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamMemberResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamInviteCandidateResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
 import com.campus.Campus_Connect.features.registration.entity.RegistrationConfig;
 import com.campus.Campus_Connect.features.registration.entity.TeamRequest;
@@ -125,6 +128,25 @@ class UserRegistrationTeamWorkflowTest {
     }
 
     @Test
+    void joinRequestCannotBeCreatedForFullTeam() {
+        authenticate(participant);
+        CreateTeamJoinRequest body = new CreateTeamJoinRequest();
+        body.setTeamId(TEAM_ID);
+        when(registrationRepository.findByIdForUpdate(REGISTRATION_ID)).thenReturn(Optional.of(registration));
+        when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
+        when(teamRequestRepository.findByRegistration_IdAndStatus(REGISTRATION_ID, TeamRequestStatus.PENDING))
+                .thenReturn(Optional.empty());
+        when(registrationRepository.countByEventIdAndTeamIdAndStatusIn(EVENT_ID, TEAM_ID,
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED))).thenReturn(3L);
+
+        ApiResponse<TeamRequestResponse> response = service.createTeamJoinRequest(REGISTRATION_ID, body);
+
+        assertFalse(response.isSuccess());
+        assertEquals("Team is full.", response.getMessage());
+        verify(teamRequestRepository, never()).save(any());
+    }
+
+    @Test
     void crossEventJoinRequestIsRejected() {
         authenticate(participant);
         Event otherEvent = Event.builder().id(4).approvalStatus(ApprovalStatus.VERIFIED)
@@ -161,6 +183,95 @@ class UserRegistrationTeamWorkflowTest {
         assertTrue(allowed.isSuccess());
         assertEquals("LEADER", allowed.getData().getInitiatedBy());
         verify(teamRequestRepository).save(argThat(saved -> saved.getInitiatedBy() == TeamRequestInitiator.LEADER));
+    }
+
+    @Test
+    void leaderCannotInviteParticipantWithAnExistingJoinRequest() {
+        authenticate(leader);
+        CreateTeamInvitationRequest body = new CreateTeamInvitationRequest();
+        body.setRegistrationId(REGISTRATION_ID);
+        TeamRequest existing = request(TeamRequestInitiator.PARTICIPANT, TeamRequestStatus.PENDING, team, registration);
+        when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
+        when(registrationRepository.countByEventIdAndTeamIdAndStatusIn(EVENT_ID, TEAM_ID,
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED))).thenReturn(1L);
+        when(registrationRepository.findByIdForUpdate(REGISTRATION_ID)).thenReturn(Optional.of(registration));
+        when(teamRequestRepository.findByRegistration_IdAndStatus(REGISTRATION_ID, TeamRequestStatus.PENDING))
+                .thenReturn(Optional.of(existing));
+
+        ApiResponse<TeamRequestResponse> response = service.createTeamInvitation(TEAM_ID, body);
+
+        assertFalse(response.isSuccess());
+        assertEquals("A conflicting team request or invitation is already pending.", response.getMessage());
+        verify(teamRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void onlyCurrentTeamMemberCanReadRosterAndRosterContainsPersistedMembers() {
+        EventRegistration leaderRegistration = EventRegistration.builder().id(20).event(event).user(leader)
+                .team(team).status(RegistrationStatus.PENDING).build();
+        authenticate(leader);
+        when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
+        when(registrationRepository.findByEventIdAndUserId(EVENT_ID, leader.getId())).thenReturn(Optional.of(leaderRegistration));
+        when(registrationRepository.findByEventIdAndTeamId(EVENT_ID, TEAM_ID)).thenReturn(List.of(leaderRegistration, registration));
+
+        ApiResponse<List<TeamMemberResponse>> allowed = service.getTeamMembers(TEAM_ID);
+
+        assertTrue(allowed.isSuccess());
+        assertEquals(List.of(20, REGISTRATION_ID), allowed.getData().stream().map(TeamMemberResponse::getRegistrationId).toList());
+        assertEquals("LEADER", allowed.getData().get(0).getRole());
+
+        clearInvocations(registrationRepository);
+        authenticate(User.builder().id(30).username("outsider").build());
+        ApiResponse<List<TeamMemberResponse>> denied = service.getTeamMembers(TEAM_ID);
+        assertFalse(denied.isSuccess());
+        verify(registrationRepository, never()).findByEventIdAndTeamId(eq(EVENT_ID), anyInt());
+    }
+
+    @Test
+    void inviteCandidatesAreLeaderOnlyEligibleDraftsWithoutConflictingPendingRequests() {
+        User eligibleUser = User.builder().id(11).username("eligible").build();
+        EventRegistration eligible = EventRegistration.builder().id(21).event(event).user(eligibleUser)
+                .status(RegistrationStatus.PENDING).build();
+        EventRegistration conflicting = EventRegistration.builder().id(22).event(event)
+                .user(User.builder().id(12).username("pending").build()).status(RegistrationStatus.PENDING).build();
+        EventRegistration assigned = EventRegistration.builder().id(23).event(event)
+                .user(User.builder().id(13).username("assigned").build()).team(team).status(RegistrationStatus.PENDING).build();
+        EventRegistration submitted = EventRegistration.builder().id(24).event(event)
+                .user(User.builder().id(14).username("submitted").build()).status(RegistrationStatus.CONFIRMED).build();
+        TeamRequest pendingRequest = request(TeamRequestInitiator.PARTICIPANT, TeamRequestStatus.PENDING, team, conflicting);
+        authenticate(leader);
+        when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
+        when(registrationRepository.countByEventIdAndTeamIdAndStatusIn(EVENT_ID, TEAM_ID,
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED))).thenReturn(1L);
+        when(registrationRepository.findByEventId(EVENT_ID)).thenReturn(List.of(eligible, conflicting, assigned, submitted));
+        when(teamRequestRepository.findByRegistration_IdAndStatus(21, TeamRequestStatus.PENDING)).thenReturn(Optional.empty());
+        when(teamRequestRepository.findByRegistration_IdAndStatus(22, TeamRequestStatus.PENDING)).thenReturn(Optional.of(pendingRequest));
+
+        ApiResponse<List<TeamInviteCandidateResponse>> response = service.getTeamInviteCandidates(TEAM_ID);
+
+        assertTrue(response.isSuccess());
+        assertEquals(List.of(21), response.getData().stream().map(TeamInviteCandidateResponse::getRegistrationId).toList());
+        verify(answerRepository, never()).findByIdRegistrationId(anyInt());
+
+        authenticate(participant);
+        assertFalse(service.getTeamInviteCandidates(TEAM_ID).isSuccess());
+    }
+
+    @Test
+    void teamNameAvailabilityAndCreationUseCaseInsensitiveLookup() {
+        authenticate(participant);
+        when(registrationRepository.findByEventIdAndUserId(EVENT_ID, participant.getId())).thenReturn(Optional.of(registration));
+        when(registrationRepository.findByIdForUpdate(REGISTRATION_ID)).thenReturn(Optional.of(registration));
+        when(teamRepository.existsByEvent_IdAndTeamNameIgnoreCase(EVENT_ID, "Code Crafters")).thenReturn(true);
+
+        ApiResponse<Boolean> availability = service.isTeamNameAvailable(EVENT_ID, "Code Crafters");
+        ApiResponse<RegistrationResponse> created = service.createTeam(REGISTRATION_ID, "Code Crafters");
+
+        assertTrue(availability.isSuccess());
+        assertFalse(availability.getData());
+        assertFalse(created.isSuccess());
+        assertEquals("Team name is already taken for this event.", created.getMessage());
+        verify(teamRepository, never()).save(any(EventTeam.class));
     }
 
     @Test

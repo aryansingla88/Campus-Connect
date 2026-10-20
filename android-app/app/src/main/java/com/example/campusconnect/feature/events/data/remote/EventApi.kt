@@ -3,7 +3,6 @@ package com.example.campusconnect.feature.events.data.remote
 import android.util.Log
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
-import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
 import com.example.campusconnect.feature.events.data.remote.response.EventHistoryResponse
 import com.example.campusconnect.feature.events.data.remote.response.EventResponse
@@ -12,13 +11,6 @@ import com.example.campusconnect.feature.events.data.remote.response.MedalsRespo
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
 import com.example.campusconnect.feature.events.data.remote.response.RegistrationResponse
 import com.example.campusconnect.feature.events.data.remote.response.UserAccessResponse
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigRequest
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigResponse
-import com.example.campusconnect.feature.registrations.data.remote.QuickFieldsConfigRequest
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationFieldRequest
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationFieldResponse
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationSubmissionResponse
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationSubmissionDetailResponse
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -29,63 +21,9 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
-import retrofit2.http.PUT
 import retrofit2.http.Query
 
 interface EventsApi {
-
-    // Host registration configuration ------------------------------------
-
-    @GET("events/{eventId}/registration/config")
-    suspend fun getRegistrationConfig(
-        @Path("eventId") eventId: Int
-    ): Response<ApiResponse<RegistrationConfigResponse>>
-
-    @POST("events/{eventId}/registration/config")
-    suspend fun createRegistrationConfig(
-        @Path("eventId") eventId: Int,
-        @Body request: RegistrationConfigRequest
-    ): Response<ApiResponse<RegistrationConfigResponse>>
-
-    @PUT("events/{eventId}/registration/config")
-    suspend fun updateRegistrationConfig(
-        @Path("eventId") eventId: Int,
-        @Body request: RegistrationConfigRequest
-    ): Response<ApiResponse<RegistrationConfigResponse>>
-
-    @PATCH("events/{eventId}/registration/config/quick-fields")
-    suspend fun updateQuickFieldsConfig(
-        @Path("eventId") eventId: Int,
-        @Body request: QuickFieldsConfigRequest
-    ): Response<ApiResponse<RegistrationConfigResponse>>
-
-    @GET("events/{eventId}/registration/fields")
-    suspend fun getRegistrationFields(
-        @Path("eventId") eventId: Int
-    ): Response<ApiResponse<List<RegistrationFieldResponse>>>
-
-    @GET("events/{eventId}/registrations")
-    suspend fun getEventRegistrations(
-        @Path("eventId") eventId: Int
-    ): Response<ApiResponse<List<RegistrationSubmissionResponse>>>
-
-    @GET("events/{eventId}/registrations/{registrationId}")
-    suspend fun getEventRegistration(
-        @Path("eventId") eventId: Int,
-        @Path("registrationId") registrationId: Int
-    ): Response<ApiResponse<RegistrationSubmissionDetailResponse>>
-
-    @POST("events/{eventId}/registration/fields")
-    suspend fun createRegistrationFields(
-        @Path("eventId") eventId: Int,
-        @Body fields: List<RegistrationFieldRequest>
-    ): Response<ApiResponse<List<RegistrationFieldResponse>>>
-
-    @PUT("events/{eventId}/registration/fields")
-    suspend fun updateRegistrationFields(
-        @Path("eventId") eventId: Int,
-        @Body fields: List<RegistrationFieldRequest>
-    ): Response<ApiResponse<List<RegistrationFieldResponse>>>
 
     // Events ----------------------------------------------------------------
 

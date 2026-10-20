@@ -2,8 +2,8 @@ package com.example.campusconnect.feature.registrations.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.feature.registrations.data.NetworkRegistrationResponseRepository
-import com.example.campusconnect.feature.registrations.data.RegistrationResponseRepository
+import com.example.campusconnect.feature.registrations.data.repo.NetworkRegistrationResponseRepository
+import com.example.campusconnect.feature.registrations.data.repo.RegistrationResponseRepository
 import com.example.campusconnect.feature.registrations.model.RegistrationDetailResponse
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseItem
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -106,5 +106,17 @@ class RegistrationResponsesViewModel(
                 _details.update { it + (registrationId to state) }
             }
         }
+    }
+
+    fun approve(eventId: Int, registrationId: Int) = review(eventId, registrationId, approve = true)
+
+    fun reject(eventId: Int, registrationId: Int) = review(eventId, registrationId, approve = false)
+
+    private fun review(eventId: Int, registrationId: Int, approve: Boolean) = viewModelScope.launch {
+        val result = if (approve) repository.approve(eventId, registrationId) else repository.reject(eventId, registrationId)
+        result.fold(
+            onSuccess = { loadRegistrations(eventId, force = true) },
+            onFailure = { error -> _listState.update { it.copy(error = error.message ?: "Could not update registration review.") } },
+        )
     }
 }

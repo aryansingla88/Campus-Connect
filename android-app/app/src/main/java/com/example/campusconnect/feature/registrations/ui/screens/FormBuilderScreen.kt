@@ -26,30 +26,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ── Data Models ───────────────────────────────────────────────────────────────
+// Source-compatible aliases for existing UI and participant-flow imports.
+typealias FieldType = com.example.campusconnect.feature.registrations.model.FieldType
+typealias FormField = com.example.campusconnect.feature.registrations.model.FormField
+typealias RegistrationQuestionContext = com.example.campusconnect.feature.registrations.model.RegistrationQuestionContext
 
-enum class FieldType(val label: String, val icon: ImageVector) {
-    TEXT("Short text", Icons.Outlined.ShortText),
-    NUMBER("Number", Icons.Outlined.Pin),
-    SELECT("Dropdown", Icons.Outlined.ArrowDropDownCircle),
-    MULTISELECT("Checkboxes", Icons.Outlined.CheckBox),
-    DATE("Date", Icons.Outlined.CalendarMonth),
-}
-
-// var → val, MutableList → List (immutable, safe for Compose state)
-data class FormField(
-    val id: Int,
-    /** Null for a newly created field; existing backend IDs are retained on update. */
-    val backendId: Int? = null,
-    val label: String        = "",
-    val fieldType: FieldType = FieldType.TEXT,
-    val rawFieldType: String? = null,
-    val placeholder: String  = "",
-    val isRequired: Boolean  = false,
-    val options: List<String> = emptyList(),
-    val individual: Boolean = true,
-    val fieldOrder: Int = 0,
-)
+/** Iconography belongs to UI, not the shared registration field model. */
+val FieldType.icon: ImageVector
+    get() = when (this) {
+        FieldType.TEXT -> Icons.Outlined.ShortText
+        FieldType.NUMBER -> Icons.Outlined.Pin
+        FieldType.SELECT -> Icons.Outlined.ArrowDropDownCircle
+        FieldType.MULTISELECT -> Icons.Outlined.CheckBox
+        FieldType.DATE -> Icons.Outlined.CalendarMonth
+    }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 

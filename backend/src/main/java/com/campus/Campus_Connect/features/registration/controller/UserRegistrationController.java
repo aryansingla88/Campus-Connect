@@ -9,6 +9,8 @@ import com.campus.Campus_Connect.features.registration.dto.response.Registration
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.AvailableTeamResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.TeamRequestResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamMemberResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamInviteCandidateResponse;
 import com.campus.Campus_Connect.features.registration.service.UserRegistrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -50,6 +52,16 @@ public class UserRegistrationController {
         return service.getAvailableTeams(eventId, search);
     }
 
+    @GetMapping("/{eventId}/registration/team-name-availability")
+    public ApiResponse<Boolean> teamNameAvailability(@PathVariable Integer eventId, @RequestParam String teamName) {
+        return service.isTeamNameAvailable(eventId, teamName);
+    }
+
+    @GetMapping("/teams/{teamId}")
+    public ApiResponse<AvailableTeamResponse> teamSummary(@PathVariable Integer teamId) {
+        return service.getTeamSummary(teamId);
+    }
+
     @PutMapping("/registrations/{registrationId}/answers")
     public ApiResponse<RegistrationResponse> saveAnswers(@PathVariable Integer registrationId,
             @RequestBody SaveRegistrationAnswersRequest request) {
@@ -87,6 +99,16 @@ public class UserRegistrationController {
     @GetMapping("/teams/{teamId}/requests")
     public ApiResponse<List<TeamRequestResponse>> teamRequests(@PathVariable Integer teamId) {
         return service.getTeamRequests(teamId);
+    }
+
+    @GetMapping("/teams/{teamId}/members")
+    public ApiResponse<List<TeamMemberResponse>> teamMembers(@PathVariable Integer teamId) {
+        return service.getTeamMembers(teamId);
+    }
+
+    @GetMapping("/teams/{teamId}/invite-candidates")
+    public ApiResponse<List<TeamInviteCandidateResponse>> inviteCandidates(@PathVariable Integer teamId) {
+        return service.getTeamInviteCandidates(teamId);
     }
 
     @PostMapping("/team-requests/{requestId}/accept")

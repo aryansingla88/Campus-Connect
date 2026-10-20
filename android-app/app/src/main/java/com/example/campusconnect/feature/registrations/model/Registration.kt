@@ -8,6 +8,12 @@ data class Registration(
     val settings: RegistrationSettings = RegistrationSettings(),
 )
 
+/** Event metadata needed by the host registration header. */
+data class RegistrationEventHeader(
+    val title: String,
+    val isPublished: Boolean,
+)
+
 /** Host-configurable options shown on the Registration Setup screen. */
 data class RegistrationSettings(
     val minMembers: Int = 1,

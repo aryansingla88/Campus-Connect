@@ -18,11 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +37,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.registrations.model.QuickFieldValue
+import com.example.campusconnect.core.utils.AcademicUtils
+import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 import com.example.campusconnect.feature.registrations.model.RegistrationDetailResponse
 import com.example.campusconnect.feature.registrations.model.RegistrationMemberDetail
 import com.example.campusconnect.feature.registrations.model.ResponseAnswer
@@ -311,10 +315,23 @@ private fun QuickFieldsGrid(fields: List<QuickFieldValue>, modifier: Modifier = 
 
 @Composable
 private fun QuickFieldCell(field: QuickFieldValue, modifier: Modifier) {
+    val context = LocalContext.current
+    val normalizedLabel = remember(field.field) { field.field.replace("_", " ").trim().lowercase() }
+    var displayValue by remember(field.value) { mutableStateOf(field.value) }
+    LaunchedEffect(normalizedLabel, field.value, context) {
+        if (normalizedLabel == "course" || normalizedLabel == "courses") {
+            field.value.toIntOrNull()?.let { courseId ->
+                val course = runCatching {
+                    CourseRepositoryProvider.getRepository(context).getCourseById(courseId)
+                }.getOrNull()
+                if (course != null) displayValue = AcademicUtils.getCourseName(course)
+            }
+        }
+    }
     Column(modifier) {
         Text(field.field, fontSize = 12.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
-            field.value.ifBlank { "—" },
+            displayValue.ifBlank { "—" },
             fontSize = 13.5.sp,
             color = TextPrimary,
             maxLines = 2,

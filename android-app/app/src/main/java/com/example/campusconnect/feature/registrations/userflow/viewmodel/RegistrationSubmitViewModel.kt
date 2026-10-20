@@ -2,15 +2,19 @@ package com.example.campusconnect.feature.registrations.userflow.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.feature.registrations.userflow.data.FakeRegistrationSubmitRepository
+import com.example.campusconnect.feature.registrations.userflow.data.ParticipantRegistrationRepositories
 import com.example.campusconnect.feature.registrations.userflow.data.RegistrationSubmitRepository
-import com.example.campusconnect.feature.registrations.userflow.model.AttachedFile
 import com.example.campusconnect.feature.registrations.userflow.model.ParticipationMode
 import com.example.campusconnect.feature.registrations.userflow.model.SubmissionContext
 import com.example.campusconnect.feature.registrations.userflow.model.SubmissionReceipt
 import com.example.campusconnect.feature.registrations.userflow.model.SubmissionRequest
-import com.example.campusconnect.feature.registrations.userflow.model.UserQuestion
-import com.example.campusconnect.feature.registrations.userflow.model.isMissing
+import com.example.campusconnect.feature.registrations.userflow.model.SavedRegistrationDetails
+import com.example.campusconnect.feature.registrations.userflow.model.RegistrationQuestionScreenConfig
+import com.example.campusconnect.feature.registrations.userflow.model.RegistrationQuestionScreenKind
+import com.example.campusconnect.feature.registrations.ui.screens.FormField
+import com.example.campusconnect.feature.registrations.ui.screens.RegistrationQuestionContext
+import com.example.campusconnect.feature.registrations.userflow.model.updateAnswer
+import com.example.campusconnect.feature.registrations.userflow.model.validateAnswers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,17 +32,23 @@ sealed interface SubmitPhase {
 
 data class SubmitUiState(
     val phase: SubmitPhase = SubmitPhase.Loading,
-    val questions: List<UserQuestion> = emptyList(),
+    val questions: List<FormField> = emptyList(),
     val answers: Map<Int, String> = emptyMap(),
-    val files: Map<Int, AttachedFile> = emptyMap(),
-    val fileErrors: Map<Int, String> = emptyMap(),
-    val showErrors: Boolean = false,
+    val validationErrors: Map<Int, String> = emptyMap(),
     val transientError: String? = null,
+    val questionScreenConfig: RegistrationQuestionScreenConfig = RegistrationQuestionScreenConfig(
+        kind = RegistrationQuestionScreenKind.TEAM,
+        subtitle = "Answer the shared participation questions.",
+        progressStep = 3,
+        actionLabel = "Submit Registration",
+    ),
 )
 
 class RegistrationSubmitViewModel(
-    private val repository: RegistrationSubmitRepository = FakeRegistrationSubmitRepository(),
+    private val repository: RegistrationSubmitRepository = ParticipantRegistrationRepositories.submit,
 ) : ViewModel() {
+
+    fun savedRegistration(participantId: Int): SavedRegistrationDetails? = repository.getSavedRegistration(participantId)
 
     private val _state = MutableStateFlow(SubmitUiState())
     val state: StateFlow<SubmitUiState> = _state.asStateFlow()
@@ -49,28 +59,49 @@ class RegistrationSubmitViewModel(
     fun start(newContext: SubmissionContext) {
         if (context == newContext && _state.value.phase !is SubmitPhase.LoadFailed) return
         context = newContext
-        _state.value = SubmitUiState()
+        _state.value = SubmitUiState(questionScreenConfig = screenConfig(newContext))
         loadQuestions()
     }
 
     fun retryLoad() = loadQuestions()
 
+    private fun screenConfig(ctx: SubmissionContext) = RegistrationQuestionScreenConfig(
+        kind = RegistrationQuestionScreenKind.TEAM,
+        subtitle = when (ctx.mode) {
+            ParticipationMode.SOLO -> "Answer the shared participation questions."
+            ParticipationMode.JOIN_TEAM -> "Answer the questions for your team registration."
+            ParticipationMode.CREATE_TEAM -> "Answer the shared questions for ${ctx.teamName.orEmpty()}."
+        },
+        progressStep = 3,
+        actionLabel = "Submit Registration",
+    )
+
     private fun loadQuestions() {
         val ctx = context ?: return
         _state.update { it.copy(phase = SubmitPhase.Loading) }
         viewModelScope.launch {
-            // Team-level answers belong to the participant creating the team.
-            // Solo participants and accepted team members should not fill them again.
-            val questionsResult: Result<List<UserQuestion>> = if (ctx.mode == ParticipationMode.CREATE_TEAM) {
-                repository.getTeamQuestions(ctx.eventId)
-            } else {
-                Result.success(emptyList())
-            }
-            questionsResult.fold(
-                onSuccess = { questions ->
-                    _state.update { it.copy(questions = questions, phase = SubmitPhase.Form) }
-                    // Nothing to ask: submit straight away.
-                    if (questions.isEmpty()) submit()
+            runCatching {
+                val questions = repository.getTeamQuestions(ctx.eventId).getOrThrow()
+                val savedAnswers = repository.getSavedTeamAnswers(ctx.eventId).getOrThrow()
+                questions to savedAnswers
+            }.fold(
+                onSuccess = { (questions, savedAnswers) ->
+                    val applicableQuestions = questions.filter { question ->
+                        when (question.registrationContext) {
+                            RegistrationQuestionContext.TEAM_COMMON -> ctx.mode != ParticipationMode.JOIN_TEAM
+                            RegistrationQuestionContext.TEAM_CREATION -> ctx.mode != ParticipationMode.JOIN_TEAM
+                            RegistrationQuestionContext.INDIVIDUAL -> false
+                            null -> !question.individual
+                        }
+                    }
+                    _state.update {
+                        it.copy(
+                            questions = applicableQuestions,
+                            answers = (savedAnswers + ctx.initialTeamAnswers)
+                                .filterKeys { id -> applicableQuestions.any { it.id == id } },
+                            phase = SubmitPhase.Form,
+                        )
+                    }
                 },
                 onFailure = { e ->
                     _state.update {
@@ -82,21 +113,18 @@ class RegistrationSubmitViewModel(
     }
 
     fun onAnswerChange(questionId: Int, value: String) {
-        _state.update { it.copy(answers = it.answers + (questionId to value)) }
-    }
-
-    fun onFilePicked(questionId: Int, file: AttachedFile) {
-        val question = _state.value.questions.firstOrNull { it.id == questionId } ?: return
-        if (file.sizeBytes > question.maxFileBytes) {
-            val mb = question.maxFileBytes / (1024 * 1024)
-            _state.update { it.copy(fileErrors = it.fileErrors + (questionId to "File is too large (max $mb MB).")) }
-            return
+        _state.update { current ->
+            val answerState = current.questions.updateAnswer(
+                current.answers,
+                current.validationErrors,
+                questionId,
+                value,
+            )
+            current.copy(
+                answers = answerState.answers,
+                validationErrors = answerState.validationErrors,
+            )
         }
-        _state.update { it.copy(files = it.files + (questionId to file), fileErrors = it.fileErrors - questionId) }
-    }
-
-    fun onFileRemoved(questionId: Int) {
-        _state.update { it.copy(files = it.files - questionId, fileErrors = it.fileErrors - questionId) }
     }
 
     fun submit() {
@@ -104,22 +132,21 @@ class RegistrationSubmitViewModel(
         val current = _state.value
         if (current.phase is SubmitPhase.Submitting) return
 
-        val missing = current.questions.any { it.isMissing(current.answers[it.id], current.files[it.id]) }
-        if (missing) {
-            _state.update { it.copy(showErrors = true) }
+        val validationErrors = current.questions.validateAnswers(current.answers)
+        if (validationErrors.isNotEmpty()) {
+            _state.update { it.copy(validationErrors = validationErrors) }
             return
         }
 
-        _state.update { it.copy(phase = SubmitPhase.Submitting, showErrors = false) }
+        _state.update { it.copy(phase = SubmitPhase.Submitting, validationErrors = emptyMap()) }
         viewModelScope.launch {
-            repository.submit(SubmissionRequest(ctx, current.answers, current.files)).fold(
+            runCatching { repository.submit(SubmissionRequest(ctx, current.answers)).getOrThrow() }.fold(
                 onSuccess = { receipt -> _state.update { it.copy(phase = SubmitPhase.Success(receipt)) } },
                 onFailure = { e ->
                     // Back to the form with answers intact.
                     _state.update {
                         it.copy(
-                            phase = if (it.questions.isEmpty()) SubmitPhase.LoadFailed(e.message ?: "Couldn't submit.")
-                            else SubmitPhase.Form,
+                            phase = SubmitPhase.Form,
                             transientError = e.message ?: "Couldn't submit your registration. Please try again.",
                         )
                     }

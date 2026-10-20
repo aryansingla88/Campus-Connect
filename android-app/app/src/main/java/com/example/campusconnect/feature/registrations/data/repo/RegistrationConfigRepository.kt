@@ -1,16 +1,14 @@
-package com.example.campusconnect.feature.registrations.data
+package com.example.campusconnect.feature.registrations.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigRequest
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigResponse
+import com.example.campusconnect.feature.registrations.data.mapper.RegistrationConfigMapper
+import com.example.campusconnect.feature.registrations.data.remote.RegistrationApi
 import com.example.campusconnect.feature.registrations.data.remote.QuickFieldsConfigRequest
 import com.example.campusconnect.feature.registrations.model.RegistrationSettings
-import java.time.Instant
-import java.time.format.DateTimeParseException
 
 class RegistrationConfigRepository {
     companion object {
-        /** Temporary until event integration supplies the real event ID. */
+        /** Test-screen-only event; production registration routes pass their event ID. */
         const val TEMP_EVENT_ID = 3
 
         fun quickFieldIds(mask: Long): Set<String> = quickFieldBits
@@ -29,10 +27,10 @@ class RegistrationConfigRepository {
         )
     }
 
-    private val api = RetrofitClient.eventsApi
+    private val api: RegistrationApi = RetrofitClient.registrationApi
 
-    suspend fun load(): LoadResult {
-        val response = api.getRegistrationConfig(TEMP_EVENT_ID)
+    suspend fun load(eventId: Int): LoadResult {
+        val response = api.getRegistrationConfig(eventId)
         val body = response.body()
         if (!response.isSuccessful) {
             return LoadResult.Failure("Could not load registration settings (HTTP ${response.code()}).")
@@ -40,7 +38,7 @@ class RegistrationConfigRepository {
         if (body?.success == true) {
             val config = body.data
                 ?: return LoadResult.Failure("The server returned an empty registration configuration.")
-            return LoadResult.Existing(config.toSettings())
+            return LoadResult.Existing(RegistrationConfigMapper.toModel(config))
         }
         val message = body?.message.orEmpty()
         if (message.contains("configuration not found", ignoreCase = true)) {
@@ -49,29 +47,22 @@ class RegistrationConfigRepository {
         return LoadResult.Failure(message.ifBlank { "Could not load registration settings." })
     }
 
-    suspend fun save(settings: RegistrationSettings, exists: Boolean): Result<Unit> {
+    suspend fun save(eventId: Int, settings: RegistrationSettings, exists: Boolean): Result<RegistrationSettings> {
         if (settings.minMembers < 1 || settings.minMembers > RegistrationSettings.MAX_TEAM_SIZE ||
             settings.maxMembers < settings.minMembers || settings.maxMembers > RegistrationSettings.MAX_TEAM_SIZE ||
             (settings.minMembers > 1 && settings.maxMembers < 2)
         ) return Result.failure(IllegalArgumentException("Choose valid minimum and maximum team sizes."))
 
-        val request = RegistrationConfigRequest(
-            minTeamMembers = settings.minMembers,
-            maxTeamMembers = settings.maxMembers,
-            quickFieldMask = settings.quickFieldMask,
-            autoConfirm = settings.autoConfirm,
-            registrationCreatedAt = settings.registrationCreatedAt,
-            registrationEndAt = settings.deadline?.let { Instant.ofEpochMilli(it).toString() },
-        )
+        val request = RegistrationConfigMapper.toRequest(settings)
         return try {
             val response = if (exists) {
-                api.updateRegistrationConfig(TEMP_EVENT_ID, request)
+                api.updateRegistrationConfig(eventId, request)
             } else {
-                api.createRegistrationConfig(TEMP_EVENT_ID, request)
+                api.createRegistrationConfig(eventId, request)
             }
             val body = response.body()
             if (response.isSuccessful && body?.success == true && body.data != null) {
-                Result.success(Unit)
+                Result.success(RegistrationConfigMapper.toModel(body.data))
             } else {
                 Result.failure(IllegalStateException(
                     body?.message?.takeIf(String::isNotBlank)
@@ -83,11 +74,11 @@ class RegistrationConfigRepository {
         }
     }
 
-    suspend fun saveQuickFields(mask: Long): Result<RegistrationSettings> = try {
-        val response = api.updateQuickFieldsConfig(TEMP_EVENT_ID, QuickFieldsConfigRequest(mask))
+    suspend fun saveQuickFields(eventId: Int, mask: Long): Result<RegistrationSettings> = try {
+        val response = api.updateQuickFieldsConfig(eventId, QuickFieldsConfigRequest(mask))
         val body = response.body()
         if (response.isSuccessful && body?.success == true && body.data != null) {
-            Result.success(body.data.toSettings())
+            Result.success(RegistrationConfigMapper.toModel(body.data))
         } else {
             Result.failure(IllegalStateException(
                 body?.message?.takeIf(String::isNotBlank)
@@ -102,19 +93,5 @@ class RegistrationConfigRepository {
         data class Existing(val settings: RegistrationSettings) : LoadResult
         data object Missing : LoadResult
         data class Failure(val message: String) : LoadResult
-    }
-
-    internal fun RegistrationConfigResponse.toSettings(): RegistrationSettings {
-        val deadline = registrationEndAt?.let {
-            try { Instant.parse(it).toEpochMilli() } catch (_: DateTimeParseException) { null }
-        }
-        return RegistrationSettings(
-            minMembers = minTeamMembers,
-            maxMembers = maxTeamMembers,
-            quickFieldMask = quickFieldMask,
-            autoConfirm = autoConfirm ?: true,
-            registrationCreatedAt = registrationCreatedAt,
-            deadline = deadline,
-        )
     }
 }

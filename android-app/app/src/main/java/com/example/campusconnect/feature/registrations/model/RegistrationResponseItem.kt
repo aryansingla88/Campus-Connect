@@ -23,4 +23,6 @@ data class RegistrationResponseItem(
     val submittedAt: String?,
     val memberCount: Int? = null,
     val submittedAtEpochMillis: Long? = null,
+    /** Present for participant fake records; existing host API responses may omit it. */
+    val teamName: String? = null,
 )

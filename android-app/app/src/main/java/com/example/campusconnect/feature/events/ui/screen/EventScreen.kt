@@ -82,7 +82,9 @@ private data class EventMapMarker(
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
 fun EventScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRegister: (Int) -> Unit = {},
+    onHostRegistration: (Int) -> Unit = {},
 ) {
 
 
@@ -366,7 +368,7 @@ fun EventScreen(
                         dialogKey++
                         showDialog = true
                     },
-                    onRegistration = { },
+                    onRegistration = { event -> onHostRegistration(event.id) },
                     onChat         = { },
                     onAccess       = { event -> accessEvent = event; viewModel.loadAccessUsers(event.id); showAccessDialog = true },
                     onDelete       = { event -> viewModel.requestDelete(event) }
@@ -557,7 +559,7 @@ fun EventScreen(
                 EventViewModeScreen(
                     events       = filteredEvents,
                     onBack       = { showViewMode = false },
-                    onRegister   = { },
+                    onRegister   = { event -> onRegister(event.id) },
                     onNotify     = { },
                     onOpenDetail = { showViewMode = false },
                     showActionButtons = false,

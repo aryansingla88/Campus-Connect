@@ -2,7 +2,7 @@ package com.example.campusconnect.feature.registrations.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.core.network.RetrofitClient
+import com.example.campusconnect.feature.registrations.data.repo.RegistrationEventRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -15,7 +15,9 @@ data class RegistrationEventUiState(
 )
 
 /** Event header data used by registration screens; loaded through the existing event endpoint. */
-class RegistrationEventViewModel : ViewModel() {
+class RegistrationEventViewModel(
+    private val repository: RegistrationEventRepository = RegistrationEventRepository(),
+) : ViewModel() {
     private val _state = MutableStateFlow(RegistrationEventUiState())
     val state = _state.asStateFlow()
     private var requestedEventId: Int? = null
@@ -25,30 +27,21 @@ class RegistrationEventViewModel : ViewModel() {
         requestedEventId = eventId
         viewModelScope.launch {
             _state.value = RegistrationEventUiState(loading = true)
-            try {
-                val response = RetrofitClient.eventsApi.getEvent(eventId)
-                val body = response.body()
-                val event = body?.data
-                if (response.isSuccessful && body?.success == true && event != null) {
-                    val approvalStatus = event.approvalStatus.trim().uppercase()
+            repository.getHeader(eventId).fold(
+                onSuccess = { header ->
                     _state.value = RegistrationEventUiState(
-                        title = event.title,
-                        isPublished = approvalStatus == "VERIFIED" || approvalStatus == "APPROVED",
+                        title = header.title,
+                        isPublished = header.isPublished,
                         loading = false,
                     )
-                } else {
+                },
+                onFailure = { error ->
                     _state.value = RegistrationEventUiState(
                         loading = false,
-                        error = body?.message?.takeIf(String::isNotBlank)
-                            ?: "Could not load event details (HTTP ${response.code()}).",
+                        error = error.message ?: "Could not load event details.",
                     )
-                }
-            } catch (error: Exception) {
-                _state.value = RegistrationEventUiState(
-                    loading = false,
-                    error = error.message ?: "Could not load event details.",
-                )
-            }
+                },
+            )
         }
     }
 }

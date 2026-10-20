@@ -11,15 +11,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.example.campusconnect.feature.registrations.data.RegistrationConfigRepository
+import androidx.compose.runtime.mutableStateOf
+import com.example.campusconnect.feature.registrations.data.repo.RegistrationConfigRepository
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationResponseDetailScreen
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationFormViewModel
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationResponsesViewModel
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationConfigViewModel
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationEventViewModel
+import com.example.campusconnect.feature.registrations.userflow.data.ParticipantRegistrationRepositories
 import com.example.campusconnect.feature.registrations.ui.screens.FormBuilderScreen
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationSetupScreen
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationResponsesScreen
@@ -30,16 +31,21 @@ import com.example.campusconnect.feature.registrations.userflow.ui.RegistrationS
 
 fun NavGraphBuilder.RegistrationNav(
     navController: NavController,
-    onQuickFields: (eventId: Int) -> Unit = {},
-    onViewResponses: (eventId: Int) -> Unit = {},
 ) {
 
     // TestScreen's participant entry point. The wrapper keeps participant answers and
     // selected team/mode while switching between the existing flow composables.
-    composable(route = "user_registration") {
-        val eventId = RegistrationConfigRepository.TEMP_EVENT_ID
+    composable(
+        route = "user_registration/{eventId}?personaId={personaId}",
+        arguments = listOf(
+            navArgument("eventId") { type = NavType.IntType },
+            navArgument("personaId") { type = NavType.IntType; defaultValue = -1 },
+        ),
+    ) { backStackEntry ->
+        val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
         ParticipantRegistrationHost(
             eventId = eventId,
+            participantId = backStackEntry.arguments?.getInt("personaId")?.takeIf { it > 0 },
             navController = navController,
         )
     }
@@ -53,12 +59,13 @@ fun NavGraphBuilder.RegistrationNav(
         ),
     ) { backStackEntry ->
 
-        val eventId = RegistrationConfigRepository.TEMP_EVENT_ID
+        val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
         val eventViewModel: RegistrationEventViewModel = viewModel(backStackEntry)
         val eventState by eventViewModel.state.collectAsState()
         LaunchedEffect(eventId) { eventViewModel.load(eventId) }
         val configViewModel: RegistrationConfigViewModel = viewModel(backStackEntry)
         val configState by configViewModel.state.collectAsState()
+        LaunchedEffect(eventId) { configViewModel.load(eventId) }
 
         RegistrationSetupScreen(
             eventName = eventState.title ?: "Event #$eventId",
@@ -191,21 +198,44 @@ fun NavGraphBuilder.RegistrationNav(
         val registrationId =
             backStackEntry.arguments?.getInt("registrationId")
                 ?: return@composable
+        val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
 
-        // Share the list's ViewModel so loaded responses are reused, not refetched.
+        // Host-originated details share the preceding list's cache. Participant-originated
+        // details get a local VM and are backed by that persona's fake submitted record.
         val listEntry = remember(backStackEntry) {
-            navController.getBackStackEntry("registration_responses/{eventId}")
+            navController.previousBackStackEntry?.takeIf {
+                it.destination.route == "registration_responses/{eventId}"
+            }
         }
-        val viewModel: RegistrationResponsesViewModel = viewModel(listEntry)
+        val owner = listEntry ?: backStackEntry
+        val viewModel: RegistrationResponsesViewModel = viewModel(owner)
         val listState by viewModel.listState.collectAsState()
+        val openedFromParticipant = remember(backStackEntry) {
+            navController.previousBackStackEntry?.destination?.route?.startsWith("user_registration") == true
+        }
+        var participantDetails by remember(backStackEntry) { mutableStateOf<Pair<com.example.campusconnect.feature.registrations.model.RegistrationResponseItem, com.example.campusconnect.feature.registrations.model.RegistrationDetailResponse>?>(null) }
+        var participantDetailError by remember(backStackEntry) { mutableStateOf<String?>(null) }
+        LaunchedEffect(openedFromParticipant, eventId, registrationId) {
+            if (openedFromParticipant) {
+                ParticipantRegistrationRepositories.user.getOwnedDetails(eventId, registrationId).fold(
+                    onSuccess = { participantDetails = it },
+                    onFailure = { participantDetailError = it.message ?: "Could not load your registration." },
+                )
+            }
+        }
         val response = listState.registrations.firstOrNull { it.id == registrationId }
+            ?: participantDetails?.first
 
         RegistrationResponseDetailScreen(
-            eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable,
+            eventId = eventId,
             registrationId = registrationId,
             response = response,
             viewModel = viewModel,
             onBack = { navController.popBackStack() },
+            initialDetail = participantDetails?.second,
+            initialLoadError = participantDetailError,
+            initialLoading = openedFromParticipant && participantDetails == null && participantDetailError == null,
+            loadHostDetail = !openedFromParticipant,
         )
     }
 
@@ -286,12 +316,15 @@ private enum class ParticipantRegistrationStage { DETAILS, SUBMISSION }
 @Composable
 private fun ParticipantRegistrationHost(
     eventId: Int,
+    participantId: Int?,
     navController: NavController,
 ) {
     var stage by remember { mutableStateOf(ParticipantRegistrationStage.DETAILS) }
     var mode by remember { mutableStateOf<ParticipationMode?>(null) }
     var participantAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var sharedAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var teamId by remember { mutableStateOf<Int?>(null) }
+    var teamName by remember { mutableStateOf("") }
 
     val leaveFlow: () -> Unit = { navController.popBackStack() }
     val continueToSubmission = { selectedMode: ParticipationMode, answers: Map<Int, String>, selectedTeamId: Int? ->
@@ -304,8 +337,12 @@ private fun ParticipantRegistrationHost(
     when (stage) {
         ParticipantRegistrationStage.DETAILS -> UserRegistrationFlow(
             eventId = eventId,
+            participantId = participantId,
+            teamName = teamName,
+            onTeamNameChange = { teamName = it },
             onExit = leaveFlow,
-            onCreateTeam = { answers ->
+            onCreateTeam = { answers, selectedTeamName ->
+                teamName = selectedTeamName
                 continueToSubmission(ParticipationMode.CREATE_TEAM, answers, null)
             },
             onContinueSolo = { answers ->
@@ -320,18 +357,26 @@ private fun ParticipantRegistrationHost(
             onInviteAccepted = { invite, answers ->
                 continueToSubmission(ParticipationMode.JOIN_TEAM, answers, invite.teamId)
             },
+            onContinueAsMember = { team, answers ->
+                continueToSubmission(ParticipationMode.JOIN_TEAM, answers, team.id)
+            },
         )
 
         ParticipantRegistrationStage.SUBMISSION -> RegistrationSubmitFlow(
             eventId = eventId,
             eventName = "Event #$eventId",
             mode = mode ?: ParticipationMode.SOLO,
+            participantId = participantId,
             teamId = teamId,
+            teamName = teamName,
             participantAnswers = participantAnswers,
+            initialTeamAnswers = sharedAnswers,
+            onTeamAnswersChange = { sharedAnswers = it.toMap() },
             onExit = { stage = ParticipantRegistrationStage.DETAILS },
-            // There is no participant registration-details destination in the current app.
-            onViewRegistration = { leaveFlow() },
             onBackToEvent = { leaveFlow() },
+            onViewRegistration = { registrationId ->
+                navController.navigateToRegistrationResponseDetail(eventId, registrationId)
+            },
         )
     }
 }
@@ -375,6 +420,11 @@ private fun rememberRegistrationConfigViewModel(
 
 fun NavController.navigateToRegistrationSetup(eventId: Int) {
     navigate("registration_setup/$eventId")
+}
+
+fun NavController.navigateToParticipantRegistration(eventId: Int, personaId: Int? = null) {
+    val route = "user_registration/$eventId" + (personaId?.let { "?personaId=$it" } ?: "")
+    navigate(route)
 }
 
 fun NavController.navigateToFormBuilder(eventId: Int) {

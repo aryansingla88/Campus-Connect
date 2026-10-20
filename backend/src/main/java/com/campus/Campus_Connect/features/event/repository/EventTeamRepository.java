@@ -18,6 +18,8 @@ public interface EventTeamRepository
             String teamName
     );
 
+    boolean existsByEvent_IdAndTeamNameIgnoreCase(Integer eventId, String teamName);
+
     List<EventTeam> findAllByEvent_Id(
             Integer eventId
     );

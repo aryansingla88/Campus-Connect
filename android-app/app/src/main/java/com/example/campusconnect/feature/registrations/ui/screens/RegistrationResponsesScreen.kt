@@ -92,7 +92,10 @@ fun RegistrationResponsesScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     var showFilterMenu by remember { mutableStateOf(false) }
 
-    val allResponses = if (listState.eventId == eventId && listState.loaded) listState.registrations else emptyList()
+    // Draft registrations are not host responses; WAITLISTED entries remain available for review.
+    val allResponses = if (listState.eventId == eventId && listState.loaded) {
+        listState.registrations.filter { it.status != RegistrationResponseStatus.PENDING }
+    } else emptyList()
     val filteredResponses = remember(selectedTab, query, sort, statusFilter, allResponses) {
         allResponses
             .asSequence()
@@ -101,7 +104,7 @@ fun RegistrationResponsesScreen(
                     ResponseTab.TOTAL -> true
                     ResponseTab.INDIVIDUAL -> response.type == RegistrationResponseType.INDIVIDUAL
                     ResponseTab.TEAMS -> response.type == RegistrationResponseType.TEAM
-                    ResponseTab.PENDING -> response.status == RegistrationResponseStatus.PENDING
+                    ResponseTab.PENDING -> response.status == RegistrationResponseStatus.WAITLISTED
                 }
             }
             .filter { response -> statusFilter == null || response.status == statusFilter }
@@ -241,9 +244,9 @@ fun RegistrationResponsesScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Pending") },
+                                text = { Text("Pending review") },
                                 onClick = {
-                                    statusFilter = RegistrationResponseStatus.PENDING
+                                    statusFilter = RegistrationResponseStatus.WAITLISTED
                                     showFilterMenu = false
                                 },
                             )
@@ -286,6 +289,8 @@ fun RegistrationResponsesScreen(
                             onSelectMember = { viewModel.selectMember(response.id, it) },
                             onRetry = { viewModel.loadDetails(eventId, response.id, force = true) },
                             onFullResponse = { onFullResponse(response) },
+                            onApprove = { viewModel.approve(eventId, response.id) },
+                            onReject = { viewModel.reject(eventId, response.id) },
                         )
                     }
                 }
@@ -380,7 +385,7 @@ private fun ResponseStatTabs(
                 ResponseTab.TOTAL -> responses.size
                 ResponseTab.INDIVIDUAL -> responses.count { it.type == RegistrationResponseType.INDIVIDUAL }
                 ResponseTab.TEAMS -> responses.count { it.type == RegistrationResponseType.TEAM }
-                ResponseTab.PENDING -> responses.count { it.status == RegistrationResponseStatus.PENDING }
+                ResponseTab.PENDING -> responses.count { it.status == RegistrationResponseStatus.WAITLISTED }
             }
             val (bg, fg, icon) = when (tab) {
                 ResponseTab.TOTAL -> Triple(TotalBg, TotalFg, Icons.Outlined.Groups)
@@ -435,6 +440,8 @@ private fun RegistrationResponseCard(
     onSelectMember: (Int) -> Unit,
     onRetry: () -> Unit,
     onFullResponse: () -> Unit,
+    onApprove: () -> Unit,
+    onReject: () -> Unit,
 ) {
     val arrowRotation by animateFloatAsState(if (expanded) -90f else 0f, label = "arrowRotation")
 
@@ -495,6 +502,17 @@ private fun RegistrationResponseCard(
         ) {
             Column(Modifier.padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
                 SubtleDivider()
+                if (response.status == RegistrationResponseStatus.WAITLISTED) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text("Reject") }
+                        Button(
+                            onClick = onApprove,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                        ) { Text("Approve") }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
                 when (detailState) {
                     null, RegistrationDetailState.Loading -> Box(
                         Modifier.fillMaxWidth().padding(vertical = 20.dp),

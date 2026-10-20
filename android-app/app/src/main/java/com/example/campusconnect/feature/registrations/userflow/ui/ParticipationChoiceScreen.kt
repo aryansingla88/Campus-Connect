@@ -30,6 +30,8 @@ import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
 import com.example.campusconnect.feature.registrations.userflow.model.ParticipationMode
 import com.example.campusconnect.feature.registrations.userflow.model.UserRegistrationStep
+import com.example.campusconnect.feature.registrations.userflow.model.TEAM_NAME_MAX_LENGTH
+import com.example.campusconnect.feature.registrations.userflow.model.TEAM_NAME_MIN_LENGTH
 
 private val JoinBg = Color(0xFFEDEBFC)
 private val JoinFg = Color(0xFF6C4CF1)
@@ -40,12 +42,26 @@ private val CardOutline = Color(0xFFE0E3E8)
 /** "How would you like to participate?" — create a team, join one, or go solo. */
 @Composable
 fun ParticipationChoiceScreen(
+    allowTeam: Boolean = true,
     allowSolo: Boolean,
     selected: ParticipationMode?,
     onSelect: (ParticipationMode) -> Unit,
+    teamName: String,
+    teamNamePromptOpen: Boolean,
+    teamNameError: String?,
+    teamNameResultMessage: String?,
+    teamNameResultAvailable: Boolean?,
+    isCheckingTeamName: Boolean,
+    teamNameConfirmed: Boolean,
+    onTeamNameChange: (String) -> Unit,
+    onEditTeamName: () -> Unit,
+    onValidateTeamName: () -> Unit,
+    onDismissTeamNameResult: () -> Unit,
+    onCancelTeamName: () -> Unit,
     onNext: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val showTeamNameDialog = teamNamePromptOpen && selected == ParticipationMode.CREATE_TEAM
     Scaffold(
         containerColor = CardBg,
         topBar = {
@@ -55,7 +71,12 @@ fun ParticipationChoiceScreen(
                 step = UserRegistrationStep.PARTICIPATION.progress,
             )
         },
-        bottomBar = { NextBottomBar(onClick = onNext, enabled = selected != null) },
+        bottomBar = {
+            NextBottomBar(
+                onClick = onNext,
+                enabled = selected != null && (selected != ParticipationMode.CREATE_TEAM || teamNameConfirmed),
+            )
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -71,7 +92,7 @@ fun ParticipationChoiceScreen(
                 subtitle = "How would you like to participate?",
             )
 
-            ParticipationOptionCard(
+            if (allowTeam) ParticipationOptionCard(
                 icon = Icons.Outlined.GroupAdd,
                 iconBackground = OrangeLight,
                 iconTint = OrangePrimary,
@@ -80,7 +101,18 @@ fun ParticipationChoiceScreen(
                 selected = selected == ParticipationMode.CREATE_TEAM,
                 onClick = { onSelect(ParticipationMode.CREATE_TEAM) },
             )
-            ParticipationOptionCard(
+            if (teamNameConfirmed && selected == ParticipationMode.CREATE_TEAM) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Team name available: ${teamName.trim()}",
+                        fontSize = 12.sp,
+                        color = SoloFg,
+                        modifier = Modifier.padding(start = 8.dp).weight(1f),
+                    )
+                    TextButton(onClick = onEditTeamName) { Text("Edit", color = OrangePrimary) }
+                }
+            }
+            if (allowTeam) ParticipationOptionCard(
                 icon = Icons.Outlined.PersonSearch,
                 iconBackground = JoinBg,
                 iconTint = JoinFg,
@@ -96,12 +128,73 @@ fun ParticipationChoiceScreen(
                     iconTint = SoloFg,
                     title = "Continue solo",
                     description = "Participate individually in this event.",
-                    note = "(Solo registration is allowed (min 1 member).)",
+                    note = "(Solo registration is allowed)",
                     selected = selected == ParticipationMode.SOLO,
                     onClick = { onSelect(ParticipationMode.SOLO) },
                 )
             }
         }
+    }
+
+    if (showTeamNameDialog) {
+        AlertDialog(
+            onDismissRequest = onCancelTeamName,
+            title = { Text("Choose a team name", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "This name will identify your team in the Team Portal. Check availability here, then press Next to continue to team questions.",
+                        color = TextSecondary,
+                    )
+                    OutlinedTextField(
+                        value = teamName,
+                        onValueChange = { onTeamNameChange(it.take(TEAM_NAME_MAX_LENGTH)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isCheckingTeamName,
+                        singleLine = true,
+                        label = { Text("Team name") },
+                        placeholder = { Text("e.g. Bright Sparks") },
+                        isError = teamNameError != null,
+                        supportingText = {
+                            Text(teamNameError ?: "$TEAM_NAME_MIN_LENGTH–$TEAM_NAME_MAX_LENGTH characters")
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = OrangePrimary,
+                            unfocusedBorderColor = CardOutline,
+                            errorBorderColor = MaterialTheme.colorScheme.error,
+                        ),
+                    )
+                    if (isCheckingTeamName) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = OrangePrimary)
+                        Text("Checking availability…", fontSize = 12.sp, color = TextSecondary)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = onValidateTeamName,
+                    enabled = !isCheckingTeamName && teamName.trim().length in TEAM_NAME_MIN_LENGTH..TEAM_NAME_MAX_LENGTH,
+                ) { Text("Check name", color = OrangePrimary) }
+            },
+            dismissButton = {
+                TextButton(onClick = onCancelTeamName, enabled = !isCheckingTeamName) { Text("Cancel", color = TextSecondary) }
+            },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = CardBg,
+        )
+    }
+
+    if (teamNameResultMessage != null) {
+        AlertDialog(
+            onDismissRequest = onDismissTeamNameResult,
+            title = { Text(if (teamNameResultAvailable == true) "Team name available" else "Team name check") },
+            text = { Text(teamNameResultMessage, color = if (teamNameResultAvailable == true) SoloFg else TextSecondary) },
+            confirmButton = { TextButton(onClick = onDismissTeamNameResult) { Text("OK", color = OrangePrimary) } },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = CardBg,
+        )
     }
 }
 

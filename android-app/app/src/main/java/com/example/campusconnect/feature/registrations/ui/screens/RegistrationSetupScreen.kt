@@ -233,6 +233,33 @@ fun RegistrationSetupScreen(
                 )
             }
 
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("Auto-confirm registrations", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Text(
+                            if (settings.autoConfirm) "New submissions are confirmed immediately." else "New submissions wait for host review.",
+                            fontSize = 12.sp, color = TextSecondary,
+                        )
+                    }
+                    Switch(
+                        checked = settings.autoConfirm,
+                        onCheckedChange = { settings = settings.copy(autoConfirm = it) },
+                        colors = orangeSwitchColors(),
+                    )
+                }
+            }
+
             // Registration deadline — keep it before the divider that separates the form section.
             Card(
                 modifier = Modifier.fillMaxWidth(),

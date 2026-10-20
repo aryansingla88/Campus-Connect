@@ -21,6 +21,8 @@ public class RegistrationResponse {
 
     private String teamName;
 
+    private Boolean teamLeader;
+
     private Boolean canResume;
 
     @Builder.Default

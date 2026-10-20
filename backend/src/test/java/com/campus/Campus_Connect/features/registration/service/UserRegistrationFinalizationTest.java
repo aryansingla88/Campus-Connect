@@ -91,6 +91,19 @@ class UserRegistrationFinalizationTest {
     }
 
     @Test
+    void soloDraftMustContainRequiredSharedQuestionAnswer() {
+        RegistrationField sharedQuestion = RegistrationField.builder().id(57).event(event).individual(false)
+                .fieldLabel("Shared goal").fieldType("TEXT").required(true).build();
+        when(fieldRepository.findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(EVENT_ID)).thenReturn(List.of(sharedQuestion));
+
+        ApiResponse<RegistrationResponse> response = service.finalizeRegistration(REGISTRATION_ID);
+
+        assertFalse(response.isSuccess());
+        assertEquals("Required field missing: Shared goal", response.getMessage());
+        assertEquals(RegistrationStatus.PENDING, registration.getStatus());
+    }
+
+    @Test
     void submittedRegistrationCannotBeFinalizedAgainAsDraft() {
         registration.setStatus(RegistrationStatus.WAITLISTED);
         ApiResponse<RegistrationResponse> response = service.finalizeRegistration(REGISTRATION_ID);

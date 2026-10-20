@@ -79,6 +79,7 @@ fun MapScreen(
     onEventPostsClick: () -> Unit = {},
     onEventFeatureClick: () -> Unit = {},
     onPosterClick: () -> Unit = {},
+    onRegister: (Int) -> Unit = {},
     isFeatureActive: Boolean = true,
     viewModel: MapViewModel = viewModel()
 ) {
@@ -599,9 +600,7 @@ fun MapScreen(
                 registrationsCount = selectedEventInfo.registrationCount,
                 eventType = selectedEventInfo.eventType,
                 onNavigateClick = {},
-                onRegisterClick = {
-                    // Registration actions remain owned by the Events feature.
-                }
+                onRegisterClick = { onRegister(selectedEventInfo.id) }
             )
         }
 
