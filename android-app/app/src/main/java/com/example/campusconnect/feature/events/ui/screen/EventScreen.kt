@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.events.ui.screen
 
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,9 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,10 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,9 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,6 +46,7 @@ import com.example.campusconnect.feature.events.ui.components.BackButton
 import com.example.campusconnect.feature.events.ui.components.CreateEventButton
 import com.example.campusconnect.feature.events.ui.components.MapViewButton
 import com.example.campusconnect.feature.events.ui.components.ModeToggle
+import com.example.campusconnect.feature.events.ui.dialog.DeleteEventDialog
 import com.example.campusconnect.feature.events.ui.dialog.EventAccessDialog
 import com.example.campusconnect.feature.events.ui.dialog.EventCreateDialog
 import com.example.campusconnect.feature.events.ui.drawer.EventHistoryDrawer
@@ -120,6 +116,10 @@ fun EventScreen(
     val clubs by viewModel.clubs.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val eventPreviews by viewModel.eventPreviews.collectAsState()
+    val accessUsersByEvent by viewModel.accessUsersByEvent.collectAsState()
+    val participantTeams by viewModel.teams.collectAsState()
+    val participantSolo by viewModel.soloParticipants.collectAsState()
+    val participantsCount by viewModel.participantsCount.collectAsState()
 
     val eventMapMarkers = remember(events, activeIndex) {
         events.mapIndexedNotNull { index, event ->
@@ -158,6 +158,14 @@ fun EventScreen(
 
     LaunchedEffect(toastMessage) {
         if (toastMessage != null) { delay(2000); toastMessage = null }
+    }
+
+    LaunchedEffect(showPreview, filteredEvents.getOrNull(filteredActiveIndex)?.id) {
+        if (showPreview) {
+            filteredEvents.getOrNull(filteredActiveIndex)?.let { event ->
+                viewModel.prefetchAccessUsers(event.id)
+            }
+        }
     }
 
     LaunchedEffect(state.success) {
@@ -344,8 +352,7 @@ fun EventScreen(
         if (showPreview && filteredEvents.isNotEmpty() && !isSelectingLocation) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .zIndex(1f)
             ) {
                 EventPreviewSheet(
@@ -354,6 +361,9 @@ fun EventScreen(
                     onPageChanged = { index ->
                         val globalIndex = events.indexOf(filteredEvents.getOrNull(index))
                         if (globalIndex >= 0) viewModel.onPreviewPageChanged(globalIndex)
+                        filteredEvents.getOrNull(index)?.let { event ->
+                            viewModel.prefetchAccessUsers(event.id)
+                        }
                         showParticipants = false
                     },
                     onClose       = {
@@ -368,31 +378,40 @@ fun EventScreen(
                     },
                     onRegistration = { },
                     onChat         = { },
-                    onAccess       = { event -> accessEvent = event; viewModel.loadAccessUsers(event.id); showAccessDialog = true },
-                    onDelete       = { event -> viewModel.requestDelete(event) }
+                    onAccess       = { event -> accessEvent = event; viewModel.prefetchAccessUsers(event.id); showAccessDialog = true },
+                    onDelete       = { event -> viewModel.requestDelete(event) },
+                    participantsOpen = showParticipants,
+                    onParticipants = {
+                        filteredEvents.getOrNull(filteredActiveIndex)?.let { event ->
+                            viewModel.loadParticipants(event.id)
+                            showParticipants = true
+                        }
+                    }
                 )
             }
         }
 
-        // ── PARTICIPANTS DRAWER — flush against right edge ────────────────────
-        if (showPreview && filteredEvents.isNotEmpty() && !isSelectingLocation && !showDialog) {
-            val currentEvent = filteredEvents.getOrNull(filteredActiveIndex)
-            if (currentEvent != null) {
-                Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
+        // ── PARTICIPANTS DRAWER ───────────────────────────────────────────────
+        // Same window as the preview sheet (no Dialog) and always composed so the exit
+        // animation plays. When closed it has no pointer handlers, so the sheet's
+        // Edit / Access / Delete stay fully tappable.
+        filteredEvents.getOrNull(filteredActiveIndex)?.let { currentEvent ->
+            if (!isSelectingLocation && !showDialog) {
+                Box(modifier = Modifier.fillMaxSize().zIndex(1.5f)) {
                     EventParticipantsDrawer(
-                        event = currentEvent,
-                        teams = viewModel.teams.collectAsState().value,
-                        solo = viewModel.soloParticipants.collectAsState().value,
-                        total = viewModel.participantsCount.collectAsState().value,
-                        isOpen = showParticipants,
-                        onToggle = {
-                            viewModel.loadParticipants(currentEvent.id)
-                            showParticipants = !showParticipants
-                        }
+                        event    = currentEvent,
+                        teams    = participantTeams,
+                        solo     = participantSolo,
+                        total    = participantsCount,
+                        isOpen   = showPreview && showParticipants,
+                        onToggle = { showParticipants = false }
                     )
                 }
             }
         }
+
+        // Back closes the drawer first, then (via the sheet's own handler) the preview.
+        BackHandler(enabled = showParticipants) { showParticipants = false }
 
         // ── HISTORY DRAWER ────────────────────────────────────────────────────
         if (!isSelectingLocation && !showDialog) {
@@ -457,22 +476,10 @@ fun EventScreen(
 
         // ── DELETE CONFIRMATION ───────────────────────────────────────────────
         pendingDeleteEvent?.let { event ->
-            AlertDialog(
-                onDismissRequest = viewModel::cancelDelete,
-                shape            = RoundedCornerShape(20.dp),
-                containerColor   = Color.White,
-                title = { Text("Delete Event?", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF2A2A2A)) },
-                text  = { Text("Are you sure you want to delete \"${event.title}\"? This cannot be undone.", fontSize = 14.sp, color = Color(0xFF555555), lineHeight = 20.sp) },
-                dismissButton = {
-                    OutlinedButton(onClick = viewModel::cancelDelete, shape = RoundedCornerShape(12.dp), border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6F00))) {
-                        Text("Cancel", fontWeight = FontWeight.SemiBold)
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = viewModel::confirmDelete, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))) {
-                        Text("Delete", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+            DeleteEventDialog(
+                event     = event,
+                onConfirm = viewModel::confirmDelete,
+                onCancel  = viewModel::cancelDelete
             )
         }
 
@@ -481,7 +488,7 @@ fun EventScreen(
             EventAccessDialog(
                 event = accessEvent!!,
 
-                users = viewModel.accessUsers.collectAsState().value,
+                users = accessEvent?.let { accessUsersByEvent[it.id] }.orEmpty(),
 
                 searchResults = viewModel.searchResults.collectAsState().value,
 
