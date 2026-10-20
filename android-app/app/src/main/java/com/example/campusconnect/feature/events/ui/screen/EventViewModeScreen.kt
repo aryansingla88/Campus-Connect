@@ -242,20 +242,6 @@ fun EventViewModeScreen(
             PosterBlurredBackground(event = event)
         }
 
-        // Layer 3: soft white gradient overlay so content stays readable
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f   to Color(0x55FFFFFF),
-                        0.3f to Color(0x22FFFFFF),
-                        0.7f to Color(0x44FFFFFF),
-                        1f   to Color(0xCCFFFFFF)
-                    )
-                )
-        )
-
         Column(modifier = Modifier.fillMaxSize()) {
 
             // ── TOP BAR ───────────────────────────────────────────────────────
@@ -528,8 +514,8 @@ private fun PosterBlurredBackground(event: Event) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .blur(radius = 28.dp)            // heavy blur
-            .graphicsLayer { alpha = 0.45f } // semi-transparent
+            .blur(radius = 4.dp)              // subtle blur keeps the poster recognizable
+            .graphicsLayer { alpha = 0.55f }
     ) {
         if (!event.posterUrl.isNullOrBlank()) {
             AsyncImage(

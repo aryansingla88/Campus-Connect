@@ -311,6 +311,10 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     val accessUsers: StateFlow<List<UserAccess>> =
         _accessUsers
 
+    private val _accessUsersByEvent = MutableStateFlow<Map<Int, List<UserAccess>>>(emptyMap())
+    val accessUsersByEvent: StateFlow<Map<Int, List<UserAccess>>> = _accessUsersByEvent
+    private val loadingAccessUserEventIds = mutableSetOf<Int>()
+
     private val _searchResults =
         MutableStateFlow<List<UserAccess>>(emptyList())
 
@@ -342,11 +346,26 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadAccessUsers(eventId: Int) {
-        viewModelScope.launch {
+        fetchAccessUsers(eventId, forceRefresh = true)
+    }
 
-            _accessUsers.value =
-                repository.getUsersWithAccess(eventId)
-                    .getOrDefault(emptyList())
+    fun prefetchAccessUsers(eventId: Int) {
+        fetchAccessUsers(eventId, forceRefresh = false)
+    }
+
+    private fun fetchAccessUsers(eventId: Int, forceRefresh: Boolean) {
+        if (!forceRefresh && _accessUsersByEvent.value.containsKey(eventId)) return
+        if (!loadingAccessUserEventIds.add(eventId)) return
+
+        viewModelScope.launch {
+            try {
+                repository.getUsersWithAccess(eventId).onSuccess { users ->
+                    _accessUsersByEvent.update { it + (eventId to users) }
+                    _accessUsers.value = users
+                }
+            } finally {
+                loadingAccessUserEventIds.remove(eventId)
+            }
         }
     }
 

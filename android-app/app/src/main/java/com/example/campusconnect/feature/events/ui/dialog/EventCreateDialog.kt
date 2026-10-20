@@ -77,6 +77,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.campusconnect.feature.events.model.EventUiState
 import com.example.campusconnect.feature.metadata.clubs.Club
 import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
@@ -480,12 +482,16 @@ fun EventCreateDialog(
     }
 
     // ── UI ────────────────────────────────────────────────────────────────────
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x99000000)),
-        contentAlignment = Alignment.Center
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x99000000)),
+            contentAlignment = Alignment.Center
+        ) {
         Card(
             modifier  = Modifier
                 .widthIn(max = 900.dp)
@@ -1026,6 +1032,7 @@ fun EventCreateDialog(
                     pickImage(ImageSource.GALLERY)
                 }
             )
+        }
         }
     }
 }
