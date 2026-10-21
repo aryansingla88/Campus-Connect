@@ -11,3 +11,8 @@ val TextSecondary = Color(0xFF757575)
 val CardBg = Color(0xFFFFFFFF)
 val PageBg = Color(0xFFF5F5F5)
 val CardBorder = Color(0xFFE0E0E0)
+
+/** Accent used by the response-detail views (selected member, links, full-response button). */
+val AccentPurple = Color(0xFF6C4CF1)
+val AccentPurpleLight = Color(0xFFEDEBFC)
+val CrownGold = Color(0xFFF5A623)

@@ -12,6 +12,9 @@ import com.campus.Campus_Connect.features.map.entity.CampusBoundaryPoint;
 import com.campus.Campus_Connect.features.map.entity.UserPresence;
 import com.campus.Campus_Connect.features.map.repository.CampusBoundaryRepository;
 import com.campus.Campus_Connect.features.map.repository.UserPresenceRepository;
+import com.campus.Campus_Connect.features.club.entity.ClubMember;
+import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberStatus;
+import com.campus.Campus_Connect.features.club.repository.ClubMemberRepository;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.profile.repository.UserProfileRepository;
 import com.campus.Campus_Connect.features.settings.entity.UserPreference;
@@ -26,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +42,7 @@ public class UserPresenceService {
     private final UserPreferenceRepository userPreferenceRepository;
     private final CampusBoundaryRepository campusBoundaryRepository;
     private final UserProfileRepository userProfileRepository;
+    private final ClubMemberRepository clubMemberRepository;
 
 
     // Movement threshold in meters (e.g., don't update DB if movement is < 2 meters)
@@ -119,8 +124,25 @@ public class UserPresenceService {
     // Get Visible Users
     // ---------------------------------------------------------
 
-    public ApiResponse<List<VisibleUserResponse>> getVisibleUsers() {
+    public ApiResponse<List<VisibleUserResponse>> getVisibleUsers(Integer clubId) {
         User currentUser = SecurityUtils.getCurrentUser();
+
+        Set<Integer> clubMemberUserIds = null;
+        if (clubId != null) {
+            boolean currentUserJoinedClub = clubMemberRepository
+                    .findAllByIdUserIdAndMemberStatus(currentUser.getId(), ClubMemberStatus.APPROVED)
+                    .stream()
+                    .anyMatch(member -> clubId.equals(member.getId().getClubId()));
+            if (!currentUserJoinedClub) {
+                return ApiResponse.success(List.of(), "No approved membership for the selected club.");
+            }
+            clubMemberUserIds = clubMemberRepository
+                    .findAllByIdClubIdAndMemberStatus(clubId, ClubMemberStatus.APPROVED)
+                    .stream()
+                    .map(ClubMember::getId)
+                    .map(id -> id.getUserId())
+                    .collect(Collectors.toSet());
+        }
 
         UserPresence myPresence = getOrCreatePresence(currentUser);
         boolean amIInsideCampus = isInsideCampus(myPresence.getLatitude(), myPresence.getLongitude());
@@ -128,7 +150,9 @@ public class UserPresenceService {
         List<VisibleUserResponse> response = new ArrayList<>();
 
         if (!amIInsideCampus) {
-            response.add(mapToVisibleUserResponse(myPresence));
+            if (clubMemberUserIds == null || clubMemberUserIds.contains(currentUser.getId())) {
+                response.add(mapToVisibleUserResponse(myPresence));
+            }
             return ApiResponse.success(
                     response,
                     "You are outside campus. Only showing your location."
@@ -148,6 +172,10 @@ public class UserPresenceService {
 
         for (UserPresence presence : presences) {
             Integer targetUserId = presence.getUser().getId();
+
+            if (clubMemberUserIds != null && !clubMemberUserIds.contains(targetUserId)) {
+                continue;
+            }
 
             if (targetUserId.equals(currentUser.getId())) {
                 response.add(mapToVisibleUserResponse(presence));

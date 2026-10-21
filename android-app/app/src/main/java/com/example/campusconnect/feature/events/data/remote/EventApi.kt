@@ -3,7 +3,6 @@ package com.example.campusconnect.feature.events.data.remote
 import android.util.Log
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
-import com.example.campusconnect.feature.events.data.remote.request.CreateRegistrationRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
 import com.example.campusconnect.feature.events.data.remote.response.EventHistoryResponse
 import com.example.campusconnect.feature.events.data.remote.response.EventResponse

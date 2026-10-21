@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,12 +23,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
@@ -51,12 +55,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +89,12 @@ private val DividerColor = Color(0xFFF0F0F0)
 private val CardBg       = Color(0xFFF9F9F9)
 private val GreyMarker   = Color(0xFFBDBDBD)   // past event accent
 
+// Header / empty-state palette (matches the participants drawer)
+private val Navy      = Color(0xFF1F2A44)
+private val Peach     = Color(0xFFFFE3D1)
+private val PeachSoft = Color(0xFFFFF1E6)
+private val SubtleText = Color(0xFF6B7280)
+
 // Medal colours
 private val GoldColor   = Color(0xFFFFB300)
 private val SilverColor = Color(0xFF90A4AE)
@@ -88,8 +105,9 @@ private val BronzeColor = Color(0xFFBF8651)
 /**
  * Right-side drawer triggered by a ≡ nib in the top-right of EventScreen.
  *
- * Tabs: Live | Past
+ * Tabs: Live | Upcoming | Past
  * Past events → expandable medal section per event with award / view logic.
+ * Close: tap the dimmed background, swipe right, or press the nib/back — no X button.
  */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -145,69 +163,34 @@ fun EventHistoryDrawer(
                 Surface(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(0.78f)
+                        .fillMaxWidth(0.82f)
                         .pointerInput(Unit) {
                             detectHorizontalDragGestures { _, drag ->
                                 if (drag > 12f) onToggle()
                             }
                         },
-                    shape           = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
+                    shape           = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
                     color           = Color.White,
                     shadowElevation = 10.dp
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
 
-                        // ── Header ────────────────────────────────────────────
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                "Your Events",
-                                fontSize   = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color      = TextPrimary
-                            )
-                            IconButton(onClick = onToggle) {
-                                Icon(Icons.Default.Close, contentDescription = "Close", tint = GreyText)
-                            }
-                        }
-
-                        // ── Tab row ───────────────────────────────────────────
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            TabChip(
-                                label = "Live - ${liveEvents.size}",
-                                selected = selectedTab == 0,
-                                color = Orange,
-                                onClick = { selectedTab = 0 }
-                            )
-
-                            TabChip(
-                                label = "Upcoming - ${upcomingEvents.size}",
-                                selected = selectedTab == 1,
-                                color = Orange,
-                                onClick = { selectedTab = 1 }
-                            )
-
-                            TabChip(
-                                label = "Past - ${pastEvents.size}",
-                                selected = selectedTab == 2,
-                                color = Orange,
-                                onClick = { selectedTab = 2 }
-                            )
-                        }
-
-                        HorizontalDivider(color = DividerColor, modifier = Modifier.padding(top = 10.dp))
+                        // ── Header + tabs (peach banner, no close button) ─────
+                        EventsHeader(
+                            selectedTab   = selectedTab,
+                            liveCount     = liveEvents.size,
+                            upcomingCount = upcomingEvents.size,
+                            pastCount     = pastEvents.size,
+                            onTabSelected = { selectedTab = it }
+                        )
 
                         // ── List ──────────────────────────────────────────────
+                        val isEmptyTab = when (selectedTab) {
+                            0    -> liveEvents.isEmpty()
+                            1    -> upcomingEvents.isEmpty()
+                            else -> pastEvents.isEmpty()
+                        }
+
                         LazyColumn(
                             modifier            = Modifier.weight(1f),
                             contentPadding      = PaddingValues(12.dp),
@@ -218,7 +201,11 @@ fun EventHistoryDrawer(
                                 // LIVE
                                 if (liveEvents.isEmpty()) {
                                     item(key = "live_empty") {
-                                        EmptyState("No live events right now")
+                                        EmptyState(
+                                            title    = "No live events right now",
+                                            subtitle = "Events that are happening now will appear here.",
+                                            modifier = Modifier.fillParentMaxSize()
+                                        )
                                     }
                                 } else {
                                     items(liveEvents, key = { "live_${it.id}" }) { event ->
@@ -231,7 +218,11 @@ fun EventHistoryDrawer(
                                 // UPCOMING
                                 if (upcomingEvents.isEmpty()) {
                                     item(key = "upcoming_empty") {
-                                        EmptyState("No upcoming events")
+                                        EmptyState(
+                                            title    = "No upcoming events",
+                                            subtitle = "Events you have scheduled will appear here.",
+                                            modifier = Modifier.fillParentMaxSize()
+                                        )
                                     }
                                 } else {
                                     items(upcomingEvents, key = { "upcoming_${it.id}" }) { event ->
@@ -244,7 +235,11 @@ fun EventHistoryDrawer(
                                 // PAST
                                 if (pastEvents.isEmpty()) {
                                     item(key = "past_empty") {
-                                        EmptyState("No past events")
+                                        EmptyState(
+                                            title    = "No past events",
+                                            subtitle = "Completed events will appear here.",
+                                            modifier = Modifier.fillParentMaxSize()
+                                        )
                                     }
                                 } else {
                                     items(pastEvents, key = { "past_${it.id}" }) { event ->
@@ -303,7 +298,11 @@ fun EventHistoryDrawer(
                                     }
                                 }
                             }
-                            item(key = "bottom") { Spacer(Modifier.height(16.dp)) }
+                            // No trailing spacer on an empty tab, so the empty state
+                            // fills the viewport exactly and never scrolls.
+                            if (!isEmptyTab) {
+                                item(key = "bottom") { Spacer(Modifier.height(16.dp)) }
+                            }
                         }
                     }
                 }
@@ -334,6 +333,89 @@ fun EventHistoryDrawer(
             },
             onDismiss = { awardingMedal = null }
         )
+    }
+}
+
+// ─── Header — soft peach banner with title + tab chips ───────────────────────
+
+@Composable
+private fun EventsHeader(
+    selectedTab: Int,
+    liveCount: Int,
+    upcomingCount: Int,
+    pastCount: Int,
+    onTabSelected: (Int) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(Color(0xFFFFEEE0), Color(0xFFFFF9F5))))
+            .drawBehind {
+                // soft decorative blobs, top-right
+                drawCircle(
+                    color  = Color(0xFFFFD6BA).copy(alpha = 0.45f),
+                    radius = size.width * 0.34f,
+                    center = Offset(size.width * 0.98f, size.height * 0.02f)
+                )
+                drawCircle(
+                    color  = Color(0xFFFFE0CB).copy(alpha = 0.55f),
+                    radius = size.width * 0.22f,
+                    center = Offset(size.width * 1.02f, size.height * 0.55f)
+                )
+            }
+            .statusBarsPadding()
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Peach, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector        = Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    tint               = Orange,
+                    modifier           = Modifier.size(26.dp)
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Text(
+                text       = "Your Events",
+                fontSize   = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Navy
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TabChip(
+                label    = "Live · $liveCount",
+                selected = selectedTab == 0,
+                onClick  = { onTabSelected(0) },
+                modifier = Modifier.weight(1f)
+            )
+            TabChip(
+                label    = "Upcoming · $upcomingCount",
+                selected = selectedTab == 1,
+                onClick  = { onTabSelected(1) },
+                modifier = Modifier.weight(1f)
+            )
+            TabChip(
+                label    = "Past · $pastCount",
+                selected = selectedTab == 2,
+                onClick  = { onTabSelected(2) },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
@@ -974,35 +1056,118 @@ private fun RecipientSearchBar(value: String, onValueChange: (String) -> Unit) {
     }
 }
 
-// ─── Tab chip ─────────────────────────────────────────────────────────────────
+// ─── Tab chip — orange pill when selected, white pill with peach border otherwise ─
 
 @Composable
-private fun TabChip(label: String, selected: Boolean, color: Color, onClick: () -> Unit) {
+private fun TabChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(24.dp)
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) color else Color(0xFFF0F0F0))
+        modifier = modifier
+            .clip(shape)
+            .background(if (selected) Orange else Color.White)
+            .then(if (selected) Modifier else Modifier.border(1.dp, Peach, shape))
             .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 7.dp)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
-            label,
+            text       = label,
             fontSize   = 12.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color      = if (selected) Color.White else GreyText
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color      = if (selected) Color.White else SubtleText,
+            maxLines   = 1,
+            softWrap   = false
         )
     }
 }
 
-// ─── EmptyState ───────────────────────────────────────────────────────────────
+// ─── EmptyState — calendar illustration + title + subtitle ───────────────────
 
 @Composable
-private fun EmptyState(text: String) {
-    Box(
-        modifier         = Modifier.fillMaxWidth().padding(vertical = 40.dp),
-        contentAlignment = Alignment.Center
+private fun EmptyState(title: String, subtitle: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier            = modifier.padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text(text, fontSize = 13.sp, color = GreyText)
+        Canvas(modifier = Modifier.size(width = 180.dp, height = 140.dp)) {
+            val w = size.width
+            val h = size.height
+
+            // soft blob + ground shadow
+            drawOval(PeachSoft, topLeft = Offset(0f, h * 0.08f), size = Size(w, h * 0.82f))
+            drawOval(Peach.copy(alpha = 0.7f), topLeft = Offset(w * 0.15f, h * 0.88f), size = Size(w * 0.7f, h * 0.06f))
+
+            // calendar: orange frame + header band, pale body
+            val left    = w * 0.30f
+            val top     = h * 0.38f
+            val cw      = w * 0.40f
+            val ch      = h * 0.46f
+            val border  = w * 0.022f
+            val headerH = h * 0.13f
+            val light   = Color(0xFFFFC9A8)
+
+            drawRoundRect(Orange, Offset(left, top), Size(cw, ch), CornerRadius(w * 0.05f))
+            drawRoundRect(
+                Color(0xFFFFF4EC),
+                Offset(left + border, top + headerH),
+                Size(cw - 2 * border, ch - headerH - border),
+                CornerRadius(w * 0.03f)
+            )
+
+            // binder rings
+            val ringW = w * 0.03f
+            listOf(0.22f, 0.70f).forEach { f ->
+                drawRoundRect(
+                    light,
+                    Offset(left + cw * f, top - h * 0.06f),
+                    Size(ringW, h * 0.14f),
+                    CornerRadius(ringW / 2)
+                )
+            }
+
+            // date cells
+            val sq  = w * 0.042f
+            val gap = w * 0.028f
+            val gx  = left + cw * 0.18f
+            val gy  = top + headerH + ch * 0.17f
+            listOf(light, light, Orange, light, Orange).forEachIndexed { i, c ->
+                drawRoundRect(
+                    c,
+                    Offset(gx + (i % 3) * (sq + gap), gy + (i / 3) * (sq + gap)),
+                    Size(sq, sq),
+                    CornerRadius(sq * 0.25f)
+                )
+            }
+
+            // little "pop" rays above the calendar
+            val stroke = 3.dp.toPx()
+            drawLine(Orange, Offset(w * 0.50f, h * 0.10f), Offset(w * 0.50f, h * 0.19f), stroke, StrokeCap.Round)
+            drawLine(Orange, Offset(w * 0.405f, h * 0.14f), Offset(w * 0.44f, h * 0.22f), stroke, StrokeCap.Round)
+            drawLine(Orange, Offset(w * 0.595f, h * 0.14f), Offset(w * 0.56f, h * 0.22f), stroke, StrokeCap.Round)
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text       = title,
+            fontSize   = 17.sp,
+            fontWeight = FontWeight.Bold,
+            color      = Navy,
+            textAlign  = TextAlign.Center
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text      = subtitle,
+            fontSize  = 13.sp,
+            color     = SubtleText,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

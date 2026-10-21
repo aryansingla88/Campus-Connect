@@ -26,6 +26,7 @@ data class Event(
     // 🔹 ORGANIZATION
     val createdBy: Int = 0,
     val clubName: String = "",
+    val clubId: Int? = null,
 
     // 🔹 MEDIA
     val isPoster: Boolean = false,

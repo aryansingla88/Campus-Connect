@@ -3,16 +3,24 @@
 package com.example.campusconnect.feature.events.ui.screen
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,22 +29,34 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
@@ -49,9 +69,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,16 +82,27 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.campusconnect.feature.events.model.Event
+import com.example.campusconnect.feature.map.model.MapEventInfo
+import com.example.campusconnect.feature.map.model.HostInfo
+import com.example.campusconnect.feature.metadata.clubs.Club
+import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -108,6 +141,11 @@ fun EventViewModeScreen(
     onRegister: (Event) -> Unit = {},
     onNotify: (Event) -> Unit = {},
     onOpenDetail: (Event) -> Unit = {},
+    showActionButtons: Boolean = true,
+    categories: List<EventCategory> = emptyList(),
+    clubs: List<Club> = emptyList(),
+    eventPreviews: Map<Int, MapEventInfo> = emptyMap(),
+    onLoadEventPreview: (Int) -> Unit = {},
 ) {
     if (events.isEmpty()) {
         EmptyViewMode(onBack)
@@ -116,17 +154,25 @@ fun EventViewModeScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var showFilter  by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedClub by remember { mutableStateOf<String?>(null) }
+    var detailsEventId by remember { mutableStateOf<Int?>(null) }
 
     // Per-event registered / notified state (local fake state — wire to VM later)
     var registeredIds by remember { mutableStateOf(setOf<Int>()) }
     var notifiedIds   by remember { mutableStateOf(setOf<Int>()) }
 
-    val filtered = remember(searchQuery, events) {
-        if (searchQuery.isBlank()) events
-        else events.filter {
-            it.title.contains(searchQuery, ignoreCase = true) ||
-                    it.clubName.contains(searchQuery, ignoreCase = true) ||
-                    it.category.contains(searchQuery, ignoreCase = true)
+    val filtered = remember(searchQuery, selectedCategory, selectedClub, events) {
+        events.filter { event ->
+            val matchesSearch = searchQuery.isBlank() ||
+                event.title.contains(searchQuery, ignoreCase = true) ||
+                event.clubName.contains(searchQuery, ignoreCase = true) ||
+                event.category.contains(searchQuery, ignoreCase = true)
+            val matchesCategory = selectedCategory == null ||
+                event.category.equals(selectedCategory, ignoreCase = true)
+            val matchesClub = selectedClub == null ||
+                event.clubName.equals(selectedClub, ignoreCase = true)
+            matchesSearch && matchesCategory && matchesClub
         }
     }
 
@@ -157,7 +203,12 @@ fun EventViewModeScreen(
     LaunchedEffect(filtered) {
         if (filtered.isNotEmpty()) {
             pagerState.scrollToPage(startPage)
+            detailsEventId = null
         }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        detailsEventId = null
     }
 
     val currentEvent = filtered.getOrNull(
@@ -171,6 +222,10 @@ fun EventViewModeScreen(
             0
         }
     )
+
+    LaunchedEffect(currentEvent?.id) {
+        currentEvent?.id?.let(onLoadEventPreview)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -186,20 +241,6 @@ fun EventViewModeScreen(
         currentEvent?.let { event ->
             PosterBlurredBackground(event = event)
         }
-
-        // Layer 3: soft white gradient overlay so content stays readable
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f   to Color(0x55FFFFFF),
-                        0.3f to Color(0x22FFFFFF),
-                        0.7f to Color(0x44FFFFFF),
-                        1f   to Color(0xCCFFFFFF)
-                    )
-                )
-        )
 
         Column(modifier = Modifier.fillMaxSize()) {
 
@@ -331,6 +372,7 @@ fun EventViewModeScreen(
                         } else {
                             page
                         }
+                        val isSelectedPage = page == pagerState.currentPage
 
                         Box(
                             modifier = Modifier
@@ -339,6 +381,7 @@ fun EventViewModeScreen(
                                     scaleX = scale
                                     scaleY = scale
                                     this.alpha = alpha
+                                    translationY = if (showActionButtons) 0f else 36.dp.toPx()
                                     // Pull side cards IN, under the center card.
                                     // pageOffset is negative for the right
                                     // neighbour and positive for the left one,
@@ -353,24 +396,63 @@ fun EventViewModeScreen(
                                 }
                                 // Center card (distance ~0) always paints last,
                                 // i.e. on top of both neighbours.
-                                .zIndex(if (isCircular) 2f - distance else 1f)
+                                .zIndex(if (isSelectedPage) 10f else 1f - distance)
                                 .clip(RoundedCornerShape(24.dp))
                         ) {
                             // `page % filtered.size` is the wraparound: this is
                             // what makes the poster to the right of the last
                             // event be the first event again.
-                            PosterCard(event = filtered[actualIndex])
+                            val cardEvent = filtered[actualIndex]
+                            val showingDetails = detailsEventId == cardEvent.id
+                            val flipRotation by animateFloatAsState(
+                                targetValue = if (showingDetails) 180f else 0f,
+                                animationSpec = tween(420),
+                                label = "poster_flip_$page"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        rotationY = flipRotation
+                                        cameraDistance = 12f * density
+                                    }
+                                    .then(
+                                        if (isSelectedPage) {
+                                            Modifier.clickable {
+                                                detailsEventId = if (showingDetails) null else cardEvent.id
+                                            }
+                                        } else Modifier
+                                    )
+                            ) {
+                                if (flipRotation <= 90f) {
+                                    PosterCard(event = cardEvent)
+                                } else {
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer { rotationY = 180f }
+                                    ) {
+                                        EventDetailsCard(
+                                            event = cardEvent,
+                                            preview = eventPreviews[cardEvent.id],
+                                            clubName = clubs.firstOrNull { it.clubId == cardEvent.clubId }?.name
+                                                ?: cardEvent.clubName
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // ── BOTTOM ACTIONS ────────────────────────────────────────────────
-            currentEvent?.let { event ->
+            if (showActionButtons) currentEvent?.let { event ->
                 BottomActions(
                     event = event,
                     isRegistered = event.id in registeredIds,
                     isNotified = event.id in notifiedIds,
+                    showingDetails = detailsEventId == event.id,
 
                     onRegister = {
                         registeredIds =
@@ -395,18 +477,31 @@ fun EventViewModeScreen(
                     },
 
                     onExpand = {
-                        onOpenDetail(event)
+                        detailsEventId = if (detailsEventId == event.id) null else event.id
                     }
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            // Keep the carousel's available height unchanged when the event
+            // screen hides the action buttons, so posters do not grow taller.
+            Spacer(Modifier.height(if (showActionButtons) 24.dp else 132.dp))
         }
     }
 
     // ── FILTER BOTTOM SHEET (simple) ──────────────────────────────────────────
     if (showFilter) {
-        FilterSheet(onDismiss = { showFilter = false })
+        FilterSheet(
+            categories = categories,
+            clubs = clubs,
+            selectedCategory = selectedCategory,
+            selectedClub = selectedClub,
+            onApply = { category, club ->
+                selectedCategory = category
+                selectedClub = club
+                showFilter = false
+            },
+            onDismiss = { showFilter = false }
+        )
     }
 }
 
@@ -419,8 +514,8 @@ private fun PosterBlurredBackground(event: Event) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .blur(radius = 28.dp)            // heavy blur
-            .graphicsLayer { alpha = 0.45f } // semi-transparent
+            .blur(radius = 4.dp)              // subtle blur keeps the poster recognizable
+            .graphicsLayer { alpha = 0.55f }
     ) {
         if (!event.posterUrl.isNullOrBlank()) {
             AsyncImage(
@@ -587,6 +682,332 @@ private fun PosterCard(event: Event) {
     }
 }
 
+@Composable
+private fun EventDetailsCard(event: Event, preview: MapEventInfo?, clubName: String) {
+    val aboutScrollState = rememberScrollState()
+    val hostsListState = rememberLazyListState()
+    val hasClub = event.clubId != null
+    val hostByline = if (hasClub) {
+        clubName.ifBlank { preview?.clubName?.takeIf(String::isNotBlank) ?: "Campus Club" }
+    } else {
+        preview?.creatorName?.takeIf(String::isNotBlank)
+            ?: event.clubName.takeIf(String::isNotBlank)
+            ?: "Event host"
+    }
+    val hosts = preview?.hosts.orEmpty()
+        .filter { host ->
+            hasClub || host.role.orEmpty().contains("CREATOR", ignoreCase = true) ||
+                host.role.orEmpty().contains("ADMIN", ignoreCase = true)
+        }
+        .toMutableList()
+    if (!hasClub) {
+        preview?.creatorName?.takeIf(String::isNotBlank)?.let { creator ->
+            if (hosts.none { it.name.equals(creator, ignoreCase = true) }) {
+                hosts.add(0, HostInfo(id = event.createdBy, name = creator, role = "CREATOR"))
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Spacer(Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier
+                    .width(82.dp)
+                    .height(108.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF1A1A2E)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!event.posterUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = event.posterUrl,
+                        contentDescription = "${event.title} poster",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        event.title.take(2).uppercase(),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Orange
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    event.title,
+                    fontSize = 21.sp,
+                    lineHeight = 25.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "By $hostByline",
+                    fontSize = 14.sp,
+                    color = TextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                EventMetaLine(Icons.Default.CalendarToday, event.date.ifBlank { "Date TBD" })
+                EventMetaLine(
+                    Icons.Default.AccessTime,
+                    buildString {
+                        append(event.startTime.ifBlank { "Time TBD" })
+                        event.endTime?.takeIf(String::isNotBlank)?.let { append(" – $it") }
+                    }
+                )
+                EventMetaLine(Icons.Default.LocationOn, event.venue.ifBlank { "Venue TBD" })
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFFFE0D2), RoundedCornerShape(16.dp))
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            EventDetailsSectionTitle("About")
+            Row(
+                modifier = Modifier.fillMaxWidth().height(100.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    event.description?.takeIf(String::isNotBlank) ?: "Event description unavailable.",
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .verticalScroll(aboutScrollState),
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp,
+                    color = TextMuted
+                )
+                if (aboutScrollState.maxValue > 0) {
+                    VerticalScrollIndicator(aboutScrollState, Modifier.fillMaxHeight())
+                }
+            }
+        }
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFFFE0D2), RoundedCornerShape(16.dp))
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            Row(
+                modifier = Modifier.weight(1f).padding(start = 4.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(Modifier.size(32.dp).background(OrangeLight, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Group, null, tint = Orange, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text(preview?.registrationCount?.toString() ?: "—", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                    Text("Participants", fontSize = 10.sp, color = TextMuted, maxLines = 1)
+                }
+            }
+            Box(Modifier.width(1.dp).height(42.dp).background(Color(0xFFFFD8C8)))
+            Row(
+                modifier = Modifier.weight(1f).padding(start = 8.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(Modifier.size(32.dp).background(OrangeLight, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.LocalOffer, null, tint = Orange, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text(
+                        event.category.ifBlank { preview?.eventType?.takeIf(String::isNotBlank) ?: "Event" },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text("Category", fontSize = 10.sp, color = TextMuted)
+                }
+            }
+        }
+
+        if (hosts.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFFFE0D2), RoundedCornerShape(16.dp))
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                EventDetailsSectionTitle("Hosts")
+                LazyRow(
+                    state = hostsListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(hosts.distinctBy { it.id }, key = { it.id }) { host ->
+                        EventHostAvatar(host)
+                    }
+                }
+                if (hostsListState.canScrollBackward || hostsListState.canScrollForward) {
+                    HorizontalScrollIndicator(hostsListState, hosts.distinctBy { it.id }.size)
+                }
+            }
+        }
+        }
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun VerticalScrollIndicator(state: ScrollState, modifier: Modifier = Modifier) {
+    val viewport = state.viewportSize.toFloat()
+    val content = (state.viewportSize + state.maxValue).toFloat().coerceAtLeast(1f)
+    val thumbFraction = (viewport / content).coerceIn(0.12f, 1f)
+    val progress = if (state.maxValue == 0) 0f else state.value.toFloat() / state.maxValue
+    BoxWithConstraints(
+        modifier = modifier
+            .width(4.dp)
+            .clip(CircleShape)
+            .background(OrangeLight)
+    ) {
+        val thumbHeight = maxHeight * thumbFraction
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(thumbHeight)
+                .offset(y = (maxHeight - thumbHeight) * progress)
+                .clip(CircleShape)
+                .background(Orange.copy(alpha = 0.7f))
+        )
+    }
+}
+
+@Composable
+private fun HorizontalScrollIndicator(state: LazyListState, itemCount: Int) {
+    val visibleItems = state.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+    val thumbFraction = (visibleItems.toFloat() / itemCount.coerceAtLeast(1)).coerceIn(0.12f, 1f)
+    val maxFirstIndex = (itemCount - visibleItems).coerceAtLeast(1)
+    val progress = (state.firstVisibleItemIndex.toFloat() / maxFirstIndex).coerceIn(0f, 1f)
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .clip(CircleShape)
+            .background(OrangeLight)
+    ) {
+        val thumbWidth = maxWidth * thumbFraction
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(thumbWidth)
+                .offset(x = (maxWidth - thumbWidth) * progress)
+                .clip(CircleShape)
+                .background(Orange.copy(alpha = 0.7f))
+        )
+    }
+}
+
+@Composable
+private fun EventDetailsSectionTitle(title: String) {
+    Text(title, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = TextDark)
+}
+
+@Composable
+private fun EventHostAvatar(host: HostInfo) {
+    Column(
+        modifier = Modifier
+            .width(58.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(OrangeLight),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!host.avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = host.avatarUrl,
+                    contentDescription = host.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(CircleShape)
+                )
+            } else {
+                Text(hostInitials(host.name), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Orange)
+            }
+        }
+        Text(
+            host.name,
+            fontSize = 10.sp,
+            color = TextDark,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun EventMetaLine(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(icon, null, tint = Orange, modifier = Modifier.size(16.dp))
+        Text(text, fontSize = 12.sp, color = Color(0xFF444444), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private fun hostInitials(name: String): String = name
+    .trim()
+    .split(Regex("\\s+"))
+    .filter(String::isNotBlank)
+    .take(2)
+    .joinToString("") { it.take(1).uppercase() }
+    .ifBlank { "?" }
+
+@Composable
+private fun DetailPill(label: String) {
+    Text(
+        label,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(OrangeLight)
+            .padding(horizontal = 11.dp, vertical = 6.dp),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = Orange,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
 // ─── TopBar ───────────────────────────────────────────────────────────────────
 
 @SuppressLint("ResourceAsColor")
@@ -731,6 +1152,7 @@ private fun BottomActions(
     event: Event,
     isRegistered: Boolean,
     isNotified: Boolean,
+    showingDetails: Boolean,
     onRegister: () -> Unit,
     onNotify: () -> Unit,
     onExpand: () -> Unit
@@ -755,6 +1177,7 @@ private fun BottomActions(
             )
 
             ViewDetailsButton(
+                showingDetails = showingDetails,
                 onClick = onExpand,
                 modifier = Modifier.weight(1f)
             )
@@ -772,65 +1195,220 @@ private fun BottomActions(
 // ─── FilterSheet ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun FilterSheet(onDismiss: () -> Unit) {
-    val categories = listOf("All", "Technology", "Cultural", "Sports", "Academic", "Workshop")
-    var selected by remember { mutableStateOf("All") }
+private fun FilterSheet(
+    categories: List<EventCategory>,
+    clubs: List<Club>,
+    selectedCategory: String?,
+    selectedClub: String?,
+    onApply: (String?, String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var showingClubs by remember { mutableStateOf(false) }
+    var categorySelection by remember(selectedCategory) { mutableStateOf(selectedCategory) }
+    var clubSelection by remember(selectedClub) { mutableStateOf(selectedClub) }
+    val scope = rememberCoroutineScope()
+    var sheetVisible by remember { mutableStateOf(false) }
+    var dismissing by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x66000000))
-            .clickable { onDismiss() },
-        contentAlignment = Alignment.BottomCenter
+    LaunchedEffect(Unit) { sheetVisible = true }
+
+    val dismissSheet = {
+        if (!dismissing) {
+            dismissing = true
+            scope.launch {
+                sheetVisible = false
+                delay(320)
+                onDismiss()
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = dismissSheet,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { /* absorb clicks */ },
-            shape          = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            color          = Color.White,
-            shadowElevation = 8.dp
+        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+        SideEffect {
+            // The dialog's platform dim stacks with the custom scrim and makes
+            // the background much darker than the preview bottom sheet.
+            dialogWindow?.setDimAmount(0f)
+        }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            AnimatedVisibility(
+                visible = sheetVisible,
+                enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(300)),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.32f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = dismissSheet
+                        )
+                )
+            }
+
+            AnimatedVisibility(
+                visible = sheetVisible,
+                enter = slideInVertically(tween(240)) { it } + fadeIn(tween(240)),
+                exit = slideOutVertically(tween(300)) { it } + fadeOut(tween(300)),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 560.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {}
+                        ),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                    color = Color.White,
+                    tonalElevation = 0.dp
+                ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                // Handle
                 Box(
                     modifier = Modifier
-                        .width(36.dp).height(4.dp)
-                        .background(Color(0xFFE0E0E0), CircleShape)
-                        .align(Alignment.CenterHorizontally)
-                )
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .pointerInput(Unit) {
+                            var dragDistance = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { dragDistance = 0f },
+                                onVerticalDrag = { change, dragAmount ->
+                                    dragDistance += dragAmount
+                                    change.consume()
+                                },
+                                onDragEnd = {
+                                    if (dragDistance >= 48.dp.toPx()) dismissSheet()
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        Modifier
+                            .width(36.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color(0xFFE0E0E0))
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Filter events", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextDark)
                 Spacer(Modifier.height(16.dp))
 
-                Text("Filter by category", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = TextDark)
-                Spacer(Modifier.height(14.dp))
-
-                // Category chips
-                categories.chunked(3).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { cat ->
-                            val isSelected = selected == cat
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(if (isSelected) Orange else Color(0xFFF0F0F0))
-                                    .clickable { selected = cat }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    cat,
-                                    fontSize   = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color      = if (isSelected) Color.White else TextMuted
-                                )
-                            }
+                // Keep the mode switch and sheet actions fixed while only the
+                // available options scroll.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFF4F4F4))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("Category", "Clubs").forEachIndexed { index, label ->
+                        val selected = showingClubs == (index == 1)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(if (selected) Orange else Color.Transparent)
+                                .clickable { showingClubs = index == 1 }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                label,
+                                color = if (selected) Color.White else TextMuted,
+                                fontSize = 14.sp,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                            )
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
+                }
+                Spacer(Modifier.height(12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        if (showingClubs) "CLUB" else "CATEGORY",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp,
+                        color = TextMuted
+                    )
+                    Spacer(Modifier.height(10.dp))
+
+                    val options: List<Pair<String?, String>> = if (showingClubs) {
+                        listOf(null to "All clubs") + clubs.map { it.name to it.name }
+                    } else {
+                        listOf(null to "All categories") + categories.map { it.name to it.name }
+                    }
+                    val activeSelection = if (showingClubs) clubSelection else categorySelection
+                    options.chunked(2).forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            row.forEach { (value, label) ->
+                                val isSelected = activeSelection == value
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(if (isSelected) OrangeLight else Color(0xFFF7F7F7))
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) Orange else Color(0xFFE8E8E8),
+                                            shape = RoundedCornerShape(20.dp)
+                                        )
+                                        .clickable {
+                                            if (showingClubs) clubSelection = value
+                                            else categorySelection = value
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        label,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (isSelected) Orange else TextMuted,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    val optionsAreEmpty = if (showingClubs) clubs.isEmpty() else categories.isEmpty()
+                    if (optionsAreEmpty) {
+                        Text(
+                            if (showingClubs) "No clubs are available right now."
+                            else "No event categories are available right now.",
+                            fontSize = 13.sp,
+                            color = TextMuted
+                        )
+                    }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick  = onDismiss,
+                    onClick  = { onApply(categorySelection, clubSelection) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape    = RoundedCornerShape(14.dp),
                     colors   = ButtonDefaults.buttonColors(containerColor = Orange)
@@ -838,6 +1416,8 @@ private fun FilterSheet(onDismiss: () -> Unit) {
                     Text("Apply", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
                 Spacer(Modifier.height(8.dp))
+        }
+                }
             }
         }
     }
@@ -1015,6 +1595,7 @@ private fun RegisterActionButton(
 
 @Composable
 private fun ViewDetailsButton(
+    showingDetails: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1035,8 +1616,8 @@ private fun ViewDetailsButton(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.Info,
-            contentDescription = "View Details",
+            imageVector = if (showingDetails) Icons.Default.ArrowBack else Icons.Default.Info,
+            contentDescription = if (showingDetails) "View Poster" else "View Details",
             tint = Orange,
             modifier = Modifier.size(18.dp)
         )
@@ -1044,7 +1625,7 @@ private fun ViewDetailsButton(
         Spacer(Modifier.width(6.dp))
 
         Text(
-            text = "View Details",
+            text = if (showingDetails) "View Poster" else "View Details",
             color = Orange,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold

@@ -18,6 +18,7 @@ fun TestScreen(
     onLogout: (() -> Unit)? = null,
     onSettings: () -> Unit,
     onContinue: (() -> Unit)? = null,
+    onUserRegistration: (Int) -> Unit,
 ) {
 
     var currentUser by remember {
@@ -90,6 +91,17 @@ fun TestScreen(
 
         Button(onClick = onSettings) {
             Text("Settings")
+        }
+
+        Text("Participant registration test personas", style = MaterialTheme.typography.titleSmall)
+        listOf(
+            3 to "Solo Participant",
+            2 to "Team Leader",
+            1 to "Team Joiner",
+        ).forEach { (id, label) ->
+            OutlinedButton(onClick = { onUserRegistration(id) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Test as $label")
+            }
         }
 
         if (onLogout != null) {

@@ -2,6 +2,8 @@ package com.campus.Campus_Connect.features.registration.dto.response;
 
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -11,7 +13,18 @@ public class RegistrationResponse {
 
     private Integer registrationId;
 
-    private Boolean registered;
-
     private String status;
+
+    private Integer eventId;
+
+    private Integer teamId;
+
+    private String teamName;
+
+    private Boolean teamLeader;
+
+    private Boolean canResume;
+
+    @Builder.Default
+    private List<SavedRegistrationAnswerResponse> answers = List.of();
 }

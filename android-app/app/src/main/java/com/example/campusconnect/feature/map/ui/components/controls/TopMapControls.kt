@@ -1,9 +1,13 @@
 package com.example.campusconnect.feature.map.ui.components.controls
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,21 +19,55 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.core.components.PanelSearchBar
 import com.example.campusconnect.feature.map.ui.OrangeLight
 import com.example.campusconnect.feature.map.ui.OrangePrimary
 import com.example.campusconnect.feature.map.ui.TextDark
+import com.example.campusconnect.feature.profile.ui.components.TextMuted
+import com.example.campusconnect.feature.map.model.EventMarkerData
+import com.example.campusconnect.feature.map.model.MapMarker
+import com.example.campusconnect.feature.map.model.PoiMarkerData
+import com.example.campusconnect.feature.map.model.UserMarkerData
 
 internal enum class SidePanel { NONE, PROFILE, CHAT }
+
+private fun highlightedSearchLabel(label: String, query: String): AnnotatedString {
+    val matchStart = label.indexOf(query.trim(), ignoreCase = true)
+    if (matchStart < 0 || query.isBlank()) return AnnotatedString(label)
+
+    val matchEnd = matchStart + query.trim().length
+    return buildAnnotatedString {
+        append(label.substring(0, matchStart))
+        withStyle(
+            SpanStyle(
+                background = Color(0xFFFFE0C2),
+                color = Color(0xFFB94D00)
+            )
+        ) {
+            append(label.substring(matchStart, matchEnd))
+        }
+        append(label.substring(matchEnd))
+    }
+}
+
 @Composable
 internal fun TopMapControls(
     modifier: Modifier = Modifier,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
+    searchSuggestions: List<MapMarker>,
+    onSearchSuggestionSelected: (MapMarker) -> Unit,
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
@@ -47,16 +85,70 @@ internal fun TopMapControls(
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(30.dp))
-        ) {
-            PanelSearchBar(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                placeholder = "Search"
-            )
+        BoxWithConstraints(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier.clip(RoundedCornerShape(30.dp))) {
+                PanelSearchBar(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = "Search"
+                )
+            }
+
+            if (searchQuery.trim().length >= 2 && searchSuggestions.isNotEmpty()) {
+                val popupOffset = with(androidx.compose.ui.platform.LocalDensity.current) {
+                    IntOffset(0, 54.dp.roundToPx())
+                }
+                Popup(
+                    alignment = Alignment.TopStart,
+                    offset = popupOffset,
+                    onDismissRequest = { onSearchQueryChange("") },
+                    properties = PopupProperties(focusable = false)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .width(maxWidth)
+                            .heightIn(max = 232.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White,
+                        tonalElevation = 4.dp,
+                        shadowElevation = 8.dp
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(vertical = 4.dp)
+                        ) {
+                            items(searchSuggestions, key = { it.id }) { marker ->
+                                val kind = when (marker) {
+                                    is PoiMarkerData -> "Place"
+                                    is UserMarkerData -> "User"
+                                    is EventMarkerData -> "Event"
+                                    else -> ""
+                                }
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                        .clickable { onSearchSuggestionSelected(marker) }
+                                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                                ) {
+                                    Text(
+                                        text = highlightedSearchLabel(marker.label, searchQuery),
+                                        color = TextDark,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = kind,
+                                        color = TextMuted,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.width(14.dp))
@@ -99,24 +191,48 @@ internal fun RoundIconButton(
 internal fun RightSideTabs(
     showFilters: Boolean,
     filtersAvailable: Boolean,
+    expandedFilterRows: Int,
     selectedSidePanel: SidePanel,
     onFiltersClick: () -> Unit,
     onBoardClick: () -> Unit,
     onPostsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val boardPostsOffset by animateDpAsState(
+        targetValue = if (showFilters) {
+            (24 + expandedFilterRows.coerceIn(0, 3) * 52).dp
+        } else {
+            0.dp
+        },
+        animationSpec = tween(durationMillis = 240),
+        label = "filter_tabs_alignment"
+    )
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (filtersAvailable) {
-            SideTab(
-                text = "FILTERS",
-                icon = Icons.Default.FilterList,
-                selected = showFilters,
-                onClick = onFiltersClick
-            )
+            // Keep the rail's original slot while the drawer is open, but hide
+            // the Filters tab because the drawer itself is now attached to the
+            // screen edge in that space.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(108.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                if (!showFilters) {
+                    SideTab(
+                        text = "FILTERS",
+                        icon = Icons.Default.FilterList,
+                        selected = false,
+                        onClick = onFiltersClick
+                    )
+                }
+            }
+            if (showFilters) Spacer(Modifier.height(boardPostsOffset))
         }
 
         SideTab(

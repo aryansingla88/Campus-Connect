@@ -7,6 +7,7 @@ import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.event.entity.EventCategory;
 import com.campus.Campus_Connect.features.event.entity.EventMember;
+import com.campus.Campus_Connect.features.event.entity.EventPoster;
 import com.campus.Campus_Connect.features.event.entity.enums.RegistrationType;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import com.campus.Campus_Connect.features.event.repository.EventMemberRepository;
@@ -102,7 +103,11 @@ public class MapEventService {
                 .id(event.getId())
                 .title(event.getTitle())
                 .description(event.getDescription())
-                .posterUrl(null)
+                .posterUrl(event.getPosters().stream()
+                        .map(EventPoster::getPosterUrl)
+                        .filter(url -> url != null && !url.isBlank())
+                        .findFirst()
+                        .orElse(null))
                 .hostName(event.getHostName())
                 .creatorName(getCreatorName(event))
                 .clubName(getClubName(event.getClubId()))

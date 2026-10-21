@@ -1,8 +1,11 @@
 package com.campus.Campus_Connect.features.registration.repository;
 
 import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
+import com.campus.Campus_Connect.features.registration.entity.enums.RegistrationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -38,6 +41,10 @@ public interface EventRegistrationRepository
             Integer eventId
     );
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from EventRegistration r where r.id = :registrationId")
+    Optional<EventRegistration> findByIdForUpdate(@Param("registrationId") Integer registrationId);
+
     List<EventRegistration> findByEventIdAndTeamId(
             Integer eventId,
             Integer teamId
@@ -47,6 +54,9 @@ public interface EventRegistrationRepository
             Integer eventId,
             Integer teamId
     );
+
+    long countByEventIdAndTeamIdAndStatusIn(Integer eventId, Integer teamId,
+                                            java.util.Collection<RegistrationStatus> statuses);
 
     @Query("""
     SELECT r

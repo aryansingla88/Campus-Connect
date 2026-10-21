@@ -1,19 +1,17 @@
 package com.example.campusconnect.feature.events.ui.screen
 
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,10 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,11 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -52,9 +44,9 @@ import com.example.campusconnect.feature.events.model.EventFilter
 import com.example.campusconnect.feature.events.model.EventStatus
 import com.example.campusconnect.feature.events.ui.components.BackButton
 import com.example.campusconnect.feature.events.ui.components.CreateEventButton
-import com.example.campusconnect.feature.events.ui.components.EventMarker
 import com.example.campusconnect.feature.events.ui.components.MapViewButton
 import com.example.campusconnect.feature.events.ui.components.ModeToggle
+import com.example.campusconnect.feature.events.ui.dialog.DeleteEventDialog
 import com.example.campusconnect.feature.events.ui.dialog.EventAccessDialog
 import com.example.campusconnect.feature.events.ui.dialog.EventCreateDialog
 import com.example.campusconnect.feature.events.ui.drawer.EventHistoryDrawer
@@ -62,14 +54,33 @@ import com.example.campusconnect.feature.events.ui.drawer.EventParticipantsDrawe
 import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
 import com.example.campusconnect.feature.map.mapengine.MapCalibration
+import com.example.campusconnect.feature.map.mapengine.MapView
+import com.example.campusconnect.feature.map.mapengine.model.MapMarkerItem
+import com.example.campusconnect.feature.map.mapengine.model.MarkerType
+import com.example.campusconnect.feature.map.mapengine.rendering.StandardMarkerPainter
+import com.example.campusconnect.feature.map.mapengine.viewport.DEFAULT_ZOOM
+import com.example.campusconnect.feature.map.mapengine.viewport.MAP_IMAGE_HEIGHT
+import com.example.campusconnect.feature.map.mapengine.viewport.MAP_IMAGE_WIDTH
+import com.example.campusconnect.feature.map.mapengine.viewport.rememberMapViewportState
 import kotlinx.coroutines.delay
-private const val MAP_IMAGE_WIDTH = 3000f
-private const val MAP_IMAGE_HEIGHT = 3000f
+
+private data class EventMapMarker(
+    override val id: String,
+    override val x: Float,
+    override val y: Float,
+    override val label: String,
+    override val isSelected: Boolean,
+    val priority: Int
+) : MapMarkerItem {
+    override val type: MarkerType = MarkerType.EVENT
+}
 
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
 fun EventScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRegister: (Int) -> Unit = {},
+    onHostRegistration: (Int) -> Unit = {},
 ) {
 
 
@@ -102,11 +113,37 @@ fun EventScreen(
 
     var toastMessage        by remember { mutableStateOf<String?>(null) }
 
-    val boxWidth  = remember { mutableStateOf(0) }
-    val boxHeight = remember { mutableStateOf(0) }
+    val mapViewportState = rememberMapViewportState(initialZoom = DEFAULT_ZOOM)
 
     val clubs by viewModel.clubs.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val eventPreviews by viewModel.eventPreviews.collectAsState()
+    val accessUsersByEvent by viewModel.accessUsersByEvent.collectAsState()
+    val participantTeams by viewModel.teams.collectAsState()
+    val participantSolo by viewModel.soloParticipants.collectAsState()
+    val participantsCount by viewModel.participantsCount.collectAsState()
+
+    val eventMapMarkers = remember(events, activeIndex) {
+        events.mapIndexedNotNull { index, event ->
+            if (event.status == EventStatus.PAST) {
+                return@mapIndexedNotNull null
+            }
+
+            val point = MapCalibration.converter.latLngToPoint(
+                lat = event.latitude,
+                lng = event.longitude
+            )
+
+            EventMapMarker(
+                id = event.id.toString(),
+                x = point.x,
+                y = point.y,
+                label = event.title,
+                isSelected = index == activeIndex,
+                priority = if (index == activeIndex) 2 else 0
+            )
+        }
+    }
 
 
     // Only non-past events appear in the preview pager
@@ -123,6 +160,14 @@ fun EventScreen(
 
     LaunchedEffect(toastMessage) {
         if (toastMessage != null) { delay(2000); toastMessage = null }
+    }
+
+    LaunchedEffect(showPreview, filteredEvents.getOrNull(filteredActiveIndex)?.id) {
+        if (showPreview) {
+            filteredEvents.getOrNull(filteredActiveIndex)?.let { event ->
+                viewModel.prefetchAccessUsers(event.id)
+            }
+        }
     }
 
     LaunchedEffect(state.success) {
@@ -142,68 +187,42 @@ fun EventScreen(
         }
     }
 
-    // Force-close history drawer when preview opens
-    LaunchedEffect(showPreview) {
-        if (showPreview) showHistoryDrawer = false
-    }
+    Box(modifier = Modifier.fillMaxSize()) {
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFE0E0E0))
-            .onSizeChanged { boxWidth.value = it.width; boxHeight.value = it.height }
-            .pointerInput(isSelectingLocation) {
-                if (isSelectingLocation) {
-                    detectTapGestures { offset ->
-
-                        val mapX =
-                            offset.x / boxWidth.value.toFloat() * MAP_IMAGE_WIDTH
-
-                        val mapY =
-                            offset.y / boxHeight.value.toFloat() * MAP_IMAGE_HEIGHT
-
-                        val (latitude, longitude) =
-                            MapCalibration.converter.pointToLatLng(
-                                mapX,
-                                mapY
-                            )
-
-                        viewModel.setLocation(
-                            lat = latitude,
-                            lng = longitude
-                        )
-
-                        isSelectingLocation = false
-                        showDialog = true
-                    }
-                }
-            }
-    ) {
-
-        // ── BACKGROUND ────────────────────────────────────────────────────────
-        Box(modifier = Modifier.fillMaxSize())
-
-        // ── MARKERS ───────────────────────────────────────────────────────────
-        events.forEachIndexed { index, event ->
-
-            val isPast = event.status == EventStatus.PAST
-
-            EventMarker(
-                event = event,
-                isActive = index == activeIndex && !isPast,
-                onClick = {
-                    if (!isSelectingLocation && !isPast) {
+        MapView(
+            modifier = Modifier.fillMaxSize(),
+            viewportState = mapViewportState,
+            markers = eventMapMarkers,
+            markerPriority = { marker -> marker.priority },
+            markerPainter = StandardMarkerPainter,
+            initialFocusPosition = Offset(
+                MAP_IMAGE_WIDTH / 2f,
+                MAP_IMAGE_HEIGHT / 2f
+            ),
+            initialZoom = DEFAULT_ZOOM,
+            onMarkerClick = { markerId ->
+                if (!isSelectingLocation) {
+                    val index = events.indexOfFirst { it.id.toString() == markerId }
+                    if (index >= 0 && events[index].status != EventStatus.PAST) {
                         viewModel.onMarkerTapped(index)
                     }
-                },
-                modifier = Modifier.offset {
-                    IntOffset(
-                        x = (event.xRatio * boxWidth.value).toInt(),
-                        y = (event.yRatio * boxHeight.value).toInt()
-                    )
                 }
-            )
-        }
+            },
+            onMapTap = { mapX, mapY ->
+                if (isSelectingLocation) {
+                    val (latitude, longitude) =
+                        MapCalibration.converter.pointToLatLng(mapX, mapY)
+
+                    viewModel.setLocation(
+                        lat = latitude,
+                        lng = longitude
+                    )
+
+                    isSelectingLocation = false
+                    showDialog = true
+                }
+            }
+        )
 
         // ── TAP ANYWHERE HINT ─────────────────────────────────────────────────
         if (isSelectingLocation) {
@@ -261,15 +280,15 @@ fun EventScreen(
                 )
             }
 
-            // History nib — top-right corner, only when drawer closed AND preview not open
-            if (!showHistoryDrawer && !showPreview) {
+            // Keep history available while the event preview is open.
+            if (!showHistoryDrawer) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 16.dp, end = 16.dp)
                         .size(46.dp)
                         .background(
-                            color = Color(0xFFFF4D00),
+                            color = Color(0xFFFF6F00),
                             shape = RoundedCornerShape(14.dp)
                         )
                         .clickable(
@@ -335,8 +354,7 @@ fun EventScreen(
         if (showPreview && filteredEvents.isNotEmpty() && !isSelectingLocation) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .zIndex(1f)
             ) {
                 EventPreviewSheet(
@@ -345,6 +363,9 @@ fun EventScreen(
                     onPageChanged = { index ->
                         val globalIndex = events.indexOf(filteredEvents.getOrNull(index))
                         if (globalIndex >= 0) viewModel.onPreviewPageChanged(globalIndex)
+                        filteredEvents.getOrNull(index)?.let { event ->
+                            viewModel.prefetchAccessUsers(event.id)
+                        }
                         showParticipants = false
                     },
                     onClose       = {
@@ -357,36 +378,45 @@ fun EventScreen(
                         dialogKey++
                         showDialog = true
                     },
-                    onRegistration = { },
+                    onRegistration = { event -> onHostRegistration(event.id) },
                     onChat         = { },
-                    onAccess       = { event -> accessEvent = event; viewModel.loadAccessUsers(event.id); showAccessDialog = true },
-                    onDelete       = { event -> viewModel.requestDelete(event) }
+                    onAccess       = { event -> accessEvent = event; viewModel.prefetchAccessUsers(event.id); showAccessDialog = true },
+                    onDelete       = { event -> viewModel.requestDelete(event) },
+                    participantsOpen = showParticipants,
+                    onParticipants = {
+                        filteredEvents.getOrNull(filteredActiveIndex)?.let { event ->
+                            viewModel.loadParticipants(event.id)
+                            showParticipants = true
+                        }
+                    }
                 )
             }
         }
 
-        // ── PARTICIPANTS DRAWER — flush against right edge ────────────────────
-        if (showPreview && filteredEvents.isNotEmpty() && !isSelectingLocation && !showDialog) {
-            val currentEvent = filteredEvents.getOrNull(filteredActiveIndex)
-            if (currentEvent != null) {
-                Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
+        // ── PARTICIPANTS DRAWER ───────────────────────────────────────────────
+        // Same window as the preview sheet (no Dialog) and always composed so the exit
+        // animation plays. When closed it has no pointer handlers, so the sheet's
+        // Edit / Access / Delete stay fully tappable.
+        filteredEvents.getOrNull(filteredActiveIndex)?.let { currentEvent ->
+            if (!isSelectingLocation && !showDialog) {
+                Box(modifier = Modifier.fillMaxSize().zIndex(1.5f)) {
                     EventParticipantsDrawer(
-                        event = currentEvent,
-                        teams = viewModel.teams.collectAsState().value,
-                        solo = viewModel.soloParticipants.collectAsState().value,
-                        total = viewModel.participantsCount.collectAsState().value,
-                        isOpen = showParticipants,
-                        onToggle = {
-                            viewModel.loadParticipants(currentEvent.id)
-                            showParticipants = !showParticipants
-                        }
+                        event    = currentEvent,
+                        teams    = participantTeams,
+                        solo     = participantSolo,
+                        total    = participantsCount,
+                        isOpen   = showPreview && showParticipants,
+                        onToggle = { showParticipants = false }
                     )
                 }
             }
         }
 
+        // Back closes the drawer first, then (via the sheet's own handler) the preview.
+        BackHandler(enabled = showParticipants) { showParticipants = false }
+
         // ── HISTORY DRAWER ────────────────────────────────────────────────────
-        if (!isSelectingLocation && !showDialog && !showPreview) {
+        if (!isSelectingLocation && !showDialog) {
             Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
                 EventHistoryDrawer(
                     isOpen = showHistoryDrawer,
@@ -448,22 +478,10 @@ fun EventScreen(
 
         // ── DELETE CONFIRMATION ───────────────────────────────────────────────
         pendingDeleteEvent?.let { event ->
-            AlertDialog(
-                onDismissRequest = viewModel::cancelDelete,
-                shape            = RoundedCornerShape(20.dp),
-                containerColor   = Color.White,
-                title = { Text("Delete Event?", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF2A2A2A)) },
-                text  = { Text("Are you sure you want to delete \"${event.title}\"? This cannot be undone.", fontSize = 14.sp, color = Color(0xFF555555), lineHeight = 20.sp) },
-                dismissButton = {
-                    OutlinedButton(onClick = viewModel::cancelDelete, shape = RoundedCornerShape(12.dp), border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6F00))) {
-                        Text("Cancel", fontWeight = FontWeight.SemiBold)
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = viewModel::confirmDelete, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))) {
-                        Text("Delete", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+            DeleteEventDialog(
+                event     = event,
+                onConfirm = viewModel::confirmDelete,
+                onCancel  = viewModel::cancelDelete
             )
         }
 
@@ -472,7 +490,7 @@ fun EventScreen(
             EventAccessDialog(
                 event = accessEvent!!,
 
-                users = viewModel.accessUsers.collectAsState().value,
+                users = accessEvent?.let { accessUsersByEvent[it.id] }.orEmpty(),
 
                 searchResults = viewModel.searchResults.collectAsState().value,
 
@@ -518,7 +536,7 @@ fun EventScreen(
                         onStartTimeChange        = viewModel::updateStartTime,
                         onEndTimeChange          = viewModel::updateEndTime,
                         onPosterToggle           = viewModel::updatePosterEnabled,
-                        onPosterUrlChange        = viewModel::updatePosterUrl,
+                        onPosterImagePicked      = viewModel::updatePosterImage,
                         onClubChange             = viewModel::updateClub,
                         clubOptions = clubs,
                         categoryOptions = categories,
@@ -548,9 +566,14 @@ fun EventScreen(
                 EventViewModeScreen(
                     events       = filteredEvents,
                     onBack       = { showViewMode = false },
-                    onRegister   = { },
+                    onRegister   = { event -> onRegister(event.id) },
                     onNotify     = { },
-                    onOpenDetail = { showViewMode = false }
+                    onOpenDetail = { showViewMode = false },
+                    showActionButtons = false,
+                    categories = categories,
+                    clubs = clubs,
+                    eventPreviews = eventPreviews,
+                    onLoadEventPreview = viewModel::loadEventPreview
                 )
             }
         }

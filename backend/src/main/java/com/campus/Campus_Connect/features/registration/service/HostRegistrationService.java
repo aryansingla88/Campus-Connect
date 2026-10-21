@@ -9,6 +9,7 @@ import com.campus.Campus_Connect.features.event.repository.EventRepository;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.registration.constants.QuickFieldMask;
 import com.campus.Campus_Connect.features.registration.dto.request.RegistrationConfigRequest;
+import com.campus.Campus_Connect.features.registration.dto.request.QuickFieldsConfigRequest;
 import com.campus.Campus_Connect.features.registration.dto.request.RegistrationFieldRequest;
 import com.campus.Campus_Connect.features.registration.dto.response.*;
 import com.campus.Campus_Connect.features.registration.entity.*;
@@ -55,21 +56,28 @@ public class HostRegistrationService {
         if (event == null) return ApiResponse.failure("Event not found.");
         if (!isOrganizer(event)) return ApiResponse.failure("Only the event organizer can create configuration.");
 
-        if (configRepository.findByEventId(eventId).isPresent()) {
-            return ApiResponse.failure("Registration configuration already exists for this event. Use PUT to update.");
-        }
-
         String valErr = validateConfigRequest(request);
         if (valErr != null) return ApiResponse.failure(valErr);
 
-        RegistrationConfig config = RegistrationConfig.builder()
-                .event(event)
-                .minTeamMembers(request.getMinTeamMembers())
-                .maxTeamMembers(request.getMaxTeamMembers())
-                .quickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L)
-                .registrationCreatedAt(request.getRegistrationCreatedAt())
-                .registrationEndAt(request.getRegistrationEndAt())
-                .build();
+        RegistrationConfig config = configRepository.findByEventId(eventId).orElse(null);
+        if (config == null) {
+            config = RegistrationConfig.builder()
+                    .event(event)
+                    .minTeamMembers(request.getMinTeamMembers())
+                    .maxTeamMembers(request.getMaxTeamMembers())
+                    .quickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L)
+                    .autoConfirm(request.getAutoConfirm() == null || request.getAutoConfirm())
+                    .registrationCreatedAt(request.getRegistrationCreatedAt())
+                    .registrationEndAt(request.getRegistrationEndAt())
+                    .build();
+        } else {
+            config.setMinTeamMembers(request.getMinTeamMembers());
+            config.setMaxTeamMembers(request.getMaxTeamMembers());
+            config.setQuickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L);
+            if (request.getAutoConfirm() != null) config.setAutoConfirm(request.getAutoConfirm());
+            config.setRegistrationCreatedAt(request.getRegistrationCreatedAt());
+            config.setRegistrationEndAt(request.getRegistrationEndAt());
+        }
 
         config = configRepository.save(config);
         return ApiResponse.success(toConfigResponse(config), "Registration configuration created successfully.");
@@ -81,22 +89,51 @@ public class HostRegistrationService {
         if (event == null) return ApiResponse.failure("Event not found.");
         if (!isOrganizer(event)) return ApiResponse.failure("Only the event organizer can update configuration.");
 
-        RegistrationConfig config = configRepository.findByEventId(eventId).orElse(null);
-        if (config == null) {
-            return ApiResponse.failure("Registration configuration not found. Use POST to create.");
-        }
-
         String valErr = validateConfigRequest(request);
         if (valErr != null) return ApiResponse.failure(valErr);
 
-        config.setMinTeamMembers(request.getMinTeamMembers());
-        config.setMaxTeamMembers(request.getMaxTeamMembers());
-        config.setQuickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L);
-        config.setRegistrationCreatedAt(request.getRegistrationCreatedAt());
-        config.setRegistrationEndAt(request.getRegistrationEndAt());
+        RegistrationConfig config = configRepository.findByEventId(eventId).orElse(null);
+        if (config == null) {
+            config = RegistrationConfig.builder()
+                    .event(event)
+                    .minTeamMembers(request.getMinTeamMembers())
+                    .maxTeamMembers(request.getMaxTeamMembers())
+                    .quickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L)
+                    .autoConfirm(request.getAutoConfirm() == null || request.getAutoConfirm())
+                    .registrationCreatedAt(request.getRegistrationCreatedAt())
+                    .registrationEndAt(request.getRegistrationEndAt())
+                    .build();
+        } else {
+            config.setMinTeamMembers(request.getMinTeamMembers());
+            config.setMaxTeamMembers(request.getMaxTeamMembers());
+            config.setQuickFieldMask(request.getQuickFieldMask() != null ? request.getQuickFieldMask() : 0L);
+            if (request.getAutoConfirm() != null) config.setAutoConfirm(request.getAutoConfirm());
+            config.setRegistrationCreatedAt(request.getRegistrationCreatedAt());
+            config.setRegistrationEndAt(request.getRegistrationEndAt());
+        }
 
-        configRepository.save(config);
+        config = configRepository.save(config);
         return ApiResponse.success(toConfigResponse(config), "Registration configuration updated successfully.");
+    }
+
+    @Transactional
+    public ApiResponse<RegistrationConfigResponse> updateQuickFieldsConfig(
+            Integer eventId, QuickFieldsConfigRequest request) {
+        Event event = eventRepository.findById(eventId).orElse(null);
+        if (event == null) return ApiResponse.failure("Event not found.");
+        if (!isOrganizer(event)) return ApiResponse.failure("Only the event organizer can update configuration.");
+        if (request == null || request.getQuickFieldMask() == null
+                || !QuickFieldMask.isValidMask(request.getQuickFieldMask())) {
+            return ApiResponse.failure("Invalid quickFieldMask provided.");
+        }
+
+        RegistrationConfig config = configRepository.findByEventId(eventId).orElse(null);
+        if (config == null) {
+            return ApiResponse.failure("Registration configuration not found for this event.");
+        }
+        config.setQuickFieldMask(request.getQuickFieldMask());
+        config = configRepository.save(config);
+        return ApiResponse.success(toConfigResponse(config), "Quick Fields configuration updated successfully.");
     }
 
     private String validateConfigRequest(RegistrationConfigRequest request) {
@@ -106,6 +143,11 @@ public class HostRegistrationService {
         if (request.getMaxTeamMembers() == null || request.getMaxTeamMembers() < request.getMinTeamMembers()) {
             return "maxTeamMembers must be greater than or equal to minTeamMembers.";
         }
+        // Valid modes:
+        // 1. Individual only: min == 1, max == 1
+        // 2. Individual + Team: min == 1, max > 1
+        // 3. Team only: min >= 2, max >= min
+        // Note: min > 1 with max < min is already guarded by maxTeamMembers < minTeamMembers.
         if (!QuickFieldMask.isValidMask(request.getQuickFieldMask())) {
             return "Invalid quickFieldMask provided.";
         }
@@ -690,8 +732,12 @@ public class HostRegistrationService {
         if (event == null) return ApiResponse.failure("Event not found.");
         if (!isOrganizer(event)) return ApiResponse.failure("Only the event organizer can manage registrations.");
 
-        EventRegistration registration = registrationRepository.findByIdAndEventId(registrationId, eventId).orElse(null);
+        EventRegistration registration = registrationRepository.findByIdForUpdate(registrationId).orElse(null);
+        if (registration != null && !registration.getEvent().getId().equals(eventId)) registration = null;
         if (registration == null) return ApiResponse.failure("Registration not found.");
+
+        if (registration.getStatus() != RegistrationStatus.WAITLISTED)
+            return ApiResponse.failure("Only submitted registrations awaiting host approval can be reviewed.");
 
         if (registration.getStatus() == targetStatus) {
             return ApiResponse.failure("Registration is already " + targetStatus.name());
@@ -702,7 +748,6 @@ public class HostRegistrationService {
         return ApiResponse.success(
                 RegistrationResponse.builder()
                         .registrationId(registration.getId())
-                        .registered(true)
                         .status(targetStatus.name())
                         .build(),
                 "Registration status updated to " + targetStatus.name() + " successfully.");
@@ -734,6 +779,7 @@ public class HostRegistrationService {
                 .minTeamMembers(config.getMinTeamMembers())
                 .maxTeamMembers(config.getMaxTeamMembers())
                 .quickFieldMask(config.getQuickFieldMask())
+                .autoConfirm(config.getAutoConfirm() == null || config.getAutoConfirm())
                 .registrationCreatedAt(config.getRegistrationCreatedAt())
                 .registrationEndAt(config.getRegistrationEndAt())
                 .build();

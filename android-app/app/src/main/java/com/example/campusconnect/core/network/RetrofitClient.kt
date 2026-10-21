@@ -9,6 +9,7 @@ import com.example.campusconnect.feature.metadata.courses.remote.CourseApi
 import com.example.campusconnect.feature.metadata.eventcategories.remote.EventCategoryApi
 import com.example.campusconnect.feature.posts.data.remote.PostsApi
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
+import com.example.campusconnect.feature.registrations.data.remote.RegistrationApi
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -26,11 +27,10 @@ object RetrofitClient {
 
         val builder = chain.request().newBuilder()
 
-        SessionManager.getToken()?.takeIf { it.isNotBlank() }?.let { token ->
-            builder.addHeader(
-                ApiConfig.HEADER_AUTH,
-                "Bearer $token"
-            )
+        if (builder.build().header(ApiConfig.HEADER_AUTH) == null) {
+            SessionManager.getToken()?.takeIf { it.isNotBlank() }?.let { token ->
+                builder.header(ApiConfig.HEADER_AUTH, "Bearer $token")
+            }
         }
 
         builder.addHeader(
@@ -42,7 +42,9 @@ object RetrofitClient {
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        redactHeader(ApiConfig.HEADER_AUTH)
+        // Presence requests contain precise coordinates. Do not log request/response bodies.
+        level = HttpLoggingInterceptor.Level.HEADERS
     }
 
     // OkHttp client ---------------------------------------------
@@ -69,6 +71,7 @@ object RetrofitClient {
     val profileApi: ProfileApi = retrofit.create(ProfileApi::class.java)
     val authApi    : AuthApi = retrofit.create(AuthApi::class.java)
     val eventsApi  : EventsApi = retrofit.create(EventsApi::class.java)
+    val registrationApi: RegistrationApi = retrofit.create(RegistrationApi::class.java)
     val postsApi   : PostsApi   = retrofit.create(PostsApi::class.java)
     val mapApi     : MapApi     = retrofit.create(MapApi::class.java)
 

@@ -13,6 +13,7 @@ import com.example.campusconnect.feature.auth.authNav
 import com.example.campusconnect.feature.events.eventNav
 import com.example.campusconnect.feature.registrations.RegistrationNav
 import com.example.campusconnect.feature.registrations.navigateToFormBuilder
+import com.example.campusconnect.feature.registrations.navigateToParticipantRegistration
 import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.posts.navigation.POSTS_FEED_ROUTE
 import com.example.campusconnect.feature.posts.navigation.postNav
@@ -69,11 +70,14 @@ fun AppNavHost() {
                 },
 
                 onFormBuilder = {
-                    navController.navigateToRegistrationSetup(1)
+                    navController.navigateToRegistrationSetup(3)
                 },
 
                 onSettings = {
                     navController.navigate("settings_graph")
+                },
+                onUserRegistration = { personaId ->
+                    navController.navigateToParticipantRegistration(3, personaId)
                 },
 
             )
@@ -103,7 +107,7 @@ fun AppNavHost() {
                 },
 
                 onFormBuilder = {
-                    navController.navigateToRegistrationSetup(1)
+                    navController.navigateToRegistrationSetup(3)
                 },
 
                 onSettings = {
@@ -119,6 +123,9 @@ fun AppNavHost() {
                             inclusive = true
                         }
                     }
+                },
+                onUserRegistration = { personaId ->
+                    navController.navigateToParticipantRegistration(3, personaId)
                 },
 
                 onContinue = {

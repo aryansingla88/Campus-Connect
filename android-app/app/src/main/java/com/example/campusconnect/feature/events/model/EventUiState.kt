@@ -1,11 +1,14 @@
 package com.example.campusconnect.feature.events.model
 
+import android.net.Uri
+
 data class EventUiState(
     val title: String = "",
     val description: String = "",
 
     val isPoster: Boolean = false,
     val posterUrl: String = "",
+    val selectedPosterUri: Uri? = null,
 
     val selectedLocation: Pair<Double, Double>? = null,
     val selectedRatio: Pair<Float, Float>? = null,

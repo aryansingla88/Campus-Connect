@@ -2,6 +2,7 @@
 
 package com.example.campusconnect.feature.events.ui.dialog
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -64,6 +65,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.campusconnect.core.utils.Image.ImagePickerSheet
+import com.example.campusconnect.core.utils.Image.ImageSource
+import com.example.campusconnect.core.utils.Image.rememberImagePicker
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -73,6 +77,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.campusconnect.feature.events.model.EventUiState
 import com.example.campusconnect.feature.metadata.clubs.Club
 import com.example.campusconnect.feature.metadata.eventcategories.EventCategory
@@ -420,7 +426,7 @@ fun EventCreateDialog(
     onStartTimeChange: (String) -> Unit,
     onEndTimeChange: (String) -> Unit,
     onPosterToggle: (Boolean) -> Unit,
-    onPosterUrlChange: (String) -> Unit,
+    onPosterImagePicked: (Uri) -> Unit,
     onClubChange: (String, Int?) -> Unit,
     onCategoryChange: (String, Int?) -> Unit,
     onVisibilityTypeChange: (String) -> Unit,
@@ -438,6 +444,9 @@ fun EventCreateDialog(
     visibilityTypeOptions: List<String>  = listOf("Public", "Private", "Club"),
     visibilityValueOptions: List<String> = listOf("All", "Members Only")
 ) {
+    var showImagePicker by remember { mutableStateOf(false) }
+    val pickImage = rememberImagePicker(onPosterImagePicked)
+
     // Fields locked in edit mode — shown greyed, non-interactive
     val titleLocked        = isEditMode
     val clubNameLocked     = isEditMode
@@ -473,12 +482,16 @@ fun EventCreateDialog(
     }
 
     // ── UI ────────────────────────────────────────────────────────────────────
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x99000000)),
-        contentAlignment = Alignment.Center
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x99000000)),
+            contentAlignment = Alignment.Center
+        ) {
         Card(
             modifier  = Modifier
                 .widthIn(max = 900.dp)
@@ -593,29 +606,42 @@ fun EventCreateDialog(
                         }
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             FieldLabel("Poster Source")
-                            OutlinedTextField(
-                                value         = state.posterUrl,
-                                onValueChange = onPosterUrlChange,
-                                enabled       = state.isPoster,
-                                placeholder   = {
-                                    Text("Add image URL or upload", color = HintColor, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                },
-                                leadingIcon = { Icon(Icons.Default.Image, null, tint = HintColor, modifier = Modifier.size(20.dp)) },
-                                trailingIcon = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .background(if (state.isPoster) OrangePrimary else HintColor, CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("+", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                },
-                                singleLine = true,
-                                shape      = RoundedCornerShape(12.dp),
-                                colors     = fieldColors(),
-                                modifier   = Modifier.fillMaxWidth().height(54.dp)
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(54.dp)
+                                    .background(Color.White, RoundedCornerShape(12.dp))
+                                    .border(1.dp, if (state.isPoster) OrangeBorder else LockedBorder, RoundedCornerShape(12.dp))
+                                    .clickable(enabled = state.isPoster) { showImagePicker = true }
+                                    .padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Image,
+                                    contentDescription = null,
+                                    tint = if (state.isPoster) OrangePrimary else HintColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = state.selectedPosterUri?.lastPathSegment?.substringAfterLast('/')
+                                        ?: if (state.posterUrl.isNotBlank()) "Current poster" else "Add poster image",
+                                    color = if (state.isPoster) LabelColor else HintColor,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .background(if (state.isPoster) OrangePrimary else HintColor, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("+", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
 
@@ -632,8 +658,8 @@ fun EventCreateDialog(
                         Spacer(Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Location (From Tap)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = LabelColor)
-                            val lat  = state.selectedRatio?.first  ?: 0.0
-                            val long = state.selectedRatio?.second ?: 0.0
+                            val lat  = state.selectedLocation?.first  ?: 0.0
+                            val long = state.selectedLocation?.second ?: 0.0
                             Text("Lat: $lat, Long: $long", fontSize = 12.sp, color = HintColor)
                         }
                         TextButton(onClick = onEditLocation, contentPadding = PaddingValues(horizontal = 8.dp)) {
@@ -928,6 +954,18 @@ fun EventCreateDialog(
 
                 // ── BOTTOM BUTTONS ────────────────────────────────────────────
                 HorizontalDivider(color = Color(0xFFF0F0F0))
+                state.error?.let { message ->
+                    Text(
+                        text = message,
+                        color = ErrorRed,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(
+                            start = 20.dp,
+                            end = 20.dp,
+                            top = 10.dp
+                        )
+                    )
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -980,6 +1018,21 @@ fun EventCreateDialog(
                     }
                 }
             }
+        }
+
+        if (showImagePicker) {
+            ImagePickerSheet(
+                onDismiss = { showImagePicker = false },
+                onCameraClick = {
+                    showImagePicker = false
+                    pickImage(ImageSource.CAMERA)
+                },
+                onGalleryClick = {
+                    showImagePicker = false
+                    pickImage(ImageSource.GALLERY)
+                }
+            )
+        }
         }
     }
 }

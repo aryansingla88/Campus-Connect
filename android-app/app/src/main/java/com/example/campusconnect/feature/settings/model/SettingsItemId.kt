@@ -14,6 +14,7 @@ enum class SettingsItemId {
 
     // Preferences
     NOTIFICATIONS,
+    LOCATION_TRACKING_MODE,
     APP_APPEARANCE,
     LANGUAGE,
 

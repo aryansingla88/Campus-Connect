@@ -8,14 +8,27 @@ data class Registration(
     val settings: RegistrationSettings = RegistrationSettings(),
 )
 
+/** Event metadata needed by the host registration header. */
+data class RegistrationEventHeader(
+    val title: String,
+    val isPublished: Boolean,
+)
+
 /** Host-configurable options shown on the Registration Setup screen. */
 data class RegistrationSettings(
-    val allowIndividual: Boolean = true,
-    val allowTeam: Boolean = true,
-    val minMembers: Int = MIN_TEAM_SIZE,
+    val minMembers: Int = 1,
     val maxMembers: Int = 4,
-    val quickFieldsSelected: Int = 0,
+    val quickFieldMask: Long = 0L,
+    val autoConfirm: Boolean = true,
+    val registrationCreatedAt: String? = null,
+    val deadline: Long? = null,
 ) {
+    val allowIndividual: Boolean
+        get() = minMembers == 1
+
+    val allowTeam: Boolean
+        get() = maxMembers > 1
+
     companion object {
         const val MIN_TEAM_SIZE = 2
         const val MAX_TEAM_SIZE = 20

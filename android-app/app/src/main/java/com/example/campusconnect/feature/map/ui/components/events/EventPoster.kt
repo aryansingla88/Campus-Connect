@@ -70,8 +70,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.example.campusconnect.R
+import com.example.campusconnect.core.components.ApiUrlResolver
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.map.ui.util.formatEventDate
 import com.example.campusconnect.feature.map.ui.util.formatEventTimeRange
@@ -96,9 +98,7 @@ internal fun EventPoster(
         )
     ) {
 
-        Box(
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
 
             when {
 
@@ -116,11 +116,14 @@ internal fun EventPoster(
 
                 !event.posterUrl.isNullOrBlank() -> {
 
-                    AsyncImage(
-                        model = event.posterUrl,
+                    SubcomposeAsyncImage(
+                        model = ApiUrlResolver.resolve(event.posterUrl),
                         contentDescription = event.title,
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.Crop
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        loading = { FallbackPoster(title = event.title) },
+                        error = { FallbackPoster(title = event.title) },
+                        success = { SubcomposeAsyncImageContent() }
                     )
                 }
 

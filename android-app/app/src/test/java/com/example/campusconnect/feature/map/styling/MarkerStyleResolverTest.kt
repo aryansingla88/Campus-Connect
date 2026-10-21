@@ -5,6 +5,7 @@ import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import com.example.campusconnect.feature.map.mapengine.styling.MarkerStyleConfig
 import com.example.campusconnect.feature.map.mapengine.styling.MarkerStyleResolver
 import com.example.campusconnect.feature.map.model.EventMarkerData
+import com.example.campusconnect.feature.map.model.LocalUserMarkerData
 import com.example.campusconnect.feature.map.model.PoiMarkerData
 import com.example.campusconnect.feature.map.model.ShopMarkerData
 import com.example.campusconnect.feature.map.model.UserMarkerData
@@ -100,7 +101,8 @@ class MarkerStyleResolverTest {
             UserMarkerData(sourceId = 2, latitude = 0.0, longitude = 0.0, username = "F", userGender = "female"),
             PoiMarkerData(sourceId = 3, latitude = 0.0, longitude = 0.0, name = "P", category = null, iconType = null, visibility = null, priority = 4),
             EventMarkerData(sourceId = 4, latitude = 0.0, longitude = 0.0, title = "E", priority = 3),
-            ShopMarkerData(sourceId = 5, latitude = 0.0, longitude = 0.0, name = "S")
+            ShopMarkerData(sourceId = 5, latitude = 0.0, longitude = 0.0, name = "S"),
+            LocalUserMarkerData(latitude = 0.0, longitude = 0.0, isStale = false, mapX = 10f, mapY = 10f)
         )
 
         for (marker in markers) {
@@ -109,6 +111,7 @@ class MarkerStyleResolverTest {
                 is PoiMarkerData -> resolver.resolve(marker, 1f, priority = marker.priority, isHighlighted = marker.isHighlighted).color
                 is EventMarkerData -> resolver.resolve(marker, 1f, priority = marker.priority).color
                 is ShopMarkerData -> resolver.resolve(marker, 1f).color
+                is LocalUserMarkerData -> resolver.resolve(marker, 1f).color
             }
             assertNotNull(color.colorSpace)
             assertEquals(ColorSpaces.Srgb, color.colorSpace)

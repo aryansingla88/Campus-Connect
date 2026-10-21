@@ -1,11 +1,14 @@
 package com.example.campusconnect.feature.map.model
 
+import com.example.campusconnect.core.location.model.LocationStatus
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 
 data class MapUiState(
     val mode: MapMode = MapMode.HOME,
     val markers: List<MapMarker> = emptyList(),
     val renderMarkers: List<MapMarker> = emptyList(),
+    val localLocationMarker: LocalUserMarkerData? = null,
+    val locationStatus: LocationStatus = LocationStatus.Unavailable,
 
     val selectedMarkerId: String? = null,
     val selectedMarker: MapMarker? = null,
@@ -14,12 +17,19 @@ data class MapUiState(
     val selectedPoiInfo: MapPoiInfo? = null,
     val selectedEventInfo: MapEventInfo? = null,
 
-    val activeFilter: MarkerType? = null,
+    val activeUserFilterId: String? = null,
+    val connectionUserIds: Set<Int>? = null,
+    val clubUserIds: Set<Int>? = null,
+    val isPoiFilterActive: Boolean = false,
     val activePoiCategory: String? = null,
+    /** Legacy construction compatibility; new map state uses independent filters above. */
+    @Deprecated("Use activeUserFilterId and isPoiFilterActive")
+    val activeFilter: MarkerType? = null,
     val activeEventCategoryId: Int? = null,
     val filterContext: MapFilterContext = MapFilterContext.HOME_MARKERS,
     val eventCategories: List<EventFilter> = emptyList(),
     val poiCategories: List<MapFilterOption> = emptyList(),
+    val joinedClubs: List<MapFilterOption> = emptyList(),
 
     val isLoading: Boolean = false,
     val errorMessage: String? = null,

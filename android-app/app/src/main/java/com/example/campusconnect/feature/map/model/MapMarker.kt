@@ -38,6 +38,22 @@ data class UserMarkerData(
     override fun withSelection(isSelected: Boolean) = copy(selected = isSelected)
 }
 
+/** Device-local position. It is never mapped from or uploaded as a remote user marker. */
+data class LocalUserMarkerData(
+    override val sourceId: Int = 0,
+    override val latitude: Double,
+    override val longitude: Double,
+    val isStale: Boolean,
+    private val mapX: Float,
+    private val mapY: Float
+) : MapMarker("LOCAL_DEVICE", mapX, mapY, false) {
+    override val type: MarkerType get() = MarkerType.USER
+    override val label: String get() = "You"
+
+    override fun withMapPosition(x: Float, y: Float) = copy(mapX = x, mapY = y)
+    override fun withSelection(isSelected: Boolean) = this
+}
+
 data class PoiMarkerData(
     override val sourceId: Int,
     override val latitude: Double,

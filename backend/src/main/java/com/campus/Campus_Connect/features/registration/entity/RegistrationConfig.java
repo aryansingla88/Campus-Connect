@@ -33,6 +33,10 @@ public class RegistrationConfig {
     @Column(name = "quick_field_mask", nullable = false)
     private Long quickFieldMask;
 
+    @Builder.Default
+    @Column(name = "auto_confirm", nullable = false)
+    private Boolean autoConfirm = true;
+
     @Column(name = "registration_created_at")
     private Instant registrationCreatedAt;
 

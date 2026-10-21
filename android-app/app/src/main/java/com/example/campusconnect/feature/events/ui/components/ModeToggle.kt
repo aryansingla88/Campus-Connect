@@ -33,7 +33,7 @@ fun ModeToggle(
             .clip(RoundedCornerShape(26.dp))
             .background(
                 if (selected)
-                    Color(0xFFFF4D00)
+                    Color(0xFFFF6F00)
                 else
                     Color.Transparent
             )
