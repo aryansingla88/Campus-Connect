@@ -69,6 +69,7 @@ public class PostMapper {
 
         return PostResponse.builder()
                 .id(post.getId())
+                .postType(post.getPostType())
                 .username(post.getCreator().getUsername())
                 .title(post.getTitle())
                 .body(post.getContentRaw())
@@ -82,6 +83,7 @@ public class PostMapper {
                 .isEdited(post.getUpdatedAt() != null && post.getCreatedAt() != null
                         && post.getUpdatedAt().isAfter(post.getCreatedAt().plusSeconds(1)))
                 .canDelete(canDelete)
+                .eventId(post.getEventId())
                 .build();
     }
 

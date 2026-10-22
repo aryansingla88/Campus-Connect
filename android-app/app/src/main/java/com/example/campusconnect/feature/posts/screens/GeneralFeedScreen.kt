@@ -22,6 +22,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -32,15 +33,18 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.campusconnect.core.ui.theme.*
 import com.example.campusconnect.feature.posts.components.FeedTopBar
+import com.example.campusconnect.feature.posts.components.EventPostCard
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
+import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
 import com.example.campusconnect.feature.posts.models.VoteType
@@ -61,6 +65,9 @@ fun GeneralFeedScreen(
     var posts by remember {
     mutableStateOf<List<Post>>(emptyList())
 }
+    var eventPosts by remember { mutableStateOf<List<PostEvent>>(emptyList()) }
+    var isLoadingEventPosts by remember { mutableStateOf(true) }
+    var eventPostsError by remember { mutableStateOf<String?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -93,10 +100,14 @@ fun GeneralFeedScreen(
     }
 
     var voteError by remember { mutableStateOf<String?>(null) }
+    var votingEventPostIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
 
     var postToDelete by remember { mutableStateOf<Post?>(null) }
     var deleteError by remember { mutableStateOf<String?>(null) }
     var isDeleting by remember { mutableStateOf(false) }
+    var eventPostToDelete by remember { mutableStateOf<PostEvent?>(null) }
+    var eventPostDeleteError by remember { mutableStateOf<String?>(null) }
+    var isDeletingEventPost by remember { mutableStateOf(false) }
 
     LaunchedEffect(refreshTrigger) {
         isLoading = true
@@ -132,6 +143,13 @@ fun GeneralFeedScreen(
         countsLoading = false
 
         isLoading = false
+
+        isLoadingEventPosts = true
+        eventPostsError = null
+        viewModel.getEventPosts()
+            .onSuccess { eventPosts = it }
+            .onFailure { eventPostsError = it.message ?: "Failed to load event posts." }
+        isLoadingEventPosts = false
     }
 
 
@@ -268,8 +286,55 @@ fun GeneralFeedScreen(
         result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
     }
 
+    fun updateEventVoteCounts(postId: Int, from: VoteType?, to: VoteType?) {
+        eventPosts = eventPosts.map { currentEvent ->
+            if (currentEvent.postId != postId) {
+                currentEvent
+            } else {
+                currentEvent.copy(
+                    upvotes = (currentEvent.upvotes
+                        - (if (from == VoteType.UPVOTE) 1 else 0)
+                        + (if (to == VoteType.UPVOTE) 1 else 0)).coerceAtLeast(0),
+                    downvotes = (currentEvent.downvotes
+                        - (if (from == VoteType.DOWNVOTE) 1 else 0)
+                        + (if (to == VoteType.DOWNVOTE) 1 else 0)).coerceAtLeast(0),
+                    userVote = to
+                )
+            }
+        }
+    }
 
-    var selectedTab by remember {
+    suspend fun handleEventVote(event: PostEvent, requestedVote: VoteType) {
+        val postId = event.postId ?: return
+        if (postId in votingEventPostIds) return
+
+        val previousVote = event.userVote
+        val nextVote = if (previousVote == requestedVote) null else requestedVote
+        votingEventPostIds = votingEventPostIds + postId
+        voteError = null
+        updateEventVoteCounts(postId, previousVote, nextVote)
+
+        try {
+            val result = when {
+                previousVote == requestedVote -> viewModel.removePostVote(postId)
+                requestedVote == VoteType.UPVOTE -> viewModel.upvotePost(postId)
+                else -> viewModel.downvotePost(postId)
+            }
+
+            result.onFailure { error ->
+                updateEventVoteCounts(postId, nextVote, previousVote)
+                voteError = error.message ?: "Couldn't update your vote."
+            }
+        } catch (error: Exception) {
+            updateEventVoteCounts(postId, nextVote, previousVote)
+            voteError = error.message ?: "Couldn't update your vote."
+        } finally {
+            votingEventPostIds = votingEventPostIds - postId
+        }
+    }
+
+
+    var selectedTab by rememberSaveable {
         mutableIntStateOf(initialTab)
     }
 
@@ -531,13 +596,46 @@ fun GeneralFeedScreen(
                 }
 
                 1 -> {
-
-                    Text(
-
-                        text = "Events Feed Coming Soon",
-
-                        modifier = Modifier.padding(padding)
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(padding)
+                    ) {
+                        FeedTopBar(currentTitle = "Events")
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                        ) {
+                            voteError?.let { message ->
+                                item(key = "event-vote-error") { Text(message, color = ErrorRed) }
+                            }
+                            if (isLoadingEventPosts && eventPosts.isEmpty()) {
+                                item { Text("Loading event posts…") }
+                            } else if (eventPostsError != null && eventPosts.isEmpty()) {
+                                item { Text(eventPostsError!!, color = ErrorRed) }
+                            } else if (eventPosts.isEmpty()) {
+                                item { Text("No event posts yet.", color = HintColor) }
+                            } else {
+                                items(eventPosts, key = { it.id }) { event ->
+                                    EventPostCard(
+                                        event = event,
+                                        isVoting = event.postId?.let(votingEventPostIds::contains) == true,
+                                        onClick = { event.postId?.let(onPostClick) },
+                                        onEditClick = { event.postId?.let(onEditPostClick) },
+                                        onDeleteClick = {
+                                            eventPostToDelete = event
+                                            eventPostDeleteError = null
+                                        },
+                                        onUpvoteClick = {
+                                            coroutineScope.launch { handleEventVote(event, VoteType.UPVOTE) }
+                                        },
+                                        onDownvoteClick = {
+                                            coroutineScope.launch { handleEventVote(event, VoteType.DOWNVOTE) }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 2 -> {
@@ -599,6 +697,63 @@ fun GeneralFeedScreen(
             text = { Text(message) },
             confirmButton = {
                 TextButton(onClick = { deleteError = null; postToDelete = null }) { Text("OK") }
+            }
+        )
+    }
+
+    eventPostToDelete?.let { eventPost ->
+        AlertDialog(
+            onDismissRequest = { if (!isDeletingEventPost) eventPostToDelete = null },
+            title = { Text("Delete event post?") },
+            text = {
+                Text("The event post’s description and attached media will be removed. The event details, comments, replies, and votes will remain.")
+            },
+            containerColor = White,
+            titleContentColor = LabelColor,
+            textContentColor = LabelColor,
+            confirmButton = {
+                TextButton(
+                    colors = ButtonDefaults.textButtonColors(contentColor = OrangePrimary),
+                    enabled = !isDeletingEventPost,
+                    onClick = {
+                        val postId = eventPost.postId ?: return@TextButton
+                        isDeletingEventPost = true
+                        coroutineScope.launch {
+                            val deleteResult = viewModel.deletePost(postId)
+                            deleteResult
+                                .onSuccess {
+                                    eventPosts = eventPosts.filterNot { it.postId == postId }
+                                    eventPostToDelete = null
+                                }
+                                .onFailure {
+                                    eventPostDeleteError = it.message ?: "Couldn’t delete the event post."
+                                }
+                            isDeletingEventPost = false
+                        }
+                    }
+                ) { Text(if (isDeletingEventPost) "Deleting…" else "Delete") }
+            },
+            dismissButton = {
+                TextButton(
+                    colors = ButtonDefaults.textButtonColors(contentColor = OrangePrimary),
+                    enabled = !isDeletingEventPost,
+                    onClick = { eventPostToDelete = null }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    eventPostDeleteError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { eventPostDeleteError = null; eventPostToDelete = null },
+            title = { Text("Couldn’t delete event post") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { eventPostDeleteError = null; eventPostToDelete = null }) {
+                    Text("OK")
+                }
             }
         )
     }

@@ -81,6 +81,39 @@ public class LocalMediaStorageService implements MediaStorageService {
     }
 
     @Override
+    public String copy(String storedUrl, MediaType type) {
+        String prefix = "/uploads/";
+        if (storedUrl == null || !storedUrl.startsWith(prefix)) {
+            throw new IllegalArgumentException("Stored media URL is invalid");
+        }
+
+        Path source = uploadRoot.resolve(storedUrl.substring(prefix.length())).normalize();
+        if (!source.startsWith(uploadRoot) || !Files.isRegularFile(source)) {
+            throw new IllegalArgumentException("Stored media file was not found");
+        }
+
+        String filename = UUID.randomUUID() + extensionOf(source.getFileName().toString());
+        Path directory = uploadRoot.resolve(type.getDirectory()).normalize();
+        Path target = directory.resolve(filename).normalize();
+        if (!directory.startsWith(uploadRoot) || !target.startsWith(directory)) {
+            throw new IllegalArgumentException("Invalid media path");
+        }
+
+        try {
+            Files.createDirectories(directory);
+            Files.copy(source, target);
+            return prefix + type.getDirectory() + "/" + filename;
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to copy media file", e);
+        }
+    }
+
+    private String extensionOf(String filename) {
+        int dotIndex = filename.lastIndexOf('.');
+        return dotIndex >= 0 ? filename.substring(dotIndex) : "";
+    }
+
+    @Override
     public void delete(String url) {
 
         if (url == null || url.isBlank()) {

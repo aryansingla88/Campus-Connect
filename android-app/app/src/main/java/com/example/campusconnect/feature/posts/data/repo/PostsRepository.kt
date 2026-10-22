@@ -8,6 +8,8 @@ import com.example.campusconnect.feature.posts.models.CommentDeleteResponse
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
+import com.example.campusconnect.feature.posts.models.PostEvent
+import com.example.campusconnect.feature.posts.models.PostEventCategory
 
 interface PostsRepository {
 
@@ -18,6 +20,12 @@ interface PostsRepository {
     suspend fun getTags(): Result<List<PostTag>>
 
     suspend fun getGeneralTagCounts(): Result<List<PostTagCount>>
+
+    suspend fun getMyEvents(): Result<List<PostEvent>>
+
+    suspend fun getEventCategories(): Result<List<PostEventCategory>>
+
+    suspend fun getEventPosts(): Result<List<PostEvent>>
 
     suspend fun getPost(
         postId: Int
@@ -31,7 +39,9 @@ interface PostsRepository {
         title: String,
         body: String,
         tags: List<PostTag>,
-        image: Uri?
+        image: Uri?,
+        eventId: Int? = null,
+        eventCategoryId: Int? = null
     ): Result<Post>
 
     suspend fun updatePost(
@@ -42,7 +52,11 @@ interface PostsRepository {
 
         tags: List<PostTag>,
 
-        image: Uri?
+        image: Uri?,
+
+        eventCategoryId: Int? = null,
+
+        removeImage: Boolean = false
     ): Result<Post>
 
     suspend fun deletePost(

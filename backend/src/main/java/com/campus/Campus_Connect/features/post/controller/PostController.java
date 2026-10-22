@@ -10,6 +10,7 @@ import com.campus.Campus_Connect.features.post.dto.response.CommentDeleteRespons
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagCountResponse;
+import com.campus.Campus_Connect.features.post.dto.response.EventPostResponse;
 import com.campus.Campus_Connect.features.post.service.PostService;
 import com.campus.Campus_Connect.common.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
@@ -38,14 +39,21 @@ public class PostController {
             @RequestParam("postType")
             String postType,
 
-            @RequestParam("tags")
+            @RequestParam(value = "tags", required = false)
             List<Integer> tags,
 
             @RequestParam(value = "image", required = false)
-            MultipartFile image
+            MultipartFile image,
+
+            @RequestParam(value = "eventId", required = false)
+            Integer eventId,
+
+            @RequestParam(value = "eventCategoryId", required = false)
+            Integer eventCategoryId
     ) {
 
-        if (tags == null || tags.isEmpty()) {
+        if ((postType == null || !postType.equalsIgnoreCase("EVENTS"))
+                && (tags == null || tags.isEmpty())) {
             throw new BadRequestException("At least one tag must be selected.");
         }
 
@@ -55,6 +63,8 @@ public class PostController {
                 .postType(postType)
                 .tags(tags)
                 .image(image)
+                .eventId(eventId)
+                .eventCategoryId(eventCategoryId)
                 .build();
 
         PostResponse response = postService.createPost(request);
@@ -63,6 +73,11 @@ public class PostController {
                 response,
                 "Post created successfully."
         );
+    }
+
+    @GetMapping("/events")
+    public ApiResponse<List<EventPostResponse>> getEventPosts() {
+        return ApiResponse.success(postService.getEventPosts(), null);
     }
     @DeleteMapping("/{postId}")
     public ApiResponse<Void> deletePost(
@@ -105,13 +120,20 @@ public class PostController {
     public ApiResponse<PostResponse> updatePost(
             @PathVariable Integer postId,
             @RequestParam("body") String body,
-            @RequestParam("tags") List<Integer> tags,
-            @RequestParam(value = "image", required = false) MultipartFile image
+            @RequestParam(value = "tags", required = false) List<Integer> tags,
+            @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "eventCategoryId", required = false) Integer eventCategoryId,
+            @RequestParam(value = "removeImage", defaultValue = "false") boolean removeImage
     ) {
 
         PostResponse response = postService.updatePost(
                 postId,
-                UpdatePostRequest.builder().body(body).tags(tags).build(),
+                UpdatePostRequest.builder()
+                        .body(body)
+                        .tags(tags)
+                        .eventCategoryId(eventCategoryId)
+                        .removeImage(removeImage)
+                        .build(),
                 image
         );
 

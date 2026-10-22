@@ -27,4 +27,13 @@ data class Post(
 
     val canDelete: Boolean = false,
     val isEdited: Boolean = false,
+    val postType: String = "GENERAL",
+    val eventCategoryName: String? = null,
+    val eventOrganizerName: String? = null,
+    val eventVenue: String? = null,
+    val eventLatitude: Double? = null,
+    val eventLongitude: Double? = null,
+    val eventStartTime: String? = null,
+    val eventId: Int? = null,
+    val eventCategoryId: Int? = null,
 )

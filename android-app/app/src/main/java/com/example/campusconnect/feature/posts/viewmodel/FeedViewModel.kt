@@ -8,6 +8,7 @@ import com.example.campusconnect.feature.posts.data.repo.PostsRepository
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
+import com.example.campusconnect.feature.posts.models.PostEventCategory
 import java.io.File
 class FeedViewModel(
     private val repository: PostsRepository = ApiPostsRepository()
@@ -34,14 +35,22 @@ class FeedViewModel(
         return repository.getGeneralTagCounts()
     }
 
+    suspend fun getMyEvents() = repository.getMyEvents()
+
+    suspend fun getEventCategories(): Result<List<PostEventCategory>> = repository.getEventCategories()
+
+    suspend fun getEventPosts() = repository.getEventPosts()
+
     suspend fun createPost(
         postType: String,
         title: String,
         body: String,
         tags: List<PostTag>,
-        image: Uri?
+        image: Uri?,
+        eventId: Int? = null,
+        eventCategoryId: Int? = null
     ): Result<Post> {
-        return repository.createPost(postType, title, body, tags, image)
+        return repository.createPost(postType, title, body, tags, image, eventId, eventCategoryId)
 
     }
 
@@ -49,8 +58,10 @@ class FeedViewModel(
         postId: Int,
         body: String,
         tags: List<PostTag>,
-        image: Uri?
-    ): Result<Post> = repository.updatePost(postId, body, tags, image)
+        image: Uri?,
+        eventCategoryId: Int? = null,
+        removeImage: Boolean = false
+    ): Result<Post> = repository.updatePost(postId, body, tags, image, eventCategoryId, removeImage)
 
     suspend fun upvotePost(
         postId: Int

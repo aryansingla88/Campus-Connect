@@ -6,5 +6,7 @@ public interface MediaStorageService {
 
     String store(MultipartFile file, MediaType type);
 
+    String copy(String storedUrl, MediaType type);
+
     void delete(String url);
 }

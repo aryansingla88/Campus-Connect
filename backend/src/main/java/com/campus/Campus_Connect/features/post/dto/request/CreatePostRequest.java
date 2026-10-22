@@ -28,5 +28,9 @@ public class CreatePostRequest {
     @NotEmpty(message = "At least one tag must be selected")
     private List<Integer> tags;
 
+    private Integer eventId;
+
+    private Integer eventCategoryId;
+
     private MultipartFile image;
 }
