@@ -13,6 +13,8 @@ private fun formatEventTime(value: String, pattern: String): String = try {
 
 fun formatEventDate(value: String): String = formatEventTime(value, "MMM d, yyyy")
 
+fun formatEventDateWithoutYear(value: String): String = formatEventTime(value, "MMM d")
+
 fun formatEventClockTime(value: String): String = formatEventTime(value, "h:mm a")
 
 fun formatEventDateTime(value: String): String =

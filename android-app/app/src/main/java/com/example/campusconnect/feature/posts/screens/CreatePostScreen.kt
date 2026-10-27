@@ -57,10 +57,10 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.campusconnect.core.ui.theme.ErrorRed
 import com.example.campusconnect.core.ui.theme.LabelColor
-import com.example.campusconnect.core.ui.theme.OrangeBg
 import com.example.campusconnect.core.ui.theme.OrangeBorder
 import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
+import com.example.campusconnect.core.ui.theme.PostsBackground
 import com.example.campusconnect.core.ui.theme.White
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostEvent
@@ -192,7 +192,7 @@ fun CreatePostScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = OrangeBg
+        containerColor = PostsBackground
     ) { padding ->
         Column(
             modifier = Modifier
@@ -213,9 +213,9 @@ fun CreatePostScreen(
                             Text(type.lowercase().replaceFirstChar { it.uppercase() })
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = OrangeBg,
+                            containerColor = White,
                             labelColor = Color.Black,
-                            selectedContainerColor = OrangeBg,
+                            selectedContainerColor = White,
                             selectedLabelColor = OrangePrimary
                         ),
                         border = BorderStroke(
@@ -292,6 +292,8 @@ fun CreatePostScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = White,
+                                    unfocusedContainerColor = White,
                                     focusedBorderColor = OrangePrimary,
                                     unfocusedBorderColor = OrangeBorder,
                                     focusedLabelColor = OrangePrimary,
@@ -319,9 +321,9 @@ fun CreatePostScreen(
                                             onClick = { selectedEventCategoryId = category.id },
                                             label = { Text(category.name) },
                                             colors = FilterChipDefaults.filterChipColors(
-                                                containerColor = OrangeBg,
+                                                containerColor = White,
                                                 labelColor = LabelColor,
-                                                selectedContainerColor = OrangeLight,
+                                                selectedContainerColor = White,
                                                 selectedLabelColor = OrangePrimary
                                             ),
                                             border = BorderStroke(
@@ -346,6 +348,8 @@ fun CreatePostScreen(
                                 label = { Text("Event post description") },
                                 minLines = 4,
                                 colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = White,
+                                    unfocusedContainerColor = White,
                                     focusedBorderColor = OrangePrimary,
                                     unfocusedBorderColor = OrangeBorder,
                                     focusedLabelColor = OrangePrimary,
@@ -409,7 +413,10 @@ fun CreatePostScreen(
             OutlinedTextField(
                 value = title,
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = White,
+                    unfocusedContainerColor = White,
                     focusedBorderColor = OrangePrimary,
+                    unfocusedBorderColor = OrangeBorder,
                     focusedLabelColor = OrangePrimary,
                     cursorColor = OrangePrimary
                 ),
@@ -425,7 +432,10 @@ fun CreatePostScreen(
             OutlinedTextField(
                 value = body,
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = White,
+                    unfocusedContainerColor = White,
                     focusedBorderColor = OrangePrimary,
+                    unfocusedBorderColor = OrangeBorder,
                     focusedLabelColor = OrangePrimary,
                     cursorColor = OrangePrimary
                 ),
@@ -459,9 +469,9 @@ fun CreatePostScreen(
                             },
                             label = { Text(tag.name) },
                             colors = FilterChipDefaults.filterChipColors(
-                                containerColor = OrangeBg,
+                                containerColor = White,
                                 labelColor = LabelColor,
-                                selectedContainerColor = OrangeLight,
+                                selectedContainerColor = White,
                                 selectedLabelColor = OrangePrimary
                             ),
                             border = BorderStroke(

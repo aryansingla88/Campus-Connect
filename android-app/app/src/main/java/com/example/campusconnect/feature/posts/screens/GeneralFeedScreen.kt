@@ -36,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.campusconnect.core.ui.theme.*
@@ -466,7 +467,7 @@ fun GeneralFeedScreen(
 
             modifier = Modifier
                 .fillMaxSize()
-                .background(OrangeBg)
+                .background(PostsBackground)
         ) {
 
             when (selectedTab) {
@@ -638,14 +639,13 @@ fun GeneralFeedScreen(
                     }
                 }
 
-                2 -> {
-
-                    Text(
-
-                        text = "Custom Rooms Coming Soon",
-
-                        modifier = Modifier.padding(padding)
-                    )
+                2 -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Custom Rooms Coming Soon")
                 }
             }
         }

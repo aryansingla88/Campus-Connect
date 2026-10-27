@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Schedule
@@ -38,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.campusconnect.core.ui.theme.HintColor
@@ -69,7 +72,13 @@ fun PostDetailCard(
     ) {
         Column(Modifier.padding(16.dp)) {
             if (isEventPost) {
-                EventHeader(post)
+                EventHeader(
+                    post = post,
+                    showMenu = showMenu,
+                    onMenuExpandedChange = { showMenu = it },
+                    onDeleteClick = onDeleteClick,
+                    onEditClick = onEditClick
+                )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
@@ -101,24 +110,49 @@ fun PostDetailCard(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(post.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    post.tags.firstOrNull()?.name?.let { tagName ->
+                post.tags.firstOrNull()?.name?.takeIf(String::isNotBlank)?.let { tagName ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
                         Surface(shape = RoundedCornerShape(50), color = OrangeLight) {
-                            Text(tagName, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), color = OrangePrimary)
+                            Text(
+                                text = tagName,
+                                modifier = Modifier
+                                    .widthIn(max = 180.dp)
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = OrangePrimary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+                Text(post.title, style = MaterialTheme.typography.titleMedium)
             }
 
             if (isEventPost) {
                 post.eventCategoryName?.takeIf(String::isNotBlank)?.let { category ->
-                    Surface(shape = RoundedCornerShape(50), color = OrangeLight, modifier = Modifier.padding(top = 10.dp)) {
-                        Text(category, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), color = OrangePrimary)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Surface(shape = RoundedCornerShape(18.dp), color = OrangeLight) {
+                            Text(
+                                text = category,
+                                modifier = Modifier
+                                    .widthIn(max = 180.dp)
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = OrangePrimary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
@@ -179,21 +213,82 @@ fun PostDetailCard(
                     onUpvoteClick = onUpvoteClick,
                     onDownvoteClick = onDownvoteClick
                 )
-                Text("💬 $commentCount")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.ChatBubbleOutline,
+                        contentDescription = "Comments",
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(19.dp)
+                    )
+                    Text(" $commentCount", color = HintColor, style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun EventHeader(post: Post) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(42.dp).background(OrangeLight, CircleShape), contentAlignment = Alignment.Center) {
-            Text(post.eventOrganizerName?.firstOrNull()?.uppercase() ?: post.title.firstOrNull()?.uppercase() ?: "E", color = OrangePrimary)
+private fun EventHeader(
+    post: Post,
+    showMenu: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    onDeleteClick: () -> Unit,
+    onEditClick: () -> Unit
+) {
+    Row(verticalAlignment = Alignment.Top) {
+        Box(
+            Modifier
+                .padding(top = 2.dp)
+                .size(42.dp)
+                .background(OrangeLight, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                post.eventOrganizerName?.firstOrNull()?.uppercase()
+                    ?: post.title.firstOrNull()?.uppercase() ?: "E",
+                color = OrangePrimary
+            )
         }
-        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+        Column(Modifier.weight(1f).padding(start = 10.dp, end = 4.dp)) {
             Text(post.title, style = MaterialTheme.typography.titleMedium)
-            Text(post.eventOrganizerName.orEmpty(), style = MaterialTheme.typography.bodySmall, color = HintColor)
+            Text(
+                post.eventOrganizerName.orEmpty(),
+                modifier = Modifier.padding(top = 2.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = HintColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (post.isEdited) {
+                Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
+            }
+        }
+        if (post.canDelete) {
+            Box {
+                IconButton(onClick = { onMenuExpandedChange(true) }) {
+                    Icon(Icons.Outlined.MoreVert, contentDescription = "Post options", tint = HintColor)
+                }
+                MaterialTheme(
+                    colorScheme = MaterialTheme.colorScheme.copy(
+                        surface = OrangeLight,
+                        primary = OrangePrimary
+                    )
+                ) {
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { onMenuExpandedChange(false) }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit post") },
+                            onClick = { onMenuExpandedChange(false); onEditClick() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete post") },
+                            onClick = { onMenuExpandedChange(false); onDeleteClick() }
+                        )
+                    }
+                }
+            }
         }
     }
 }
