@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.map.data.local
+package com.example.campusconnect.feature.metadata.poi.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

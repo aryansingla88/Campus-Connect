@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.map.data.repo
 
 import com.example.campusconnect.core.network.RetrofitClient
-import com.example.campusconnect.feature.map.data.PoiRepository
+import com.example.campusconnect.feature.metadata.poi.PoiRepository
 import com.example.campusconnect.feature.map.data.mapper.MapEventMapper
 import com.example.campusconnect.feature.map.data.mapper.MapPoiMapper
 import com.example.campusconnect.feature.map.data.mapper.MapUserMapper

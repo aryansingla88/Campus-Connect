@@ -10,7 +10,7 @@ import java.time.format.DateTimeParseException
 
 class RegistrationConfigRepository {
     companion object {
-        /** Temporary until event integration supplies the real event ID. */
+        /** Used only by the development registration entry point from TestScreen2. */
         const val TEMP_EVENT_ID = 3
 
         fun quickFieldIds(mask: Long): Set<String> = quickFieldBits
@@ -31,8 +31,8 @@ class RegistrationConfigRepository {
 
     private val api = RetrofitClient.eventsApi
 
-    suspend fun load(): LoadResult {
-        val response = api.getRegistrationConfig(TEMP_EVENT_ID)
+    suspend fun load(eventId: Int): LoadResult {
+        val response = api.getRegistrationConfig(eventId)
         val body = response.body()
         if (!response.isSuccessful) {
             return LoadResult.Failure("Could not load registration settings (HTTP ${response.code()}).")
@@ -49,7 +49,7 @@ class RegistrationConfigRepository {
         return LoadResult.Failure(message.ifBlank { "Could not load registration settings." })
     }
 
-    suspend fun save(settings: RegistrationSettings, exists: Boolean): Result<Unit> {
+    suspend fun save(eventId: Int, settings: RegistrationSettings, exists: Boolean): Result<Unit> {
         if (settings.minMembers < 1 || settings.minMembers > RegistrationSettings.MAX_TEAM_SIZE ||
             settings.maxMembers < settings.minMembers || settings.maxMembers > RegistrationSettings.MAX_TEAM_SIZE ||
             (settings.minMembers > 1 && settings.maxMembers < 2)
@@ -65,9 +65,9 @@ class RegistrationConfigRepository {
         )
         return try {
             val response = if (exists) {
-                api.updateRegistrationConfig(TEMP_EVENT_ID, request)
+                api.updateRegistrationConfig(eventId, request)
             } else {
-                api.createRegistrationConfig(TEMP_EVENT_ID, request)
+                api.createRegistrationConfig(eventId, request)
             }
             val body = response.body()
             if (response.isSuccessful && body?.success == true && body.data != null) {
@@ -83,8 +83,8 @@ class RegistrationConfigRepository {
         }
     }
 
-    suspend fun saveQuickFields(mask: Long): Result<RegistrationSettings> = try {
-        val response = api.updateQuickFieldsConfig(TEMP_EVENT_ID, QuickFieldsConfigRequest(mask))
+    suspend fun saveQuickFields(eventId: Int, mask: Long): Result<RegistrationSettings> = try {
+        val response = api.updateQuickFieldsConfig(eventId, QuickFieldsConfigRequest(mask))
         val body = response.body()
         if (response.isSuccessful && body?.success == true && body.data != null) {
             Result.success(body.data.toSettings())

@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.map.data.local
+package com.example.campusconnect.feature.metadata.poi.local
 
 import com.example.campusconnect.feature.map.data.remote.response.PoiResponse
 

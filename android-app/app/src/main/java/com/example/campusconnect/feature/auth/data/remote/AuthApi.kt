@@ -8,6 +8,7 @@ import com.example.campusconnect.feature.auth.data.remote.response.CurrentUserRe
 import com.example.campusconnect.feature.auth.data.remote.request.RequestPasswordResetRequest
 import com.example.campusconnect.feature.auth.data.remote.request.VerifyPasswordResetOtpRequest
 import com.example.campusconnect.feature.auth.data.remote.request.ResetPasswordRequest
+import com.example.campusconnect.feature.auth.data.remote.request.ChangePasswordRequest
 import com.example.campusconnect.feature.auth.data.remote.response.VerifyPasswordResetOtpResponse
 
 import retrofit2.Response
@@ -40,6 +41,11 @@ interface AuthApi {
     @POST("auth/password-reset/reset")
     suspend fun resetPassword(
         @Body request: ResetPasswordRequest
+    ): Response<ApiResponse<Void>>
+
+    @POST("auth/change-password")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequest
     ): Response<ApiResponse<Void>>
 
     @GET("auth/me")

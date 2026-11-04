@@ -35,6 +35,12 @@ public class User {
 
     public enum Role {
         STUDENT,
+        CLUB_ADMIN,
+        TEACHER,
+        DEV,
+        CAMPUS_CONNECT,
+        // Retained only so existing database values deserialize without being
+        // silently promoted or rewritten. SecurityConfig grants neither role.
         ADMIN,
         MODERATOR
     }

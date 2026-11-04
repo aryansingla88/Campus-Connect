@@ -1,8 +1,8 @@
-package com.example.campusconnect.feature.map.data
+package com.example.campusconnect.feature.metadata.poi
 
 import android.content.Context
-import com.example.campusconnect.core.database.AppDatabase
 import com.example.campusconnect.core.network.RetrofitClient
+import com.example.campusconnect.core.database.AppDatabase
 
 internal object PoiRepositoryProvider {
     @Volatile private var instance: PoiRepository? = null

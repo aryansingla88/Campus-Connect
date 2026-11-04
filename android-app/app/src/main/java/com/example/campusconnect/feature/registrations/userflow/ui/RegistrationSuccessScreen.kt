@@ -49,6 +49,7 @@ fun RegistrationSuccessScreen(
     eventName: String,
     receipt: SubmissionReceipt,
     onViewRegistration: () -> Unit,
+    onViewTeamPortal: (() -> Unit)? = null,
     onBackToEvent: () -> Unit,
 ) {
     var shown by remember { mutableStateOf(false) }
@@ -102,6 +103,17 @@ fun RegistrationSuccessScreen(
             colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary, contentColor = Color.White),
             modifier = Modifier.fillMaxWidth().height(52.dp),
         ) { Text("View My Registration", fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+
+        if (onViewTeamPortal != null) {
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onViewTeamPortal,
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.5.dp, OrangePrimary),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+            ) { Text("Open Team Portal", fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+        }
 
         Spacer(Modifier.height(12.dp))
         OutlinedButton(

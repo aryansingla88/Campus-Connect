@@ -34,12 +34,23 @@ fun NavGraphBuilder.RegistrationNav(
     onViewResponses: (eventId: Int) -> Unit = {},
 ) {
 
-    // TestScreen's participant entry point. The wrapper keeps participant answers and
-    // selected team/mode while switching between the existing flow composables.
-    composable(route = "user_registration") {
-        val eventId = RegistrationConfigRepository.TEMP_EVENT_ID
+    // Participant entry point from event previews. Keep registration state scoped to
+    // the selected event while switching between the details and submission stages.
+    composable(
+        route = "user_registration/{eventId}",
+        arguments = listOf(navArgument("eventId") { type = NavType.IntType }),
+    ) { backStackEntry ->
+        val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
         ParticipantRegistrationHost(
             eventId = eventId,
+            navController = navController,
+        )
+    }
+
+    // Retain the development entry point used by TestScreen2.
+    composable(route = "user_registration") {
+        ParticipantRegistrationHost(
+            eventId = RegistrationConfigRepository.TEMP_EVENT_ID,
             navController = navController,
         )
     }
@@ -53,12 +64,13 @@ fun NavGraphBuilder.RegistrationNav(
         ),
     ) { backStackEntry ->
 
-        val eventId = RegistrationConfigRepository.TEMP_EVENT_ID
+        val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
         val eventViewModel: RegistrationEventViewModel = viewModel(backStackEntry)
         val eventState by eventViewModel.state.collectAsState()
         LaunchedEffect(eventId) { eventViewModel.load(eventId) }
         val configViewModel: RegistrationConfigViewModel = viewModel(backStackEntry)
         val configState by configViewModel.state.collectAsState()
+        LaunchedEffect(eventId) { configViewModel.load(eventId) }
 
         RegistrationSetupScreen(
             eventName = eventState.title ?: "Event #$eventId",
@@ -292,6 +304,7 @@ private fun ParticipantRegistrationHost(
     var mode by remember { mutableStateOf<ParticipationMode?>(null) }
     var participantAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var teamId by remember { mutableStateOf<Int?>(null) }
+    var openPortalAfterSubmission by remember { mutableStateOf(false) }
 
     val leaveFlow: () -> Unit = { navController.popBackStack() }
     val continueToSubmission = { selectedMode: ParticipationMode, answers: Map<Int, String>, selectedTeamId: Int? ->
@@ -304,6 +317,7 @@ private fun ParticipantRegistrationHost(
     when (stage) {
         ParticipantRegistrationStage.DETAILS -> UserRegistrationFlow(
             eventId = eventId,
+            openTeamPortalOnStart = openPortalAfterSubmission,
             onExit = leaveFlow,
             onCreateTeam = { answers ->
                 continueToSubmission(ParticipationMode.CREATE_TEAM, answers, null)
@@ -331,6 +345,10 @@ private fun ParticipantRegistrationHost(
             onExit = { stage = ParticipantRegistrationStage.DETAILS },
             // There is no participant registration-details destination in the current app.
             onViewRegistration = { leaveFlow() },
+            onViewTeamPortal = {
+                openPortalAfterSubmission = true
+                stage = ParticipantRegistrationStage.DETAILS
+            },
             onBackToEvent = { leaveFlow() },
         )
     }

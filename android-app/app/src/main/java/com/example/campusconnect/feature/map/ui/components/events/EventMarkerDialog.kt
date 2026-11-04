@@ -268,6 +268,17 @@ private fun EventQuickPreviewContent(
     val sheetHeightFraction = 0.80f
 
     val displayRegistrationsCount = registrationsCount ?: event.registrationCount
+    val registrationType = event.registrationType?.trim()?.uppercase()
+    val hasRegistrationLink = event.registrationLink?.trim()?.let { link ->
+        link.startsWith("https://", ignoreCase = true) ||
+                link.startsWith("http://", ignoreCase = true)
+    } ?: false
+    val registrationEnabled = when (registrationType) {
+        "THROUGH_APP" -> true
+        "THROUGH_LINK" -> hasRegistrationLink
+        else -> false
+    }
+    val registrationLabel = if (registrationEnabled) "Register at" else "Open entry"
     val displayEventType = eventType ?: event.eventType
     val displayHosts = event.hosts.map { it.name }
     val hostLabel = event.creatorName?.takeIf { it.isNotBlank() }
@@ -392,7 +403,9 @@ private fun EventQuickPreviewContent(
                 )
 
                 RegisterActionButton(
-                    isJoined = event.isJoined,
+                    isJoined = registrationType == "THROUGH_APP" && event.isJoined,
+                    label = registrationLabel,
+                    enabled = registrationEnabled,
                     onClick = onRegisterClick,
                     modifier = Modifier.weight(1f)
                 )

@@ -24,11 +24,15 @@ fun UserRegistrationFlow(
     onContinueSolo: (answers: Map<Int, String>) -> Unit = {},
     onJoinRequested: (TeamSummary, answers: Map<Int, String>) -> Unit = { _, _ -> },
     onInviteAccepted: (TeamInvite, answers: Map<Int, String>) -> Unit = { _, _ -> },
+    openTeamPortalOnStart: Boolean = false,
     viewModel: UserRegistrationViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(eventId) { viewModel.start(eventId) }
+    LaunchedEffect(eventId, openTeamPortalOnStart) {
+        if (openTeamPortalOnStart) viewModel.openTeamPortal()
+    }
 
     BackHandler { if (!viewModel.back()) onExit() }
 

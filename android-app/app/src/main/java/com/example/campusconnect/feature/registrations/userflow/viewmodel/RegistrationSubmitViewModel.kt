@@ -61,12 +61,19 @@ class RegistrationSubmitViewModel(
         viewModelScope.launch {
             // Team-level answers belong to the participant creating the team.
             // Solo participants and accepted team members should not fill them again.
-            val questionsResult: Result<List<UserQuestion>> = if (ctx.mode == ParticipationMode.CREATE_TEAM) {
-                repository.getTeamQuestions(ctx.eventId)
-            } else {
-                Result.success(emptyList())
+            if (ctx.mode != ParticipationMode.CREATE_TEAM) {
+                _state.update { it.copy(questions = emptyList(), phase = SubmitPhase.Submitting) }
+                repository.submit(SubmissionRequest(ctx, emptyMap(), emptyMap())).fold(
+                    onSuccess = { receipt -> _state.update { it.copy(phase = SubmitPhase.Success(receipt)) } },
+                    onFailure = { error -> _state.update { it.copy(
+                        phase = SubmitPhase.LoadFailed(error.message ?: "Couldn't submit."),
+                        transientError = error.message ?: "Couldn't submit your registration. Please try again.",
+                    ) } },
+                )
+                return@launch
             }
-            questionsResult.fold(
+
+            repository.getTeamQuestions(ctx.eventId).fold(
                 onSuccess = { questions ->
                     _state.update { it.copy(questions = questions, phase = SubmitPhase.Form) }
                     // Nothing to ask: submit straight away.

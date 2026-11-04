@@ -93,6 +93,13 @@ fun TeamPortalScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            PortalTabs(
+                selected = tab,
+                availableCount = teams.size,
+                inviteCount = invites.size,
+                onSelect = { tab = it },
+            )
+
             SearchAndFilterRow(
                 query = query,
                 onQueryChange = onQueryChange,
@@ -100,13 +107,6 @@ fun TeamPortalScreen(
                 tagFilter = tagFilter,
                 onTagFilterChange = onTagFilterChange,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            )
-
-            PortalTabs(
-                selected = tab,
-                availableCount = teams.size,
-                inviteCount = invites.size,
-                onSelect = { tab = it },
             )
 
             when (portal) {

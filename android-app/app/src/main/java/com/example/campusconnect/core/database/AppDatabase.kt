@@ -6,8 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.campusconnect.feature.map.data.local.PoiDao
-import com.example.campusconnect.feature.map.data.local.PoiEntity
+import com.example.campusconnect.feature.metadata.poi.local.PoiDao
+import com.example.campusconnect.feature.metadata.poi.local.PoiEntity
 import com.example.campusconnect.feature.metadata.courses.local.CourseDao
 import com.example.campusconnect.feature.metadata.courses.local.CourseEntity
 import com.example.campusconnect.feature.metadata.clubs.local.ClubDao

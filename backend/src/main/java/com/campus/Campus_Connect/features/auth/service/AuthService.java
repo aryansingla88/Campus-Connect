@@ -21,6 +21,7 @@ import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
 import com.campus.Campus_Connect.features.auth.dto.request.RequestPasswordResetRequest;
 import com.campus.Campus_Connect.features.auth.dto.request.VerifyPasswordResetOtpRequest;
 import com.campus.Campus_Connect.features.auth.dto.request.ResetPasswordRequest;
+import com.campus.Campus_Connect.features.auth.dto.request.ChangePasswordRequest;
 import com.campus.Campus_Connect.features.auth.dto.response.VerifyPasswordResetOtpResponse;
 import com.campus.Campus_Connect.features.auth.entity.PasswordResetToken;
 import com.campus.Campus_Connect.features.auth.repository.PasswordResetTokenRepository;
@@ -90,6 +91,7 @@ public class AuthService {
 
         AuthResponse response = AuthResponse.builder()
                 .token(token)
+                .role(user.getRole())
                 .build();
 
         return ApiResponse.success(
@@ -126,6 +128,7 @@ public class AuthService {
 
         AuthResponse response = AuthResponse.builder()
                 .token(token)
+                .role(foundUser.getRole())
                 .build();
 
 
@@ -559,5 +562,27 @@ public class AuthService {
                 null,
                 "Password reset successfully."
         );
+    }
+
+    @Transactional
+    public ApiResponse<Void> changePassword(ChangePasswordRequest request) {
+        User user = SecurityUtils.getCurrentUser();
+
+        if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank() ||
+                !passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            return ApiResponse.failure("Current password is incorrect.");
+        }
+
+        String newPassword = request.getNewPassword();
+        if (newPassword == null || newPassword.length() < 8) {
+            return ApiResponse.failure("New password must be at least 8 characters long.");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            return ApiResponse.failure("Choose a password you have not used before.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        return ApiResponse.success(null, "Password changed successfully.");
     }
 }

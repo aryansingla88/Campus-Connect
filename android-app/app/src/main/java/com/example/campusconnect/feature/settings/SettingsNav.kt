@@ -15,6 +15,8 @@ import com.example.campusconnect.feature.settings.ui.screen.NotificationsScreen
 import com.example.campusconnect.feature.settings.ui.screen.ProfileVisibilityScreen
 import com.example.campusconnect.feature.settings.ui.screen.SettingsScreen
 import com.example.campusconnect.feature.settings.viewmodel.SettingsViewModel
+import com.example.campusconnect.core.session.SessionManager
+import com.example.campusconnect.core.session.AppAccessPolicy
 
 // --- Route constants -----------------------------------------------------------------
 object SettingsRoutes {
@@ -66,7 +68,7 @@ private fun sharedSettingsViewModel(
 
 
 // - Nav graph -----------------------------------------------------------------
-// Sub-destinations that AREN'T built yet (Change Password, Manage Data, Privacy &
+// Sub-destinations that AREN'T built yet (Manage Data, Privacy &
 // Security, Help & FAQ, Contact Us, Terms & Policies, About) still resolve to a route
 // string via SettingsDestinations so they can be registered elsewhere later — same
 // deferral pattern ProfileNav uses for its own "settings" route.
@@ -95,6 +97,15 @@ fun NavGraphBuilder.SettingsNav(
                     }
                 },
                 onNavigate = { route -> navController.navigate(route) },
+                onLogout = {
+                    val authenticatedHome = SessionManager.accountRole.value
+                        ?.let(AppAccessPolicy::startRoute) ?: "map"
+                    SessionManager.clearSession()
+                    navController.navigate("login") {
+                        popUpTo(authenticatedHome) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
                 onConfirmDeleteAccount = {
                     // TODO
                     // Actual delete flow (API call, sign-out, navigation) isn't one of

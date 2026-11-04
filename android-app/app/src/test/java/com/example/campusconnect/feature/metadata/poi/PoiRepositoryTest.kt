@@ -1,9 +1,9 @@
-package com.example.campusconnect.feature.map.data
+package com.example.campusconnect.feature.metadata.poi
 
 import com.example.campusconnect.core.network.ApiResponse
-import com.example.campusconnect.feature.map.data.local.PoiDao
-import com.example.campusconnect.feature.map.data.local.PoiEntity
-import com.example.campusconnect.feature.map.data.local.toEntity
+import com.example.campusconnect.feature.metadata.poi.local.PoiDao
+import com.example.campusconnect.feature.metadata.poi.local.PoiEntity
+import com.example.campusconnect.feature.metadata.poi.local.toEntity
 import com.example.campusconnect.feature.map.data.remote.response.PoiResponse
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -12,7 +12,7 @@ import org.junit.Test
 
 class PoiRepositoryTest {
     @Test
-    fun successfulEmptyResponseIsCachedAsAValidEmptyDataset() = runBlocking {
+    fun successfulEmptyResponseUpdatesRefreshTimeButEmptyCacheIsRetried() = runBlocking {
         var requests = 0
         val cache = FakeCacheState()
         val repository = repository(
@@ -25,8 +25,8 @@ class PoiRepositoryTest {
 
         assertTrue(repository.getPois().isSuccess)
         assertTrue(repository.getPois().getOrThrow().isEmpty())
-        assertEquals(1, requests)
-        assertEquals(0, cache.rowCount)
+        assertEquals(2, requests)
+        assertEquals(NOW + 6 * 60 * 1000L, cache.lastRefresh)
     }
 
     @Test
@@ -43,8 +43,8 @@ class PoiRepositoryTest {
     }
 
     @Test
-    fun freshMetadataWithMissingRowsTriggersRefresh() = runBlocking {
-        val cache = FakeCacheState().apply { markRefreshed(NOW, rowCount = 2) }
+    fun staleMetadataCacheRefreshes() = runBlocking {
+        val cache = FakeCacheState().apply { updateLastRefreshTime(NOW - CACHE_MS - 1) }
         val repository = repository(cache = cache, fetch = {
             ApiResponse(true, listOf(poi(1), poi(2)), null)
         })
@@ -52,16 +52,14 @@ class PoiRepositoryTest {
         val result = repository.getPois().getOrThrow()
 
         assertEquals(listOf(1, 2), result.map { it.id })
-        assertTrue(cache.isCacheConsistent(2))
+        assertEquals(NOW + 6 * 60 * 1000L, cache.lastRefresh)
     }
 
     @Test
     fun failedRefreshReturnsStaleRowsAndDoesNotReplaceThem() = runBlocking {
         val stalePoi = poi(7).toEntity()
         val dao = FakePoiDao(mutableListOf(stalePoi))
-        val cache = FakeCacheState().apply {
-            markRefreshed(NOW - CACHE_MS - 1, rowCount = 1)
-        }
+        val cache = FakeCacheState().apply { updateLastRefreshTime(NOW - CACHE_MS - 1) }
         val repository = repository(dao, cache, fetch = {
             ApiResponse(success = false, data = null, message = "offline")
         })
@@ -83,9 +81,7 @@ class PoiRepositoryTest {
                 throw IllegalStateException("insert failed")
             }
         }
-        val cache = FakeCacheState().apply {
-            markRefreshed(NOW - CACHE_MS - 1, rowCount = 1)
-        }
+        val cache = FakeCacheState().apply { updateLastRefreshTime(NOW - CACHE_MS - 1) }
         val repository = repository(dao, cache, fetch = {
             ApiResponse(true, listOf(poi(10)), null)
         })
@@ -108,18 +104,6 @@ class PoiRepositoryTest {
     }
 
     @Test
-    fun refreshCooldownPreventsRepeatedRequestsWhenNoCacheExists() = runBlocking {
-        var requests = 0
-        val cache = FakeCacheState().apply { markRefreshAttempt(NOW) }
-        val repository = repository(cache = cache, now = NOW + 60_000, fetch = {
-            requests++
-            ApiResponse(true, listOf(poi(1)), null)
-        })
-
-        assertTrue(repository.getPois().isFailure)
-        assertEquals(0, requests)
-    }
-
     @Test
     fun categoryFilteringUsesCachedBaseDataset() = runBlocking {
         var requests = 0
@@ -177,27 +161,13 @@ class PoiRepositoryTest {
     }
 
     private class FakeCacheState : PoiCacheState {
-        private var refreshed = false
-        private var lastRefresh = 0L
-        private var lastAttempt = 0L
-        var rowCount: Int? = null
-            private set
-
-        override fun hasSuccessfulCache() = refreshed
-        override fun isCacheConsistent(rowCount: Int) = refreshed && this.rowCount == rowCount
+        var lastRefresh = 0L
         override fun isExpired(now: Long) = now - lastRefresh > CACHE_MS
-        override fun canAttemptRefresh(now: Long) = now - lastAttempt >= RETRY_MS
-        override fun markRefreshAttempt(now: Long) { lastAttempt = now }
-        override fun markRefreshed(now: Long, rowCount: Int) {
-            lastRefresh = now
-            this.rowCount = rowCount
-            refreshed = true
-        }
+        override fun updateLastRefreshTime(now: Long) { lastRefresh = now }
     }
 
     private companion object {
         const val NOW = 10_000_000L
         const val CACHE_MS = 7 * 24 * 60 * 60 * 1000L
-        const val RETRY_MS = 5 * 60 * 1000L
     }
 }

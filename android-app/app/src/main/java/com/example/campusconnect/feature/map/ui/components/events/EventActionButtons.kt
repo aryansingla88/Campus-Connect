@@ -211,23 +211,26 @@ internal fun NotifyMeButton(
 @Composable
 internal fun RegisterActionButton(
     isJoined: Boolean,
+    label: String,
+    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
-    var registered by remember(isJoined) {
-        mutableStateOf(isJoined)
-    }
+    val registered = isJoined
 
     val backgroundColor =
-        if (registered) {
+        if (!enabled && !registered) {
+            Color(0xFFE5E5E5)
+        } else if (registered) {
             Color.White
         } else {
             OrangePrimary
         }
 
     val contentColor =
-        if (registered) {
+        if (!enabled && !registered) {
+            Color(0xFF777777)
+        } else if (registered) {
             OrangePrimary
         } else {
             Color.White
@@ -257,12 +260,7 @@ internal fun RegisterActionButton(
                     Modifier
                 }
             )
-            .clickable {
-
-                registered = !registered
-
-                onClick()
-            },
+            .clickable(enabled = enabled && !registered, onClick = onClick),
         horizontalArrangement =
             Arrangement.Center,
         verticalAlignment =
@@ -280,7 +278,7 @@ internal fun RegisterActionButton(
                 if (registered) {
                     "Registered"
                 } else {
-                    "Register"
+                    label
                 },
             tint = contentColor,
             modifier = Modifier.size(18.dp)
@@ -295,7 +293,7 @@ internal fun RegisterActionButton(
                 if (registered) {
                     "Registered"
                 } else {
-                    "Register"
+                    label
                 },
             color = contentColor,
             fontSize = 15.sp,

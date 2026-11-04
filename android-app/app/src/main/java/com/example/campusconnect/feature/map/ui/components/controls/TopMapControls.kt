@@ -69,7 +69,8 @@ internal fun TopMapControls(
     searchSuggestions: List<MapMarker>,
     onSearchSuggestionSelected: (MapMarker) -> Unit,
     onProfileClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    showAccountActions: Boolean = true
 ) {
     Row(
         modifier = modifier
@@ -77,13 +78,14 @@ internal fun TopMapControls(
             .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RoundIconButton(
-            icon = Icons.Default.Person,
-            contentDescription = "Profile",
-            onClick = onProfileClick
-        )
-
-        Spacer(modifier = Modifier.width(14.dp))
+        if (showAccountActions) {
+            RoundIconButton(
+                icon = Icons.Default.Person,
+                contentDescription = "Profile",
+                onClick = onProfileClick
+            )
+            Spacer(modifier = Modifier.width(14.dp))
+        }
 
         BoxWithConstraints(modifier = Modifier.weight(1f)) {
             Box(modifier = Modifier.clip(RoundedCornerShape(30.dp))) {
@@ -151,13 +153,14 @@ internal fun TopMapControls(
             }
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
-
-        RoundIconButton(
-            icon = Icons.Default.Settings,
-            contentDescription = "Settings",
-            onClick = onSettingsClick
-        )
+        if (showAccountActions) {
+            Spacer(modifier = Modifier.width(14.dp))
+            RoundIconButton(
+                icon = Icons.Default.Settings,
+                contentDescription = "Settings",
+                onClick = onSettingsClick
+            )
+        }
     }
 }
 
@@ -193,6 +196,7 @@ internal fun RightSideTabs(
     filtersAvailable: Boolean,
     expandedFilterRows: Int,
     selectedSidePanel: SidePanel,
+    showSocialTabs: Boolean = true,
     onFiltersClick: () -> Unit,
     onBoardClick: () -> Unit,
     onPostsClick: () -> Unit,
@@ -235,19 +239,20 @@ internal fun RightSideTabs(
             if (showFilters) Spacer(Modifier.height(boardPostsOffset))
         }
 
-        SideTab(
-            text = "BOARD",
-            icon = Icons.Default.Chat,
-            selected = selectedSidePanel == SidePanel.CHAT,
-            onClick = onBoardClick
-        )
-
-        SideTab(
-            text = "POSTS",
-            icon = Icons.Default.Article,
-            selected = selectedSidePanel == SidePanel.PROFILE,
-            onClick = onPostsClick
-        )
+        if (showSocialTabs) {
+            SideTab(
+                text = "BOARD",
+                icon = Icons.Default.Chat,
+                selected = selectedSidePanel == SidePanel.CHAT,
+                onClick = onBoardClick
+            )
+            SideTab(
+                text = "POSTS",
+                icon = Icons.Default.Article,
+                selected = selectedSidePanel == SidePanel.PROFILE,
+                onClick = onPostsClick
+            )
+        }
     }
 }
 

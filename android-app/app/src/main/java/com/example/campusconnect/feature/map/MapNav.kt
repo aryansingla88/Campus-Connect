@@ -72,7 +72,10 @@ fun NavGraphBuilder.mapNav(
                 navController.navigate(
                     EVENTS_POSTER_VIEW
                 )
-            }
+            },
+            onInAppRegistrationClick = { eventId ->
+                navController.navigate("user_registration/$eventId")
+            },
         )
     }
 }

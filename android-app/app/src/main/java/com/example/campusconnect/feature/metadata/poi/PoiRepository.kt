@@ -1,13 +1,17 @@
-package com.example.campusconnect.feature.map.data
+package com.example.campusconnect.feature.metadata.poi
 
-import com.example.campusconnect.feature.map.data.local.PoiDao
-import com.example.campusconnect.feature.map.data.local.toEntity
-import com.example.campusconnect.feature.map.data.local.toResponse
+import com.example.campusconnect.feature.metadata.poi.local.PoiDao
+import com.example.campusconnect.feature.metadata.poi.local.toEntity
+import com.example.campusconnect.feature.metadata.poi.local.toResponse
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.map.data.remote.response.PoiResponse
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+
+interface PoiCacheState {
+    fun isExpired(now: Long): Boolean
+    fun updateLastRefreshTime(now: Long)
+}
 
 /** Single Room-backed cache for ordinary POI metadata; category filtering is local. */
 class PoiRepository(
@@ -42,28 +46,16 @@ class PoiRepository(
     private suspend fun ensureFresh(): Result<Unit> = refreshMutex.withLock {
         val cached = dao.getAll()
         val now = nowMillis()
-        if (cacheManager.isCacheConsistent(cached.size) && !cacheManager.isExpired(now)) {
+        if (cached.isNotEmpty() && !cacheManager.isExpired(now)) {
             return@withLock Result.success(Unit)
         }
-
-        if (!cacheManager.canAttemptRefresh(now)) {
-            return@withLock if (cached.isNotEmpty()) {
-                Result.success(Unit)
-            } else {
-                Result.failure(IllegalStateException("POI refresh recently failed and no cache is available"))
-            }
-        }
-
-        cacheManager.markRefreshAttempt(now)
         try {
             val response = fetchPois()
             check(response.success) { response.message ?: "Unable to refresh POIs" }
             val pois = requireNotNull(response.data) { "POI response contained no data" }
             dao.replaceAll(pois.map { it.toEntity() })
-            cacheManager.markRefreshed(nowMillis(), dao.getAll().size)
+            cacheManager.updateLastRefreshTime(nowMillis())
             Result.success(Unit)
-        } catch (error: CancellationException) {
-            throw error
         } catch (error: Exception) {
             if (cached.isNotEmpty()) Result.success(Unit) else Result.failure(error)
         }

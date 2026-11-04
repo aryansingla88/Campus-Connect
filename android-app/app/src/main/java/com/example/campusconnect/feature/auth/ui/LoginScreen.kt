@@ -72,6 +72,7 @@ import com.example.campusconnect.feature.auth.viewmodel.PasswordResetViewModel
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onServerUnavailable: () -> Unit,
     onNavigateToRegister: () -> Unit,
     viewModel: LoginViewModel = viewModel(),
     passwordResetViewModel: PasswordResetViewModel = viewModel()
@@ -81,6 +82,7 @@ fun LoginScreen(
     val password by viewModel.password.collectAsState()
     val warning by viewModel.warning.collectAsState()
     val loginSuccess by viewModel.loginSuccess.collectAsState()
+    val serverUnavailable by viewModel.serverUnavailable.collectAsState()
     val resetStep by
     passwordResetViewModel
         .currentStep
@@ -124,6 +126,10 @@ fun LoginScreen(
         if (loginSuccess) {
             onLoginSuccess()
         }
+    }
+
+    LaunchedEffect(serverUnavailable) {
+        if (serverUnavailable) onServerUnavailable()
     }
 
     Box(

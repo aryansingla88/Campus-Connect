@@ -24,7 +24,7 @@ import com.example.campusconnect.feature.events.model.ParticipantTeam
 import com.example.campusconnect.feature.events.model.SoloParticipant
 import com.example.campusconnect.feature.events.model.TeamMember
 import com.example.campusconnect.feature.events.model.UserAccess
-import com.example.campusconnect.feature.map.data.PoiRepositoryProvider
+import com.example.campusconnect.feature.metadata.poi.PoiRepositoryProvider
 import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.metadata.clubs.Club

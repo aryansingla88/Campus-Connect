@@ -52,6 +52,7 @@ fun RegistrationSubmitFlow(
     mode: ParticipationMode,
     onExit: () -> Unit,
     onViewRegistration: (SubmissionReceipt) -> Unit,
+    onViewTeamPortal: (() -> Unit)? = null,
     onBackToEvent: () -> Unit,
     teamId: Int? = null,
     participantAnswers: Map<Int, String> = emptyMap(),
@@ -130,6 +131,7 @@ fun RegistrationSubmitFlow(
                         eventName = eventName,
                         receipt = receipt,
                         onViewRegistration = { onViewRegistration(receipt) },
+                        onViewTeamPortal = if (mode == ParticipationMode.CREATE_TEAM) onViewTeamPortal else null,
                         onBackToEvent = onBackToEvent,
                     )
                 }

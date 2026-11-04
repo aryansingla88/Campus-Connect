@@ -25,13 +25,19 @@ class RegistrationConfigViewModel(
     val state = _state.asStateFlow()
     private var loadedQuickFieldMask: Long? = null
     private var loadedSettings: RegistrationSettings? = null
+    private var eventId: Int? = null
 
-    init { load() }
+    fun load(eventId: Int) {
+        if (this.eventId == eventId && !_state.value.loadFailed) return
+        this.eventId = eventId
+        loadCurrentEvent()
+    }
 
-    private fun load() = viewModelScope.launch {
+    private fun loadCurrentEvent() = viewModelScope.launch {
+        val selectedEventId = eventId ?: return@launch
         _state.value = _state.value.copy(loading = true, error = null, loadFailed = false)
         try {
-            when (val result = repository.load()) {
+            when (val result = repository.load(selectedEventId)) {
                 is RegistrationConfigRepository.LoadResult.Existing -> {
                     loadedQuickFieldMask = result.settings.quickFieldMask
                     loadedSettings = result.settings
@@ -59,10 +65,11 @@ class RegistrationConfigViewModel(
     }
 
     fun save(onComplete: (Boolean) -> Unit = {}) = viewModelScope.launch {
+        val selectedEventId = eventId ?: return@launch
         val current = _state.value
         if (current.loading || current.saving || current.error != null) return@launch
         _state.value = current.copy(saving = true, error = null, saved = false)
-        val result = repository.save(current.settings, current.configExists)
+        val result = repository.save(selectedEventId, current.settings, current.configExists)
         _state.value = _state.value.copy(
             saving = false,
             configExists = if (result.isSuccess) true else current.configExists,
@@ -77,6 +84,7 @@ class RegistrationConfigViewModel(
     }
 
     fun saveQuickFields(onComplete: (Boolean) -> Unit = {}) = viewModelScope.launch {
+        val selectedEventId = eventId ?: return@launch
         val current = _state.value
         if (current.loading || current.saving || current.loadFailed) return@launch
         _state.value = current.copy(saving = true, error = null, saved = false)
@@ -92,7 +100,7 @@ class RegistrationConfigViewModel(
             val settingsWithSavedMask = current.settings.copy(
                 quickFieldMask = loadedQuickFieldMask ?: 0L,
             )
-            val configResult = repository.save(settingsWithSavedMask, current.configExists)
+            val configResult = repository.save(selectedEventId, settingsWithSavedMask, current.configExists)
             if (configResult.isFailure) {
                 val error = configResult.exceptionOrNull()
                 _state.value = _state.value.copy(saving = false, saved = false,
@@ -109,7 +117,7 @@ class RegistrationConfigViewModel(
             onComplete(true)
             return@launch
         }
-        repository.saveQuickFields(current.settings.quickFieldMask).fold(
+        repository.saveQuickFields(selectedEventId, current.settings.quickFieldMask).fold(
             onSuccess = { savedSettings ->
                 loadedQuickFieldMask = savedSettings.quickFieldMask
                 loadedSettings = savedSettings
@@ -126,5 +134,7 @@ class RegistrationConfigViewModel(
         )
     }
 
-    fun retryLoad() = load()
+    fun retryLoad() {
+        eventId?.let(::load)
+    }
 }

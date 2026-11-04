@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.core.session.SessionManager
+import com.example.campusconnect.core.session.AppRole
 import com.example.campusconnect.feature.auth.data.remote.request.LoginRequest
+import java.io.IOException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -25,6 +27,9 @@ class LoginViewModel : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _serverUnavailable = MutableStateFlow(false)
+    val serverUnavailable: StateFlow<Boolean> = _serverUnavailable
     // whenever user types something then onUsernameChange is called and updates _username with that thing
     fun onUsernameChange(value: String) {
         _username.value = value
@@ -53,6 +58,7 @@ class LoginViewModel : ViewModel() {
         viewModelScope.launch {
 
             _isLoading.value = true
+            _serverUnavailable.value = false
             _warning.value = ""
 
             try {
@@ -71,20 +77,24 @@ class LoginViewModel : ViewModel() {
                 ) {
 
                     val authResponse = response.body()!!.data!!
-
-                    SessionManager.saveToken(
-                        authResponse.token
-                    )
-
-                    _loginSuccess.value = true
+                    val role = AppRole.parse(authResponse.role)
+                    if (role == null) {
+                        _warning.value = "This account has an unsupported role. Contact support."
+                    } else {
+                        SessionManager.saveToken(authResponse.token, role)
+                        _loginSuccess.value = true
+                    }
 
                 } else {
-
-                    _warning.value =
-                        response.body()?.message
-                            ?: "Login failed"
+                    if (response.code() >= 500) {
+                        _serverUnavailable.value = true
+                    } else {
+                        _warning.value = response.body()?.message ?: "Login failed"
+                    }
                 }
 
+            } catch (e: IOException) {
+                _serverUnavailable.value = true
             } catch (e: Exception) {
 
                 _warning.value =
