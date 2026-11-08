@@ -1,4 +1,6 @@
-package com.example.campusconnect.feature.registrations.ui.components
+package com.example.campusconnect.feature.registrations.ui.components.responses
+
+import com.example.campusconnect.feature.registrations.ui.components.*
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -323,9 +325,3 @@ private fun QuickFieldCell(field: QuickFieldValue, modifier: Modifier) {
     }
 }
 
-// ── Bits ──────────────────────────────────────────────────────────────────────
-
-@Composable
-fun SubtleDivider(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEDEEF0)))
-}

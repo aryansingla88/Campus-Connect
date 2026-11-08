@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.registrations.ui.screens
 
 import com.example.campusconnect.feature.registrations.ui.components.*
+import com.example.campusconnect.feature.registrations.ui.components.team.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -39,10 +40,10 @@ import com.example.campusconnect.feature.registrations.model.TeamPortalData
 import com.example.campusconnect.feature.registrations.model.UserRegistrationStep
 import com.example.campusconnect.feature.registrations.viewmodel.PortalState
 
-private enum class PortalTab { AVAILABLE, INVITES }
+
 
 private val PortalPageBg = Color(0xFFFBF7F4)
-private val ChipBg = Color(0xFFF1F2F4)
+
 
 /** Step 2/3: browse available teams and request to join, or answer invites. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +70,7 @@ fun TeamPortalScreen(
     onErrorShown: () -> Unit,
     onBack: () -> Unit,
 ) {
-    var tab by rememberSaveable { mutableStateOf(PortalTab.AVAILABLE) }
+    var tab by rememberSaveable { mutableStateOf(TeamPortalTab.AVAILABLE) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(transientError) {
@@ -104,7 +105,7 @@ fun TeamPortalScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (data?.currentTeam == null) {
-                PortalTabs(
+                TeamPortalTabs(
                     selected = tab,
                     availableCount = teams.size,
                     inviteCount = invites.size,
@@ -132,321 +133,31 @@ fun TeamPortalScreen(
                     TextButton(onClick = onRetry) { Text("Retry", color = OrangePrimary) }
                 }
 
-                is PortalState.Loaded -> if (data?.currentTeam != null) {
-                    if (data.currentUserIsLeader) {
+                is PortalState.Loaded -> {
+                    val loadedData = portal.data
+                    if (loadedData.currentTeam != null && loadedData.currentUserIsLeader) {
                         LeaderTeamPortalContent(
-                            data = data,
+                            data = loadedData,
                             query = query,
                             pendingJoinRequestIds = pendingJoinRequestIds,
                             pendingInviteSendIds = pendingInviteSendIds,
                             onJoinRequestResponse = onJoinRequestResponse,
                             onInviteCandidate = onInviteCandidate,
                         )
-                    } else {
-                        Column(
-                            Modifier.fillMaxSize().padding(24.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text("You’re on ${data.currentTeam.name}", fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                            Spacer(Modifier.height(8.dp))
-                            Text("${data.currentTeam.memberCount}/${data.currentTeam.maxMembers} members · Led by ${data.currentTeam.leaderName}",
-                                color = TextSecondary, textAlign = TextAlign.Center)
-                            Spacer(Modifier.height(20.dp))
-                            Button(onClick = { onContinueWithTeam(data.currentTeam) }) {
-                                Text("Continue registration")
-                            }
-                        }
-                    }
-                } else LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    when (tab) {
-                        PortalTab.AVAILABLE -> {
-                            if (filtered.isEmpty()) {
-                                item {
-                                    EmptyMessage(
-                                        if (teams.isEmpty()) "No teams are available yet."
-                                        else "No teams match your search."
-                                    )
-                                }
-                            }
-                            items(filtered, key = { it.id }) { team ->
-                                TeamCard(
-                                    team = team,
-                                    requested = team.id in requestedTeamIds,
-                                    pending = team.id in pendingTeamIds,
-                                    onRequest = { onRequestToJoin(team) },
-                                )
-                            }
-                        }
-
-                        PortalTab.INVITES -> {
-                            if (invites.isEmpty()) item { EmptyMessage("You have no pending invites.") }
-                            items(invites, key = { it.id }) { invite ->
-                                TeamInviteCard(
-                                    invite = invite,
-                                    pending = invite.id in pendingInviteIds,
-                                    onResponse = { accept -> onInviteResponse(invite, accept) },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LeaderTeamPortalContent(
-    data: TeamPortalData,
-    query: String,
-    pendingJoinRequestIds: Set<Int>,
-    pendingInviteSendIds: Set<Int>,
-    onJoinRequestResponse: (TeamJoinRequest, Boolean) -> Unit,
-    onInviteCandidate: (TeamInviteCandidate) -> Unit,
-) {
-    val team = data.currentTeam ?: return
-    val candidates = data.inviteCandidates.filter { it.displayName.contains(query.trim(), true) }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item {
-            Surface(shape = RoundedCornerShape(16.dp), color = CardBg, border = BorderStroke(1.dp, Color(0xFFEDEEF0))) {
-                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(team.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text("${team.memberCount}/${team.maxMembers} members · minimum ${team.minMembers}", color = TextSecondary)
-                    Text("Registration: ${team.registrationStatus}", color = TextSecondary)
-                }
-            }
-        }
-        item { Text("Members", fontWeight = FontWeight.SemiBold, color = TextPrimary) }
-        items(data.members, key = { "member-${it.registrationId}" }) { member ->
-            Surface(shape = RoundedCornerShape(12.dp), color = CardBg) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(member.displayName, fontWeight = FontWeight.Medium, color = TextPrimary)
-                        Text(member.status, fontSize = 12.sp, color = TextSecondary)
-                    }
-                    if (member.userId == team.leaderUserId) Text("Leader", color = OrangePrimary, fontSize = 12.sp)
-                }
-            }
-        }
-        item { Text("Join requests", fontWeight = FontWeight.SemiBold, color = TextPrimary) }
-        if (data.pendingJoinRequests.isEmpty()) item { Text("No pending join requests.", color = TextSecondary) }
-        items(data.pendingJoinRequests, key = { "request-${it.requestId}" }) { request ->
-            Surface(shape = RoundedCornerShape(12.dp), color = CardBg) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(request.participantName, Modifier.weight(1f), color = TextPrimary)
-                    TextButton(enabled = request.requestId !in pendingJoinRequestIds,
-                        onClick = { onJoinRequestResponse(request, false) }) { Text("Reject") }
-                    Button(enabled = request.requestId !in pendingJoinRequestIds,
-                        onClick = { onJoinRequestResponse(request, true) }) { Text("Accept") }
-                }
-            }
-        }
-        item { Text("Invite participants", fontWeight = FontWeight.SemiBold, color = TextPrimary) }
-        if (candidates.isEmpty()) item { Text("No eligible participants found.", color = TextSecondary) }
-        items(candidates, key = { "candidate-${it.registrationId}" }) { candidate ->
-            Surface(shape = RoundedCornerShape(12.dp), color = CardBg) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(candidate.displayName, Modifier.weight(1f), color = TextPrimary)
-                    Button(enabled = candidate.registrationId !in pendingInviteSendIds && team.memberCount < team.maxMembers,
-                        onClick = { onInviteCandidate(candidate) }) { Text("Invite") }
-                }
-            }
-        }
-    }
-}
-
-// ── Search + filter ───────────────────────────────────────────────────────────
-
-@Composable
-private fun SearchAndFilterRow(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    tags: List<String>,
-    tagFilter: String?,
-    onTagFilterChange: (String?) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var menuOpen by remember { mutableStateOf(false) }
-
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        TextField(
-            value = query,
-            onValueChange = onQueryChange,
-            placeholder = { Text("Search teams by name or leader...", fontSize = 13.sp, maxLines = 1) },
-            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = CardBg,
-                unfocusedContainerColor = CardBg,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                cursorColor = OrangePrimary,
-            ),
-            modifier = Modifier
-                .weight(1f)
-                .border(1.dp, Color(0xFFE6E8EC), RoundedCornerShape(12.dp)),
-        )
-        Box {
-            val active = tagFilter != null
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (active) OrangeLight else CardBg)
-                    .border(1.dp, if (active) OrangePrimary else Color(0xFFE6E8EC), RoundedCornerShape(12.dp))
-                    .clickable { menuOpen = true },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.FilterList,
-                    contentDescription = "Filter by tag",
-                    tint = if (active) OrangePrimary else TextPrimary,
-                )
-            }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text("All tags") },
-                    onClick = { onTagFilterChange(null); menuOpen = false },
-                )
-                tags.forEach { tag ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                tag,
-                                fontWeight = if (tag == tagFilter) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (tag == tagFilter) OrangePrimary else TextPrimary,
-                            )
-                        },
-                        onClick = { onTagFilterChange(tag); menuOpen = false },
+                    } else ParticipantTeamPortalContent(
+                        data = loadedData,
+                        selectedTab = tab,
+                        filteredTeams = filtered,
+                        requestedTeamIds = requestedTeamIds,
+                        pendingTeamIds = pendingTeamIds,
+                        respondedInviteIds = respondedInviteIds,
+                        pendingInviteIds = pendingInviteIds,
+                        onRequestToJoin = onRequestToJoin,
+                        onInviteResponse = onInviteResponse,
+                        onContinueWithTeam = onContinueWithTeam,
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PortalTabs(selected: PortalTab, availableCount: Int, inviteCount: Int, onSelect: (PortalTab) -> Unit) {
-    Row(Modifier.fillMaxWidth()) {
-        PortalTabItem("Available Teams ($availableCount)", selected == PortalTab.AVAILABLE, Modifier.weight(1f)) {
-            onSelect(PortalTab.AVAILABLE)
-        }
-        PortalTabItem("Invites ($inviteCount)", selected == PortalTab.INVITES, Modifier.weight(1f)) {
-            onSelect(PortalTab.INVITES)
-        }
-    }
-}
-
-@Composable
-private fun PortalTabItem(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier = modifier.clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            label,
-            fontSize = 14.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) OrangePrimary else TextSecondary,
-            modifier = Modifier.padding(vertical = 12.dp),
-        )
-        Box(
-            Modifier.fillMaxWidth().height(2.dp).background(if (selected) OrangePrimary else Color(0xFFE6E8EC))
-        )
-    }
-}
-
-// ── Cards ─────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun TeamCard(team: TeamSummary, requested: Boolean, pending: Boolean, onRequest: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = CardBg,
-        border = BorderStroke(1.dp, Color(0xFFEDEEF0)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            AppAvatar(entityId = team.id, displayName = team.name, size = 44.dp)
-
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    team.name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text("${team.memberCount}/${team.maxMembers} members", fontSize = 13.sp, color = TextSecondary)
-                if (team.tags.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 3.dp)) {
-                        team.tags.take(3).forEach { TagChip(it) }
-                        if (team.tags.size > 3) TagChip("+${team.tags.size - 3}")
-                    }
-                }
-            }
-
-            val enabled = !requested && !pending && !team.isFull
-            OutlinedButton(
-                onClick = onRequest,
-                enabled = enabled,
-                shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, if (enabled || pending) OrangePrimary else Color(0xFFD0D3D9)),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary),
-                contentPadding = PaddingValues(horizontal = 12.dp),
-                modifier = Modifier.height(36.dp),
-            ) {
-                if (pending) {
-                    CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = OrangePrimary)
-                } else {
-                    Text(
-                        when {
-                            requested -> "Requested"
-                            team.isFull -> "Full"
-                            else -> "Request to Join"
-                        },
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TagChip(text: String) {
-    Surface(shape = RoundedCornerShape(6.dp), color = ChipBg) {
-        Text(
-            text,
-            fontSize = 11.sp,
-            color = Color(0xFF445064),
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-        )
-    }
-}
-
-@Composable
-private fun EmptyMessage(text: String) {
-    Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
-        Text(text, fontSize = 14.sp, color = TextSecondary, textAlign = TextAlign.Center)
     }
 }

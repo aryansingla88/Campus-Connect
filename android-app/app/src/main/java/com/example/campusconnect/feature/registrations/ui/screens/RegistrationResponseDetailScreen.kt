@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.registrations.ui.screens
 
 import com.example.campusconnect.feature.registrations.ui.components.*
+import com.example.campusconnect.feature.registrations.ui.components.responses.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,9 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseItem
 import com.example.campusconnect.feature.registrations.ui.components.AccentPurple
 import com.example.campusconnect.feature.registrations.ui.components.CardBg
-import com.example.campusconnect.feature.registrations.ui.components.DetailLimits
 import com.example.campusconnect.feature.registrations.ui.components.OrangePrimary
-import com.example.campusconnect.feature.registrations.ui.components.RegistrationDetailBody
 import com.example.campusconnect.feature.registrations.ui.components.SubtleDivider
 import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
@@ -66,7 +65,9 @@ fun RegistrationResponseDetailScreen(
 ) {
     val detailStates by viewModel.details.collectAsState()
     val selectedMembers by viewModel.selectedMembers.collectAsState()
-    val state = detailStates[registrationId]
+    val listState by viewModel.listState.collectAsState()
+    val belongsToCurrentEvent = listState.eventId == eventId
+    val state = detailStates[registrationId].takeIf { belongsToCurrentEvent }
 
     // No-op when the list already loaded this registration.
     LaunchedEffect(eventId, registrationId) { viewModel.loadDetails(eventId, registrationId) }
@@ -137,7 +138,7 @@ fun RegistrationResponseDetailScreen(
                 is RegistrationDetailState.Loaded -> RegistrationDetailBody(
                     registrationId = registrationId,
                     detail = state.detail,
-                    selectedUserId = selectedMembers[registrationId],
+                    selectedUserId = selectedMembers[registrationId].takeIf { belongsToCurrentEvent },
                     onSelectMember = { viewModel.selectMember(registrationId, it) },
                     limits = DetailLimits.Full,
                 )

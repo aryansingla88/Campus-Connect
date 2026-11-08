@@ -14,15 +14,14 @@ class NetworkRegistrationResponseRepository(
     private val api: RegistrationApi = RetrofitClient.registrationApi,
     private val registrations: RegistrationRepository = NetworkRegistrationRepository(api),
 ) : RegistrationResponseRepository {
-    @Volatile private var fieldOrderById: Map<Int, Int> = emptyMap()
+    private val fieldOrderByEvent = java.util.concurrent.ConcurrentHashMap<Int, Map<Int, Int>>()
 
     override suspend fun getRegistrations(eventId: Int): Result<List<RegistrationResponseItem>> = try {
-        fieldOrderById = emptyMap()
         val items = api.getEventRegistrations(eventId)
             .requireRegistrationData("Could not load registrations.")
         // Reuse registration question retrieval/mapping to retain answer ordering.
         registrations.loadQuestions(eventId).getOrNull()?.let { questions ->
-            fieldOrderById = questions.associate { question ->
+            fieldOrderByEvent[eventId] = questions.associate { question ->
                 requireNotNull(question.backendId) to question.fieldOrder
             }
         }
@@ -34,7 +33,7 @@ class NetworkRegistrationResponseRepository(
     override suspend fun getDetails(eventId: Int, registrationId: Int): Result<RegistrationDetailResponse> = try {
         val detail = api.getEventRegistration(eventId, registrationId)
             .requireRegistrationData("Could not load this registration's responses.")
-        Result.success(detail.toRegistrationDetailResponse(fieldOrderById))
+        Result.success(detail.toRegistrationDetailResponse(fieldOrderByEvent[eventId].orEmpty()))
     } catch (error: Exception) {
         Result.failure(error)
     }

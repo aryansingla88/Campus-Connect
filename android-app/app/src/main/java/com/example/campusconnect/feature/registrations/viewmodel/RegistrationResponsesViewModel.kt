@@ -49,17 +49,29 @@ class RegistrationResponsesViewModel(
     private val _expandedId = MutableStateFlow<Int?>(null)
     val expandedId: StateFlow<Int?> = _expandedId.asStateFlow()
 
+    private var eventGeneration = 0L
+    private var listRequestGeneration = 0L
+    private var reviewRequestGeneration = 0L
+    private val detailRequestGenerations = mutableMapOf<Int, Long>()
+
     fun loadRegistrations(eventId: Int, force: Boolean = false) {
         val current = _listState.value
         if (!force && current.eventId == eventId && (current.loading || current.loaded)) return
+        val eventChanged = current.eventId != eventId
+        if (eventChanged) {
+            eventGeneration++
+            _details.value = emptyMap()
+            detailRequestGenerations.clear()
+            _selectedMembers.value = emptyMap()
+            _expandedId.value = null
+        }
+        val requestEventGeneration = eventGeneration
+        val requestGeneration = ++listRequestGeneration
         _listState.value = RegistrationListUiState(eventId = eventId, loading = true)
-        _details.value = emptyMap()
-        _selectedMembers.value = emptyMap()
-        _expandedId.value = null
         viewModelScope.launch {
             repository.getRegistrations(eventId).fold(
                 onSuccess = { registrations ->
-                    if (_listState.value.eventId == eventId) {
+                    if (isCurrentEvent(eventId, requestEventGeneration) && requestGeneration == listRequestGeneration) {
                         _listState.value = RegistrationListUiState(
                             eventId = eventId,
                             loading = false,
@@ -69,7 +81,7 @@ class RegistrationResponsesViewModel(
                     }
                 },
                 onFailure = { error ->
-                    if (_listState.value.eventId == eventId) {
+                    if (isCurrentEvent(eventId, requestEventGeneration) && requestGeneration == listRequestGeneration) {
                         _listState.value = RegistrationListUiState(
                             eventId = eventId,
                             loading = false,
@@ -97,13 +109,18 @@ class RegistrationResponsesViewModel(
         val current = _details.value[registrationId]
         if (!force && (current is RegistrationDetailState.Loading || current is RegistrationDetailState.Loaded)) return
 
+        val requestEventGeneration = eventGeneration
+        val requestGeneration = (detailRequestGenerations[registrationId] ?: 0L) + 1L
+        detailRequestGenerations[registrationId] = requestGeneration
         _details.update { it + (registrationId to RegistrationDetailState.Loading) }
         viewModelScope.launch {
             val state = repository.getDetails(eventId, registrationId).fold(
                 onSuccess = { RegistrationDetailState.Loaded(it) },
                 onFailure = { RegistrationDetailState.Failed(it.message ?: "Couldn't load responses.") },
             )
-            if (_listState.value.eventId == eventId) {
+            if (isCurrentEvent(eventId, requestEventGeneration) &&
+                detailRequestGenerations[registrationId] == requestGeneration
+            ) {
                 _details.update { it + (registrationId to state) }
             }
         }
@@ -112,15 +129,26 @@ class RegistrationResponsesViewModel(
     fun reviewRegistration(registrationId: Int, approve: Boolean) {
         val eventId = _listState.value.eventId ?: return
         if (_listState.value.reviewingRegistrationId != null) return
+        val requestEventGeneration = eventGeneration
+        val requestGeneration = ++reviewRequestGeneration
         _listState.update { it.copy(reviewingRegistrationId = registrationId, reviewError = null) }
         viewModelScope.launch {
             repository.review(eventId, registrationId, approve).fold(
-                onSuccess = { loadRegistrations(eventId, force = true) },
-                onFailure = { error -> _listState.update { it.copy(
-                    reviewingRegistrationId = null,
-                    reviewError = error.message ?: "Could not update registration status.",
-                ) } },
+                onSuccess = {
+                    if (isCurrentEvent(eventId, requestEventGeneration) && requestGeneration == reviewRequestGeneration) {
+                        loadRegistrations(eventId, force = true)
+                    }
+                },
+                onFailure = { error -> if (isCurrentEvent(eventId, requestEventGeneration) && requestGeneration == reviewRequestGeneration) {
+                    _listState.update { it.copy(
+                        reviewingRegistrationId = null,
+                        reviewError = error.message ?: "Could not update registration status.",
+                    ) }
+                } },
             )
         }
     }
+
+    private fun isCurrentEvent(eventId: Int, generation: Long): Boolean =
+        _listState.value.eventId == eventId && eventGeneration == generation
 }

@@ -73,6 +73,39 @@ class NetworkRegistrationResponseRepositoryTest {
         assertEquals("Organizer access required", result.exceptionOrNull()?.message)
     }
 
+    @Test
+    fun fieldOrderingMetadataRemainsScopedToItsEvent() = kotlinx.coroutines.runBlocking {
+        val api = registrationApiStub { method, args ->
+            when (method) {
+                "getEventRegistrations" -> Response.success(envelope(listOf(
+                    RegistrationSubmissionResponse(args[0] as Int, "TEAM", "Robotics", 2, null, "CONFIRMED", null),
+                )))
+                "getRegistrationFields" -> {
+                    val fields = if (args[0] == 1) listOf(field(7, 0), field(8, 1))
+                    else listOf(field(7, 1), field(8, 0))
+                    Response.success(envelope(fields))
+                }
+                "getEventRegistration" -> Response.success(envelope(
+                    RegistrationSubmissionDetailResponse(
+                        teamAnswers = listOf(
+                            RegistrationAnswerDto(8, "Question 8", "TEXT", "eight"),
+                            RegistrationAnswerDto(7, "Question 7", "TEXT", "seven"),
+                        ),
+                        members = emptyList(),
+                    ),
+                ))
+                else -> error("Unexpected API call: $method")
+            }
+        }
+        val repository = NetworkRegistrationResponseRepository(api, NetworkRegistrationRepository(api))
+
+        repository.getRegistrations(1).getOrThrow()
+        repository.getRegistrations(2).getOrThrow()
+        val eventOneDetails = repository.getDetails(1, 40).getOrThrow()
+
+        assertEquals(listOf(7, 8), eventOneDetails.teamAnswers.map { it.fieldId })
+    }
+
     private fun field(id: Int, order: Int) = RegistrationFieldResponse(
         id = id,
         fieldLabel = "Question $id",

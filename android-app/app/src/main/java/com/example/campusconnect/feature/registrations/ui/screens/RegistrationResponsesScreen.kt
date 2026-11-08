@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.registrations.ui.screens
 import com.example.campusconnect.feature.registrations.ui.components.*
+import com.example.campusconnect.feature.registrations.ui.components.responses.*
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,32 +44,12 @@ import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseItem
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseStatus
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseType
+import com.example.campusconnect.feature.registrations.ui.model.ResponseSort
+import com.example.campusconnect.feature.registrations.ui.model.ResponseTab
+import com.example.campusconnect.feature.registrations.ui.model.countIn
+import com.example.campusconnect.feature.registrations.ui.model.forResponseList
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationDetailState
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationResponsesViewModel
-
-private enum class ResponseTab(val label: String) {
-    TOTAL("Total\nRegistrations"),
-    INDIVIDUAL("Individual"),
-    TEAMS("Teams"),
-    PENDING("Pending\nReview"),
-}
-
-private enum class ResponseSort(val label: String) {
-    LATEST("Latest first"),
-    OLDEST("Oldest first"),
-    NAME("Name A–Z"),
-}
-
-// Stat card palette (matches the design mockup)
-private val TotalBg = Color(0xFFFDEEE3)
-private val TotalFg = Color(0xFFF2570F)
-private val IndividualBg = Color(0xFFE3F8EE)
-private val IndividualFg = Color(0xFF12A05C)
-private val TeamsBg = Color(0xFFEDEBFC)
-private val TeamsFg = Color(0xFF6C4CF1)
-private val PendingBg = Color(0xFFFFF3E3)
-private val PendingFg = Color(0xFFF2570F)
-private val CardBorder = Color(0xFFE0E3E8)
 
 @Composable
 fun RegistrationResponsesScreen(
@@ -88,39 +70,16 @@ fun RegistrationResponsesScreen(
     val listState by viewModel.listState.collectAsState()
     LaunchedEffect(eventId) { viewModel.loadRegistrations(eventId) }
 
-    var selectedTab by remember { mutableStateOf(ResponseTab.TOTAL) }
-    var query by remember { mutableStateOf("") }
-    var sort by remember { mutableStateOf(ResponseSort.LATEST) }
-    var statusFilter by remember { mutableStateOf<RegistrationResponseStatus?>(null) }
+    var selectedTab by rememberSaveable { mutableStateOf(ResponseTab.TOTAL) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var sort by rememberSaveable { mutableStateOf(ResponseSort.LATEST) }
+    var statusFilter by rememberSaveable { mutableStateOf<RegistrationResponseStatus?>(null) }
     var showSortMenu by remember { mutableStateOf(false) }
     var showFilterMenu by remember { mutableStateOf(false) }
 
     val allResponses = if (listState.eventId == eventId && listState.loaded) listState.registrations else emptyList()
     val filteredResponses = remember(selectedTab, query, sort, statusFilter, allResponses) {
-        allResponses
-            .asSequence()
-            .filter { response ->
-                when (selectedTab) {
-                    ResponseTab.TOTAL -> true
-                    ResponseTab.INDIVIDUAL -> response.type == RegistrationResponseType.INDIVIDUAL
-                    ResponseTab.TEAMS -> response.type == RegistrationResponseType.TEAM
-                    ResponseTab.PENDING -> response.status == RegistrationResponseStatus.WAITLISTED
-                }
-            }
-            .filter { response -> statusFilter == null || response.status == statusFilter }
-            .filter { response ->
-                query.isBlank() ||
-                        response.name.orEmpty().contains(query, ignoreCase = true) ||
-                        response.email.orEmpty().contains(query, ignoreCase = true)
-            }
-            .let { sequence ->
-                when (sort) {
-                    ResponseSort.LATEST -> sequence.sortedByDescending { it.submittedAtEpochMillis ?: Long.MIN_VALUE }
-                    ResponseSort.OLDEST -> sequence.sortedBy { it.submittedAtEpochMillis ?: Long.MAX_VALUE }
-                    ResponseSort.NAME -> sequence.sortedBy { it.name.orEmpty().lowercase() }
-                }
-            }
-            .toList()
+        allResponses.forResponseList(selectedTab, query, sort, statusFilter)
     }
 
     Scaffold(
@@ -326,7 +285,7 @@ private fun SearchField(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(CardBg, shape)
-                    .border(1.dp, CardBorder, shape)
+                    .border(1.dp, ResponseCardBorder, shape)
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -359,7 +318,7 @@ private fun DropdownButton(label: String, icon: ImageVector, onClick: () -> Unit
     OutlinedButton(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, CardBorder),
+        border = BorderStroke(1.dp, ResponseCardBorder),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color(0xFFF7F8FA),
             contentColor = TextPrimary,
@@ -385,12 +344,7 @@ private fun ResponseStatTabs(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ResponseTab.values().forEach { tab ->
-            val count = when (tab) {
-                ResponseTab.TOTAL -> responses.size
-                ResponseTab.INDIVIDUAL -> responses.count { it.type == RegistrationResponseType.INDIVIDUAL }
-                ResponseTab.TEAMS -> responses.count { it.type == RegistrationResponseType.TEAM }
-                ResponseTab.PENDING -> responses.count { it.status == RegistrationResponseStatus.WAITLISTED }
-            }
+            val count = tab.countIn(responses)
             val (bg, fg, icon) = when (tab) {
                 ResponseTab.TOTAL -> Triple(TotalBg, TotalFg, Icons.Outlined.Groups)
                 ResponseTab.INDIVIDUAL -> Triple(IndividualBg, IndividualFg, Icons.Outlined.Person)
@@ -433,225 +387,3 @@ private fun ResponseStatTabs(
         }
     }
 }
-
-@Composable
-private fun RegistrationResponseCard(
-    response: RegistrationResponseItem,
-    expanded: Boolean,
-    detailState: RegistrationDetailState?,
-    selectedUserId: Int?,
-    onToggle: () -> Unit,
-    onSelectMember: (Int) -> Unit,
-    onRetry: () -> Unit,
-    onFullResponse: () -> Unit,
-    onReview: (Boolean) -> Unit,
-    isReviewing: Boolean,
-) {
-    val arrowRotation by animateFloatAsState(if (expanded) -90f else 0f, label = "arrowRotation")
-
-    Card(
-        shape = RoundedCornerShape(15.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(if (expanded) 1.5.dp else 1.dp, if (expanded) AccentPurple else CardBorder),
-        modifier = Modifier.fillMaxWidth().animateContentSize(),
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(11.dp),
-        ) {
-            RegistrationAvatar(response)
-
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    response.name?.takeIf(String::isNotBlank) ?: "Registrant",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(registrationTypeLabel(response), fontSize = 12.sp, color = TextSecondary)
-                if (!response.email.isNullOrBlank()) Text(
-                    response.email,
-                    fontSize = 11.sp,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                response.status?.let { ResponseStatusChip(it) }
-                response.submittedAt?.let { Text(it, fontSize = 10.sp, color = TextSecondary, maxLines = 1) }
-            }
-
-            IconButton(onClick = onToggle) {
-                Icon(
-                    Icons.Outlined.ChevronRight,
-                    contentDescription = if (expanded) "Collapse response" else "Expand response",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(20.dp).rotate(arrowRotation),
-                )
-            }
-        }
-
-        if (response.status == RegistrationResponseStatus.WAITLISTED) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.End) {
-                TextButton(enabled = !isReviewing, onClick = { onReview(false) }) { Text("Reject") }
-                Button(enabled = !isReviewing, onClick = { onReview(true) }) {
-                    if (isReviewing) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                    else Text("Approve")
-                }
-            }
-        }
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
-            Column(Modifier.padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
-                SubtleDivider()
-                when (detailState) {
-                    null, RegistrationDetailState.Loading -> Box(
-                        Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            strokeWidth = 2.dp,
-                            color = OrangePrimary,
-                        )
-                    }
-
-                    is RegistrationDetailState.Failed -> Column(
-                        Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(detailState.message, fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center)
-                        TextButton(onClick = onRetry) { Text("Retry", color = AccentPurple) }
-                    }
-
-                    is RegistrationDetailState.Loaded -> {
-                        RegistrationDetailBody(
-                            registrationId = response.id,
-                            detail = detailState.detail,
-                            selectedUserId = selectedUserId,
-                            onSelectMember = onSelectMember,
-                            limits = DetailLimits.Inline,
-                        )
-                        if (!detailState.detail.isEmpty) {
-                            Spacer(Modifier.height(4.dp))
-                            FullResponseButton(onClick = onFullResponse)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FullResponseButton(onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = AccentPurpleLight,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = AccentPurple, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Full Response", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AccentPurple)
-        }
-    }
-}
-
-internal fun registrationTypeLabel(response: RegistrationResponseItem): String =
-    when (response.type) {
-        RegistrationResponseType.TEAM -> "Team${response.memberCount?.let { " ($it members)" } ?: ""}"
-        RegistrationResponseType.INDIVIDUAL -> "Individual"
-        RegistrationResponseType.OTHER -> "Registration"
-    }
-
-@Composable
-internal fun RegistrationAvatar(response: RegistrationResponseItem, size: Dp = 48.dp) {
-    if (response.type == RegistrationResponseType.TEAM) {
-        Box(
-            modifier = Modifier.size(size).background(TeamsBg, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Outlined.Groups,
-                contentDescription = null,
-                tint = TeamsFg,
-                modifier = Modifier.size(size * 0.54f),
-            )
-        }
-    } else {
-        AppAvatar(entityId = response.id, displayName = response.name ?: "Registrant", size = size)
-    }
-}
-
-@Composable
-internal fun ResponseStatusChip(status: RegistrationResponseStatus) {
-    val background = when (status) {
-        RegistrationResponseStatus.CONFIRMED -> Color(0xFFDDF6EA)
-        RegistrationResponseStatus.PENDING -> Color(0xFFFFEFCF)
-        RegistrationResponseStatus.REJECTED -> Color(0xFFFDE1E3)
-        RegistrationResponseStatus.WAITLISTED -> Color(0xFFEDEBFC)
-        RegistrationResponseStatus.UNKNOWN -> Color(0xFFF0F1F3)
-    }
-    val foreground = when (status) {
-        RegistrationResponseStatus.CONFIRMED -> Color(0xFF087443)
-        RegistrationResponseStatus.PENDING -> Color(0xFF9A5B00)
-        RegistrationResponseStatus.REJECTED -> Color(0xFFC62828)
-        RegistrationResponseStatus.WAITLISTED -> Color(0xFF6C4CF1)
-        RegistrationResponseStatus.UNKNOWN -> TextSecondary
-    }
-
-    Surface(shape = RoundedCornerShape(50), color = background) {
-        Text(
-            text = status.name.lowercase().replaceFirstChar { it.uppercase() },
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            color = foreground,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun EmptyResponsesState(genuinelyEmpty: Boolean) {
-    Card(
-        shape = RoundedCornerShape(15.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 34.dp, horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(Icons.Outlined.Inbox, null, tint = TextSecondary, modifier = Modifier.size(34.dp))
-            Spacer(Modifier.height(8.dp))
-            Text(if (genuinelyEmpty) "No registrations yet" else "No responses found", fontWeight = FontWeight.SemiBold, color = TextPrimary)
-            Text(
-                if (genuinelyEmpty) "Submitted registrations will appear here." else "Try another search or filter.",
-                fontSize = 12.sp,
-                color = TextSecondary,
-            )
-        }
-    }
-}
-

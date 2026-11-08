@@ -1,4 +1,6 @@
 package com.example.campusconnect.feature.registrations.ui.screens
+
+import com.example.campusconnect.feature.registrations.ui.components.builder.*
 import com.example.campusconnect.feature.registrations.ui.components.*
 
 import androidx.compose.foundation.BorderStroke

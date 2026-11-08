@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.registrations.ui.screens
+package com.example.campusconnect.feature.registrations.ui.components.team
 
 import com.example.campusconnect.feature.registrations.ui.components.*
 

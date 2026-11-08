@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.registrations.model.RegistrationQuestion
+import com.example.campusconnect.feature.registrations.ui.components.builder.presentationIcon
+import com.example.campusconnect.feature.registrations.ui.components.builder.presentationLabel
 import kotlinx.coroutines.launch
 
 /**

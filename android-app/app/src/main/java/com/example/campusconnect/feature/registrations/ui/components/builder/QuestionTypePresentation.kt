@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.registrations.ui.screens
+package com.example.campusconnect.feature.registrations.ui.components.builder
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDownCircle
