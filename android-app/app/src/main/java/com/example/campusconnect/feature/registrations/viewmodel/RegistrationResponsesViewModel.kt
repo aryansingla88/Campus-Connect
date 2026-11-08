@@ -2,8 +2,7 @@ package com.example.campusconnect.feature.registrations.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.feature.registrations.data.NetworkRegistrationResponseRepository
-import com.example.campusconnect.feature.registrations.data.RegistrationResponseRepository
+import com.example.campusconnect.feature.registrations.domain.repository.RegistrationResponseRepository
 import com.example.campusconnect.feature.registrations.model.RegistrationDetailResponse
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseItem
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +32,7 @@ data class RegistrationListUiState(
  * the full-screen detail share one cache: opening "Full Response" never refetches.
  */
 class RegistrationResponsesViewModel(
-    private val repository: RegistrationResponseRepository = NetworkRegistrationResponseRepository(),
+    private val repository: RegistrationResponseRepository,
 ) : ViewModel() {
 
     private val _listState = MutableStateFlow(RegistrationListUiState())

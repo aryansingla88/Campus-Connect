@@ -11,22 +11,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.example.campusconnect.feature.registrations.data.RegistrationConfigRepository
+import com.example.campusconnect.feature.registrations.model.RegistrationQuickFields
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationResponseDetailScreen
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationFormViewModel
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationResponsesViewModel
 import com.example.campusconnect.feature.registrations.viewmodel.RegistrationConfigViewModel
-import com.example.campusconnect.feature.registrations.viewmodel.RegistrationEventViewModel
+import com.example.campusconnect.feature.registrations.viewmodel.OrganizerRegistrationWorkflowViewModel
 import com.example.campusconnect.feature.registrations.ui.screens.FormBuilderScreen
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationSetupScreen
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationResponsesScreen
 import com.example.campusconnect.feature.registrations.ui.screens.TeamQuestionsScreen
 import com.example.campusconnect.feature.registrations.model.ParticipationMode
+import com.example.campusconnect.feature.registrations.model.UserRegistrationStep
+import com.example.campusconnect.feature.registrations.model.QuestionScope
 import com.example.campusconnect.feature.registrations.ui.flows.UserRegistrationFlow
-import com.example.campusconnect.feature.registrations.ui.flows.RegistrationSubmitFlow
 
 fun NavGraphBuilder.RegistrationNav(
     navController: NavController,
@@ -39,9 +38,14 @@ fun NavGraphBuilder.RegistrationNav(
         arguments = listOf(navArgument("eventId") { type = NavType.IntType }),
     ) { backStackEntry ->
         val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
+        val registrationViewModel: com.example.campusconnect.feature.registrations.viewmodel.ParticipantRegistrationViewModel = viewModel(
+            viewModelStoreOwner = backStackEntry,
+            factory = RegistrationDependencies.userRegistrationViewModelFactory,
+        )
         ParticipantRegistrationHost(
             eventId = eventId,
             navController = navController,
+            viewModel = registrationViewModel,
         )
     }
 
@@ -55,23 +59,38 @@ fun NavGraphBuilder.RegistrationNav(
     ) { backStackEntry ->
 
         val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
-        val eventViewModel: RegistrationEventViewModel = viewModel(backStackEntry)
-        val eventState by eventViewModel.state.collectAsState()
-        LaunchedEffect(eventId) { eventViewModel.load(eventId) }
-        val configViewModel: RegistrationConfigViewModel = viewModel(backStackEntry)
+        val eventName = navController.previousBackStackEntry
+            ?.savedStateHandle?.get<String>("registration_event_name") ?: "Event #$eventId"
+        val eventPublished = navController.previousBackStackEntry
+            ?.savedStateHandle?.get<Boolean>("registration_event_published") ?: false
+        backStackEntry.savedStateHandle.set("registration_event_name", eventName)
+        backStackEntry.savedStateHandle.set("registration_event_published", eventPublished)
+        val configViewModel: RegistrationConfigViewModel = viewModel(
+            viewModelStoreOwner = backStackEntry,
+            factory = RegistrationDependencies.registrationConfigViewModelFactory,
+        )
+        val formViewModel = rememberFormViewModel(navController, backStackEntry)
         val configState by configViewModel.state.collectAsState()
+        val workflow: OrganizerRegistrationWorkflowViewModel = viewModel(
+            viewModelStoreOwner = remember(backStackEntry) {
+                runCatching { navController.getBackStackEntry("registration_setup/{eventId}") }.getOrDefault(backStackEntry)
+            },
+            factory = RegistrationDependencies.organizerRegistrationWorkflowViewModelFactory,
+        )
+        val workflowState by workflow.state.collectAsState()
         LaunchedEffect(eventId) { configViewModel.load(eventId) }
 
         RegistrationSetupScreen(
-            eventName = eventState.title ?: "Event #$eventId",
-            isPublished = eventState.isPublished,
+            eventName = eventName,
+            isPublished = eventPublished,
             initialSettings = configState.settings,
             isLoading = configState.loading,
-            isSaving = configState.saving,
-            publishError = configState.error,
+            isSaving = configState.saving || workflowState.saving,
+            publishError = workflowState.error ?: configState.publishError ?: configState.error,
             loadFailed = configState.loadFailed,
-            publishSucceeded = configState.saved,
+            publishSucceeded = workflowState.saved && configState.publishSucceeded,
             onRetryLoad = configViewModel::retryLoad,
+            onSettingsChange = configViewModel::updateSettings,
 
             onBack = {
                 navController.popBackStack()
@@ -84,7 +103,9 @@ fun NavGraphBuilder.RegistrationNav(
 
             onPublish = { settings ->
                 configViewModel.updateSettings(settings)
-                configViewModel.save()
+                workflow.publishAfterSave(configViewModel, formViewModel, eventId) { saved ->
+                    if (saved) configViewModel.markPublishedSaveSucceeded() else configViewModel.markPublishedSaveFailed()
+                }
             },
 
 
@@ -113,8 +134,7 @@ fun NavGraphBuilder.RegistrationNav(
             backStackEntry.arguments?.getInt("eventId")
                 ?: return@composable
 
-        val eventViewModel = rememberRegistrationEventViewModel(navController, backStackEntry)
-        val eventState by eventViewModel.state.collectAsState()
+        val header = registrationHeader(navController, backStackEntry, eventId)
 
         val formViewModel = rememberFormViewModel(navController, backStackEntry)
         val formsState by formViewModel.state.collectAsState()
@@ -122,28 +142,34 @@ fun NavGraphBuilder.RegistrationNav(
         val individualFields by formViewModel.individualFields.collectAsState()
         val configViewModel = rememberRegistrationConfigViewModel(navController, backStackEntry)
         val configState by configViewModel.state.collectAsState()
+        val workflow: OrganizerRegistrationWorkflowViewModel = viewModel(
+            viewModelStoreOwner = remember(backStackEntry) {
+                runCatching { navController.getBackStackEntry("registration_setup/{eventId}") }.getOrDefault(backStackEntry)
+            },
+            factory = RegistrationDependencies.organizerRegistrationWorkflowViewModelFactory,
+        )
+        val workflowState by workflow.state.collectAsState()
+        val formState by formViewModel.builderState.collectAsState()
         LaunchedEffect(eventId) { formViewModel.load(eventId) }
-        val saveAll = { configViewModel.save { saved -> if (saved) formViewModel.save(eventId) } }
-
         TeamQuestionsScreen(
-            eventName = eventState.title ?: "Event #$eventId",
-            isPublished = eventState.isPublished,
-            fields = teamFields.filterNot { it.individual },
+            eventName = header.eventName,
+            isPublished = header.isPublished,
+            fields = teamFields.filter { it.scope == QuestionScope.TEAM },
             onFieldsChange = formViewModel::setTeamFields,
-            movableQuestions = individualFields.filter { it.individual },
+            movableQuestions = individualFields.filter { it.scope == QuestionScope.INDIVIDUAL },
             onMoveQuestions = formViewModel::moveToTeam,
-            onPublish = { _ -> saveAll() },
+            onPublish = { _ -> workflow.saveFormChanges(configViewModel, formViewModel, eventId) },
             onBack = { navController.popBackStack() },
             isLoading = formsState.loading || configState.loading,
             isLoaded = formsState.loaded,
-            isSaving = formsState.saving || configState.saving,
-            saveError = configState.error ?: formsState.error,
-            saveSucceeded = formsState.saved && configState.saved,
+            isSaving = formsState.saving || configState.saving || workflowState.saving,
+            saveError = workflowState.error ?: formState.error ?: configState.error ?: formsState.error,
+            saveSucceeded = workflowState.saved,
             onRetry = {
                 when {
                     configState.loadFailed -> configViewModel.retryLoad()
                     !formsState.loaded -> formViewModel.retry(eventId)
-                    else -> saveAll()
+                    else -> workflow.saveFormChanges(configViewModel, formViewModel, eventId)
                 }
             },
         )
@@ -162,14 +188,16 @@ fun NavGraphBuilder.RegistrationNav(
             backStackEntry.arguments?.getInt("eventId")
                 ?: return@composable
 
-        val eventViewModel = rememberRegistrationEventViewModel(navController, backStackEntry)
-        val eventState by eventViewModel.state.collectAsState()
-        val responsesViewModel: RegistrationResponsesViewModel = viewModel(backStackEntry)
+        val header = registrationHeader(navController, backStackEntry, eventId)
+        val responsesViewModel: RegistrationResponsesViewModel = viewModel(
+            viewModelStoreOwner = backStackEntry,
+            factory = RegistrationDependencies.registrationResponsesViewModelFactory,
+        )
 
         RegistrationResponsesScreen(
             eventId = eventId,
-            eventName = eventState.title ?: "Event #$eventId",
-            isPublished = eventState.isPublished,
+            eventName = header.eventName,
+            isPublished = header.isPublished,
             viewModel = responsesViewModel,
             onRefresh = { responsesViewModel.loadRegistrations(eventId, force = true) },
             onBack = { navController.popBackStack() },
@@ -195,7 +223,10 @@ fun NavGraphBuilder.RegistrationNav(
         val listEntry = remember(backStackEntry) {
             navController.getBackStackEntry("registration_responses/{eventId}")
         }
-        val viewModel: RegistrationResponsesViewModel = viewModel(listEntry)
+        val viewModel: RegistrationResponsesViewModel = viewModel(
+            viewModelStoreOwner = listEntry,
+            factory = RegistrationDependencies.registrationResponsesViewModelFactory,
+        )
         val listState by viewModel.listState.collectAsState()
         val response = listState.registrations.firstOrNull { it.id == registrationId }
 
@@ -221,49 +252,43 @@ fun NavGraphBuilder.RegistrationNav(
             backStackEntry.arguments?.getInt("eventId")
                 ?: return@composable
 
-        val eventViewModel = rememberRegistrationEventViewModel(navController, backStackEntry)
-        val eventState by eventViewModel.state.collectAsState()
+        val header = registrationHeader(navController, backStackEntry, eventId)
 
         val formViewModel = rememberFormViewModel(navController, backStackEntry)
         val formsState by formViewModel.state.collectAsState()
         val fields by formViewModel.individualFields.collectAsState()
-        val teamFields by formViewModel.teamFields.collectAsState()
         val configViewModel = rememberRegistrationConfigViewModel(navController, backStackEntry)
         val configState by configViewModel.state.collectAsState()
         LaunchedEffect(eventId) { formViewModel.load(eventId) }
-        val saveAll = {
-            configViewModel.saveQuickFields {
-                // Save question changes independently; a Quick Fields failure must not
-                // prevent successful custom-question edits from being persisted.
-                formViewModel.save(eventId)
-            }
-        }
-
+        val workflow: OrganizerRegistrationWorkflowViewModel = viewModel(
+            viewModelStoreOwner = remember(backStackEntry) {
+                runCatching { navController.getBackStackEntry("registration_setup/{eventId}") }.getOrDefault(backStackEntry)
+            },
+            factory = RegistrationDependencies.organizerRegistrationWorkflowViewModelFactory,
+        )
+        val workflowState by workflow.state.collectAsState()
+        val formState by formViewModel.builderState.collectAsState()
         FormBuilderScreen(
             eventId = eventId,
-            eventName = eventState.title ?: "Event #$eventId",
-            isPublished = eventState.isPublished,
-            fields = fields.filter { it.individual },
+            eventName = header.eventName,
+            isPublished = header.isPublished,
+            fields = fields.filter { it.scope == QuestionScope.INDIVIDUAL },
             onFieldsChange = formViewModel::setIndividualFields,
 
-            onPublish = { _ -> saveAll() },
+            onPublish = { _ -> workflow.saveFormChanges(configViewModel, formViewModel, eventId) },
 
             isLoading = formsState.loading || configState.loading,
             isLoaded = formsState.loaded,
-            isSaving = formsState.saving || configState.saving,
-            saveError = configState.error ?: formsState.error,
-            saveSucceeded = formsState.saved && configState.saved,
-            initialQuickFieldIds = RegistrationConfigRepository.quickFieldIds(configState.settings.quickFieldMask),
-            onQuickFieldsChanged = { ids ->
-                configViewModel.updateSettings(configState.settings.copy(
-                    quickFieldMask = RegistrationConfigRepository.quickFieldMask(ids),
-                ))
-            },
+            isSaving = formsState.saving || configState.saving || workflowState.saving,
+            saveError = workflowState.error ?: formState.error ?: configState.error ?: formsState.error,
+            saveSucceeded = workflowState.saved,
+            initialQuickFieldIds = RegistrationQuickFields.ids(configState.settings.quickFieldMask),
+            onQuickFieldsChanged = { ids -> configViewModel.updateQuickFields(RegistrationQuickFields.mask(ids)) },
             onRetry = {
                 when {
                     configState.loadFailed -> configViewModel.retryLoad()
                     !formsState.loaded -> formViewModel.retry(eventId)
-                    else -> saveAll()
+                    else -> workflow.saveFormChanges(configViewModel, formViewModel, eventId)
                 }
             },
 
@@ -274,73 +299,20 @@ fun NavGraphBuilder.RegistrationNav(
     }
 }
 
-private enum class ParticipantRegistrationStage { DETAILS, SUBMISSION }
-
 @Composable
 private fun ParticipantRegistrationHost(
     eventId: Int,
     navController: NavController,
+    viewModel: com.example.campusconnect.feature.registrations.viewmodel.ParticipantRegistrationViewModel,
 ) {
-    var stage by remember { mutableStateOf(ParticipantRegistrationStage.DETAILS) }
-    var mode by remember { mutableStateOf<ParticipationMode?>(null) }
-    var participantAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
-    var teamId by remember { mutableStateOf<Int?>(null) }
-    var registrationId by remember { mutableStateOf<Int?>(null) }
-    var openPortalAfterSubmission by remember { mutableStateOf(false) }
-
     val leaveFlow: () -> Unit = { navController.popBackStack() }
-    val continueToSubmission = { selectedMode: ParticipationMode, selectedRegistrationId: Int,
-                                 answers: Map<Int, String>, selectedTeamId: Int? ->
-        mode = selectedMode
-        registrationId = selectedRegistrationId
-        participantAnswers = answers.toMap()
-        teamId = selectedTeamId
-        stage = ParticipantRegistrationStage.SUBMISSION
-    }
-
-    when (stage) {
-        ParticipantRegistrationStage.DETAILS -> UserRegistrationFlow(
-            eventId = eventId,
-            openTeamPortalOnStart = openPortalAfterSubmission,
-            onExit = leaveFlow,
-            onCreateTeam = { regId, createdTeamId, answers ->
-                continueToSubmission(ParticipationMode.CREATE_TEAM, regId, answers, createdTeamId)
-            },
-            onContinueSolo = { regId, answers ->
-                continueToSubmission(ParticipationMode.SOLO, regId, answers, null)
-            },
-            onJoinRequested = { team, regId, answers ->
-                // A request remains pending in the portal until a leader approves it.
-                mode = ParticipationMode.JOIN_TEAM
-                registrationId = regId
-                participantAnswers = answers.toMap()
-                teamId = team.id
-            },
-            onInviteAccepted = { invite, regId, answers ->
-                continueToSubmission(ParticipationMode.JOIN_TEAM, regId, answers, invite.teamId)
-            },
-            onTeamJoined = { team, regId, answers ->
-                continueToSubmission(ParticipationMode.JOIN_TEAM, regId, answers, team.id)
-            },
-        )
-
-        ParticipantRegistrationStage.SUBMISSION -> RegistrationSubmitFlow(
-            eventId = eventId,
-            registrationId = registrationId ?: return,
-            eventName = "Event #$eventId",
-            mode = mode ?: ParticipationMode.SOLO,
-            teamId = teamId,
-            participantAnswers = participantAnswers,
-            onExit = { stage = ParticipantRegistrationStage.DETAILS },
-            // There is no participant registration-details destination in the current app.
-            onViewRegistration = { leaveFlow() },
-            onViewTeamPortal = {
-                openPortalAfterSubmission = true
-                stage = ParticipantRegistrationStage.DETAILS
-            },
-            onBackToEvent = { leaveFlow() },
-        )
-    }
+    UserRegistrationFlow(
+        eventId = eventId,
+        onExit = leaveFlow,
+        viewModel = viewModel,
+        onViewRegistration = { viewModel.resumeSubmission(); leaveFlow() },
+        onBackToEvent = leaveFlow,
+    )
 }
 
 /**
@@ -355,18 +327,25 @@ private fun rememberFormViewModel(
     val owner = remember(entry) {
         runCatching { navController.getBackStackEntry("registration_setup/{eventId}") }.getOrDefault(entry)
     }
-    return viewModel(owner)
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = RegistrationDependencies.registrationFormViewModelFactory,
+    )
 }
 
-@Composable
-private fun rememberRegistrationEventViewModel(
+private data class RegistrationHeader(val eventName: String, val isPublished: Boolean)
+
+private fun registrationHeader(
     navController: NavController,
     entry: NavBackStackEntry,
-): RegistrationEventViewModel {
-    val owner = remember(entry) {
-        runCatching { navController.getBackStackEntry("registration_setup/{eventId}") }.getOrDefault(entry)
-    }
-    return viewModel(owner)
+    eventId: Int,
+): RegistrationHeader {
+    val owner = runCatching { navController.getBackStackEntry("registration_setup/{eventId}") }
+        .getOrDefault(entry)
+    return RegistrationHeader(
+        eventName = owner.savedStateHandle.get<String>("registration_event_name") ?: "Event #$eventId",
+        isPublished = owner.savedStateHandle.get<Boolean>("registration_event_published") ?: false,
+    )
 }
 
 @Composable
@@ -377,7 +356,10 @@ private fun rememberRegistrationConfigViewModel(
     val owner = remember(entry) {
         runCatching { navController.getBackStackEntry("registration_setup/{eventId}") }.getOrDefault(entry)
     }
-    return viewModel(owner)
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = RegistrationDependencies.registrationConfigViewModelFactory,
+    )
 }
 
 fun NavController.navigateToRegistrationSetup(eventId: Int) {

@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.campusconnect.feature.registrations.model.RegistrationQuestion
 import kotlinx.coroutines.launch
 
 /**
@@ -27,14 +28,14 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoveQuestionsSheet(
-    candidates: List<FormField>,
+    candidates: List<RegistrationQuestion>,
     onDismiss: () -> Unit,
-    onConfirm: (ids: List<Int>) -> Unit,
+    onConfirm: (localIds: List<String>) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
-    var selectedIds by remember { mutableStateOf(emptySet<Int>()) }
+    var selectedIds by remember { mutableStateOf(emptySet<String>()) }
 
     val visible = remember(candidates, query) {
         candidates.filter { query.isBlank() || it.label.contains(query.trim(), ignoreCase = true) }
@@ -101,12 +102,12 @@ fun MoveQuestionsSheet(
                 candidates.isEmpty() -> SheetMessage("No individual questions to move.")
                 visible.isEmpty() -> SheetMessage("No matching questions.")
                 else -> LazyColumn(Modifier.weight(1f, fill = false)) {
-                    items(visible, key = { it.id }) { field ->
+                    items(visible, key = { it.localId }) { field ->
                         MoveQuestionRow(
                             field = field,
-                            checked = field.id in selectedIds,
+                            checked = field.localId in selectedIds,
                             onToggle = {
-                                selectedIds = if (field.id in selectedIds) selectedIds - field.id else selectedIds + field.id
+                                selectedIds = if (field.localId in selectedIds) selectedIds - field.localId else selectedIds + field.localId
                             },
                         )
                     }
@@ -117,7 +118,7 @@ fun MoveQuestionsSheet(
             Button(
                 enabled = selectedIds.isNotEmpty(),
                 onClick = {
-                    val ids = candidates.filter { it.id in selectedIds }.map { it.id }
+                    val ids = candidates.filter { it.localId in selectedIds }.map { it.localId }
                     closeThen { onConfirm(ids) }
                 },
                 shape = RoundedCornerShape(12.dp),
@@ -143,7 +144,7 @@ fun MoveQuestionsSheet(
 }
 
 @Composable
-private fun MoveQuestionRow(field: FormField, checked: Boolean, onToggle: () -> Unit) {
+private fun MoveQuestionRow(field: RegistrationQuestion, checked: Boolean, onToggle: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -185,8 +186,8 @@ private fun MoveQuestionRow(field: FormField, checked: Boolean, onToggle: () -> 
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Icon(field.fieldType.icon, null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
-                Text(field.fieldType.label, fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.Medium)
+                Icon(field.type.presentationIcon, null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                Text(field.type.presentationLabel, fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.Medium)
             }
         }
     }

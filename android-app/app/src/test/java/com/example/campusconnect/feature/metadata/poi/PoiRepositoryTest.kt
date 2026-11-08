@@ -104,7 +104,6 @@ class PoiRepositoryTest {
     }
 
     @Test
-    @Test
     fun categoryFilteringUsesCachedBaseDataset() = runBlocking {
         var requests = 0
         val repository = repository(fetch = {

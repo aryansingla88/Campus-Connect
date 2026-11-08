@@ -10,10 +10,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.campusconnect.feature.registrations.RegistrationDependencies
 import com.example.campusconnect.feature.registrations.model.ParticipationMode
 import com.example.campusconnect.feature.registrations.model.SubmissionContext
 import com.example.campusconnect.feature.registrations.model.SubmissionReceipt
-import com.example.campusconnect.feature.registrations.viewmodel.RegistrationSubmitViewModel
+import com.example.campusconnect.feature.registrations.viewmodel.SubmissionViewModel
 import com.example.campusconnect.feature.registrations.viewmodel.SubmitPhase
 
 private enum class SubmitScreenKey { LOADING, LOAD_FAILED, FORM, SUBMITTING, SUCCESS }
@@ -45,11 +46,13 @@ fun RegistrationSubmitFlow(
     onBackToEvent: () -> Unit,
     teamId: Int? = null,
     participantAnswers: Map<Int, String> = emptyMap(),
-    viewModel: RegistrationSubmitViewModel = viewModel(),
+    viewModel: SubmissionViewModel = viewModel(
+        factory = RegistrationDependencies.submissionViewModelFactory,
+    ),
 ) {
     val state by viewModel.state.collectAsState()
 
-    LaunchedEffect(eventId, eventName, mode, teamId, participantAnswers) {
+    LaunchedEffect(eventId, registrationId, eventName, mode, teamId, participantAnswers) {
         viewModel.start(SubmissionContext(eventId, registrationId, eventName, mode, teamId, participantAnswers))
     }
 

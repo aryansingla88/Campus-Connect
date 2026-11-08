@@ -1,7 +1,8 @@
 package com.example.campusconnect.feature.registrations.data
 
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigRequest
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigResponse
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationConfigRequest
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationConfigResponse
+import com.example.campusconnect.feature.registrations.data.mapper.toRegistrationSettings
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -24,13 +25,12 @@ class RegistrationConfigMappingTest {
     fun responseMappingDefaultsMissingAutoConfirmToTrueAndPreservesFalse() {
         val legacyJson = """{"eventId":3,"minTeamMembers":1,"maxTeamMembers":1}"""
         val legacy = gson.fromJson(legacyJson, RegistrationConfigResponse::class.java)
-        val repository = RegistrationConfigRepository()
-        assertEquals(true, with(repository) { legacy.toSettings() }.autoConfirm)
+        assertEquals(true, legacy.toRegistrationSettings().autoConfirm)
 
         val explicitFalse = gson.fromJson(
             """{"eventId":3,"minTeamMembers":1,"maxTeamMembers":1,"auto_confirm":false}""",
             RegistrationConfigResponse::class.java,
         )
-        assertEquals(false, with(repository) { explicitFalse.toSettings() }.autoConfirm)
+        assertEquals(false, explicitFalse.toRegistrationSettings().autoConfirm)
     }
 }

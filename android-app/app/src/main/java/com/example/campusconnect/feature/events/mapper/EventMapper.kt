@@ -164,6 +164,7 @@ fun EventResponse.toEvent(): Event {
         registrationRequired = registrationRequired,
         registrationLink = registrationLink ?: "",
         inAppRegistration = inAppRegistration,
+        approvalStatus = approvalStatus,
 
         // EXTRA
         venue = venue,

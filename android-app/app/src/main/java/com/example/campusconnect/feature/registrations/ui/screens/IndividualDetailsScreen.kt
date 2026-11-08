@@ -16,13 +16,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.campusconnect.feature.registrations.model.UserQuestion
+import com.example.campusconnect.feature.registrations.ui.model.ParticipantQuestionUiModel
 import com.example.campusconnect.feature.registrations.model.UserRegistrationStep
 
 /** Step 1/3: the participant's individual-type questions (profile fields come prefilled). */
 @Composable
 fun IndividualDetailsScreen(
-    questions: List<UserQuestion>,
+    questions: List<ParticipantQuestionUiModel>,
     answers: Map<Int, String>,
     showErrors: Boolean,
     isSaving: Boolean,
@@ -67,10 +67,10 @@ fun IndividualDetailsScreen(
                 subtitle = "Please answer the following questions.",
             )
             questions.forEach { question ->
-                UserQuestionField(
+                ParticipantQuestionField(
                     question = question,
-                    value = answers[question.id].orEmpty(),
-                    onValueChange = { onAnswerChange(question.id, it) },
+                    value = answers[question.backendId].orEmpty(),
+                    onValueChange = { onAnswerChange(question.backendId, it) },
                     showError = showErrors,
                 )
             }
@@ -78,3 +78,5 @@ fun IndividualDetailsScreen(
         }
     }
 }
+
+

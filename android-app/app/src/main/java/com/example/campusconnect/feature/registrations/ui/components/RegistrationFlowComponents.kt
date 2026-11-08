@@ -64,8 +64,9 @@ import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
 import com.example.campusconnect.feature.registrations.model.AttachedFile
 import com.example.campusconnect.feature.registrations.model.USER_REGISTRATION_TOTAL_STEPS
-import com.example.campusconnect.feature.registrations.model.UserFieldKind
-import com.example.campusconnect.feature.registrations.model.UserQuestion
+import com.example.campusconnect.feature.registrations.ui.model.ParticipantQuestionKind
+import com.example.campusconnect.feature.registrations.ui.model.ParticipantQuestionUiModel
+import com.example.campusconnect.feature.registrations.ui.model.isMissing
 import com.example.campusconnect.feature.registrations.model.isMissing
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -292,7 +293,7 @@ internal fun FlowSecondaryButton(
 
 // ── Question inputs ───────────────────────────────────────────────────────────
 //
-// Every participant question, individual or team, is rendered through UserQuestionField so the
+// Every participant question, individual or team, is rendered through ParticipantQuestionField so the
 // label, required/optional marker, input style, error text and spacing are identical on all steps.
 
 private val FieldShape = RoundedCornerShape(14.dp)
@@ -307,8 +308,8 @@ internal class QuestionAttachment(
 )
 
 @Composable
-internal fun UserQuestionField(
-    question: UserQuestion,
+internal fun ParticipantQuestionField(
+    question: ParticipantQuestionUiModel,
     value: String,
     onValueChange: (String) -> Unit,
     showError: Boolean,
@@ -324,35 +325,41 @@ internal fun UserQuestionField(
         FieldLabel(question.label, required = question.required, optional = !question.required && enabled)
 
         when (question.kind) {
-            UserFieldKind.TEXT -> FlowTextInput(
+            ParticipantQuestionKind.TEXT -> FlowTextInput(
                 value, { onValueChange(it.take(question.maxLength)) }, placeholder,
                 KeyboardType.Text, enabled, missing,
                 leadingIcon = leadingIcon ?: Icons.Outlined.Edit,
             )
 
-            UserFieldKind.NUMBER -> FlowTextInput(
+            ParticipantQuestionKind.NUMBER -> FlowTextInput(
                 value, { onValueChange(it.filter { c -> c.isDigit() || c == '.' || c == '-' }.take(question.maxLength)) },
                 placeholder, KeyboardType.Number, enabled, missing,
                 leadingIcon = leadingIcon ?: Icons.Outlined.Tag,
             )
 
-            UserFieldKind.LONG_TEXT -> LongTextInput(
+            ParticipantQuestionKind.LONG_TEXT -> LongTextInput(
                 value, { onValueChange(it.take(question.maxLength)) }, placeholder, question.maxLength, enabled, missing,
                 leadingIcon ?: Icons.Outlined.Description,
             )
 
-            UserFieldKind.PHONE -> PhoneInput(value, onValueChange, enabled, missing)
+            ParticipantQuestionKind.PHONE -> PhoneInput(value, onValueChange, enabled, missing)
 
-            UserFieldKind.DATE -> DateInput(value, placeholder.ifBlank { "Select date" }, enabled, missing, onValueChange)
+            ParticipantQuestionKind.DATE -> DateInput(value, placeholder.ifBlank { "Select date" }, enabled, missing, onValueChange)
 
-            UserFieldKind.DROPDOWN -> DropdownInput(
+            ParticipantQuestionKind.DROPDOWN -> DropdownInput(
                 value, question.options, placeholder.ifBlank { "Select" }, enabled, missing, onValueChange,
                 leadingIcon = leadingIcon ?: Icons.Outlined.Layers,
             )
 
-            UserFieldKind.MULTISELECT -> MultiSelectInput(value, question.options, enabled, missing, onValueChange)
+            ParticipantQuestionKind.MULTISELECT -> MultiSelectInput(value, question.options, enabled, missing, onValueChange)
 
-            UserFieldKind.FILE -> if (attachment != null) {
+            ParticipantQuestionKind.UNSUPPORTED -> Text(
+                "This question type isn't supported by this version.",
+                fontSize = 12.sp,
+                color = TextSecondary,
+            )
+
+            ParticipantQuestionKind.FILE -> if (attachment != null) {
                 FileInput(question.maxFileBytes, attachment)
             } else {
                 Text("File upload isn't available on this step.", fontSize = 12.sp, color = TextSecondary)
@@ -360,7 +367,7 @@ internal fun UserQuestionField(
         }
 
         val message = when {
-            question.kind == UserFieldKind.FILE && attachment?.error != null -> attachment.error
+            question.kind == ParticipantQuestionKind.FILE && attachment?.error != null -> attachment.error
             missing -> "This field is required"
             else -> null
         }
@@ -760,3 +767,4 @@ private fun readFileInfo(context: Context, uri: Uri): AttachedFile {
     }
     return AttachedFile(uri = uri.toString(), name = name, sizeBytes = size)
 }
+

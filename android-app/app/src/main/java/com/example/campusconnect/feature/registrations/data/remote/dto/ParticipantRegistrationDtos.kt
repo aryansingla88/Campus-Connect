@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.registrations.data.remote
+package com.example.campusconnect.feature.registrations.data.remote.dto
 
 import com.google.gson.annotations.SerializedName
 
@@ -97,4 +97,3 @@ data class TeamMemberResponseDto(
     val displayName: String?,
     val status: String?,
 )
-

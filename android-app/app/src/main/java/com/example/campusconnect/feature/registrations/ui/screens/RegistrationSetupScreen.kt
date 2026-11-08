@@ -66,8 +66,14 @@ fun RegistrationSetupScreen(
     onRetryLoad: () -> Unit = {},
     onTeamQuestions: (RegistrationSettings) -> Unit = {},
     onViewResponses: () -> Unit = {},
+    onSettingsChange: (RegistrationSettings) -> Unit = {},
 ) {
     var settings by remember(initialSettings) { mutableStateOf(initialSettings) }
+
+    fun changeSettings(updated: RegistrationSettings) {
+        settings = updated
+        onSettingsChange(updated)
+    }
 
     val hasType = settings.allowIndividual || settings.allowTeam
 
@@ -85,10 +91,10 @@ fun RegistrationSetupScreen(
                 onBack = onBack,
                 action = {
                     HeaderActionButton(
-                        text = "Publish",
+                        text = if (isSaving) "Saving…" else "Publish",
                         icon = Icons.Outlined.Send,
                         onClick = { onPublish(settings) },
-                        enabled = !isLoading && !isSaving && hasType,
+                        enabled = !isLoading && !isSaving && !loadFailed && hasType,
                     )
                 }
             )
@@ -118,7 +124,11 @@ fun RegistrationSetupScreen(
                     }
                 }
             } else if (publishSucceeded) {
-                Text("Registration settings published successfully.", color = GreenText, fontSize = 13.sp)
+                Text(
+                    "Registration form published successfully. All settings and questions have been saved.",
+                    color = GreenText,
+                    fontSize = 13.sp,
+                )
             }
 
             // Intro
@@ -160,7 +170,7 @@ fun RegistrationSetupScreen(
                     subtitle = "Participants register on their own.",
                     checked = settings.allowIndividual,
                     onChecked = { enabled ->
-                        settings = if (enabled) {
+                        changeSettings(if (enabled) {
                             if (settings.allowTeam) {
                                 // individual + team: (1, max > 1)
                                 settings.copy(minMembers = 1, maxMembers = maxOf(settings.maxMembers, 2))
@@ -175,7 +185,7 @@ fun RegistrationSetupScreen(
                                 minMembers = newMin,
                                 maxMembers = maxOf(settings.maxMembers, newMin),
                             )
-                        }
+                        })
                     }
                 )
 
@@ -185,7 +195,7 @@ fun RegistrationSetupScreen(
                     subtitle = "Participants register together as a team.",
                     checked = settings.allowTeam,
                     onChecked = { enabled ->
-                        settings = if (enabled) {
+                        changeSettings(if (enabled) {
                             if (settings.allowIndividual) {
                                 // individual + team: (1, max > 1)
                                 settings.copy(minMembers = 1, maxMembers = maxOf(settings.maxMembers, 2))
@@ -200,7 +210,7 @@ fun RegistrationSetupScreen(
                         } else {
                             // individual-only: (1, 1)
                             settings.copy(minMembers = 1, maxMembers = 1)
-                        }
+                        })
                     }
                 )
 
@@ -229,7 +239,7 @@ fun RegistrationSetupScreen(
             AnimatedVisibility(visible = settings.allowTeam) {
                 TeamSettingsCard(
                     settings = settings,
-                    onSettingsChange = { settings = it }
+                    onSettingsChange = ::changeSettings
                 )
             }
 
@@ -281,7 +291,7 @@ fun RegistrationSetupScreen(
                         }
                         if (settings.deadline != null) {
                             IconButton(
-                                onClick = { settings = settings.copy(deadline = null) },
+                                onClick = { changeSettings(settings.copy(deadline = null)) },
                                 modifier = Modifier.size(34.dp),
                             ) {
                                 Icon(
@@ -453,7 +463,7 @@ fun RegistrationSetupScreen(
                                     0,
                                 )
                             }
-                            settings = settings.copy(deadline = localDeadline.timeInMillis)
+                            changeSettings(settings.copy(deadline = localDeadline.timeInMillis))
                         }
                         showDeadlineTimePicker = false
                     }

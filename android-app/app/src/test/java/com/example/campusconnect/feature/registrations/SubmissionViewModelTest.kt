@@ -1,20 +1,22 @@
 package com.example.campusconnect.feature.registrations
 
-import com.example.campusconnect.feature.registrations.data.RegistrationSubmitRepository
-import com.example.campusconnect.feature.registrations.data.TeamQuestionSet
+import com.example.campusconnect.feature.registrations.domain.repository.SubmissionRepository
 import com.example.campusconnect.feature.registrations.model.ParticipationMode
 import com.example.campusconnect.feature.registrations.model.SubmissionContext
 import com.example.campusconnect.feature.registrations.model.SubmissionReceipt
 import com.example.campusconnect.feature.registrations.model.SubmissionRequest
-import com.example.campusconnect.feature.registrations.model.UserFieldKind
-import com.example.campusconnect.feature.registrations.model.UserQuestion
-import com.example.campusconnect.feature.registrations.viewmodel.RegistrationSubmitViewModel
+import com.example.campusconnect.feature.registrations.model.QuestionScope
+import com.example.campusconnect.feature.registrations.model.QuestionType
+import com.example.campusconnect.feature.registrations.model.RegistrationQuestion
+import com.example.campusconnect.feature.registrations.model.TeamQuestionSet
+import com.example.campusconnect.feature.registrations.viewmodel.SubmissionViewModel
 import com.example.campusconnect.feature.registrations.viewmodel.SubmitPhase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -25,7 +27,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class RegistrationSubmitViewModelTest {
+class SubmissionViewModelTest {
     private lateinit var dispatcher: TestDispatcher
 
     @Before
@@ -42,7 +44,7 @@ class RegistrationSubmitViewModelTest {
     @Test
     fun soloRegistrationSkipsTeamQuestionsAndSubmitsParticipantAnswers() = runTest(dispatcher) {
         val repository = RecordingRepository()
-        val viewModel = RegistrationSubmitViewModel(repository)
+        val viewModel = SubmissionViewModel(repository)
         val participantAnswers = mapOf(55 to "Aarav")
 
         viewModel.start(
@@ -67,10 +69,10 @@ class RegistrationSubmitViewModelTest {
     fun teamCreatorLoadsAndValidatesTeamQuestionsBeforeSubmitting() = runTest(dispatcher) {
         val repository = RecordingRepository(
             questions = listOf(
-                UserQuestion(id = 10, label = "Idea", kind = UserFieldKind.TEXT, required = true),
+                RegistrationQuestion(backendId = 10, label = "Idea", type = QuestionType.Known.TEXT, isRequired = true, scope = QuestionScope.TEAM),
             ),
         )
-        val viewModel = RegistrationSubmitViewModel(repository)
+        val viewModel = SubmissionViewModel(repository)
         val participantAnswers = mapOf(55 to "Aarav")
 
         viewModel.start(
@@ -102,7 +104,7 @@ class RegistrationSubmitViewModelTest {
     @Test
     fun acceptedTeamMemberSkipsLeaderTeamQuestionsAndPreservesTeamId() = runTest(dispatcher) {
         val repository = RecordingRepository()
-        val viewModel = RegistrationSubmitViewModel(repository)
+        val viewModel = SubmissionViewModel(repository)
 
         viewModel.start(
             SubmissionContext(
@@ -122,11 +124,34 @@ class RegistrationSubmitViewModelTest {
         assertEquals(6, repository.submission?.context?.teamId)
     }
 
+    @Test
+    fun delayedOldSubmissionCannotReplaceNewSessionAndRepeatedSubmitIsIgnored() = runTest(dispatcher) {
+        val repository = RecordingRepository()
+        val delayed = CompletableDeferred<Result<SubmissionReceipt>>()
+        repository.delayedSubmission = delayed
+        repository.delayedSubmissionRegistrationId = 20
+        val viewModel = SubmissionViewModel(repository)
+        viewModel.start(SubmissionContext(3, 20, "One", ParticipationMode.SOLO))
+        viewModel.submit(); viewModel.submit()
+        advanceUntilIdle()
+        assertEquals(1, repository.submitCalls)
+        viewModel.start(SubmissionContext(4, 21, "Two", ParticipationMode.SOLO))
+        advanceUntilIdle()
+        delayed.complete(Result.success(SubmissionReceipt("OLD", "Completed")))
+        advanceUntilIdle()
+        val success = viewModel.state.value.phase as SubmitPhase.Success
+        assertEquals("#TEST", success.receipt.registrationCode)
+        assertEquals(2, repository.submitCalls)
+    }
+
     private class RecordingRepository(
-        private val questions: List<UserQuestion> = emptyList(),
-    ) : RegistrationSubmitRepository {
+        private val questions: List<RegistrationQuestion> = emptyList(),
+    ) : SubmissionRepository {
         var questionLoads: Int = 0
         var submission: SubmissionRequest? = null
+        var submitCalls: Int = 0
+        var delayedSubmission: CompletableDeferred<Result<SubmissionReceipt>>? = null
+        var delayedSubmissionRegistrationId: Int? = null
 
         override suspend fun getTeamQuestions(eventId: Int, registrationId: Int): Result<TeamQuestionSet> {
             questionLoads += 1
@@ -134,8 +159,14 @@ class RegistrationSubmitViewModelTest {
         }
 
         override suspend fun submit(request: SubmissionRequest): Result<SubmissionReceipt> {
+            submitCalls++
             submission = request
-            return Result.success(SubmissionReceipt("#TEST", "Completed"))
+            return if (request.context.registrationId == delayedSubmissionRegistrationId) {
+                delayedSubmission?.await() ?: Result.success(SubmissionReceipt("#TEST", "Completed"))
+            } else {
+                Result.success(SubmissionReceipt("#TEST", "Completed"))
+            }
         }
     }
 }
+

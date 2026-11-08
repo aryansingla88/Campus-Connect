@@ -80,7 +80,17 @@ fun AppNavHost() {
 
         postNav(navController)
 
-        eventNav(navController)
+        eventNav(
+            navController = navController,
+            onRegistrationSetup = { event ->
+                navController.currentBackStackEntry?.savedStateHandle?.apply {
+                    set("registration_event_name", event.title)
+                    set("registration_event_published", event.isPublished)
+                }
+                navController.navigate("registration_setup/${event.id}")
+            },
+            onParticipantRegistration = { eventId -> navController.navigate("user_registration/$eventId") },
+        )
 
         mapNav(navController)
 

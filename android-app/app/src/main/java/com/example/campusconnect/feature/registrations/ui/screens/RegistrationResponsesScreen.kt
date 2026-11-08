@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.campusconnect.feature.registrations.RegistrationDependencies
 import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseItem
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseStatus
@@ -77,7 +78,9 @@ fun RegistrationResponsesScreen(
     onExport: () -> Unit = {},
     onFullResponse: (RegistrationResponseItem) -> Unit = {},
     onRefresh: () -> Unit = {},
-    viewModel: RegistrationResponsesViewModel = viewModel(),
+    viewModel: RegistrationResponsesViewModel = viewModel(
+        factory = RegistrationDependencies.registrationResponsesViewModelFactory,
+    ),
 ) {
     val detailStates by viewModel.details.collectAsState()
     val selectedMembers by viewModel.selectedMembers.collectAsState()

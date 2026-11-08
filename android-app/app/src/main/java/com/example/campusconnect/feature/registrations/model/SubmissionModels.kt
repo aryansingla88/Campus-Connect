@@ -39,3 +39,8 @@ data class SubmissionReceipt(
     /** e.g. "Completed". */
     val status: String,
 )
+
+data class TeamQuestionSet(
+    val questions: List<RegistrationQuestion>,
+    val savedAnswers: Map<Int, String> = emptyMap(),
+)

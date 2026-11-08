@@ -15,15 +15,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.campusconnect.feature.registrations.model.AttachedFile
-import com.example.campusconnect.feature.registrations.model.UserFieldKind
-import com.example.campusconnect.feature.registrations.model.UserQuestion
+import com.example.campusconnect.feature.registrations.ui.model.ParticipantQuestionKind
+import com.example.campusconnect.feature.registrations.ui.model.ParticipantQuestionUiModel
 
 private const val TOTAL_FORM_STEP = 3
 
-/** Step 3/3: team-level questions, rendered exactly like the individual step via [UserQuestionField]. */
+/** Step 3/3: team-level questions, rendered exactly like the individual step via [ParticipantQuestionField]. */
 @Composable
 fun TeamDetailsFormScreen(
-    questions: List<UserQuestion>,
+    questions: List<ParticipantQuestionUiModel>,
     answers: Map<Int, String>,
     files: Map<Int, AttachedFile>,
     fileErrors: Map<Int, String>,
@@ -75,18 +75,18 @@ fun TeamDetailsFormScreen(
             )
 
             questions.forEach { question ->
-                UserQuestionField(
+                ParticipantQuestionField(
                     question = question,
-                    value = answers[question.id].orEmpty(),
-                    onValueChange = { onAnswerChange(question.id, it) },
+                    value = answers[question.backendId].orEmpty(),
+                    onValueChange = { onAnswerChange(question.backendId, it) },
                     showError = showErrors,
-                    leadingIcon = if (question.kind == UserFieldKind.LONG_TEXT || question.kind == UserFieldKind.TEXT) Icons.Outlined.Edit else null,
-                    attachment = if (question.kind == UserFieldKind.FILE) {
+                    leadingIcon = if (question.kind == ParticipantQuestionKind.LONG_TEXT || question.kind == ParticipantQuestionKind.TEXT) Icons.Outlined.Edit else null,
+                    attachment = if (question.kind == ParticipantQuestionKind.FILE) {
                         QuestionAttachment(
-                            file = files[question.id],
-                            error = fileErrors[question.id],
-                            onPicked = { onFilePicked(question.id, it) },
-                            onRemoved = { onFileRemoved(question.id) },
+                            file = files[question.backendId],
+                            error = fileErrors[question.backendId],
+                            onPicked = { onFilePicked(question.backendId, it) },
+                            onRemoved = { onFileRemoved(question.backendId) },
                         )
                     } else null,
                 )
@@ -95,3 +95,4 @@ fun TeamDetailsFormScreen(
         }
     }
 }
+

@@ -20,36 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.example.campusconnect.feature.registrations.model.QuestionType
+import com.example.campusconnect.feature.registrations.model.RegistrationQuestion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// ── Data Models ───────────────────────────────────────────────────────────────
-
-enum class FieldType(val label: String, val icon: ImageVector) {
-    TEXT("Short text", Icons.Outlined.ShortText),
-    NUMBER("Number", Icons.Outlined.Pin),
-    SELECT("Dropdown", Icons.Outlined.ArrowDropDownCircle),
-    MULTISELECT("Checkboxes", Icons.Outlined.CheckBox),
-    DATE("Date", Icons.Outlined.CalendarMonth),
-}
-
-// var → val, MutableList → List (immutable, safe for Compose state)
-data class FormField(
-    val id: Int,
-    /** Null for a newly created field; existing backend IDs are retained on update. */
-    val backendId: Int? = null,
-    val label: String        = "",
-    val fieldType: FieldType = FieldType.TEXT,
-    val rawFieldType: String? = null,
-    val placeholder: String  = "",
-    val isRequired: Boolean  = false,
-    val options: List<String> = emptyList(),
-    val individual: Boolean = true,
-    val fieldOrder: Int = 0,
-)
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -62,9 +39,9 @@ fun FormBuilderScreen(
     eventId: Int,
     eventName: String,
     isPublished: Boolean,
-    fields: List<FormField>,
-    onFieldsChange: (List<FormField>) -> Unit,
-    onPublish: (fields: List<FormField>) -> Unit,
+    fields: List<RegistrationQuestion>,
+    onFieldsChange: (List<RegistrationQuestion>) -> Unit,
+    onPublish: (fields: List<RegistrationQuestion>) -> Unit,
     onBack: () -> Unit,
     initialQuickFieldIds: Set<String> = emptySet(),
     onQuickFieldsChanged: (Set<String>) -> Unit = {},
@@ -98,7 +75,7 @@ fun FormBuilderScreen(
 
 @Composable
 fun FieldCard(
-    field: FormField,
+    field: RegistrationQuestion,
     index: Int,
     expanded: Boolean,
     onExpand: () -> Unit,
@@ -145,8 +122,8 @@ fun FieldCard(
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Icon(field.fieldType.icon, null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
-                        Text(field.fieldType.label, fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.Medium)
+                        Icon(field.type.presentationIcon, null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                        Text(field.type.presentationLabel, fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.Medium)
                     }
                 }
 
@@ -183,13 +160,13 @@ fun FieldCard(
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Icon(field.fieldType.icon, null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
-                            Text(field.fieldType.label, fontSize = 14.sp, color = TextPrimary, modifier = Modifier.weight(1f))
+                            Icon(field.type.presentationIcon, null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
+                            Text(field.type.presentationLabel, fontSize = 14.sp, color = TextPrimary, modifier = Modifier.weight(1f))
                             Icon(Icons.Outlined.SwapVert, null, tint = TextSecondary, modifier = Modifier.size(18.dp))
                         }
                     }
 
-                    if (field.fieldType == FieldType.TEXT || field.fieldType == FieldType.NUMBER) {
+                    if (field.type.supportsPlaceholder()) {
                         OutlinedTextField(
                             value         = field.placeholder,
                             onValueChange = onPlaceholderChange,
@@ -201,7 +178,7 @@ fun FieldCard(
                         )
                     }
 
-                    if (field.fieldType == FieldType.SELECT || field.fieldType == FieldType.MULTISELECT) {
+                    if (field.type.supportsOptions()) {
                         OptionsEditor(
                             options        = field.options,
                             onOptionChange = onOptionChange,
@@ -482,10 +459,10 @@ fun OptionsEditor(
 // ── Field Type Picker ─────────────────────────────────────────────────────────
 
 @Composable
-fun FieldTypePicker(current: FieldType, onPick: (FieldType) -> Unit) {
+fun QuestionTypePicker(current: QuestionType.Known, onPick: (QuestionType.Known) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Text("Choose field type", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, modifier = Modifier.padding(bottom = 16.dp))
-        FieldType.entries.forEach { type ->
+        builderQuestionTypes.forEach { type ->
             val isSelected = type == current
             Surface(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onPick(type) }.padding(vertical = 2.dp),
@@ -500,10 +477,10 @@ fun FieldTypePicker(current: FieldType, onPick: (FieldType) -> Unit) {
                         modifier         = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(if (isSelected) OrangePrimary else OrangeLight),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(type.icon, null, tint = if (isSelected) Color.White else OrangePrimary, modifier = Modifier.size(18.dp))
+                        Icon(type.presentationIcon, null, tint = if (isSelected) Color.White else OrangePrimary, modifier = Modifier.size(18.dp))
                     }
                     Text(
-                        type.label,
+                        type.presentationLabel,
                         fontSize   = 15.sp,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                         color      = if (isSelected) OrangePrimary else TextPrimary,
@@ -556,7 +533,7 @@ fun orangeTextFieldColors() = OutlinedTextFieldDefaults.colors(
 @Composable
 fun FormBuilderPreview() {
     MaterialTheme {
-        var fields by remember { mutableStateOf(emptyList<FormField>()) }
+        var fields by remember { mutableStateOf(emptyList<RegistrationQuestion>()) }
         FormBuilderScreen(
             eventId = 1,
             eventName = "Demo Event",
