@@ -22,13 +22,11 @@ import com.example.campusconnect.core.session.AppAccessPolicy
 import com.example.campusconnect.feature.auth.authNav
 import com.example.campusconnect.feature.events.eventNav
 import com.example.campusconnect.feature.registrations.RegistrationNav
-import com.example.campusconnect.feature.registrations.navigateToFormBuilder
 import com.example.campusconnect.feature.map.mapNav
 import com.example.campusconnect.feature.posts.navigation.POSTS_FEED_ROUTE
 import com.example.campusconnect.feature.posts.navigation.postNav
 import com.example.campusconnect.feature.profile.ProfileNav
 import com.example.campusconnect.feature.profile.ProfileRoutes
-import com.example.campusconnect.feature.registrations.navigateToRegistrationSetup
 import com.example.campusconnect.feature.settings.SettingsNav
 import com.example.campusconnect.feature.splash.navigation.SPLASH_ROUTE
 import com.example.campusconnect.feature.splash.navigation.splashNav
@@ -109,7 +107,6 @@ private fun TestScreenRoute(navController: NavController, route: String) {
         onEvents = { navController.navigate("events_root") },
         onMap = { navController.navigate("map") },
         onProfile = { navController.navigate(ProfileRoutes.MY_PROFILE) },
-        onFormBuilder = { navController.navigateToRegistrationSetup(1) },
         onSettings = { navController.navigate("settings_graph") },
         onLogout = {
             SessionManager.clearSession()
@@ -117,7 +114,6 @@ private fun TestScreenRoute(navController: NavController, route: String) {
                 popUpTo(route) { inclusive = true }
             }
         },
-        onUserRegistration = { navController.navigate("user_registration") },
         onContinue = { navController.navigate("map") }
     )
 }

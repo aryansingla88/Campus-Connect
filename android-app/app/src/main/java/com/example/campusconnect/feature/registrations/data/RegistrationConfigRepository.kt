@@ -10,9 +10,6 @@ import java.time.format.DateTimeParseException
 
 class RegistrationConfigRepository {
     companion object {
-        /** Used only by the development registration entry point from TestScreen2. */
-        const val TEMP_EVENT_ID = 3
-
         fun quickFieldIds(mask: Long): Set<String> = quickFieldBits
             .filterValues { bit -> (mask and bit) != 0L }
             .keys

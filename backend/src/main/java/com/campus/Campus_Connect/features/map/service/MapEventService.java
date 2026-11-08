@@ -78,22 +78,18 @@ public class MapEventService {
             }
         }
 
-        // ---------------------------------------------------------
-        // Dynamic isJoined Check from DB
-        // ---------------------------------------------------------
-        // Event previews are also used by unauthenticated map visitors.
-        // A missing session must not turn the preview endpoint into HTTP 500.
+        // Map previews may be requested without a session.
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
-        boolean isJoined = false;
+        String registrationStatus = null;
         if (authentication != null
                 && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof User currentUser) {
-            isJoined = eventMemberRepository.existsByEventIdAndUserId(
-                    eventId,
-                    currentUser.getId()
-            );
+            registrationStatus = eventRegistrationRepository
+                    .findByEventIdAndUserId(eventId, currentUser.getId())
+                    .map(registration -> registration.getStatus().name())
+                    .orElse("NOT_REGISTERED");
         }
 
         boolean isReminderEnabled = false;
@@ -108,14 +104,8 @@ public class MapEventService {
                         .filter(url -> url != null && !url.isBlank())
                         .findFirst()
                         .orElse(null))
-                .hostName(event.getHostName())
-                .creatorName(getCreatorName(event))
-                .clubName(getClubName(event.getClubId()))
+                .subtitle(getClubName(event.getClubId()))
                 .registrationCount(Math.toIntExact(eventRegistrationRepository.countByEventId(eventId)))
-                .eventType(event.getCategories().stream()
-                        .min(java.util.Comparator.comparing(EventCategory::getId))
-                        .map(EventCategory::getName)
-                        .orElse(null))
                 .categories(event.getCategories().stream()
                         .sorted(java.util.Comparator.comparing(EventCategory::getId))
                         .map(category -> EventPreviewResponse.CategoryPreview.builder()
@@ -132,7 +122,7 @@ public class MapEventService {
                                 : RegistrationType.NONE
                 )
                 .registrationLink(event.getRegistrationLink())
-                .isJoined(isJoined)
+                .registrationStatus(registrationStatus)
                 .isReminderEnabled(isReminderEnabled)
                 .priority(priority)
                 .hosts(hostPreviews)
@@ -169,13 +159,6 @@ public class MapEventService {
                 markers,
                 "Event markers fetched successfully."
         );
-    }
-
-    private String getCreatorName(Event event) {
-        if (event.getCreator() == null) return null;
-        return userProfileRepository.findById(event.getCreator().getId())
-                .map(UserProfile::getFullName)
-                .orElse(event.getCreator().getUsername());
     }
 
     private String getClubName(Integer clubId) {

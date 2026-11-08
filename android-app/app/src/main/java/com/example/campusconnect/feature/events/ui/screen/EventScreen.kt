@@ -78,7 +78,8 @@ private data class EventMapMarker(
 @RequiresApi(Build.VERSION_CODES.N)
 @Composable
 fun EventScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRegistration: (Event) -> Unit = {},
 ) {
 
 
@@ -376,7 +377,12 @@ fun EventScreen(
                         dialogKey++
                         showDialog = true
                     },
-                    onRegistration = { },
+                    onRegistration = { event ->
+                        // Clear the high-z preview overlay before navigating so the
+                        // participant registration loading state can render above it.
+                        viewModel.closePreview()
+                        onRegistration(event)
+                    },
                     onChat         = { },
                     onAccess       = { event -> accessEvent = event; viewModel.prefetchAccessUsers(event.id); showAccessDialog = true },
                     onDelete       = { event -> viewModel.requestDelete(event) },

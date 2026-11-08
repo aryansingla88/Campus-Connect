@@ -23,15 +23,9 @@ public class EventPreviewResponse {
 
     private String posterUrl;
 
-    private String hostName;
-
-    private String creatorName;
-
-    private String clubName;
+    private String subtitle;
 
     private Integer registrationCount;
-
-    private String eventType;
 
     private List<CategoryPreview> categories;
 
@@ -45,7 +39,7 @@ public class EventPreviewResponse {
 
     private String registrationLink;
 
-    private Boolean isJoined;
+    private String registrationStatus;
 
     private Boolean isReminderEnabled;
 

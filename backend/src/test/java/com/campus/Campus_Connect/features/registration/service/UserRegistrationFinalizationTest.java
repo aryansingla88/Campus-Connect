@@ -94,29 +94,25 @@ class UserRegistrationFinalizationTest {
     void submittedRegistrationCannotBeFinalizedAgainAsDraft() {
         registration.setStatus(RegistrationStatus.WAITLISTED);
         ApiResponse<RegistrationResponse> response = service.finalizeRegistration(REGISTRATION_ID);
-        assertFalse(response.isSuccess());
-        assertEquals("Editable registration not found.", response.getMessage());
+        assertTrue(response.isSuccess());
+        assertEquals("Registration has already been submitted.", response.getMessage());
         assertEquals(RegistrationStatus.WAITLISTED, registration.getStatus());
     }
 
     @Test
     void requiredTeamAnswersAreValidatedAgainstLeaderRegistration() {
         User leader = participant;
-        User member = User.builder().id(11).username("member").build();
         EventTeam team = EventTeam.builder().id(8).event(event).leader(leader).teamName("Team").build();
-        EventRegistration leaderRegistration = EventRegistration.builder().id(20).event(event).user(leader)
-                .team(team).status(RegistrationStatus.PENDING).build();
-        registration.setUser(member);
-        authenticate(member);
         registration.setTeam(team);
-        config.setMinTeamMembers(2);
+        authenticate(leader);
+        config.setMinTeamMembers(1);
         config.setMaxTeamMembers(4);
         RegistrationField teamQuestion = RegistrationField.builder().id(56).event(event).individual(false)
                 .fieldLabel("Team statement").fieldType("TEXT").required(true).build();
-        when(registrationRepository.findByEventIdAndUserId(EVENT_ID, leader.getId())).thenReturn(Optional.of(leaderRegistration));
-        when(registrationRepository.countByEventIdAndTeamIdAndStatusIn(
-                EVENT_ID, team.getId(), List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED))).thenReturn(2L);
-        when(answerRepository.findByIdRegistrationId(20)).thenReturn(List.of());
+        when(teamRepository.findByIdForUpdate(team.getId())).thenReturn(Optional.of(team));
+        when(registrationRepository.findByEventIdAndUserId(EVENT_ID, leader.getId())).thenReturn(Optional.of(registration));
+        when(registrationRepository.findByEventIdAndTeamId(EVENT_ID, team.getId())).thenReturn(List.of(registration));
+        when(answerRepository.findByIdRegistrationIdIn(List.of(REGISTRATION_ID))).thenReturn(List.of());
         when(fieldRepository.findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(EVENT_ID)).thenReturn(List.of(teamQuestion));
 
         ApiResponse<RegistrationResponse> response = service.finalizeRegistration(REGISTRATION_ID);

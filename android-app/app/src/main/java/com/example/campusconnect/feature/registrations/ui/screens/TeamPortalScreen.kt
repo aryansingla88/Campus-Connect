@@ -1,4 +1,6 @@
-package com.example.campusconnect.feature.registrations.userflow.ui
+package com.example.campusconnect.feature.registrations.ui.screens
+
+import com.example.campusconnect.feature.registrations.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -29,10 +31,13 @@ import com.example.campusconnect.feature.registrations.ui.components.OrangeLight
 import com.example.campusconnect.feature.registrations.ui.components.OrangePrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
-import com.example.campusconnect.feature.registrations.userflow.model.TeamInvite
-import com.example.campusconnect.feature.registrations.userflow.model.TeamSummary
-import com.example.campusconnect.feature.registrations.userflow.model.UserRegistrationStep
-import com.example.campusconnect.feature.registrations.userflow.viewmodel.PortalState
+import com.example.campusconnect.feature.registrations.model.TeamInvite
+import com.example.campusconnect.feature.registrations.model.TeamSummary
+import com.example.campusconnect.feature.registrations.model.TeamJoinRequest
+import com.example.campusconnect.feature.registrations.model.TeamInviteCandidate
+import com.example.campusconnect.feature.registrations.model.TeamPortalData
+import com.example.campusconnect.feature.registrations.model.UserRegistrationStep
+import com.example.campusconnect.feature.registrations.viewmodel.PortalState
 
 private enum class PortalTab { AVAILABLE, INVITES }
 
@@ -52,8 +57,13 @@ fun TeamPortalScreen(
     pendingTeamIds: Set<Int>,
     respondedInviteIds: Set<Int>,
     pendingInviteIds: Set<Int>,
+    pendingJoinRequestIds: Set<Int>,
+    pendingInviteSendIds: Set<Int>,
     onRequestToJoin: (TeamSummary) -> Unit,
     onInviteResponse: (invite: TeamInvite, accept: Boolean) -> Unit,
+    onJoinRequestResponse: (request: TeamJoinRequest, accept: Boolean) -> Unit,
+    onInviteCandidate: (TeamInviteCandidate) -> Unit,
+    onContinueWithTeam: (TeamSummary) -> Unit,
     onRetry: () -> Unit,
     transientError: String?,
     onErrorShown: () -> Unit,
@@ -86,33 +96,32 @@ fun TeamPortalScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             FlowTopBar(
-                title = "Join a Team",
+                title = if (data?.currentTeam != null && data.currentUserIsLeader) "Manage Your Team" else "Join a Team",
                 onBack = onBack,
                 step = UserRegistrationStep.TEAM_PORTAL.progress,
             )
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            PortalTabs(
-                selected = tab,
-                availableCount = teams.size,
-                inviteCount = invites.size,
-                onSelect = { tab = it },
-            )
-
-            SearchAndFilterRow(
+            if (data?.currentTeam == null) {
+                PortalTabs(
+                    selected = tab,
+                    availableCount = teams.size,
+                    inviteCount = invites.size,
+                    onSelect = { tab = it },
+                )
+            }
+            if (data?.currentTeam == null || data.currentUserIsLeader) SearchAndFilterRow(
                 query = query,
                 onQueryChange = onQueryChange,
-                tags = tags,
-                tagFilter = tagFilter,
+                tags = if (data?.currentTeam == null) tags else emptyList(),
+                tagFilter = if (data?.currentTeam == null) tagFilter else null,
                 onTagFilterChange = onTagFilterChange,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
 
             when (portal) {
-                PortalState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = OrangePrimary)
-                }
+                PortalState.Loading -> TeamListSkeleton()
 
                 is PortalState.Failed -> Column(
                     Modifier.fillMaxSize().padding(32.dp),
@@ -123,7 +132,34 @@ fun TeamPortalScreen(
                     TextButton(onClick = onRetry) { Text("Retry", color = OrangePrimary) }
                 }
 
-                is PortalState.Loaded -> LazyColumn(
+                is PortalState.Loaded -> if (data?.currentTeam != null) {
+                    if (data.currentUserIsLeader) {
+                        LeaderTeamPortalContent(
+                            data = data,
+                            query = query,
+                            pendingJoinRequestIds = pendingJoinRequestIds,
+                            pendingInviteSendIds = pendingInviteSendIds,
+                            onJoinRequestResponse = onJoinRequestResponse,
+                            onInviteCandidate = onInviteCandidate,
+                        )
+                    } else {
+                        Column(
+                            Modifier.fillMaxSize().padding(24.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text("You’re on ${data.currentTeam.name}", fontSize = 20.sp,
+                                fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            Spacer(Modifier.height(8.dp))
+                            Text("${data.currentTeam.memberCount}/${data.currentTeam.maxMembers} members · Led by ${data.currentTeam.leaderName}",
+                                color = TextSecondary, textAlign = TextAlign.Center)
+                            Spacer(Modifier.height(20.dp))
+                            Button(onClick = { onContinueWithTeam(data.currentTeam) }) {
+                                Text("Continue registration")
+                            }
+                        }
+                    }
+                } else LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -159,6 +195,70 @@ fun TeamPortalScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LeaderTeamPortalContent(
+    data: TeamPortalData,
+    query: String,
+    pendingJoinRequestIds: Set<Int>,
+    pendingInviteSendIds: Set<Int>,
+    onJoinRequestResponse: (TeamJoinRequest, Boolean) -> Unit,
+    onInviteCandidate: (TeamInviteCandidate) -> Unit,
+) {
+    val team = data.currentTeam ?: return
+    val candidates = data.inviteCandidates.filter { it.displayName.contains(query.trim(), true) }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Surface(shape = RoundedCornerShape(16.dp), color = CardBg, border = BorderStroke(1.dp, Color(0xFFEDEEF0))) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(team.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text("${team.memberCount}/${team.maxMembers} members · minimum ${team.minMembers}", color = TextSecondary)
+                    Text("Registration: ${team.registrationStatus}", color = TextSecondary)
+                }
+            }
+        }
+        item { Text("Members", fontWeight = FontWeight.SemiBold, color = TextPrimary) }
+        items(data.members, key = { "member-${it.registrationId}" }) { member ->
+            Surface(shape = RoundedCornerShape(12.dp), color = CardBg) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(member.displayName, fontWeight = FontWeight.Medium, color = TextPrimary)
+                        Text(member.status, fontSize = 12.sp, color = TextSecondary)
+                    }
+                    if (member.userId == team.leaderUserId) Text("Leader", color = OrangePrimary, fontSize = 12.sp)
+                }
+            }
+        }
+        item { Text("Join requests", fontWeight = FontWeight.SemiBold, color = TextPrimary) }
+        if (data.pendingJoinRequests.isEmpty()) item { Text("No pending join requests.", color = TextSecondary) }
+        items(data.pendingJoinRequests, key = { "request-${it.requestId}" }) { request ->
+            Surface(shape = RoundedCornerShape(12.dp), color = CardBg) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(request.participantName, Modifier.weight(1f), color = TextPrimary)
+                    TextButton(enabled = request.requestId !in pendingJoinRequestIds,
+                        onClick = { onJoinRequestResponse(request, false) }) { Text("Reject") }
+                    Button(enabled = request.requestId !in pendingJoinRequestIds,
+                        onClick = { onJoinRequestResponse(request, true) }) { Text("Accept") }
+                }
+            }
+        }
+        item { Text("Invite participants", fontWeight = FontWeight.SemiBold, color = TextPrimary) }
+        if (candidates.isEmpty()) item { Text("No eligible participants found.", color = TextSecondary) }
+        items(candidates, key = { "candidate-${it.registrationId}" }) { candidate ->
+            Surface(shape = RoundedCornerShape(12.dp), color = CardBg) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(candidate.displayName, Modifier.weight(1f), color = TextPrimary)
+                    Button(enabled = candidate.registrationId !in pendingInviteSendIds && team.memberCount < team.maxMembers,
+                        onClick = { onInviteCandidate(candidate) }) { Text("Invite") }
                 }
             }
         }

@@ -24,14 +24,12 @@ import com.example.campusconnect.feature.registrations.ui.screens.FormBuilderScr
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationSetupScreen
 import com.example.campusconnect.feature.registrations.ui.screens.RegistrationResponsesScreen
 import com.example.campusconnect.feature.registrations.ui.screens.TeamQuestionsScreen
-import com.example.campusconnect.feature.registrations.userflow.model.ParticipationMode
-import com.example.campusconnect.feature.registrations.userflow.ui.UserRegistrationFlow
-import com.example.campusconnect.feature.registrations.userflow.ui.RegistrationSubmitFlow
+import com.example.campusconnect.feature.registrations.model.ParticipationMode
+import com.example.campusconnect.feature.registrations.ui.flows.UserRegistrationFlow
+import com.example.campusconnect.feature.registrations.ui.flows.RegistrationSubmitFlow
 
 fun NavGraphBuilder.RegistrationNav(
     navController: NavController,
-    onQuickFields: (eventId: Int) -> Unit = {},
-    onViewResponses: (eventId: Int) -> Unit = {},
 ) {
 
     // Participant entry point from event previews. Keep registration state scoped to
@@ -43,14 +41,6 @@ fun NavGraphBuilder.RegistrationNav(
         val eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable
         ParticipantRegistrationHost(
             eventId = eventId,
-            navController = navController,
-        )
-    }
-
-    // Retain the development entry point used by TestScreen2.
-    composable(route = "user_registration") {
-        ParticipantRegistrationHost(
-            eventId = RegistrationConfigRepository.TEMP_EVENT_ID,
             navController = navController,
         )
     }
@@ -132,18 +122,15 @@ fun NavGraphBuilder.RegistrationNav(
         val individualFields by formViewModel.individualFields.collectAsState()
         val configViewModel = rememberRegistrationConfigViewModel(navController, backStackEntry)
         val configState by configViewModel.state.collectAsState()
-        LaunchedEffect(eventId, configState.settings.allowIndividual) {
-            formViewModel.setRegistrationMode(configState.settings.allowIndividual)
-            formViewModel.load(eventId)
-        }
+        LaunchedEffect(eventId) { formViewModel.load(eventId) }
         val saveAll = { configViewModel.save { saved -> if (saved) formViewModel.save(eventId) } }
 
         TeamQuestionsScreen(
             eventName = eventState.title ?: "Event #$eventId",
             isPublished = eventState.isPublished,
-            fields = teamFields,
+            fields = teamFields.filterNot { it.individual },
             onFieldsChange = formViewModel::setTeamFields,
-            movableQuestions = individualFields,
+            movableQuestions = individualFields.filter { it.individual },
             onMoveQuestions = formViewModel::moveToTeam,
             onPublish = { _ -> saveAll() },
             onBack = { navController.popBackStack() },
@@ -243,10 +230,7 @@ fun NavGraphBuilder.RegistrationNav(
         val teamFields by formViewModel.teamFields.collectAsState()
         val configViewModel = rememberRegistrationConfigViewModel(navController, backStackEntry)
         val configState by configViewModel.state.collectAsState()
-        LaunchedEffect(eventId, configState.settings.allowIndividual) {
-            formViewModel.setRegistrationMode(configState.settings.allowIndividual)
-            formViewModel.load(eventId)
-        }
+        LaunchedEffect(eventId) { formViewModel.load(eventId) }
         val saveAll = {
             configViewModel.saveQuickFields {
                 // Save question changes independently; a Quick Fields failure must not
@@ -259,11 +243,8 @@ fun NavGraphBuilder.RegistrationNav(
             eventId = eventId,
             eventName = eventState.title ?: "Event #$eventId",
             isPublished = eventState.isPublished,
-            fields = if (configState.settings.allowIndividual) fields else teamFields,
-            onFieldsChange = { changed ->
-                if (configState.settings.allowIndividual) formViewModel.setIndividualFields(changed)
-                else formViewModel.setTeamFields(changed)
-            },
+            fields = fields.filter { it.individual },
+            onFieldsChange = formViewModel::setIndividualFields,
 
             onPublish = { _ -> saveAll() },
 
@@ -304,11 +285,14 @@ private fun ParticipantRegistrationHost(
     var mode by remember { mutableStateOf<ParticipationMode?>(null) }
     var participantAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var teamId by remember { mutableStateOf<Int?>(null) }
+    var registrationId by remember { mutableStateOf<Int?>(null) }
     var openPortalAfterSubmission by remember { mutableStateOf(false) }
 
     val leaveFlow: () -> Unit = { navController.popBackStack() }
-    val continueToSubmission = { selectedMode: ParticipationMode, answers: Map<Int, String>, selectedTeamId: Int? ->
+    val continueToSubmission = { selectedMode: ParticipationMode, selectedRegistrationId: Int,
+                                 answers: Map<Int, String>, selectedTeamId: Int? ->
         mode = selectedMode
+        registrationId = selectedRegistrationId
         participantAnswers = answers.toMap()
         teamId = selectedTeamId
         stage = ParticipantRegistrationStage.SUBMISSION
@@ -319,25 +303,30 @@ private fun ParticipantRegistrationHost(
             eventId = eventId,
             openTeamPortalOnStart = openPortalAfterSubmission,
             onExit = leaveFlow,
-            onCreateTeam = { answers ->
-                continueToSubmission(ParticipationMode.CREATE_TEAM, answers, null)
+            onCreateTeam = { regId, createdTeamId, answers ->
+                continueToSubmission(ParticipationMode.CREATE_TEAM, regId, answers, createdTeamId)
             },
-            onContinueSolo = { answers ->
-                continueToSubmission(ParticipationMode.SOLO, answers, null)
+            onContinueSolo = { regId, answers ->
+                continueToSubmission(ParticipationMode.SOLO, regId, answers, null)
             },
-            onJoinRequested = { team, answers ->
+            onJoinRequested = { team, regId, answers ->
                 // A request remains pending in the portal until a leader approves it.
                 mode = ParticipationMode.JOIN_TEAM
+                registrationId = regId
                 participantAnswers = answers.toMap()
                 teamId = team.id
             },
-            onInviteAccepted = { invite, answers ->
-                continueToSubmission(ParticipationMode.JOIN_TEAM, answers, invite.teamId)
+            onInviteAccepted = { invite, regId, answers ->
+                continueToSubmission(ParticipationMode.JOIN_TEAM, regId, answers, invite.teamId)
+            },
+            onTeamJoined = { team, regId, answers ->
+                continueToSubmission(ParticipationMode.JOIN_TEAM, regId, answers, team.id)
             },
         )
 
         ParticipantRegistrationStage.SUBMISSION -> RegistrationSubmitFlow(
             eventId = eventId,
+            registrationId = registrationId ?: return,
             eventName = "Event #$eventId",
             mode = mode ?: ParticipationMode.SOLO,
             teamId = teamId,

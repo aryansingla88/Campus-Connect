@@ -14,11 +14,9 @@ fun TestScreen2(
     onMap: () -> Unit,
     onProfile: () -> Unit,
     onSplash: (() -> Unit)? = null,
-    onFormBuilder: () -> Unit,
     onLogout: (() -> Unit)? = null,
     onSettings: () -> Unit,
     onContinue: (() -> Unit)? = null,
-    onUserRegistration: () -> Unit,
 ) {
 
     var currentUser by remember {
@@ -85,19 +83,8 @@ fun TestScreen2(
             Text("Profile")
         }
 
-        Button(onClick = onFormBuilder) {
-            Text("Form Builder")
-        }
-
         Button(onClick = onSettings) {
             Text("Settings")
-        }
-
-        Button(
-            onClick = onUserRegistration,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("User Registration Flow")
         }
 
         if (onLogout != null) {

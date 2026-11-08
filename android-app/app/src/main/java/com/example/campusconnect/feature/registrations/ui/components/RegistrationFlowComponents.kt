@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.registrations.userflow.ui
+package com.example.campusconnect.feature.registrations.ui.components
 
 import android.content.Context
 import android.net.Uri
@@ -10,12 +10,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Description
@@ -28,7 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,21 +62,34 @@ import com.example.campusconnect.feature.registrations.ui.components.OrangePrima
 import com.example.campusconnect.feature.registrations.ui.components.RegistrationBottomBar
 import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
-import com.example.campusconnect.feature.registrations.userflow.model.AttachedFile
-import com.example.campusconnect.feature.registrations.userflow.model.USER_REGISTRATION_TOTAL_STEPS
-import com.example.campusconnect.feature.registrations.userflow.model.UserFieldKind
-import com.example.campusconnect.feature.registrations.userflow.model.UserQuestion
-import com.example.campusconnect.feature.registrations.userflow.model.isMissing
+import com.example.campusconnect.feature.registrations.model.AttachedFile
+import com.example.campusconnect.feature.registrations.model.USER_REGISTRATION_TOTAL_STEPS
+import com.example.campusconnect.feature.registrations.model.UserFieldKind
+import com.example.campusconnect.feature.registrations.model.UserQuestion
+import com.example.campusconnect.feature.registrations.model.isMissing
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 internal val FlowDanger = Color(0xFFD32F2F)
-internal val FlowFieldBorder = Color(0xFFDADCE0)
+internal val FlowFieldBorder = Color(0xFFE2E4E8)
 internal val FlowDisabledBg = Color(0xFFF1F1F3)
 
-// ── Top bar with step progress ────────────────────────────────────────────────
+// ── Page chrome ───────────────────────────────────────────────────────────────
+
+internal val FlowIconTint = Color(0xFF3C4043)
+private val FlowSecondaryBg = Color(0xFFEFEFF2)
+private val OrangeGlow = Color(0xFFFF8A2B)
+
+/** Soft warm page background shared by every step. Use with a transparent Scaffold container. */
+internal val FlowPageBrush = Brush.verticalGradient(
+    listOf(Color(0xFFFFF1E6), Color(0xFFFFF9F5), Color(0xFFFFFFFF)),
+)
+
+internal fun Modifier.flowPageBackground(): Modifier = background(FlowPageBrush)
+
+internal fun flowPrimaryBrush(): Brush = Brush.verticalGradient(listOf(lerp(OrangePrimary, OrangeGlow, 0.45f), OrangePrimary))
 
 @Composable
 internal fun FlowTopBar(
@@ -74,39 +97,56 @@ internal fun FlowTopBar(
     onBack: () -> Unit,
     step: Int? = null,
     totalSteps: Int = USER_REGISTRATION_TOTAL_STEPS,
+    backEnabled: Boolean = true,
 ) {
-    Surface(color = CardBg) {
-        Column(Modifier.statusBarsPadding().fillMaxWidth().padding(bottom = 8.dp)) {
+    Column(Modifier.statusBarsPadding().fillMaxWidth().padding(bottom = 8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack, enabled = backEnabled) {
+                Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+            }
+            Text(
+                title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+        if (step != null) {
+            val progress by animateFloatAsState((step / totalSteps.toFloat()).coerceIn(0f, 1f), label = "stepProgress")
             Row(
-                modifier = Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(OrangeBorder.copy(alpha = 0.45f)),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(progress)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(50))
+                            .background(flowPrimaryBrush()),
+                    )
                 }
                 Text(
-                    title,
-                    fontSize = 16.sp,
+                    "$step / $totalSteps",
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(start = 4.dp),
+                    color = OrangePrimary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(OrangeLight)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                 )
-            }
-            if (step != null) {
-                val progress by animateFloatAsState(step / totalSteps.toFloat(), label = "stepProgress")
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(50)),
-                        color = OrangePrimary,
-                        trackColor = OrangeBorder.copy(alpha = 0.5f),
-                    )
-                    Text("$step/$totalSteps", fontSize = 12.sp, color = TextSecondary)
-                }
             }
         }
     }
@@ -125,37 +165,127 @@ internal fun StepHeader(
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(
-            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(iconBackground),
+            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(iconBackground),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(28.dp))
         }
-        Column {
-            Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Text(subtitle, fontSize = 13.sp, color = TextSecondary)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, fontSize = 24.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text(subtitle, fontSize = 15.sp, lineHeight = 21.sp, color = TextSecondary)
+        }
+    }
+}
+
+// ── Bottom action bar ─────────────────────────────────────────────────────────
+
+/** Primary "Next" bar. Pass [onBack] to show the grey Back button beside it (steps 2 and 3). */
+@Composable
+internal fun NextBottomBar(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    label: String = "Next",
+    loading: Boolean = false,
+    onBack: (() -> Unit)? = null,
+) {
+    FlowActionBar(
+        primaryLabel = label,
+        onPrimary = onClick,
+        enabled = enabled,
+        loading = loading,
+        onBack = onBack,
+    )
+}
+
+@Composable
+internal fun FlowActionBar(
+    primaryLabel: String,
+    onPrimary: () -> Unit,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    primaryIcon: ImageVector = Icons.Outlined.ArrowForward,
+    iconBeforeLabel: Boolean = false,
+    onBack: (() -> Unit)? = null,
+    backEnabled: Boolean = true,
+) {
+    RegistrationBottomBar {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (onBack != null) {
+                FlowSecondaryButton("Back", onBack, backEnabled, Modifier.weight(0.8f))
+            }
+            FlowPrimaryButton(
+                label = primaryLabel,
+                icon = primaryIcon,
+                iconBeforeLabel = iconBeforeLabel,
+                onClick = onPrimary,
+                enabled = enabled,
+                loading = loading,
+                modifier = Modifier.weight(if (onBack != null) 1.5f else 1f),
+            )
         }
     }
 }
 
 @Composable
-internal fun NextBottomBar(onClick: () -> Unit, enabled: Boolean = true, label: String = "Next") {
-    RegistrationBottomBar {
-        Button(
-            onClick = onClick,
-            enabled = enabled,
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = OrangePrimary,
-                contentColor = Color.White,
-            ),
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-        ) {
-            Text(label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Outlined.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+internal fun FlowPrimaryButton(
+    label: String,
+    icon: ImageVector?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    iconBeforeLabel: Boolean = false,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = modifier
+            .height(56.dp)
+            .clip(shape)
+            .background(if (enabled) flowPrimaryBrush() else SolidColor(OrangePrimary.copy(alpha = 0.38f)))
+            .clickable(enabled = enabled && !loading, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (loading) {
+                CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+            } else if (icon != null && iconBeforeLabel) {
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+            }
+            Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            if (!loading && icon != null && !iconBeforeLabel) {
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun FlowSecondaryButton(
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(56.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(FlowSecondaryBg)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(
+                Icons.Outlined.ArrowBack, contentDescription = null,
+                tint = if (enabled) TextPrimary else TextSecondary, modifier = Modifier.size(20.dp),
+            )
+            Text(
+                label, fontSize = 16.sp, fontWeight = FontWeight.Medium,
+                color = if (enabled) TextPrimary else TextSecondary,
+            )
         }
     }
 }
@@ -165,7 +295,7 @@ internal fun NextBottomBar(onClick: () -> Unit, enabled: Boolean = true, label: 
 // Every participant question, individual or team, is rendered through UserQuestionField so the
 // label, required/optional marker, input style, error text and spacing are identical on all steps.
 
-private val FieldShape = RoundedCornerShape(10.dp)
+private val FieldShape = RoundedCornerShape(14.dp)
 private val DisplayDate: DateTimeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault())
 
 /** File state for FILE questions. Screens that cannot collect files leave it out. */
@@ -184,27 +314,31 @@ internal fun UserQuestionField(
     showError: Boolean,
     modifier: Modifier = Modifier,
     attachment: QuestionAttachment? = null,
+    leadingIcon: ImageVector? = null,
 ) {
     val enabled = !question.readOnly
     val missing = showError && question.isMissing(value, attachment?.file)
     val placeholder = question.placeholder
 
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         FieldLabel(question.label, required = question.required, optional = !question.required && enabled)
 
         when (question.kind) {
             UserFieldKind.TEXT -> FlowTextInput(
                 value, { onValueChange(it.take(question.maxLength)) }, placeholder,
                 KeyboardType.Text, enabled, missing,
+                leadingIcon = leadingIcon ?: Icons.Outlined.Edit,
             )
 
             UserFieldKind.NUMBER -> FlowTextInput(
                 value, { onValueChange(it.filter { c -> c.isDigit() || c == '.' || c == '-' }.take(question.maxLength)) },
                 placeholder, KeyboardType.Number, enabled, missing,
+                leadingIcon = leadingIcon ?: Icons.Outlined.Tag,
             )
 
             UserFieldKind.LONG_TEXT -> LongTextInput(
                 value, { onValueChange(it.take(question.maxLength)) }, placeholder, question.maxLength, enabled, missing,
+                leadingIcon ?: Icons.Outlined.Description,
             )
 
             UserFieldKind.PHONE -> PhoneInput(value, onValueChange, enabled, missing)
@@ -213,6 +347,7 @@ internal fun UserQuestionField(
 
             UserFieldKind.DROPDOWN -> DropdownInput(
                 value, question.options, placeholder.ifBlank { "Select" }, enabled, missing, onValueChange,
+                leadingIcon = leadingIcon ?: Icons.Outlined.Layers,
             )
 
             UserFieldKind.MULTISELECT -> MultiSelectInput(value, question.options, enabled, missing, onValueChange)
@@ -241,8 +376,8 @@ internal fun FieldLabel(text: String, required: Boolean, optional: Boolean = fal
             if (required) withStyle(SpanStyle(color = FlowDanger)) { append(" *") }
             if (optional) withStyle(SpanStyle(color = TextSecondary, fontWeight = FontWeight.Normal)) { append("  (Optional)") }
         },
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.SemiBold,
         color = TextPrimary,
     )
 }
@@ -263,10 +398,10 @@ private fun flowFieldColors() = OutlinedTextFieldDefaults.colors(
     disabledTextColor = TextSecondary,
 )
 
-private val InputTextStyle = TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
+private val InputTextStyle = TextStyle(fontSize = 15.sp, lineHeight = 21.sp)
 
 @Composable
-private fun FlowTextInput(
+internal fun FlowTextInput(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
@@ -274,6 +409,7 @@ private fun FlowTextInput(
     enabled: Boolean,
     isError: Boolean,
     modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
 ) {
     OutlinedTextField(
         value = value,
@@ -281,7 +417,8 @@ private fun FlowTextInput(
         enabled = enabled,
         isError = isError,
         singleLine = true,
-        placeholder = if (placeholder.isBlank()) null else ({ Text(placeholder, fontSize = 14.sp) }),
+        placeholder = if (placeholder.isBlank()) null else ({ Text(placeholder, fontSize = 15.sp) }),
+        leadingIcon = leadingIcon?.let { icon -> { Icon(icon, contentDescription = null, tint = FlowIconTint, modifier = Modifier.size(22.dp)) } },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         textStyle = InputTextStyle,
         shape = FieldShape,
@@ -298,27 +435,49 @@ private fun LongTextInput(
     maxLength: Int,
     enabled: Boolean,
     isError: Boolean,
+    icon: ImageVector,
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val borderColor = when {
+        isError -> FlowDanger
+        focused -> OrangePrimary
+        else -> FlowFieldBorder
+    }
     Column {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            enabled = enabled,
-            isError = isError,
-            minLines = 4,
-            maxLines = 8,
-            placeholder = if (placeholder.isBlank()) null else ({ Text(placeholder, fontSize = 14.sp) }),
-            textStyle = InputTextStyle,
-            shape = FieldShape,
-            colors = flowFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 120.dp)
+                .clip(FieldShape)
+                .background(if (enabled) CardBg else FlowDisabledBg)
+                .border(if (focused) 1.5.dp else 1.dp, borderColor, FieldShape)
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(icon, contentDescription = null, tint = FlowIconTint, modifier = Modifier.padding(top = 1.dp).size(22.dp))
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                enabled = enabled,
+                textStyle = InputTextStyle.copy(color = if (enabled) TextPrimary else TextSecondary),
+                cursorBrush = SolidColor(OrangePrimary),
+                modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused },
+                decorationBox = { inner ->
+                    Box {
+                        if (value.isEmpty() && placeholder.isNotBlank()) {
+                            Text(placeholder, style = InputTextStyle, color = TextSecondary)
+                        }
+                        inner()
+                    }
+                },
+            )
+        }
         Text(
-            "${value.length}/$maxLength",
-            fontSize = 12.sp,
+            "${value.length} / $maxLength",
+            fontSize = 13.sp,
             color = if (value.length >= maxLength) FlowDanger else TextSecondary,
             textAlign = TextAlign.End,
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp, end = 4.dp),
         )
     }
 }
@@ -348,7 +507,7 @@ private fun PhoneInput(value: String, onValueChange: (String) -> Unit, enabled: 
             enabled = enabled,
             isError = false,
             onSelect = { onValueChange("$it $number".trim()) },
-            modifier = Modifier.width(100.dp),
+            modifier = Modifier.width(104.dp),
         )
         FlowTextInput(
             value = number,
@@ -358,6 +517,7 @@ private fun PhoneInput(value: String, onValueChange: (String) -> Unit, enabled: 
             enabled = enabled,
             isError = isError,
             modifier = Modifier.weight(1f),
+            leadingIcon = Icons.Outlined.Phone,
         )
     }
 }
@@ -373,6 +533,7 @@ private fun FieldShell(
     isError: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
 ) {
     Row(
         modifier = modifier
@@ -384,10 +545,14 @@ private fun FieldShell(
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (leadingIcon != null) {
+            Icon(leadingIcon, contentDescription = null, tint = FlowIconTint, modifier = Modifier.size(22.dp))
+        }
         Text(
             value.ifBlank { placeholder },
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             color = if (value.isBlank() || !enabled) TextSecondary else TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -407,6 +572,7 @@ internal fun DropdownInput(
     isError: Boolean,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var fieldWidth by remember { mutableStateOf(0.dp) }
@@ -417,6 +583,7 @@ internal fun DropdownInput(
             value, placeholder, Icons.Outlined.KeyboardArrowDown, enabled, isError,
             onClick = { expanded = true },
             modifier = Modifier.onGloballyPositioned { fieldWidth = with(density) { it.size.width.toDp() } },
+            leadingIcon = leadingIcon,
         )
         // The menu matches the field's width so long options (e.g. branch names) stay readable.
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(fieldWidth)) {

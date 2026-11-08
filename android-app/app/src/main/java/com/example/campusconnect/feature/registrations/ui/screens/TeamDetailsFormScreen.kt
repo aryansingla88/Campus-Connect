@@ -1,24 +1,22 @@
-package com.example.campusconnect.feature.registrations.userflow.ui
+package com.example.campusconnect.feature.registrations.ui.screens
+
+import com.example.campusconnect.feature.registrations.ui.components.*
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.campusconnect.feature.registrations.ui.components.CardBg
-import com.example.campusconnect.feature.registrations.ui.components.OrangePrimary
-import com.example.campusconnect.feature.registrations.ui.components.RegistrationBottomBar
-import com.example.campusconnect.feature.registrations.userflow.model.AttachedFile
-import com.example.campusconnect.feature.registrations.userflow.model.UserFieldKind
-import com.example.campusconnect.feature.registrations.userflow.model.UserQuestion
+import com.example.campusconnect.feature.registrations.model.AttachedFile
+import com.example.campusconnect.feature.registrations.model.UserFieldKind
+import com.example.campusconnect.feature.registrations.model.UserQuestion
 
 private const val TOTAL_FORM_STEP = 3
 
@@ -47,20 +45,18 @@ fun TeamDetailsFormScreen(
     }
 
     Scaffold(
-        containerColor = CardBg,
+        modifier = Modifier.flowPageBackground(),
+        containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = { FlowTopBar(title = "Event Registration", onBack = onBack, step = TOTAL_FORM_STEP) },
         bottomBar = {
-            RegistrationBottomBar {
-                Button(
-                    onClick = onSubmit,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary, contentColor = Color.White),
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                ) {
-                    Text("Submit Registration", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                }
-            }
+            FlowActionBar(
+                primaryLabel = "Submit Registration",
+                primaryIcon = Icons.Outlined.Send,
+                iconBeforeLabel = true,
+                onPrimary = onSubmit,
+                onBack = onBack,
+            )
         },
     ) { padding ->
         Column(
@@ -70,7 +66,7 @@ fun TeamDetailsFormScreen(
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             StepHeader(
                 icon = Icons.Outlined.Groups,
@@ -84,6 +80,7 @@ fun TeamDetailsFormScreen(
                     value = answers[question.id].orEmpty(),
                     onValueChange = { onAnswerChange(question.id, it) },
                     showError = showErrors,
+                    leadingIcon = if (question.kind == UserFieldKind.LONG_TEXT || question.kind == UserFieldKind.TEXT) Icons.Outlined.Edit else null,
                     attachment = if (question.kind == UserFieldKind.FILE) {
                         QuestionAttachment(
                             file = files[question.id],

@@ -101,7 +101,7 @@ fun RegistrationResponsesScreen(
                     ResponseTab.TOTAL -> true
                     ResponseTab.INDIVIDUAL -> response.type == RegistrationResponseType.INDIVIDUAL
                     ResponseTab.TEAMS -> response.type == RegistrationResponseType.TEAM
-                    ResponseTab.PENDING -> response.status == RegistrationResponseStatus.PENDING
+                    ResponseTab.PENDING -> response.status == RegistrationResponseStatus.WAITLISTED
                 }
             }
             .filter { response -> statusFilter == null || response.status == statusFilter }
@@ -188,6 +188,10 @@ fun RegistrationResponsesScreen(
                 )
             }
 
+            if (listState.reviewError != null) item {
+                Text(listState.reviewError.orEmpty(), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+            }
+
             if (listState.loaded) item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -241,9 +245,9 @@ fun RegistrationResponsesScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Pending") },
+                                text = { Text("Pending Review") },
                                 onClick = {
-                                    statusFilter = RegistrationResponseStatus.PENDING
+                                    statusFilter = RegistrationResponseStatus.WAITLISTED
                                     showFilterMenu = false
                                 },
                             )
@@ -286,6 +290,8 @@ fun RegistrationResponsesScreen(
                             onSelectMember = { viewModel.selectMember(response.id, it) },
                             onRetry = { viewModel.loadDetails(eventId, response.id, force = true) },
                             onFullResponse = { onFullResponse(response) },
+                            onReview = { approve -> viewModel.reviewRegistration(response.id, approve) },
+                            isReviewing = listState.reviewingRegistrationId == response.id,
                         )
                     }
                 }
@@ -380,7 +386,7 @@ private fun ResponseStatTabs(
                 ResponseTab.TOTAL -> responses.size
                 ResponseTab.INDIVIDUAL -> responses.count { it.type == RegistrationResponseType.INDIVIDUAL }
                 ResponseTab.TEAMS -> responses.count { it.type == RegistrationResponseType.TEAM }
-                ResponseTab.PENDING -> responses.count { it.status == RegistrationResponseStatus.PENDING }
+                ResponseTab.PENDING -> responses.count { it.status == RegistrationResponseStatus.WAITLISTED }
             }
             val (bg, fg, icon) = when (tab) {
                 ResponseTab.TOTAL -> Triple(TotalBg, TotalFg, Icons.Outlined.Groups)
@@ -435,6 +441,8 @@ private fun RegistrationResponseCard(
     onSelectMember: (Int) -> Unit,
     onRetry: () -> Unit,
     onFullResponse: () -> Unit,
+    onReview: (Boolean) -> Unit,
+    isReviewing: Boolean,
 ) {
     val arrowRotation by animateFloatAsState(if (expanded) -90f else 0f, label = "arrowRotation")
 
@@ -485,6 +493,17 @@ private fun RegistrationResponseCard(
                     tint = TextPrimary,
                     modifier = Modifier.size(20.dp).rotate(arrowRotation),
                 )
+            }
+        }
+
+        if (response.status == RegistrationResponseStatus.WAITLISTED) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.End) {
+                TextButton(enabled = !isReviewing, onClick = { onReview(false) }) { Text("Reject") }
+                Button(enabled = !isReviewing, onClick = { onReview(true) }) {
+                    if (isReviewing) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    else Text("Approve")
+                }
             }
         }
 

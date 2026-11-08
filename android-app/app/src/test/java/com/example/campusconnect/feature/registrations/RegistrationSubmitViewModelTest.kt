@@ -1,14 +1,15 @@
-package com.example.campusconnect.feature.registrations.userflow
+package com.example.campusconnect.feature.registrations
 
-import com.example.campusconnect.feature.registrations.userflow.data.RegistrationSubmitRepository
-import com.example.campusconnect.feature.registrations.userflow.model.ParticipationMode
-import com.example.campusconnect.feature.registrations.userflow.model.SubmissionContext
-import com.example.campusconnect.feature.registrations.userflow.model.SubmissionReceipt
-import com.example.campusconnect.feature.registrations.userflow.model.SubmissionRequest
-import com.example.campusconnect.feature.registrations.userflow.model.UserFieldKind
-import com.example.campusconnect.feature.registrations.userflow.model.UserQuestion
-import com.example.campusconnect.feature.registrations.userflow.viewmodel.RegistrationSubmitViewModel
-import com.example.campusconnect.feature.registrations.userflow.viewmodel.SubmitPhase
+import com.example.campusconnect.feature.registrations.data.RegistrationSubmitRepository
+import com.example.campusconnect.feature.registrations.data.TeamQuestionSet
+import com.example.campusconnect.feature.registrations.model.ParticipationMode
+import com.example.campusconnect.feature.registrations.model.SubmissionContext
+import com.example.campusconnect.feature.registrations.model.SubmissionReceipt
+import com.example.campusconnect.feature.registrations.model.SubmissionRequest
+import com.example.campusconnect.feature.registrations.model.UserFieldKind
+import com.example.campusconnect.feature.registrations.model.UserQuestion
+import com.example.campusconnect.feature.registrations.viewmodel.RegistrationSubmitViewModel
+import com.example.campusconnect.feature.registrations.viewmodel.SubmitPhase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -47,6 +48,7 @@ class RegistrationSubmitViewModelTest {
         viewModel.start(
             SubmissionContext(
                 eventId = 3,
+                registrationId = 20,
                 eventName = "Event #3",
                 mode = ParticipationMode.SOLO,
                 participantAnswers = participantAnswers,
@@ -74,6 +76,7 @@ class RegistrationSubmitViewModelTest {
         viewModel.start(
             SubmissionContext(
                 eventId = 3,
+                registrationId = 20,
                 eventName = "Event #3",
                 mode = ParticipationMode.CREATE_TEAM,
                 participantAnswers = participantAnswers,
@@ -104,6 +107,7 @@ class RegistrationSubmitViewModelTest {
         viewModel.start(
             SubmissionContext(
                 eventId = 3,
+                registrationId = 20,
                 eventName = "Event #3",
                 mode = ParticipationMode.JOIN_TEAM,
                 teamId = 6,
@@ -124,9 +128,9 @@ class RegistrationSubmitViewModelTest {
         var questionLoads: Int = 0
         var submission: SubmissionRequest? = null
 
-        override suspend fun getTeamQuestions(eventId: Int): Result<List<UserQuestion>> {
+        override suspend fun getTeamQuestions(eventId: Int, registrationId: Int): Result<TeamQuestionSet> {
             questionLoads += 1
-            return Result.success(questions)
+            return Result.success(TeamQuestionSet(questions))
         }
 
         override suspend fun submit(request: SubmissionRequest): Result<SubmissionReceipt> {

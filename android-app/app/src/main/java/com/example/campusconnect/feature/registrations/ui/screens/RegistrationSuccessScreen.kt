@@ -1,4 +1,6 @@
-package com.example.campusconnect.feature.registrations.userflow.ui
+package com.example.campusconnect.feature.registrations.ui.screens
+
+import com.example.campusconnect.feature.registrations.ui.components.*
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -31,7 +33,7 @@ import com.example.campusconnect.feature.registrations.ui.components.OrangeLight
 import com.example.campusconnect.feature.registrations.ui.components.OrangePrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
-import com.example.campusconnect.feature.registrations.userflow.model.SubmissionReceipt
+import com.example.campusconnect.feature.registrations.model.SubmissionReceipt
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin

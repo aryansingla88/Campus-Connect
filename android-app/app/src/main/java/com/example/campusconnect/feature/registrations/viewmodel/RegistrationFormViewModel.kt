@@ -30,30 +30,14 @@ class RegistrationFormViewModel(
 
     private val _state = MutableStateFlow(RegistrationFormsUiState())
     val state = _state.asStateFlow()
-    private var individualRegistrationMode = true
-
-    fun setRegistrationMode(individual: Boolean) {
-        individualRegistrationMode = individual
-        if (!individual && _state.value.loaded && _individualFields.value.isNotEmpty()) {
-            _teamFields.value = _teamFields.value + _individualFields.value.map { it.copy(individual = false) }
-            _individualFields.value = emptyList()
-            _state.value = _state.value.copy(saved = false, hasUnsavedChanges = true, error = null)
-        }
-    }
 
     fun load(eventId: Int) {
         if (_state.value.eventId == eventId && (_state.value.loaded || _state.value.loading)) return
         _state.value = RegistrationFormsUiState(eventId = eventId, loading = true)
         viewModelScope.launch {
             repository.load(eventId).onSuccess { fields ->
-                if (individualRegistrationMode) {
-                    _individualFields.value = fields.filter { it.individual }
-                    _teamFields.value = fields.filterNot { it.individual }
-                } else {
-                    // Keep every existing question while switching the registration to team mode.
-                    _individualFields.value = emptyList()
-                    _teamFields.value = fields.map { it.copy(individual = false) }
-                }
+                _individualFields.value = fields.filter { it.individual }
+                _teamFields.value = fields.filterNot { it.individual }
                 _state.value = RegistrationFormsUiState(eventId = eventId, loaded = true)
             }.onFailure { error ->
                 _state.value = RegistrationFormsUiState(

@@ -11,6 +11,7 @@ import com.example.campusconnect.feature.events.model.EventStatus
 import com.example.campusconnect.feature.events.ui.screen.EventScreen
 import com.example.campusconnect.feature.events.ui.screen.EventViewModeScreen
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
+import com.example.campusconnect.feature.registrations.navigateToRegistrationSetup
 
 const val EVENTS_POSTER_VIEW = "events_poster_view"
 
@@ -27,7 +28,10 @@ fun NavGraphBuilder.eventNav(
             EventScreen(
                 onBack = {
                     navController.popBackStack()
-                }
+                },
+                onRegistration = { event ->
+                    navController.navigateToRegistrationSetup(event.id)
+                },
             )
         }
 
@@ -53,7 +57,9 @@ fun NavGraphBuilder.eventNav(
                 onBack = {
                     navController.popBackStack()
                 },
-                onRegister = {},
+                onRegister = { event ->
+                    navController.navigate("user_registration/${event.id}")
+                },
                 onNotify = {},
                 onOpenDetail = {},
                 categories = categories,

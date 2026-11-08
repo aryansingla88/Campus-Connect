@@ -210,27 +210,41 @@ internal fun NotifyMeButton(
 
 @Composable
 internal fun RegisterActionButton(
-    isJoined: Boolean,
+    registrationStatus: String?,
     label: String,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val registered = isJoined
+    val status = registrationStatus?.uppercase()
+    val registered = status == "CONFIRMED"
+    val waitingReview = status == "WAITLISTED"
+    val draft = status == "PENDING"
+    val displayLabel = when {
+        registered -> "Registered"
+        waitingReview -> "Waiting for review"
+        draft -> "Continue"
+        else -> label
+    }
+    val displayIcon = when {
+        registered -> Icons.Default.Check
+        waitingReview || draft -> Icons.Default.AccessTime
+        else -> Icons.Default.PersonAdd
+    }
 
     val backgroundColor =
-        if (!enabled && !registered) {
+        if (!enabled && !registered && !waitingReview) {
             Color(0xFFE5E5E5)
-        } else if (registered) {
+        } else if (registered || waitingReview) {
             Color.White
         } else {
             OrangePrimary
         }
 
     val contentColor =
-        if (!enabled && !registered) {
+        if (!enabled && !registered && !waitingReview) {
             Color(0xFF777777)
-        } else if (registered) {
+        } else if (registered || waitingReview) {
             OrangePrimary
         } else {
             Color.White
@@ -246,11 +260,11 @@ internal fun RegisterActionButton(
                 backgroundColor
             )
             .then(
-                if (registered) {
+                if (registered || waitingReview) {
 
                     Modifier.border(
                         width = 1.dp,
-                        color = OrangePrimary,
+                        color = if (registered) Color(0xFF18864B) else Color(0xFF7B61A8),
                         shape = RoundedCornerShape(
                             14.dp
                         )
@@ -260,7 +274,7 @@ internal fun RegisterActionButton(
                     Modifier
                 }
             )
-            .clickable(enabled = enabled && !registered, onClick = onClick),
+            .clickable(enabled = enabled && !registered && !waitingReview, onClick = onClick),
         horizontalArrangement =
             Arrangement.Center,
         verticalAlignment =
@@ -269,17 +283,9 @@ internal fun RegisterActionButton(
 
         Icon(
             imageVector =
-                if (registered) {
-                    Icons.Default.Check
-                } else {
-                    Icons.Default.PersonAdd
-                },
+                displayIcon,
             contentDescription =
-                if (registered) {
-                    "Registered"
-                } else {
-                    label
-                },
+                displayLabel,
             tint = contentColor,
             modifier = Modifier.size(18.dp)
         )
@@ -290,11 +296,7 @@ internal fun RegisterActionButton(
 
         Text(
             text =
-                if (registered) {
-                    "Registered"
-                } else {
-                    label
-                },
+                displayLabel,
             color = contentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold

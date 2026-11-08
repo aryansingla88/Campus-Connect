@@ -20,6 +20,9 @@ import com.campus.Campus_Connect.features.registration.dto.response.AvailableTea
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.SavedRegistrationAnswerResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.TeamRequestResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.ParticipantRegistrationConfigResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamPortalResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamCandidateResponse;
 import com.campus.Campus_Connect.features.registration.entity.*;
 import com.campus.Campus_Connect.features.registration.entity.enums.RegistrationStatus;
 import com.campus.Campus_Connect.features.registration.entity.enums.TeamRequestInitiator;
@@ -33,6 +36,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -66,18 +70,115 @@ public class UserRegistrationService {
         if (config.getRegistrationEndAt() != null && now.isAfter(config.getRegistrationEndAt()))
             return ApiResponse.failure("Registration has closed.");
 
-        Optional<EventRegistration> existing = registrationRepository.findByEventIdAndUserId(eventId, user.getId());
-        if (existing.isPresent()) {
-            EventRegistration r = existing.get();
-            if (r.getStatus() == RegistrationStatus.REJECTED)
-                return ApiResponse.failure("This registration is no longer active.");
-            if (r.getStatus() != RegistrationStatus.PENDING)
-                return ApiResponse.failure("This registration has already been submitted and cannot be resumed as a draft.");
-            return ApiResponse.success(toResponse(r), "Existing registration returned.");
-        }
-        EventRegistration registration = registrationRepository.save(EventRegistration.builder()
-                .event(event).user(user).status(RegistrationStatus.PENDING).submittedAt(now).build());
+        registrationRepository.insertDraftIfAbsent(eventId, user.getId());
+        EventRegistration registration = registrationRepository.findByEventIdAndUserId(eventId, user.getId()).orElse(null);
+        if (registration == null) return ApiResponse.failure("Could not initialize registration.");
+        if (registration.getStatus() != RegistrationStatus.PENDING)
+            return ApiResponse.failure("This registration has already been submitted and cannot be resumed as a draft.");
         return ApiResponse.success(toResponse(registration), "Registration draft created.");
+    }
+
+    public ApiResponse<ParticipantRegistrationConfigResponse> getParticipantConfig(Integer eventId) {
+        Event event = eventRepository.findById(eventId).orElse(null);
+        if (event == null) return ApiResponse.failure("Event not found.");
+        if (event.getApprovalStatus() != ApprovalStatus.VERIFIED)
+            return ApiResponse.failure("Event is not published.");
+        RegistrationConfig config = configRepository.findByEventId(eventId).orElse(null);
+        if (config == null) return ApiResponse.failure("Registration is not configured for this event.");
+        return ApiResponse.success(ParticipantRegistrationConfigResponse.builder()
+                .eventId(eventId).minTeamMembers(config.getMinTeamMembers())
+                .maxTeamMembers(config.getMaxTeamMembers())
+                .registrationCreatedAt(config.getRegistrationCreatedAt())
+                .registrationEndAt(config.getRegistrationEndAt()).build(), "Participant registration rules fetched.");
+    }
+
+    /** Read-only check. The unique database index remains the final authority during creation. */
+    public ApiResponse<Boolean> isTeamNameAvailable(Integer eventId, String teamName) {
+        User user = currentParticipant();
+        if (user == null) return ApiResponse.failure("User is not authenticated.");
+        if (teamName == null || teamName.isBlank() || teamName.trim().length() > 100)
+            return ApiResponse.failure("Team name must be between 1 and 100 characters.");
+        EventRegistration registration = registrationRepository.findByEventIdAndUserId(eventId, user.getId()).orElse(null);
+        if (registration == null) return ApiResponse.failure("Start registration before checking a team name.");
+        String eligibilityError = validateRegistrationEligibility(registration);
+        if (eligibilityError != null) return ApiResponse.failure(eligibilityError);
+        RegistrationConfig config = configRepository.findByEventId(eventId).orElse(null);
+        if (config == null || config.getMaxTeamMembers() <= 1)
+            return ApiResponse.failure("Teams are not available for this event.");
+        if (registration.getTeam() != null) return ApiResponse.failure("Registration is already assigned to a team.");
+        return ApiResponse.success(teamRepository.findByEvent_IdAndTeamNameIgnoreCase(eventId, teamName.trim()).isEmpty(),
+                "Team name availability checked.");
+    }
+
+    @Transactional
+    public ApiResponse<TeamPortalResponse> getMyTeam(Integer eventId) {
+        User user = currentParticipant();
+        if (user == null) return ApiResponse.failure("User is not authenticated.");
+        EventRegistration registration = registrationRepository.findByEventIdAndUserId(eventId, user.getId()).orElse(null);
+        if (registration == null || registration.getTeam() == null)
+            return ApiResponse.failure("You are not assigned to a team for this event.");
+        EventTeam team = registration.getTeam();
+        if (!team.getEvent().getId().equals(eventId))
+            return ApiResponse.failure("Team and registration do not belong to the same event.");
+        EventRegistration leaderRegistration = team.getLeader() == null ? null
+                : registrationRepository.findByEventIdAndUserId(eventId, team.getLeader().getId()).orElse(null);
+        if (leaderRegistration == null || leaderRegistration.getTeam() == null
+                || !leaderRegistration.getTeam().getId().equals(team.getId()))
+            return ApiResponse.failure("The team's leader registration is inconsistent.");
+        RegistrationConfig config = configRepository.findByEventId(eventId).orElse(null);
+        List<EventRegistration> members = registrationRepository.findByEventIdAndTeamId(eventId, team.getId()).stream()
+                .filter(member -> member.getStatus() != RegistrationStatus.REJECTED).toList();
+        boolean isLeader = team.getLeader().getId().equals(user.getId());
+        List<TeamRequestResponse> requests = isLeader
+                ? teamRequestRepository.findByTeam_IdOrderByCreatedAtDesc(team.getId()).stream()
+                    .filter(req -> req.getInitiatedBy() == TeamRequestInitiator.PARTICIPANT
+                            && req.getStatus() == TeamRequestStatus.PENDING)
+                    .map(this::toTeamRequestResponse).toList()
+                : List.of();
+        TeamPortalResponse data = TeamPortalResponse.builder()
+                .teamId(team.getId()).leaderUserId(team.getLeader().getId()).teamName(team.getTeamName())
+                .leaderName(team.getLeader().getUsername()).memberCount(members.size())
+                .minMembers(config == null ? 1 : config.getMinTeamMembers())
+                .maxMembers(config == null ? 1 : config.getMaxTeamMembers())
+                .status(leaderRegistration.getStatus().name()).currentUserIsLeader(isLeader)
+                .members(members.stream().map(member -> TeamPortalResponse.Member.builder()
+                        .registrationId(member.getId()).userId(member.getUser().getId())
+                        .displayName(member.getUser().getProfile() != null
+                                && member.getUser().getProfile().getFullName() != null
+                                ? member.getUser().getProfile().getFullName() : member.getUser().getUsername())
+                        .status(member.getStatus().name()).build()).toList())
+                .pendingJoinRequests(requests).build();
+        return ApiResponse.success(data, "Team portal loaded.");
+    }
+
+    @Transactional
+    public ApiResponse<List<TeamCandidateResponse>> getTeamCandidates(Integer eventId, String query) {
+        User user = currentParticipant();
+        if (user == null) return ApiResponse.failure("User is not authenticated.");
+        EventRegistration leaderRegistration = registrationRepository.findByEventIdAndUserId(eventId, user.getId()).orElse(null);
+        EventTeam team = leaderRegistration == null ? null : leaderRegistration.getTeam();
+        if (team == null || team.getLeader() == null || !team.getLeader().getId().equals(user.getId()))
+            return ApiResponse.failure("Only a team leader can search for invite candidates.");
+        String eligibilityError = validateRegistrationEligibility(leaderRegistration);
+        if (eligibilityError != null) return ApiResponse.failure("Team is not accepting invitations: " + eligibilityError);
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
+        List<TeamCandidateResponse> candidates = registrationRepository.findByEventId(eventId).stream()
+                .filter(candidate -> candidate.getStatus() == RegistrationStatus.PENDING
+                        && candidate.getTeam() == null
+                        && !candidate.getUser().getId().equals(user.getId()))
+                .filter(candidate -> teamRequestRepository.findByRegistration_IdAndStatus(
+                        candidate.getId(), TeamRequestStatus.PENDING).isEmpty())
+                .map(candidate -> {
+                    String name = candidate.getUser().getProfile() != null
+                            && candidate.getUser().getProfile().getFullName() != null
+                            ? candidate.getUser().getProfile().getFullName() : candidate.getUser().getUsername();
+                    return TeamCandidateResponse.builder().registrationId(candidate.getId())
+                            .userId(candidate.getUser().getId()).displayName(name).build();
+                })
+                .filter(candidate -> normalizedQuery.isBlank()
+                        || candidate.getDisplayName().toLowerCase().contains(normalizedQuery))
+                .toList();
+        return ApiResponse.success(candidates, "Team invitation candidates fetched.");
     }
 
     public ApiResponse<List<RegistrationFieldResponse>> getPublishedFields(Integer eventId, Boolean individual) {
@@ -217,8 +318,10 @@ public class UserRegistrationService {
         if (eligibilityError != null) return ApiResponse.failure(eligibilityError);
         if (r.getTeam() != null) return ApiResponse.failure("Registration is already assigned to a team.");
         if (teamName == null || teamName.isBlank() || teamName.length() > 100) return ApiResponse.failure("A valid team name is required.");
-        if (teamRepository.findByEvent_IdAndTeamName(r.getEvent().getId(), teamName.trim()).isPresent())
+        if (teamRepository.findByEvent_IdAndTeamNameIgnoreCase(r.getEvent().getId(), teamName.trim()).isPresent())
             return ApiResponse.failure("Team name is already taken for this event.");
+        if (teamRepository.existsByEvent_IdAndLeader_Id(r.getEvent().getId(), r.getUser().getId()))
+            return ApiResponse.failure("You already lead a team for this event.");
         EventTeam team = teamRepository.save(EventTeam.builder().event(r.getEvent()).teamName(teamName.trim()).leader(r.getUser()).build());
         r.setTeam(team);
         return ApiResponse.success(toResponse(r), "Team created and leader membership established.");
@@ -241,6 +344,12 @@ public class UserRegistrationService {
         if (!team.getEvent().getId().equals(registration.getEvent().getId()))
             return ApiResponse.failure("Team and registration must belong to the same event.");
         if (team.getLeader().getId().equals(user.getId())) return ApiResponse.failure("You already lead this team.");
+        EventRegistration leaderRegistration = registrationRepository.findByEventIdAndUserId(
+                registration.getEvent().getId(), team.getLeader().getId()).orElse(null);
+        if (leaderRegistration == null || leaderRegistration.getTeam() == null
+                || !leaderRegistration.getTeam().getId().equals(team.getId())
+                || leaderRegistration.getStatus() != RegistrationStatus.PENDING)
+            return ApiResponse.failure("This team is not accepting new members.");
         RegistrationConfig config = configRepository.findByEventId(registration.getEvent().getId()).orElse(null);
         if (config == null || config.getMaxTeamMembers() <= 1) return ApiResponse.failure("Teams are not available for this event.");
 
@@ -265,12 +374,25 @@ public class UserRegistrationService {
         if (team.getLeader() == null || !team.getLeader().getId().equals(leader.getId()))
             return ApiResponse.failure("Only the team leader can send invitations.");
 
+        EventRegistration leaderRegistration = registrationRepository.findByEventIdAndUserId(
+                team.getEvent().getId(), leader.getId()).orElse(null);
+        if (leaderRegistration == null || leaderRegistration.getTeam() == null
+                || !leaderRegistration.getTeam().getId().equals(team.getId())
+                || leaderRegistration.getStatus() != RegistrationStatus.PENDING)
+            return ApiResponse.failure("This team is not accepting invitations.");
+
         EventRegistration registration = registrationRepository.findByIdForUpdate(request.getRegistrationId()).orElse(null);
         if (registration == null) return ApiResponse.failure("Participant registration not found.");
         String eligibilityError = validateRegistrationEligibility(registration);
         if (eligibilityError != null) return ApiResponse.failure(eligibilityError);
         if (!team.getEvent().getId().equals(registration.getEvent().getId()))
             return ApiResponse.failure("Team and registration must belong to the same event.");
+        long currentMembers = registrationRepository.countByEventIdAndTeamIdAndStatusIn(
+                registration.getEvent().getId(), team.getId(),
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED));
+        if (currentMembers >= configRepository.findByEventId(registration.getEvent().getId())
+                .map(RegistrationConfig::getMaxTeamMembers).orElse(1))
+            return ApiResponse.failure("Team is full.");
         if (registration.getUser().getId().equals(leader.getId())) return ApiResponse.failure("You cannot invite yourself.");
         if (registration.getTeam() != null) return ApiResponse.failure("Participant is already assigned to a team.");
 
@@ -393,11 +515,16 @@ public class UserRegistrationService {
     public ApiResponse<RegistrationResponse> finalizeRegistration(Integer registrationId) {
         User user = currentParticipant();
         if (user == null || registrationId == null) return ApiResponse.failure("Editable registration not found.");
+        EventRegistration observed = registrationRepository.findById(registrationId).orElse(null);
+        if (observed == null || !observed.getUser().getId().equals(user.getId()))
+            return ApiResponse.failure("Editable registration not found.");
+        EventTeam team = observed.getTeam();
+        if (team != null) team = teamRepository.findByIdForUpdate(team.getId()).orElse(null);
         EventRegistration r = registrationRepository.findByIdForUpdate(registrationId).orElse(null);
         if (r == null || !r.getUser().getId().equals(user.getId()))
             return ApiResponse.failure("Editable registration not found.");
-        if (r.getStatus() == RegistrationStatus.CONFIRMED)
-            return ApiResponse.success(toResponse(r), "Registration is already confirmed.");
+        if (r.getStatus() == RegistrationStatus.CONFIRMED || r.getStatus() == RegistrationStatus.WAITLISTED)
+            return ApiResponse.success(toResponse(r), "Registration has already been submitted.");
         if (r.getStatus() != RegistrationStatus.PENDING)
             return ApiResponse.failure("Editable registration not found.");
         String eligibilityError = validateRegistrationEligibility(r);
@@ -408,37 +535,81 @@ public class UserRegistrationService {
         if (config.getRegistrationEndAt() != null && now.isAfter(config.getRegistrationEndAt())) return ApiResponse.failure("Registration has closed.");
         boolean solo = r.getTeam() == null;
         if (solo && config.getMinTeamMembers() > 1) return ApiResponse.failure("Solo registrations are not allowed for this event.");
+        List<EventRegistration> members = List.of(r);
         if (!solo) {
-            long size = registrationRepository.countByEventIdAndTeamIdAndStatusIn(
-                    r.getEvent().getId(), r.getTeam().getId(),
-                    List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED));
-            if (size < config.getMinTeamMembers() || size > config.getMaxTeamMembers()) return ApiResponse.failure("Team size does not meet event requirements.");
-        }
-        if (r.getTeam() != null && !r.getTeam().getEvent().getId().equals(r.getEvent().getId()))
-            return ApiResponse.failure("Assigned team does not belong to this event.");
-        List<RegistrationAnswer> individualAnswers = answerRepository.findByIdRegistrationId(registrationId);
-        List<RegistrationAnswer> teamAnswers = List.of();
-        if (r.getTeam() != null) {
+            if (team == null || !team.getEvent().getId().equals(r.getEvent().getId()))
+                return ApiResponse.failure("Assigned team does not belong to this event.");
+            if (team.getLeader() == null || !team.getLeader().getId().equals(user.getId())) {
+                // Accepted members submit their own answers, but the leader owns the shared submission.
+                return saveTeamMemberSubmission(r);
+            }
             EventRegistration leaderRegistration = registrationRepository.findByEventIdAndUserId(
-                    r.getEvent().getId(), r.getTeam().getLeader().getId()).orElse(null);
-            if (leaderRegistration == null || leaderRegistration.getTeam() == null
-                    || !leaderRegistration.getTeam().getId().equals(r.getTeam().getId()))
-                return ApiResponse.failure("The team leader's registration is not assigned to this team.");
-            teamAnswers = answerRepository.findByIdRegistrationId(leaderRegistration.getId());
+                    r.getEvent().getId(), team.getLeader().getId()).orElse(null);
+            if (leaderRegistration == null || !team.getId().equals(
+                    leaderRegistration.getTeam() == null ? null : leaderRegistration.getTeam().getId()))
+                return ApiResponse.failure("The team's leader registration does not reference this team.");
+            members = registrationRepository.findByEventIdAndTeamId(r.getEvent().getId(), team.getId()).stream()
+                    .filter(member -> member.getStatus() != RegistrationStatus.REJECTED)
+                    .toList();
+            if (members.size() < config.getMinTeamMembers() || members.size() > config.getMaxTeamMembers())
+                return ApiResponse.failure("Team size does not meet event requirements.");
+            if (members.stream().anyMatch(member -> member.getStatus() != RegistrationStatus.PENDING))
+                return ApiResponse.failure("Team members must be in draft state before the leader submits.");
+            if (members.stream().anyMatch(member -> !member.getId().equals(r.getId()) && member.getSubmittedAt() == null))
+                return ApiResponse.failure("Every team member must submit their individual details first.");
         }
-        for (RegistrationField field : fieldRepository.findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(r.getEvent().getId())) {
-            if (!Boolean.TRUE.equals(field.getRequired())) continue;
-            boolean applies = Boolean.TRUE.equals(field.getIndividual()) || !solo;
-            List<RegistrationAnswer> source = Boolean.TRUE.equals(field.getIndividual()) ? individualAnswers : teamAnswers;
-            if (applies && source.stream().noneMatch(a -> a.getField().getId().equals(field.getId())
-                    && a.getAnswer() != null && !a.getAnswer().isBlank()))
-                return ApiResponse.failure("Required field missing: " + field.getFieldLabel());
+
+        Map<Integer, List<RegistrationAnswer>> answersByRegistration = answerRepository
+                .findByIdRegistrationIdIn(members.stream().map(EventRegistration::getId).toList()).stream()
+                .collect(java.util.stream.Collectors.groupingBy(a -> a.getId().getRegistrationId()));
+        Integer leaderRegistrationId = r.getId();
+        List<RegistrationField> fields = fieldRepository
+                .findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(r.getEvent().getId());
+        for (EventRegistration member : members) {
+            List<RegistrationAnswer> individualAnswers = answersByRegistration.getOrDefault(member.getId(), List.of());
+            for (RegistrationField field : fields) {
+                if (!Boolean.TRUE.equals(field.getRequired())) continue;
+                List<RegistrationAnswer> source = Boolean.TRUE.equals(field.getIndividual())
+                        ? individualAnswers
+                        : (solo ? List.of() : answersByRegistration.getOrDefault(leaderRegistrationId, List.of()));
+                if ((Boolean.TRUE.equals(field.getIndividual()) || !solo)
+                        && source.stream().noneMatch(a -> a.getField().getId().equals(field.getId())
+                        && a.getAnswer() != null && !a.getAnswer().isBlank()))
+                    return ApiResponse.failure("Required field missing: " + field.getFieldLabel());
+            }
         }
         boolean autoConfirm = Boolean.TRUE.equals(config.getAutoConfirm());
-        r.setStatus(autoConfirm ? RegistrationStatus.CONFIRMED : RegistrationStatus.WAITLISTED);
+        RegistrationStatus target = autoConfirm ? RegistrationStatus.CONFIRMED : RegistrationStatus.WAITLISTED;
+        Instant submittedAt = Instant.now();
+        for (EventRegistration member : members) {
+            member.setStatus(target);
+            member.setSubmittedAt(submittedAt);
+        }
+        registrationRepository.saveAll(members);
         return ApiResponse.success(toResponse(r), autoConfirm
                 ? "Registration automatically confirmed."
                 : "Registration submitted for host approval.");
+    }
+
+    private ApiResponse<RegistrationResponse> saveTeamMemberSubmission(EventRegistration registration) {
+        EventTeam team = registration.getTeam();
+        EventRegistration leaderRegistration = registrationRepository.findByEventIdAndUserId(
+                registration.getEvent().getId(), team.getLeader().getId()).orElse(null);
+        if (leaderRegistration == null || leaderRegistration.getTeam() == null
+                || !leaderRegistration.getTeam().getId().equals(team.getId()))
+            return ApiResponse.failure("The team's leader registration does not reference this team.");
+        List<RegistrationField> fields = fieldRepository
+                .findByEventIdAndDeletedAtIsNullOrderByFieldOrderAsc(registration.getEvent().getId());
+        List<RegistrationAnswer> answers = answerRepository.findByIdRegistrationId(registration.getId());
+        for (RegistrationField field : fields) {
+            if (!Boolean.TRUE.equals(field.getIndividual()) || !Boolean.TRUE.equals(field.getRequired())) continue;
+            if (answers.stream().noneMatch(a -> a.getField().getId().equals(field.getId())
+                    && a.getAnswer() != null && !a.getAnswer().isBlank()))
+                return ApiResponse.failure("Required field missing: " + field.getFieldLabel());
+        }
+        registration.setSubmittedAt(Instant.now());
+        registrationRepository.save(registration);
+        return ApiResponse.success(toResponse(registration), "Individual details saved. The team leader will submit the team.");
     }
 
     @Transactional
@@ -465,22 +636,37 @@ public class UserRegistrationService {
         EventRegistration observed = registrationRepository.findByEventIdAndUserId(eventId, user.getId()).orElse(null);
         if (observed == null) return ApiResponse.failure("You are not registered for this event.");
         EventTeam team = observed.getTeam();
-        boolean leader = team != null && team.getLeader() != null && team.getLeader().getId().equals(user.getId());
+        boolean hasTeam = team != null;
+        boolean leader = hasTeam && team.getLeader() != null && team.getLeader().getId().equals(user.getId());
         // Match acceptance lock order: team first, then the participant's registration.
-        if (leader) team = teamRepository.findByIdForUpdate(team.getId()).orElse(null);
+        if (hasTeam) team = teamRepository.findByIdForUpdate(team.getId()).orElse(null);
         EventRegistration r = registrationRepository.findByIdForUpdate(observed.getId()).orElse(null);
         if (r == null || !r.getUser().getId().equals(user.getId()))
             return ApiResponse.failure("You are not registered for this event.");
-        if (r.getStatus() != RegistrationStatus.PENDING)
-            return ApiResponse.failure("Only pending registrations can be cancelled.");
-        if (leader) {
+        if (!hasTeam && r.getStatus() != RegistrationStatus.PENDING)
+            return ApiResponse.failure("Only pending individual registrations can be cancelled.");
+        if (hasTeam) {
             if (team == null || r.getTeam() == null || !r.getTeam().getId().equals(team.getId()))
                 return ApiResponse.failure("Team membership changed; retry cancellation.");
             long memberCount = registrationRepository.countByEventIdAndTeamIdAndStatusIn(
                     eventId, team.getId(), List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED));
-            if (memberCount > 1)
+            if (leader && memberCount > 1)
                 return ApiResponse.failure("Team leader cannot cancel while other participants remain assigned.");
-            teamRepository.delete(team);
+            if (leader) {
+                teamRepository.delete(team);
+            } else {
+                registrationRepository.delete(r);
+                RegistrationConfig config = configRepository.findByEventId(eventId).orElse(null);
+                List<EventRegistration> remaining = registrationRepository.findByEventIdAndTeamId(eventId, team.getId());
+                if (config != null && !remaining.isEmpty() && remaining.size() < config.getMinTeamMembers()) {
+                    for (EventRegistration member : remaining) {
+                        member.setStatus(RegistrationStatus.PENDING);
+                        member.setSubmittedAt(null);
+                    }
+                    registrationRepository.saveAll(remaining);
+                }
+                return ApiResponse.success(null, "You left the team. The leader must resubmit if the team is below its minimum size.");
+            }
         }
         registrationRepository.delete(r);
         return ApiResponse.success(null, "Registration cancelled.");

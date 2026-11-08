@@ -1,16 +1,16 @@
-package com.example.campusconnect.feature.registrations.userflow.viewmodel
+package com.example.campusconnect.feature.registrations.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.feature.registrations.userflow.data.FakeRegistrationSubmitRepository
-import com.example.campusconnect.feature.registrations.userflow.data.RegistrationSubmitRepository
-import com.example.campusconnect.feature.registrations.userflow.model.AttachedFile
-import com.example.campusconnect.feature.registrations.userflow.model.ParticipationMode
-import com.example.campusconnect.feature.registrations.userflow.model.SubmissionContext
-import com.example.campusconnect.feature.registrations.userflow.model.SubmissionReceipt
-import com.example.campusconnect.feature.registrations.userflow.model.SubmissionRequest
-import com.example.campusconnect.feature.registrations.userflow.model.UserQuestion
-import com.example.campusconnect.feature.registrations.userflow.model.isMissing
+import com.example.campusconnect.feature.registrations.data.NetworkRegistrationSubmitRepository
+import com.example.campusconnect.feature.registrations.data.RegistrationSubmitRepository
+import com.example.campusconnect.feature.registrations.model.AttachedFile
+import com.example.campusconnect.feature.registrations.model.ParticipationMode
+import com.example.campusconnect.feature.registrations.model.SubmissionContext
+import com.example.campusconnect.feature.registrations.model.SubmissionReceipt
+import com.example.campusconnect.feature.registrations.model.SubmissionRequest
+import com.example.campusconnect.feature.registrations.model.UserQuestion
+import com.example.campusconnect.feature.registrations.model.isMissing
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,7 +37,7 @@ data class SubmitUiState(
 )
 
 class RegistrationSubmitViewModel(
-    private val repository: RegistrationSubmitRepository = FakeRegistrationSubmitRepository(),
+    private val repository: RegistrationSubmitRepository = NetworkRegistrationSubmitRepository(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SubmitUiState())
@@ -73,9 +73,10 @@ class RegistrationSubmitViewModel(
                 return@launch
             }
 
-            repository.getTeamQuestions(ctx.eventId).fold(
-                onSuccess = { questions ->
-                    _state.update { it.copy(questions = questions, phase = SubmitPhase.Form) }
+            repository.getTeamQuestions(ctx.eventId, ctx.registrationId).fold(
+                onSuccess = { questionSet ->
+                    val questions = questionSet.questions
+                    _state.update { it.copy(questions = questions, answers = questionSet.savedAnswers, phase = SubmitPhase.Form) }
                     // Nothing to ask: submit straight away.
                     if (questions.isEmpty()) submit()
                 },

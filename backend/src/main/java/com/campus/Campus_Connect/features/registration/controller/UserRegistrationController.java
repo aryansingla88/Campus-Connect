@@ -9,6 +9,9 @@ import com.campus.Campus_Connect.features.registration.dto.response.Registration
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.AvailableTeamResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.TeamRequestResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.ParticipantRegistrationConfigResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamPortalResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamCandidateResponse;
 import com.campus.Campus_Connect.features.registration.service.UserRegistrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -42,6 +45,28 @@ public class UserRegistrationController {
     public ApiResponse<List<RegistrationFieldResponse>> questions(@PathVariable Integer eventId,
                                                                    @RequestParam(defaultValue = "true") boolean individual) {
         return service.getPublishedFields(eventId, individual);
+    }
+
+    @GetMapping("/{eventId}/registration/participant-config")
+    public ApiResponse<ParticipantRegistrationConfigResponse> participantConfig(@PathVariable Integer eventId) {
+        return service.getParticipantConfig(eventId);
+    }
+
+    @GetMapping("/{eventId}/registration/team-name-availability")
+    public ApiResponse<Boolean> teamNameAvailability(@PathVariable Integer eventId,
+                                                      @RequestParam String teamName) {
+        return service.isTeamNameAvailable(eventId, teamName);
+    }
+
+    @GetMapping("/{eventId}/registration/my-team")
+    public ApiResponse<TeamPortalResponse> myTeam(@PathVariable Integer eventId) {
+        return service.getMyTeam(eventId);
+    }
+
+    @GetMapping("/{eventId}/registration/team-candidates")
+    public ApiResponse<List<TeamCandidateResponse>> teamCandidates(@PathVariable Integer eventId,
+                                                                    @RequestParam(defaultValue = "") String query) {
+        return service.getTeamCandidates(eventId, query);
     }
 
     @GetMapping("/{eventId}/registration/teams")

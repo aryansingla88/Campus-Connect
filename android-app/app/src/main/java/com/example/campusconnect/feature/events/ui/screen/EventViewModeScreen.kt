@@ -158,8 +158,7 @@ fun EventViewModeScreen(
     var selectedClub by remember { mutableStateOf<String?>(null) }
     var detailsEventId by remember { mutableStateOf<Int?>(null) }
 
-    // Per-event registered / notified state (local fake state — wire to VM later)
-    var registeredIds by remember { mutableStateOf(setOf<Int>()) }
+    // Notification state remains local until its backend flow is connected.
     var notifiedIds   by remember { mutableStateOf(setOf<Int>()) }
 
     val filtered = remember(searchQuery, selectedCategory, selectedClub, events) {
@@ -450,20 +449,11 @@ fun EventViewModeScreen(
             if (showActionButtons) currentEvent?.let { event ->
                 BottomActions(
                     event = event,
-                    isRegistered = event.id in registeredIds,
+                    registrationStatus = eventPreviews[event.id]?.registrationStatus,
                     isNotified = event.id in notifiedIds,
                     showingDetails = detailsEventId == event.id,
 
-                    onRegister = {
-                        registeredIds =
-                            if (event.id in registeredIds) {
-                                registeredIds - event.id
-                            } else {
-                                registeredIds + event.id
-                            }
-
-                        onRegister(event)
-                    },
+                    onRegister = { onRegister(event) },
 
                     onNotify = {
                         notifiedIds =
@@ -687,26 +677,13 @@ private fun EventDetailsCard(event: Event, preview: MapEventInfo?, clubName: Str
     val aboutScrollState = rememberScrollState()
     val hostsListState = rememberLazyListState()
     val hasClub = event.clubId != null
-    val hostByline = if (hasClub) {
-        clubName.ifBlank { preview?.clubName?.takeIf(String::isNotBlank) ?: "Campus Club" }
-    } else {
-        preview?.creatorName?.takeIf(String::isNotBlank)
-            ?: event.clubName.takeIf(String::isNotBlank)
-            ?: "Event host"
-    }
+    val hostByline = if (hasClub) preview?.subtitle?.takeIf(String::isNotBlank) else null
     val hosts = preview?.hosts.orEmpty()
         .filter { host ->
             hasClub || host.role.orEmpty().contains("CREATOR", ignoreCase = true) ||
                 host.role.orEmpty().contains("ADMIN", ignoreCase = true)
         }
         .toMutableList()
-    if (!hasClub) {
-        preview?.creatorName?.takeIf(String::isNotBlank)?.let { creator ->
-            if (hosts.none { it.name.equals(creator, ignoreCase = true) }) {
-                hosts.add(0, HostInfo(id = event.createdBy, name = creator, role = "CREATOR"))
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -757,13 +734,13 @@ private fun EventDetailsCard(event: Event, preview: MapEventInfo?, clubName: Str
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    "By $hostByline",
+                hostByline?.let { subtitle -> Text(
+                    "By $subtitle",
                     fontSize = 14.sp,
                     color = TextMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
-                )
+                ) }
                 EventMetaLine(Icons.Default.CalendarToday, event.date.ifBlank { "Date TBD" })
                 EventMetaLine(
                     Icons.Default.AccessTime,
@@ -840,7 +817,7 @@ private fun EventDetailsCard(event: Event, preview: MapEventInfo?, clubName: Str
                 }
                 Column {
                     Text(
-                        event.category.ifBlank { preview?.eventType?.takeIf(String::isNotBlank) ?: "Event" },
+                        event.category.ifBlank { "Event" },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextDark,
@@ -1150,7 +1127,7 @@ private fun TopBar(
 @Composable
 private fun BottomActions(
     event: Event,
-    isRegistered: Boolean,
+    registrationStatus: String?,
     isNotified: Boolean,
     showingDetails: Boolean,
     onRegister: () -> Unit,
@@ -1185,7 +1162,7 @@ private fun BottomActions(
 
         // Register button
         RegisterActionButton(
-            isJoined = isRegistered,
+            registrationStatus = registrationStatus,
             onClick = onRegister,
             modifier = Modifier.fillMaxWidth()
         )
@@ -1534,15 +1511,23 @@ private fun NotifyMeButton(
 
 @Composable
 private fun RegisterActionButton(
-    isJoined: Boolean,
+    registrationStatus: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor =
-        if (isJoined) Color.White else Orange
-
-    val contentColor =
-        if (isJoined) Orange else Color.White
+    val status = registrationStatus?.uppercase()
+    val confirmed = status == "CONFIRMED"
+    val waiting = status == "WAITLISTED"
+    val draft = status == "PENDING"
+    val label = when {
+        confirmed -> "Registered"
+        waiting -> "Waiting for review"
+        draft -> "Continue"
+        else -> "Register"
+    }
+    val foreground = if (confirmed) Color(0xFF18864B) else if (waiting) Color(0xFF7653A6) else Orange
+    val backgroundColor = if (confirmed || waiting) Color.White else Orange
+    val contentColor = if (confirmed || waiting) foreground else Color.White
 
     Row(
         modifier = modifier
@@ -1550,34 +1535,28 @@ private fun RegisterActionButton(
             .clip(RoundedCornerShape(14.dp))
             .background(backgroundColor)
             .then(
-                if (isJoined) {
+                if (confirmed || waiting) {
                     Modifier.border(
                         1.dp,
-                        Orange,
+                        foreground,
                         RoundedCornerShape(14.dp)
                     )
                 } else {
                     Modifier
                 }
             )
-            .clickable {
-                onClick()
-            },
+            .clickable(enabled = !confirmed && !waiting) { onClick() },
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
 
         Icon(
-            imageVector = if (isJoined) {
-                Icons.Default.Check
-            } else {
-                Icons.Default.PersonAdd
+            imageVector = when {
+                confirmed -> Icons.Default.Check
+                waiting || draft -> Icons.Default.AccessTime
+                else -> Icons.Default.PersonAdd
             },
-            contentDescription = if (isJoined) {
-                "Registered"
-            } else {
-                "Register"
-            },
+            contentDescription = label,
             tint = contentColor,
             modifier = Modifier.size(18.dp)
         )
@@ -1585,7 +1564,7 @@ private fun RegisterActionButton(
         Spacer(Modifier.width(6.dp))
 
         Text(
-            text = if (isJoined) "Registered" else "Register",
+            text = label,
             color = contentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold

@@ -607,7 +607,6 @@ fun MapScreen(
                 endTime = selectedEventInfo.endTime,
                 description = selectedEventInfo.description,
                 registrationsCount = selectedEventInfo.registrationCount,
-                eventType = selectedEventInfo.eventType,
                 onNavigateClick = {},
                 onRegisterClick = {
                     when (selectedEventInfo.registrationType?.trim()?.uppercase()) {
@@ -619,7 +618,13 @@ fun MapScreen(
                                 }.onFailure { Log.w("MapScreen", "Unable to open event registration link", it) }
                             }
                         }
-                        "THROUGH_APP" -> onInAppRegistrationClick(selectedEventInfo.id)
+                        "THROUGH_APP" -> {
+                            val eventId = selectedEventInfo.id
+                            // EventMarkerDialog is a modal window; close it before
+                            // navigating so it cannot cover registration's loading UI.
+                            viewModel.clearSelection()
+                            onInAppRegistrationClick(eventId)
+                        }
                     }
                 }
             )

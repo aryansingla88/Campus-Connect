@@ -1,4 +1,4 @@
-package com.example.campusconnect.feature.registrations.userflow.model
+package com.example.campusconnect.feature.registrations.model
 
 import java.util.Locale
 
@@ -18,6 +18,7 @@ data class AttachedFile(
 /** Everything the earlier steps decided, passed into the submission flow. */
 data class SubmissionContext(
     val eventId: Int,
+    val registrationId: Int,
     val eventName: String,
     val mode: ParticipationMode,
     /** Team the participant created or joined, if any. */
@@ -33,7 +34,7 @@ data class SubmissionRequest(
 )
 
 data class SubmissionReceipt(
-    /** e.g. "#REG12345". */
+    /** Real backend registration identifier. */
     val registrationCode: String,
     /** e.g. "Completed". */
     val status: String,

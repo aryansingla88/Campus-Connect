@@ -4,6 +4,7 @@ import com.campus.Campus_Connect.features.registration.entity.EventRegistration;
 import com.campus.Campus_Connect.features.registration.entity.enums.RegistrationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Lock;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
@@ -36,6 +37,14 @@ public interface EventRegistrationRepository
             Integer userId
     );
 
+    @Modifying
+    @Query(value = """
+        INSERT INTO event_registrations(event_id, user_id, status, submitted_at)
+        VALUES (:eventId, :userId, 'PENDING', NULL)
+        ON CONFLICT (event_id, user_id) DO NOTHING
+        """, nativeQuery = true)
+    int insertDraftIfAbsent(@Param("eventId") Integer eventId, @Param("userId") Integer userId);
+
     Optional<EventRegistration> findByIdAndEventId(
             Integer registrationId,
             Integer eventId
@@ -63,6 +72,7 @@ public interface EventRegistrationRepository
     FROM EventRegistration r
     LEFT JOIN r.team t
     WHERE r.event.id = :eventId
+      AND r.status <> com.campus.Campus_Connect.features.registration.entity.enums.RegistrationStatus.PENDING
       AND (
           r.team IS NULL
           OR (

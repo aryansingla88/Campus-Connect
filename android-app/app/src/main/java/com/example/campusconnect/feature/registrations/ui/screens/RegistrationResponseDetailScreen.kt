@@ -1,5 +1,7 @@
 package com.example.campusconnect.feature.registrations.ui.screens
 
+import com.example.campusconnect.feature.registrations.ui.components.*
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

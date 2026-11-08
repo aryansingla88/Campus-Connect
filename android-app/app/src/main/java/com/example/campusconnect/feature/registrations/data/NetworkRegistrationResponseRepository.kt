@@ -52,6 +52,17 @@ class NetworkRegistrationResponseRepository(
         Result.failure(error)
     }
 
+    override suspend fun review(eventId: Int, registrationId: Int, approve: Boolean): Result<Unit> = try {
+        val response = if (approve) api.approveRegistration(eventId, registrationId)
+        else api.rejectRegistration(eventId, registrationId)
+        val body = response.body()
+        if (response.isSuccessful && body?.success == true && body.data != null) Result.success(Unit)
+        else Result.failure(IllegalStateException(body?.message?.takeIf(String::isNotBlank)
+            ?: "Could not update registration status (HTTP ${response.code()})."))
+    } catch (error: Exception) {
+        Result.failure(error)
+    }
+
     private fun RegistrationSubmissionResponse.toModel(): RegistrationResponseItem? {
         val id = registrationId ?: return null
         val typeValue = type?.uppercase()

@@ -1,4 +1,6 @@
-package com.example.campusconnect.feature.registrations.userflow.ui
+package com.example.campusconnect.feature.registrations.ui.screens
+
+import com.example.campusconnect.feature.registrations.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -20,7 +22,7 @@ import com.example.campusconnect.feature.registrations.ui.components.CardBg
 import com.example.campusconnect.feature.registrations.ui.components.OrangePrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
-import com.example.campusconnect.feature.registrations.userflow.model.TeamInvite
+import com.example.campusconnect.feature.registrations.model.TeamInvite
 import kotlin.math.abs
 
 /** Invite card: team, "invited you", time, member avatar stack, and Decline / Accept. */

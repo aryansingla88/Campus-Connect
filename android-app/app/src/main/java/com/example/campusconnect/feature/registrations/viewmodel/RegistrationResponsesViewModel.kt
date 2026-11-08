@@ -24,6 +24,8 @@ data class RegistrationListUiState(
     val loaded: Boolean = false,
     val error: String? = null,
     val registrations: List<RegistrationResponseItem> = emptyList(),
+    val reviewingRegistrationId: Int? = null,
+    val reviewError: String? = null,
 )
 
 /**
@@ -105,6 +107,21 @@ class RegistrationResponsesViewModel(
             if (_listState.value.eventId == eventId) {
                 _details.update { it + (registrationId to state) }
             }
+        }
+    }
+
+    fun reviewRegistration(registrationId: Int, approve: Boolean) {
+        val eventId = _listState.value.eventId ?: return
+        if (_listState.value.reviewingRegistrationId != null) return
+        _listState.update { it.copy(reviewingRegistrationId = registrationId, reviewError = null) }
+        viewModelScope.launch {
+            repository.review(eventId, registrationId, approve).fold(
+                onSuccess = { loadRegistrations(eventId, force = true) },
+                onFailure = { error -> _listState.update { it.copy(
+                    reviewingRegistrationId = null,
+                    reviewError = error.message ?: "Could not update registration status.",
+                ) } },
+            )
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.example.campusconnect.feature.registrations.ui.screens
 
+import com.example.campusconnect.feature.registrations.ui.components.*
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.runtime.Composable
