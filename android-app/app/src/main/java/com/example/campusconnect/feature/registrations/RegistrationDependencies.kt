@@ -2,7 +2,8 @@ package com.example.campusconnect.feature.registrations
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.registrations.data.remote.RegistrationApi
 import com.example.campusconnect.feature.registrations.data.repo.NetworkRegistrationRepository
@@ -65,9 +66,12 @@ object RegistrationDependencies {
     }
     val userRegistrationViewModelFactory: ViewModelProvider.Factory by lazy {
         object : ViewModelProvider.Factory {
-            override fun <VM : ViewModel> create(modelClass: Class<VM>): VM {
+            override fun <VM : ViewModel> create(modelClass: Class<VM>, extras: CreationExtras): VM {
                 @Suppress("UNCHECKED_CAST")
-                return ParticipantRegistrationViewModel(registrationRepository, SavedStateHandle()) as VM
+                return ParticipantRegistrationViewModel(
+                    registrationRepository,
+                    extras.createSavedStateHandle(),
+                ) as VM
             }
         }
     }

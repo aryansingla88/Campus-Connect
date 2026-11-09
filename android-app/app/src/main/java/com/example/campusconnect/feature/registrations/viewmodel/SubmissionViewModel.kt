@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 sealed interface SubmitPhase {
-    /** Fetching the team questions. */
+    /** Fetching the shared questions. */
     data object Loading : SubmitPhase
     data class LoadFailed(val message: String) : SubmitPhase
     data object Form : SubmitPhase
@@ -66,9 +66,9 @@ class SubmissionViewModel(
     private fun loadQuestions(requestGeneration: Long, ctx: SubmissionContext) {
         _state.update { it.copy(phase = SubmitPhase.Loading) }
         viewModelScope.launch {
-            // Team-level answers belong to the participant creating the team.
-            // Solo participants and accepted team members should not fill them again.
-            if (ctx.mode != ParticipationMode.CREATE_TEAM) {
+            // Shared answers are completed by a solo registrant or the team creator.
+            // Accepted team members submit only their participant answers.
+            if (ctx.mode == ParticipationMode.JOIN_TEAM) {
                 if (!isCurrent(requestGeneration, ctx)) return@launch
                 _state.update { it.copy(questions = emptyList(), phase = SubmitPhase.Submitting) }
                 if (!inFlightSubmissions.add(requestKey(ctx))) return@launch

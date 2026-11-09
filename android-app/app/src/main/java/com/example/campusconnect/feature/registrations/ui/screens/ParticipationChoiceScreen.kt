@@ -162,7 +162,7 @@ private fun TeamNameSection(
                 Icon(Icons.Outlined.EditNote, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(24.dp))
             }
             Column {
-                Text("Team Details", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text("Team Setup", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Text("Set a unique name for your team.", fontSize = 14.sp, color = TextSecondary)
             }
         }

@@ -6,8 +6,8 @@ const val USER_REGISTRATION_TOTAL_STEPS = 3
 enum class UserRegistrationStep(val progress: Int?) {
     CREATING(null),
     DETAILS(1),
-    PARTICIPATION(1),
-    TEAM_PORTAL(2),
+    PARTICIPATION(2),
+    TEAM_PORTAL(3),
     SUBMISSION(3),
 }
 

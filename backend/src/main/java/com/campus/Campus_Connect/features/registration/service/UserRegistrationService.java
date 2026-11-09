@@ -242,15 +242,20 @@ public class UserRegistrationService {
                 return ApiResponse.failure("Editable registration not found.");
         } else {
             EventTeam assignedTeam = registration.getTeam();
-            if (assignedTeam == null || assignedTeam.getLeader() == null
-                    || !assignedTeam.getLeader().getId().equals(user.getId())
-                    || !assignedTeam.getEvent().getId().equals(registration.getEvent().getId()))
-                return ApiResponse.failure("Only the assigned team's leader can save team answers.");
-            answerRegistration = registrationRepository.findByEventIdAndUserId(
-                    registration.getEvent().getId(), user.getId()).orElse(null);
-            if (answerRegistration == null || answerRegistration.getTeam() == null
-                    || !answerRegistration.getTeam().getId().equals(assignedTeam.getId()))
-                return ApiResponse.failure("The team leader's registration is not assigned to this team.");
+            if (assignedTeam == null) {
+                if (!registration.getUser().getId().equals(user.getId()))
+                    return ApiResponse.failure("Editable registration not found.");
+            } else {
+                if (assignedTeam.getLeader() == null
+                        || !assignedTeam.getLeader().getId().equals(user.getId())
+                        || !assignedTeam.getEvent().getId().equals(registration.getEvent().getId()))
+                    return ApiResponse.failure("Only the assigned team's leader can save team answers.");
+                answerRegistration = registrationRepository.findByEventIdAndUserId(
+                        registration.getEvent().getId(), user.getId()).orElse(null);
+                if (answerRegistration == null || answerRegistration.getTeam() == null
+                        || !answerRegistration.getTeam().getId().equals(assignedTeam.getId()))
+                    return ApiResponse.failure("The team leader's registration is not assigned to this team.");
+            }
         }
         final EventRegistration answerTarget = answerRegistration;
 
@@ -571,9 +576,8 @@ public class UserRegistrationService {
                 if (!Boolean.TRUE.equals(field.getRequired())) continue;
                 List<RegistrationAnswer> source = Boolean.TRUE.equals(field.getIndividual())
                         ? individualAnswers
-                        : (solo ? List.of() : answersByRegistration.getOrDefault(leaderRegistrationId, List.of()));
-                if ((Boolean.TRUE.equals(field.getIndividual()) || !solo)
-                        && source.stream().noneMatch(a -> a.getField().getId().equals(field.getId())
+                        : answersByRegistration.getOrDefault(leaderRegistrationId, List.of());
+                if (source.stream().noneMatch(a -> a.getField().getId().equals(field.getId())
                         && a.getAnswer() != null && !a.getAnswer().isBlank()))
                     return ApiResponse.failure("Required field missing: " + field.getFieldLabel());
             }
@@ -699,6 +703,7 @@ public class UserRegistrationService {
         List<SavedRegistrationAnswerResponse> answers = answerRepository
                 .findByIdRegistrationId(registration.getId()).stream()
                 .filter(saved -> Boolean.TRUE.equals(saved.getField().getIndividual())
+                        || registration.getTeam() == null
                         || isAssignedTeamLeader(registration, participant))
                 .map(saved -> SavedRegistrationAnswerResponse.builder()
                         .fieldId(saved.getField().getId())

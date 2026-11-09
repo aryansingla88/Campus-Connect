@@ -41,7 +41,7 @@ class OrganizerRegistrationWorkflowViewModel : ViewModel() {
                 _state.value = OrganizerRegistrationWorkflowUiState(
                     saving = false,
                     saved = questionsSaved,
-                    error = if (questionsSaved) null else "Settings and Quick Fields saved; individual or team questions could not be saved: ${form.builderState.value.error ?: "request failed"}",
+                    error = if (questionsSaved) null else "Settings and Quick Fields saved; participant or shared questions could not be saved: ${form.builderState.value.error ?: "request failed"}",
                     failedOperation = if (questionsSaved) null else OrganizerSaveFailure.QUESTIONS,
                 )
                 onComplete(questionsSaved)

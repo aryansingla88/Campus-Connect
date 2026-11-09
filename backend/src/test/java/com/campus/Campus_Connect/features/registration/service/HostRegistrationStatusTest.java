@@ -66,13 +66,14 @@ class HostRegistrationStatusTest {
                 .status(RegistrationStatus.WAITLISTED).build();
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(host, "test"));
         when(eventRepository.findById(3)).thenReturn(Optional.of(event));
+        when(registrationRepository.findById(19)).thenReturn(Optional.of(submitted));
         when(registrationRepository.findByIdForUpdate(19)).thenReturn(Optional.of(submitted));
 
         ApiResponse<RegistrationResponse> response = service.approveRegistration(3, 19);
 
         assertTrue(response.isSuccess());
         assertEquals(RegistrationStatus.CONFIRMED, submitted.getStatus());
-        verify(registrationRepository).save(submitted);
+        verify(registrationRepository).saveAll(List.of(submitted));
     }
 
     @Test

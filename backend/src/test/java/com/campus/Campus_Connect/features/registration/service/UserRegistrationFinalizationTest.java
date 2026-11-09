@@ -59,6 +59,7 @@ class UserRegistrationFinalizationTest {
         config = RegistrationConfig.builder().eventId(EVENT_ID).event(event).minTeamMembers(1).maxTeamMembers(1)
                 .quickFieldMask(0L).autoConfirm(true).build();
         authenticate(participant);
+        when(registrationRepository.findById(REGISTRATION_ID)).thenReturn(Optional.of(registration));
         when(registrationRepository.findByIdForUpdate(REGISTRATION_ID)).thenReturn(Optional.of(registration));
         lenient().when(configRepository.findByEventId(EVENT_ID)).thenReturn(Optional.of(config));
         lenient().when(answerRepository.findByIdRegistrationId(REGISTRATION_ID)).thenReturn(List.of());

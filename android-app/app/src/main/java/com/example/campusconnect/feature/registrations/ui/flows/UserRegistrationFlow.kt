@@ -46,6 +46,9 @@ fun UserRegistrationFlow(
     val session = state.session
 
     LaunchedEffect(eventId) { viewModel.start(eventId) }
+    LaunchedEffect(state.session) {
+        state.session?.let(teamViewModel::syncSession)
+    }
     LaunchedEffect(state.step, state.session) {
         val portalSession = state.session?.takeIf { state.step == UserRegistrationStep.TEAM_PORTAL } ?: return@LaunchedEffect
         teamViewModel.open(portalSession)
@@ -82,11 +85,11 @@ fun UserRegistrationFlow(
                 transientError = state.transientError,
                 onErrorShown = viewModel::consumeError,
                 onAnswerChange = viewModel::onAnswerChange,
-                onNext = { viewModel.submitDetails {
-                    val currentSession = viewModel.state.value.session ?: return@submitDetails
-                    if (draft.allowSolo && !draft.allowTeam) onContinueSolo(currentSession.registrationId, viewModel.state.value.answers)
-                    else viewModel.setProgress(UserRegistrationStep.PARTICIPATION)
-                } },
+                onNext = {
+                    viewModel.submitDetails {
+                        if (!draft.allowTeam && draft.allowSolo) viewModel.soloDetailsSaved()
+                    }
+                },
                 onBack = onExit,
             )
 
@@ -109,8 +112,6 @@ fun UserRegistrationFlow(
                         }
                         ParticipationMode.SOLO -> if (draft.allowSolo) {
                             viewModel.readyForSubmission()
-                            val currentSession = viewModel.state.value.session ?: return@ParticipationChoiceScreen
-                            onContinueSolo(currentSession.registrationId, state.answers)
                         }
                         ParticipationMode.JOIN_TEAM -> {
                             viewModel.setProgress(UserRegistrationStep.TEAM_PORTAL)
@@ -125,7 +126,7 @@ fun UserRegistrationFlow(
             step == UserRegistrationStep.SUBMISSION -> {
                 val phase = submissionState.phase
                 when (phase) {
-                    SubmitPhase.Loading -> FlowLoadingScreen(step = 3, onBack = { viewModel.setProgress(if (session?.mode == ParticipationMode.SOLO) UserRegistrationStep.DETAILS else UserRegistrationStep.PARTICIPATION) }, loadingLabel = "Loading team questions")
+                    SubmitPhase.Loading -> FlowLoadingScreen(step = 3, onBack = { viewModel.setProgress(if (session?.mode == ParticipationMode.SOLO) UserRegistrationStep.DETAILS else UserRegistrationStep.PARTICIPATION) }, loadingLabel = "Loading shared questions")
                     is SubmitPhase.LoadFailed -> FlowLoadingScreen(step = 3, onBack = { viewModel.setProgress(if (session?.mode == ParticipationMode.SOLO) UserRegistrationStep.DETAILS else UserRegistrationStep.PARTICIPATION) }, error = phase.message, errorTitle = "Couldn't load your registration", onRetry = submissionViewModel::retryLoad)
                     SubmitPhase.Form -> TeamDetailsFormScreen(
                         questions = submissionState.questions, answers = submissionState.answers, files = submissionState.files,
@@ -172,7 +173,7 @@ fun UserRegistrationFlow(
                 onInviteCandidate = { candidate -> teamViewModel.inviteParticipant(candidate.registrationId) },
                 onContinueWithTeam = { team ->
                     val currentSession = viewModel.state.value.session ?: return@TeamPortalScreen
-                    viewModel.attachTeam(team.id, ParticipationMode.JOIN_TEAM, UserRegistrationStep.TEAM_PORTAL)
+                    viewModel.attachTeam(team.id, currentSession.mode)
                     onTeamJoined(team, currentSession.registrationId, viewModel.state.value.answers)
                 },
                 onRetry = teamViewModel::refresh,

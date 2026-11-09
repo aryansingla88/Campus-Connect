@@ -352,7 +352,7 @@ fun RegistrationSetupScreen(
                             tileColor = OrangeLight,
                             iconColor = OrangePrimary,
                             title = "Form Builder",
-                            subtitle = "Build individual registration questions",
+                            subtitle = "Build questions each participant answers",
                             onClick = {
                                 if (hasType) onContinue(settings)
                             }
@@ -364,8 +364,8 @@ fun RegistrationSetupScreen(
                                 icon = Icons.Outlined.Groups,
                                 tileColor = BlueTile,
                                 iconColor = BlueIcon,
-                                title = "Team Questions",
-                                subtitle = "Build questions answered once per team",
+                                title = "Shared Questions",
+                                subtitle = "Build questions answered once per registration",
                             onClick = { onTeamQuestions(settings) }
                             )
                         }

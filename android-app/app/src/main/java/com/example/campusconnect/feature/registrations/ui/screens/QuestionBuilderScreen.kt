@@ -35,11 +35,11 @@ data class MoveExistingConfig(
 )
 
 /**
- * The one question builder behind both the individual form and the team questions.
+ * The one question builder behind both participant and shared questions.
  * State is hoisted ([fields] / [onFieldsChange]). The two modes differ only by:
  *  - [showQuickFields]: the Quick Fields card (individual form only).
  *  - [moveExisting]: when non-null the bottom bar has two buttons (Add + Move
- *    Existing Questions) and the move sheet is available (team questions only).
+ *    Existing Questions) and the move sheet is available (shared questions only).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

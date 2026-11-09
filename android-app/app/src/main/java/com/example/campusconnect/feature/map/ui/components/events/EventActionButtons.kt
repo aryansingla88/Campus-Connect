@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NearMe
@@ -219,36 +220,34 @@ internal fun RegisterActionButton(
     val status = registrationStatus?.uppercase()
     val registered = status == "CONFIRMED"
     val waitingReview = status == "WAITLISTED"
+    val rejected = status == "REJECTED"
     val draft = status == "PENDING"
     val displayLabel = when {
         registered -> "Registered"
         waitingReview -> "Waiting for review"
+        rejected -> "Rejected"
         draft -> "Continue"
         else -> label
     }
     val displayIcon = when {
         registered -> Icons.Default.Check
+        rejected -> Icons.Default.Close
         waitingReview || draft -> Icons.Default.AccessTime
         else -> Icons.Default.PersonAdd
     }
 
-    val backgroundColor =
-        if (!enabled && !registered && !waitingReview) {
-            Color(0xFFE5E5E5)
-        } else if (registered || waitingReview) {
-            Color.White
-        } else {
-            OrangePrimary
-        }
-
-    val contentColor =
-        if (!enabled && !registered && !waitingReview) {
-            Color(0xFF777777)
-        } else if (registered || waitingReview) {
-            OrangePrimary
-        } else {
-            Color.White
-        }
+    val backgroundColor = when {
+        registered || waitingReview || rejected -> Color.White
+        !enabled -> Color(0xFFE5E5E5)
+        else -> OrangePrimary
+    }
+    val contentColor = when {
+        registered -> Color(0xFF18864B)
+        waitingReview -> Color(0xFF7B61A8)
+        rejected -> Color(0xFFC62828)
+        !enabled -> Color(0xFF777777)
+        else -> Color.White
+    }
 
     Row(
         modifier = modifier
@@ -260,11 +259,15 @@ internal fun RegisterActionButton(
                 backgroundColor
             )
             .then(
-                if (registered || waitingReview) {
+                if (registered || waitingReview || rejected) {
 
                     Modifier.border(
                         width = 1.dp,
-                        color = if (registered) Color(0xFF18864B) else Color(0xFF7B61A8),
+                        color = when {
+                            registered -> Color(0xFF18864B)
+                            waitingReview -> Color(0xFF7B61A8)
+                            else -> Color(0xFFC62828)
+                        },
                         shape = RoundedCornerShape(
                             14.dp
                         )
@@ -274,7 +277,7 @@ internal fun RegisterActionButton(
                     Modifier
                 }
             )
-            .clickable(enabled = enabled && !registered && !waitingReview, onClick = onClick),
+            .clickable(enabled = enabled && !registered && !waitingReview && !rejected, onClick = onClick),
         horizontalArrangement =
             Arrangement.Center,
         verticalAlignment =

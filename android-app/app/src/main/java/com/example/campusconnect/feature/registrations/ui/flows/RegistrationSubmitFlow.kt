@@ -22,7 +22,7 @@ private enum class SubmitScreenKey { LOADING, LOAD_FAILED, FORM, SUBMITTING, SUC
 /**
  * Final part of the participant flow: Team Details form (3/3) → Submitting → Success.
  * Call it once the participant has created a team, been accepted/joined, or chosen solo.
- * If the event has no team questions it submits immediately.
+ * If the event has no shared questions it submits immediately.
  *
  * ```
  * RegistrationSubmitFlow(
@@ -78,7 +78,7 @@ fun RegistrationSubmitFlow(
             SubmitScreenKey.LOADING -> FlowLoadingScreen(
                 step = 3,
                 onBack = onExit,
-                loadingLabel = "Loading team questions",
+                loadingLabel = "Loading shared questions",
             )
 
             SubmitScreenKey.LOAD_FAILED -> FlowLoadingScreen(

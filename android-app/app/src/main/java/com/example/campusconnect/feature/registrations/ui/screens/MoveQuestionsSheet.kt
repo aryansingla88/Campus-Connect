@@ -24,7 +24,7 @@ import com.example.campusconnect.feature.registrations.ui.components.builder.pre
 import kotlinx.coroutines.launch
 
 /**
- * Bottom sheet for moving existing individual questions into the team questions:
+ * Bottom sheet for moving existing participant questions into shared questions:
  * search, multi-select with checkboxes, and a "Move N Questions" action.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +64,7 @@ fun MoveQuestionsSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Move to Team Questions",
+                    "Move to Shared Questions",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
@@ -75,7 +75,7 @@ fun MoveQuestionsSheet(
                 }
             }
             Text(
-                "Select questions from your individual questions and move them to the team.",
+                "Select participant questions and make them shared for this registration.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = TextSecondary,
@@ -101,7 +101,7 @@ fun MoveQuestionsSheet(
             Spacer(Modifier.height(6.dp))
 
             when {
-                candidates.isEmpty() -> SheetMessage("No individual questions to move.")
+                candidates.isEmpty() -> SheetMessage("No participant questions to move.")
                 visible.isEmpty() -> SheetMessage("No matching questions.")
                 else -> LazyColumn(Modifier.weight(1f, fill = false)) {
                     items(visible, key = { it.localId }) { field ->

@@ -1518,16 +1518,24 @@ private fun RegisterActionButton(
     val status = registrationStatus?.uppercase()
     val confirmed = status == "CONFIRMED"
     val waiting = status == "WAITLISTED"
+    val rejected = status == "REJECTED"
     val draft = status == "PENDING"
     val label = when {
         confirmed -> "Registered"
         waiting -> "Waiting for review"
+        rejected -> "Rejected"
         draft -> "Continue"
         else -> "Register"
     }
-    val foreground = if (confirmed) Color(0xFF18864B) else if (waiting) Color(0xFF7653A6) else Orange
-    val backgroundColor = if (confirmed || waiting) Color.White else Orange
-    val contentColor = if (confirmed || waiting) foreground else Color.White
+    val foreground = when {
+        confirmed -> Color(0xFF18864B)
+        waiting -> Color(0xFF7653A6)
+        rejected -> Color(0xFFC62828)
+        else -> Orange
+    }
+    val disabled = confirmed || waiting || rejected
+    val backgroundColor = if (disabled) Color.White else Orange
+    val contentColor = if (disabled) foreground else Color.White
 
     Row(
         modifier = modifier
@@ -1535,7 +1543,7 @@ private fun RegisterActionButton(
             .clip(RoundedCornerShape(14.dp))
             .background(backgroundColor)
             .then(
-                if (confirmed || waiting) {
+                if (disabled) {
                     Modifier.border(
                         1.dp,
                         foreground,
@@ -1545,7 +1553,7 @@ private fun RegisterActionButton(
                     Modifier
                 }
             )
-            .clickable(enabled = !confirmed && !waiting) { onClick() },
+            .clickable(enabled = !disabled) { onClick() },
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1553,6 +1561,7 @@ private fun RegisterActionButton(
         Icon(
             imageVector = when {
                 confirmed -> Icons.Default.Check
+                rejected -> Icons.Default.Close
                 waiting || draft -> Icons.Default.AccessTime
                 else -> Icons.Default.PersonAdd
             },

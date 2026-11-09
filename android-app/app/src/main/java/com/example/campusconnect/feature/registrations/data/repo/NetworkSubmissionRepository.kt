@@ -28,7 +28,7 @@ class NetworkSubmissionRepository(
         require(request.files.isEmpty()) {
             "File upload questions are not supported yet. Your registration was not submitted. Remove the file answer or contact the event host."
         }
-        if (request.context.mode == ParticipationMode.CREATE_TEAM && request.teamAnswers.isNotEmpty()) {
+        if (request.context.mode != ParticipationMode.JOIN_TEAM && request.teamAnswers.isNotEmpty()) {
             api.saveParticipantAnswers(
                 request.context.registrationId,
                 request.teamAnswers.toSaveAnswersRequest("TEAM"),

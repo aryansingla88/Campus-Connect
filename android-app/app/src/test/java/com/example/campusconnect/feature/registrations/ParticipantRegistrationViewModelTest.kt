@@ -21,6 +21,13 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ParticipantRegistrationViewModelTest {
+
+    @Test fun registrationStepProgressNumbersMatchTheVisibleThreeStepFlow() {
+        assertEquals(1, UserRegistrationStep.DETAILS.progress)
+        assertEquals(2, UserRegistrationStep.PARTICIPATION.progress)
+        assertEquals(3, UserRegistrationStep.TEAM_PORTAL.progress)
+        assertEquals(3, UserRegistrationStep.SUBMISSION.progress)
+    }
     private val dispatcher = StandardTestDispatcher()
     @Before fun setUp() { Dispatchers.setMain(dispatcher) }
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -55,6 +62,22 @@ class ParticipantRegistrationViewModelTest {
         assertEquals(102, vm.state.value.session?.registrationId)
     }
 
+    @Test fun retryCreateRepeatsInitializationAfterNetworkFailure() = runTest(dispatcher) {
+        val repo = FakeRegistrationRepository().apply { initializationFailuresRemaining = 1 }
+        val vm = ParticipantRegistrationViewModel(repo)
+
+        vm.start(1)
+        advanceUntilIdle()
+        assertTrue(vm.state.value.create is CreateState.Failed)
+        assertEquals(1, repo.initializations)
+
+        vm.retryCreate()
+        advanceUntilIdle()
+
+        assertEquals(2, repo.initializations)
+        assertTrue(vm.state.value.create is CreateState.Ready)
+    }
+
     @Test fun validatesAndPersistsIndividualAnswersBeforeAdvancing() = runTest(dispatcher) {
         val repo = FakeRegistrationRepository().apply {
             draft = RegistrationDraft(101, listOf(RegistrationQuestion(backendId = 7, label = "Name", isRequired = true)), allowSolo = true, allowTeam = true)
@@ -86,13 +109,47 @@ class ParticipantRegistrationViewModelTest {
         assertEquals(UserRegistrationStep.TEAM_PORTAL, vm.state.value.step)
     }
 
+    @Test fun restoresSubmissionStepAfterProcessRecreation() = runTest(dispatcher) {
+        val handle = SavedStateHandle(mapOf(
+            "registration_event_id" to 3,
+            "registration_id" to 103,
+            "registration_mode" to ParticipationMode.SOLO.name,
+            "registration_progress" to UserRegistrationStep.SUBMISSION.name,
+        ))
+        val repo = FakeRegistrationRepository().apply { draft = RegistrationDraft(103, emptyList()) }
+        val vm = ParticipantRegistrationViewModel(repo, handle)
+
+        vm.start(3)
+        advanceUntilIdle()
+
+        assertEquals(UserRegistrationStep.SUBMISSION, vm.state.value.step)
+        assertEquals(ParticipationMode.SOLO, vm.state.value.session?.mode)
+    }
+
+    @Test fun attachingAcceptedTeamContinuesAtSubmissionStep() = runTest(dispatcher) {
+        val vm = ParticipantRegistrationViewModel(FakeRegistrationRepository())
+        vm.start(1)
+        advanceUntilIdle()
+
+        vm.attachTeam(teamId = 12, mode = ParticipationMode.JOIN_TEAM)
+
+        assertEquals(UserRegistrationStep.SUBMISSION, vm.state.value.step)
+        assertEquals(12, vm.state.value.session?.teamId)
+        assertEquals(ParticipationMode.JOIN_TEAM, vm.state.value.session?.mode)
+    }
+
     private class FakeRegistrationRepository : RegistrationRepository {
         var draft = RegistrationDraft(101, emptyList())
         var initializations = 0
+        var initializationFailuresRemaining = 0
         var savedAnswers: Map<Int, String> = emptyMap()
         val results = mutableMapOf<Int, CompletableDeferred<Result<RegistrationDraft>>>()
         override suspend fun createRegistration(eventId: Int): Result<RegistrationDraft> {
             initializations++
+            if (initializationFailuresRemaining > 0) {
+                initializationFailuresRemaining--
+                return Result.failure(IllegalStateException("network failure"))
+            }
             return results[eventId]?.await() ?: Result.success(draft.copy(registrationId = 100 + eventId))
         }
         override suspend fun loadSettings(eventId: Int) = RegistrationConfigLoadResult.Missing

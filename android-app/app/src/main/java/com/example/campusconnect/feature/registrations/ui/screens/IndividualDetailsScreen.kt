@@ -63,7 +63,7 @@ fun IndividualDetailsScreen(
         ) {
             StepHeader(
                 icon = Icons.Outlined.PersonOutline,
-                title = "Individual Details",
+                title = "Participant Questions",
                 subtitle = "Please answer the following questions.",
             )
             questions.forEach { question ->

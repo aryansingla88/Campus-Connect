@@ -56,24 +56,60 @@ class TeamPortalViewModel(private val repository: TeamRepository) : ViewModel() 
     private var searchJob: Job? = null
     private val pendingActions = mutableSetOf<String>()
 
+    /** Synchronizes the participant-owned session without fetching or resetting portal/name state. */
+    fun syncSession(session: RegistrationSession) {
+        val current = _state.value.session
+        if (current == session) return
+
+        // A changed participant/session invalidates work started for its previous identity.
+        if (current?.eventId != session.eventId || current.registrationId != session.registrationId) {
+            portalGeneration++
+            portalJob?.cancel()
+            searchJob?.cancel()
+            searchGeneration++
+            actionGeneration++
+            pendingActions.clear()
+            _state.update {
+                it.copy(
+                    session = session,
+                    portal = PortalState.Loading,
+                    query = "",
+                    tagFilter = null,
+                    teamName = "",
+                    checkingTeamName = false,
+                    teamNameAvailable = null,
+                    creatingTeam = false,
+                    requestedTeamIds = emptySet(),
+                    pendingTeamIds = emptySet(),
+                    respondedInviteIds = emptySet(),
+                    pendingInviteIds = emptySet(),
+                    pendingJoinRequestIds = emptySet(),
+                    pendingInviteSendIds = emptySet(),
+                    transientError = null,
+                )
+            }
+            return
+        }
+
+        // Mode/progress changes for the same registration must not erase user-entered name state.
+        _state.update { it.copy(session = session) }
+    }
+
     fun open(session: RegistrationSession) {
-        if (_state.value.session?.eventId == session.eventId &&
-            _state.value.session?.registrationId == session.registrationId &&
-            _state.value.session?.mode == session.mode &&
-            _state.value.portal !is PortalState.Failed &&
-            _state.value.portal !is PortalState.Loading
-        ) {
-            _state.update { it.copy(session = session) }
+        val currentSession = _state.value.session
+        val sameIdentity = currentSession?.eventId == session.eventId &&
+            currentSession.registrationId == session.registrationId
+        val sameSession = sameIdentity && currentSession?.mode == session.mode
+        if (sameSession && _state.value.portal !is PortalState.Failed && _state.value.portal !is PortalState.Loading) {
+            syncSession(session)
             refresh()
             return
         }
+        syncSession(session)
         portalGeneration++
         portalJob?.cancel()
         searchJob?.cancel()
         searchGeneration++
-        actionGeneration++
-        pendingActions.clear()
-        _state.value = TeamPortalUiState(session = session)
         load(session, "", portalGeneration)
     }
 
@@ -150,7 +186,8 @@ class TeamPortalViewModel(private val repository: TeamRepository) : ViewModel() 
     fun createTeam(onCreated: (TeamAssignment) -> Unit) {
         val session = _state.value.session ?: return
         val state = _state.value
-        if (session.mode != ParticipationMode.CREATE_TEAM || state.teamNameAvailable != true || state.creatingTeam || !pendingActions.add("create")) return
+        val actionKey = "create:${session.eventId}:${session.registrationId}"
+        if (session.mode != ParticipationMode.CREATE_TEAM || state.teamNameAvailable != true || state.creatingTeam || !pendingActions.add(actionKey)) return
         val token = ++actionGeneration
         val requestGeneration = portalGeneration
         val teamName = state.teamName.trim()
@@ -158,15 +195,55 @@ class TeamPortalViewModel(private val repository: TeamRepository) : ViewModel() 
         viewModelScope.launch {
             repository.createTeam(session.registrationId, teamName).fold(
                 onSuccess = { assignment ->
-                    pendingActions.remove("create")
+                    pendingActions.remove(actionKey)
                     if (isCurrent(session, requestGeneration) && token == actionGeneration && _state.value.teamName.trim() == teamName) {
                         _state.update { it.copy(creatingTeam = false) }
                         onCreated(assignment)
                     }
                 },
-                onFailure = { error -> pendingActions.remove("create"); if (isCurrent(session, requestGeneration) && token == actionGeneration && _state.value.teamName.trim() == teamName) _state.update {
-                    it.copy(creatingTeam = false, teamNameAvailable = null, transientError = error.message ?: "Could not create the team.")
-                } },
+                onFailure = { error ->
+                    repository.getTeamPortal(session.eventId, session.registrationId).fold(
+                        onSuccess = { portal ->
+                            val recoveredTeam = portal.currentTeam?.takeIf {
+                                portal.currentUserIsLeader && it.name.equals(teamName, ignoreCase = true)
+                            }
+                            pendingActions.remove(actionKey)
+                            if (isCurrent(session, requestGeneration) && token == actionGeneration && _state.value.teamName.trim() == teamName) {
+                                if (recoveredTeam != null) {
+                                    _state.update {
+                                        it.copy(
+                                            portal = PortalState.Loaded(portal),
+                                            creatingTeam = false,
+                                            teamNameAvailable = true,
+                                            transientError = null,
+                                        )
+                                    }
+                                    onCreated(TeamAssignment(session.registrationId, recoveredTeam.id))
+                                } else {
+                                    _state.update {
+                                        it.copy(
+                                            creatingTeam = false,
+                                            teamNameAvailable = null,
+                                            transientError = error.message ?: "Could not create the team.",
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        onFailure = {
+                            pendingActions.remove(actionKey)
+                            if (isCurrent(session, requestGeneration) && token == actionGeneration && _state.value.teamName.trim() == teamName) {
+                                _state.update {
+                                    it.copy(
+                                        creatingTeam = false,
+                                        teamNameAvailable = null,
+                                        transientError = error.message ?: "Could not create the team.",
+                                    )
+                                }
+                            }
+                        },
+                    )
+                },
             )
         }
     }

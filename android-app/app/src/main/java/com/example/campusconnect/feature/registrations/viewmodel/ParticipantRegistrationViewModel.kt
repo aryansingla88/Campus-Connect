@@ -47,7 +47,6 @@ class ParticipantRegistrationViewModel(
     private var initializationJob: Job? = null
     private var answerSaveGeneration = 0L
     private var retryRequested = false
-    private var resumedSubmission = false
 
     fun start(eventId: Int) {
         if (_state.value.eventId == eventId && _state.value.create !is CreateState.Failed) return
@@ -79,8 +78,7 @@ class ParticipantRegistrationViewModel(
                     val teamId = if (sameRestoredRegistration) savedStateHandle.get<Int>(KEY_TEAM_ID) else null
                     val modeForDraft = restoredMode.takeIf { it == ParticipationMode.SOLO || teamId != null }
                         ?: ParticipationMode.CREATE_TEAM
-                    val step = if (restoredProgress == UserRegistrationStep.SUBMISSION && resumedSubmission) restoredProgress
-                    else if (restoredProgress == UserRegistrationStep.SUBMISSION) UserRegistrationStep.DETAILS
+                    val step = if (restoredProgress == UserRegistrationStep.SUBMISSION) restoredProgress
                     else if (restoredProgress == UserRegistrationStep.TEAM_PORTAL && draft.allowTeam) restoredProgress
                     else if (draft.allowTeam && restoredProgress == UserRegistrationStep.PARTICIPATION) restoredProgress
                     else UserRegistrationStep.DETAILS
@@ -96,7 +94,6 @@ class ParticipantRegistrationViewModel(
                         mode = modeForDraft,
                         session = session,
                     )
-                    resumedSubmission = false
                 },
                 onFailure = { error -> _state.update { it.copy(create = CreateState.Failed(error.message ?: "Couldn't start your registration.")) } },
             )
@@ -105,7 +102,6 @@ class ParticipantRegistrationViewModel(
 
     fun retryCreate() {
         _state.value.eventId?.let { id ->
-            _state.update { it.copy(create = CreateState.Loading) }
             retryRequested = true
             start(id)
         }
@@ -120,7 +116,6 @@ class ParticipantRegistrationViewModel(
 
     fun resumeSubmission() {
         val session = _state.value.session ?: return
-        resumedSubmission = true
         val updated = session.copy(progress = UserRegistrationStep.SUBMISSION)
         savedStateHandle[KEY_PROGRESS] = UserRegistrationStep.SUBMISSION.name
         _state.update { it.copy(session = updated, step = UserRegistrationStep.SUBMISSION) }
@@ -144,10 +139,14 @@ class ParticipantRegistrationViewModel(
             repository.saveIndividualAnswers(draft.registrationId, state.answers).fold(
                 onSuccess = {
                     if (generation != answerSaveGeneration || registrationGeneration != initializationGeneration || _state.value.session != session) return@fold
-                    val next = if (draft.allowTeam) UserRegistrationStep.PARTICIPATION else UserRegistrationStep.DETAILS
+                    val next = when {
+                        draft.allowTeam -> UserRegistrationStep.PARTICIPATION
+                        draft.allowSolo -> UserRegistrationStep.SUBMISSION
+                        else -> UserRegistrationStep.DETAILS
+                    }
                     updateSession(session.copy(progress = next), next)
                     _state.update { it.copy(savingDetails = false) }
-                    if (!draft.allowTeam && draft.allowSolo) onContinueSolo()
+                    // A solo-only event still continues to the shared questions step.
                 },
                 onFailure = { error -> if (generation == answerSaveGeneration && registrationGeneration == initializationGeneration && _state.value.session == session) _state.update {
                     it.copy(savingDetails = false, transientError = error.message ?: "Could not save your answers.")
@@ -189,6 +188,12 @@ class ParticipantRegistrationViewModel(
         savedStateHandle[KEY_TEAM_ID] = updated.teamId
         savedStateHandle[KEY_REGISTRATION_ID] = updated.registrationId
         updateSession(updated, UserRegistrationStep.SUBMISSION)
+    }
+
+    fun soloDetailsSaved() {
+        val session = _state.value.session ?: return
+        if (session.mode != ParticipationMode.SOLO) return
+        updateSession(session.copy(progress = UserRegistrationStep.SUBMISSION), UserRegistrationStep.SUBMISSION)
     }
 
     private fun updateSession(session: RegistrationSession, step: UserRegistrationStep) {

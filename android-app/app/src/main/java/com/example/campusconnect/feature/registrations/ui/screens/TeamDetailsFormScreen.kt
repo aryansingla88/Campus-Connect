@@ -20,7 +20,7 @@ import com.example.campusconnect.feature.registrations.ui.model.ParticipantQuest
 
 private const val TOTAL_FORM_STEP = 3
 
-/** Step 3/3: team-level questions, rendered exactly like the individual step via [ParticipantQuestionField]. */
+/** Step 3/3: shared registration questions, rendered via [ParticipantQuestionField]. */
 @Composable
 fun TeamDetailsFormScreen(
     questions: List<ParticipantQuestionUiModel>,
@@ -70,8 +70,8 @@ fun TeamDetailsFormScreen(
         ) {
             StepHeader(
                 icon = Icons.Outlined.Groups,
-                title = "Team Details",
-                subtitle = "Please answer the following questions about your team.",
+                title = "Shared Questions",
+                subtitle = "Answer these once for this registration.",
             )
 
             questions.forEach { question ->

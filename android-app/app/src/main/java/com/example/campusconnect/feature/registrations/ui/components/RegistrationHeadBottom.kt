@@ -26,7 +26,7 @@ private val HeaderActionOrange = Color(0xFFFA4200)
  * the heading with Published / Draft as its subtitle, and an optional action
  * slot pinned to the right edge.
  *
- * Screens without an action (setup, team questions) simply leave [action] null.
+ * Screens without an action (setup, shared questions) simply leave [action] null.
  */
 @Composable
 fun RegistrationHeader(
