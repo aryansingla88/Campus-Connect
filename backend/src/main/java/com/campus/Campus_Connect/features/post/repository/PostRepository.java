@@ -16,6 +16,10 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
 
     List<Post> findAllByPostTypeAndDeletedAtIsNullOrderByCreatedAtDesc(String postType);
 
+    List<Post> findAllByPostTypeAndEventIdIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc(String postType);
+
+    boolean existsByEventIdAndPostTypeAndDeletedAtIsNull(Integer eventId, String postType);
+
     Optional<Post> findByIdAndDeletedAtIsNull(Integer postId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

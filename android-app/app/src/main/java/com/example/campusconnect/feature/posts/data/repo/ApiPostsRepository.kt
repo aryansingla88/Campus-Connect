@@ -9,6 +9,7 @@ import com.example.campusconnect.core.utils.Image.ImageConverter
 import com.example.campusconnect.core.network.RetrofitClient
 
 import com.example.campusconnect.feature.posts.data.remote.PostsApi
+import com.example.campusconnect.feature.posts.data.remote.PostApiErrorParser
 import com.example.campusconnect.feature.posts.data.remote.request.CreateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdateCommentRequest
 import com.example.campusconnect.feature.posts.models.Comment
@@ -16,6 +17,8 @@ import com.example.campusconnect.feature.posts.models.CommentDeleteResponse
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
+import com.example.campusconnect.feature.posts.models.PostEvent
+import com.example.campusconnect.feature.posts.models.PostEventCategory
 
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
@@ -107,6 +110,42 @@ class ApiPostsRepository(
         }
     }
 
+    override suspend fun getMyEvents(): Result<List<PostEvent>> = try {
+        val response = api.getMyEvents()
+        val body = response.body()
+        val events = body?.data
+        when {
+            !response.isSuccessful -> Result.failure(Exception(PostApiErrorParser.message(response)))
+            body?.success != true -> Result.failure(
+                Exception(body?.message ?: "The server could not load your events.")
+            )
+            events == null -> Result.failure(
+                Exception("The server returned no event data (HTTP ${response.code()}).")
+            )
+            else -> Result.success(events)
+        }
+    } catch (error: Exception) {
+        Result.failure(Exception(error.message ?: "Could not connect to load your events."))
+    }
+
+    override suspend fun getEventPosts(): Result<List<PostEvent>> = try {
+        val response = api.getEventPosts()
+        val events = response.body()?.data
+        if (response.isSuccessful && events != null) Result.success(events)
+        else Result.failure(Exception(response.body()?.message ?: "Failed to load event posts."))
+    } catch (error: Exception) {
+        Result.failure(error)
+    }
+
+    override suspend fun getEventCategories(): Result<List<PostEventCategory>> = try {
+        val response = api.getEventCategories()
+        val categories = response.body()?.data
+        if (response.isSuccessful && categories != null) Result.success(categories)
+        else Result.failure(Exception(response.body()?.message ?: PostApiErrorParser.message(response)))
+    } catch (error: Exception) {
+        Result.failure(error)
+    }
+
     override suspend fun getPost(
         postId: Int
     ): Result<Post> {
@@ -148,7 +187,9 @@ class ApiPostsRepository(
         title: String,
         body: String,
         tags: List<PostTag>,
-        image: Uri?
+        image: Uri?,
+        eventId: Int?,
+        eventCategoryId: Int?
     ): Result<Post> {
 
         return try {
@@ -184,7 +225,9 @@ class ApiPostsRepository(
                 title = titleBody,
                 body = bodyBody,
                 image = imagePart,
-                tags = tagBodies
+                tags = tagBodies,
+                eventId = eventId?.toString()?.toRequestBody("text/plain".toMediaType()),
+                eventCategoryId = eventCategoryId?.toString()?.toRequestBody("text/plain".toMediaType())
             )
 
             if (
@@ -230,7 +273,11 @@ class ApiPostsRepository(
 
         tags: List<PostTag>,
 
-        image: Uri?
+        image: Uri?,
+
+        eventCategoryId: Int?,
+
+        removeImage: Boolean
 
     ): Result<Post> {
 
@@ -241,7 +288,14 @@ class ApiPostsRepository(
             val imagePart = image?.let {
                 ImageConverter.uriToMultipart(context = context, uri = it, partName = "image")
             }
-            val response = api.updatePost(postId, bodyPart, imagePart, tagParts)
+            val response = api.updatePost(
+                postId,
+                bodyPart,
+                imagePart,
+                tagParts,
+                eventCategoryId?.toString()?.toRequestBody("text/plain".toMediaType()),
+                removeImage.toString().toRequestBody("text/plain".toMediaType())
+            )
 
             if (
                 response.isSuccessful &&

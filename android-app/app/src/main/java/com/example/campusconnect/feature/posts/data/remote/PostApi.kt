@@ -15,6 +15,8 @@ import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.CommentDeleteResponse
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
+import com.example.campusconnect.feature.posts.models.PostEvent
+import com.example.campusconnect.feature.posts.models.PostEventCategory
 
 import com.example.campusconnect.feature.posts.data.remote.request.CreateCommentRequest
 import com.example.campusconnect.feature.posts.data.remote.request.UpdateCommentRequest
@@ -37,6 +39,15 @@ interface PostsApi {
     @GET("posts/tags/counts")
     suspend fun getGeneralTagCounts():
             Response<ApiResponse<List<PostTagCount>>>
+
+    @GET("events/mine")
+    suspend fun getMyEvents(): Response<ApiResponse<List<PostEvent>>>
+
+    @GET("event-categories")
+    suspend fun getEventCategories(): Response<ApiResponse<List<PostEventCategory>>>
+
+    @GET("posts/events")
+    suspend fun getEventPosts(): Response<ApiResponse<List<PostEvent>>>
     @GET("posts/{postId}")
     suspend fun getPost(
 
@@ -65,7 +76,11 @@ interface PostsApi {
         image: MultipartBody.Part?,
 
         @Part("tags")
-        tags: List<@JvmSuppressWildcards RequestBody>
+        tags: List<@JvmSuppressWildcards RequestBody>,
+
+        @Part("eventId") eventId: RequestBody?,
+
+        @Part("eventCategoryId") eventCategoryId: RequestBody?
     ): Response<ApiResponse<Post>>
 
     @Multipart
@@ -79,7 +94,11 @@ interface PostsApi {
 
         @Part image: MultipartBody.Part?,
 
-        @Part("tags") tags: List<@JvmSuppressWildcards RequestBody>
+        @Part("tags") tags: List<@JvmSuppressWildcards RequestBody>,
+
+        @Part("eventCategoryId") eventCategoryId: RequestBody?,
+
+        @Part("removeImage") removeImage: RequestBody
 
     ): Response<ApiResponse<Post>>
 /*

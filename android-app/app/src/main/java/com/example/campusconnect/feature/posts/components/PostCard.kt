@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 
 /* This imports different ways of fitting/scaling content (mostly images) inside a given space-*/
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,113 +86,61 @@ fun PostCard(
             ---------------- HEADER ----------------
              */
 
-            Row(
-
-                modifier = Modifier.fillMaxWidth(),
-
-                /*
-                In a Row() in Jetpack Compose, this line:
-                'horizontalArrangement = Arrangement.SpaceBetween'
-                controls how child items are spaced horizontally inside the row.
-
-                SpaceBetween means:
-                First item goes to the start
-                Last item goes to the end
-                Remaining space is distributed between the items
-                 */
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-
-                /*
-                LEFT SECTION
-                 */
-
-                Row {
-
-                    /*
-                    DP CIRCLE
-                     */
-
+            val topicName = post.tags.firstOrNull()?.name?.takeIf(String::isNotBlank)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top
+                ) {
                     Box(
-
                         modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                OrangeLight,
-                                shape = CircleShape
-                            ),
-
+                            .size(42.dp)
+                            .background(OrangeLight, shape = CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-
                         Text(
-
                             text = post.username.firstOrNull()?.uppercase() ?: "?",
-
                             color = OrangePrimary,
-
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
 
-                    /*
-                    Spacer(modifier=Modifier.height(10.dp)) <- this is used for height in column
-                    Spacer(modifier=Modifier.width(10.dp)) <- this is used for width in row
-                     */
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    /*
-                    USERNAME + TIME
-                     */
-
-                    Column {
-
-                        Text(
-
-                            text = post.username,
-
-                            style = MaterialTheme.typography.labelMedium,
-
-                            color = LabelColor
-                        )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        Text(
-
-                            text = formatBackendDateTime(post.createdAt),
-
-                            style = MaterialTheme.typography.bodySmall,
-
-                            color = HintColor
-                        )
-                        if (post.isEdited) Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val topicName = post.tags.firstOrNull()?.name?.takeIf { it.isNotBlank() }
-                    if (topicName != null) Surface(
-                        color = OrangeLight,
-                        shape = RoundedCornerShape(50)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 10.dp, end = 4.dp)
                     ) {
                         Text(
-                            text = topicName,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            color = OrangePrimary,
-                            style = MaterialTheme.typography.bodySmall
+                            text = post.username,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = LabelColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        Text(
+                            text = formatBackendDateTime(post.createdAt),
+                            modifier = Modifier.padding(top = 2.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = HintColor,
+                            maxLines = 1
+                        )
+                        if (post.isEdited) {
+                            Text(
+                                text = "Edited",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = HintColor
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.width(10.dp))
 
                     if (post.canDelete) {
                         Box {
                             IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "Post options", tint = HintColor)
+                                Icon(
+                                    Icons.Outlined.MoreVert,
+                                    contentDescription = "Post options",
+                                    tint = HintColor
+                                )
                             }
                             MaterialTheme(
                                 colorScheme = MaterialTheme.colorScheme.copy(
@@ -198,7 +148,10 @@ fun PostCard(
                                     primary = OrangePrimary
                                 )
                             ) {
-                                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false }
+                                ) {
                                     DropdownMenuItem(
                                         text = { Text("Edit post") },
                                         onClick = { showMenu = false; onEditClick() }
@@ -209,6 +162,28 @@ fun PostCard(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+
+                if (topicName != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Surface(color = OrangeLight, shape = RoundedCornerShape(18.dp)) {
+                            Text(
+                                text = topicName,
+                                modifier = Modifier
+                                    .widthIn(max = 180.dp)
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                color = OrangePrimary,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
@@ -283,6 +258,7 @@ fun PostCard(
 
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
 
@@ -299,11 +275,15 @@ fun PostCard(
                     onDownvoteClick = onDownvoteClick
                 )
 
-                Text(
-
-                    text = "💬 $commentCount",
-                    color = HintColor
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.ChatBubbleOutline,
+                        contentDescription = "Comments",
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(19.dp)
+                    )
+                    Text(" $commentCount", color = HintColor)
+                }
             }
         }
     }

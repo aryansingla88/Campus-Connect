@@ -9,6 +9,7 @@ import com.campus.Campus_Connect.features.post.dto.response.CommentDeleteRespons
 import com.campus.Campus_Connect.features.post.dto.response.PostResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagResponse;
 import com.campus.Campus_Connect.features.post.dto.response.PostTagCountResponse;
+import com.campus.Campus_Connect.features.post.dto.response.EventPostResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -22,6 +23,8 @@ public interface PostService {
     List<PostTagResponse> getAllTags();
 
     List<PostTagCountResponse> getGeneralPostTagCounts();
+
+    List<EventPostResponse> getEventPosts();
 
     PostResponse createPost(CreatePostRequest request);
 

@@ -42,4 +42,22 @@ public class PostResponse {
 
     @JsonProperty("isEdited")
     private boolean isEdited;
+
+    private String postType;
+
+    private Integer eventId;
+
+    private Integer eventCategoryId;
+
+    private String eventCategoryName;
+
+    private String eventOrganizerName;
+
+    private String eventVenue;
+
+    private Double eventLatitude;
+
+    private Double eventLongitude;
+
+    private java.time.Instant eventStartTime;
 }
