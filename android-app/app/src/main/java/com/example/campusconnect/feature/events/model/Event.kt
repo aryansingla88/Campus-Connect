@@ -44,10 +44,16 @@ data class Event(
     val registrationLink: String = "",
     val inAppRegistration: Boolean = false,
 
+    // Approval state used by the host registration setup header.
+    val approvalStatus: String = "",
+
     // 🔹 EXTRA
     val venue: String = "",
     val enableChat: Boolean = false,
 
     // 🔹 STATUS — LIVE events show on map in orange, PAST events show in grey
     val status: EventStatus = EventStatus.UPCOMING
-)
+) {
+    val isPublished: Boolean
+        get() = approvalStatus.trim().uppercase() in setOf("VERIFIED", "APPROVED")
+}

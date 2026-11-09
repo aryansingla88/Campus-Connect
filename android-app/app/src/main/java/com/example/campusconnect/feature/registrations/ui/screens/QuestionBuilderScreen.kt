@@ -1,4 +1,6 @@
 package com.example.campusconnect.feature.registrations.ui.screens
+
+import com.example.campusconnect.feature.registrations.ui.components.builder.*
 import com.example.campusconnect.feature.registrations.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
@@ -16,6 +18,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.campusconnect.feature.registrations.model.QuestionType
+import com.example.campusconnect.feature.registrations.model.RegistrationQuestion
+import java.util.UUID
 
 /** Optional title block above the question list (used by the team builder). */
 data class BuilderHeading(val title: String, val subtitle: String)
@@ -25,24 +30,24 @@ data class BuilderHeading(val title: String, val subtitle: String)
  * bottom sheet that lists [candidates]. [onMove] receives the chosen question ids.
  */
 data class MoveExistingConfig(
-    val candidates: List<FormField>,
-    val onMove: (ids: List<Int>) -> Unit,
+    val candidates: List<RegistrationQuestion>,
+    val onMove: (localIds: List<String>) -> Unit,
 )
 
 /**
- * The one question builder behind both the individual form and the team questions.
+ * The one question builder behind both participant and shared questions.
  * State is hoisted ([fields] / [onFieldsChange]). The two modes differ only by:
  *  - [showQuickFields]: the Quick Fields card (individual form only).
  *  - [moveExisting]: when non-null the bottom bar has two buttons (Add + Move
- *    Existing Questions) and the move sheet is available (team questions only).
+ *    Existing Questions) and the move sheet is available (shared questions only).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionBuilderScreen(
     eventName: String,
     isPublished: Boolean,
-    fields: List<FormField>,
-    onFieldsChange: (List<FormField>) -> Unit,
+    fields: List<RegistrationQuestion>,
+    onFieldsChange: (List<RegistrationQuestion>) -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
     heading: BuilderHeading? = null,
@@ -62,18 +67,17 @@ fun QuestionBuilderScreen(
     onRetry: () -> Unit = {},
 ) {
     var selectedQuickFields by remember(initialQuickFieldIds) { mutableStateOf(initialQuickFieldIds) }
-    var expandedFieldId by remember { mutableStateOf<Int?>(null) }
-    var showTypeSheet by remember { mutableStateOf<Int?>(null) }
+    var expandedFieldId by remember { mutableStateOf<String?>(null) }
+    var showTypeSheet by remember { mutableStateOf<String?>(null) }
     var showMoveSheet by remember { mutableStateOf(false) }
 
-    fun nextId() = (fields.maxOfOrNull { it.id } ?: 0) + 1
-    fun updateField(id: Int, transform: (FormField) -> FormField) =
-        onFieldsChange(fields.map { if (it.id == id) transform(it) else it })
+    fun updateField(localId: String, transform: (RegistrationQuestion) -> RegistrationQuestion) =
+        onFieldsChange(fields.map { if (it.localId == localId) transform(it) else it })
 
     fun addQuestion() {
-        val newField = FormField(id = nextId())
+        val newField = RegistrationQuestion(localId = UUID.randomUUID().toString())
         onFieldsChange(fields + newField)
-        expandedFieldId = newField.id
+        expandedFieldId = newField.localId
     }
 
     showTypeSheet?.let { targetId ->
@@ -82,10 +86,10 @@ fun QuestionBuilderScreen(
             containerColor = CardBg,
             tonalElevation = 0.dp,
         ) {
-            FieldTypePicker(
-                current = fields.find { it.id == targetId }?.fieldType ?: FieldType.TEXT,
+            QuestionTypePicker(
+                current = fields.find { it.localId == targetId }?.type as? QuestionType.Known ?: QuestionType.Known.TEXT,
                 onPick = { picked ->
-                    updateField(targetId) { it.copy(fieldType = picked, rawFieldType = null) }
+                    updateField(targetId) { it.copy(type = picked) }
                     showTypeSheet = null
                 },
             )
@@ -217,28 +221,28 @@ fun QuestionBuilderScreen(
                 }
             }
 
-            itemsIndexed(fields, key = { _, f -> f.id }) { index, field ->
+            itemsIndexed(fields, key = { _, f -> f.localId }) { index, field ->
                 FieldCard(
                     field = field,
                     index = index + 1,
-                    expanded = expandedFieldId == field.id,
-                    onExpand = { expandedFieldId = if (expandedFieldId == field.id) null else field.id },
-                    onDelete = { onFieldsChange(fields.filter { it.id != field.id }) },
+                    expanded = expandedFieldId == field.localId,
+                    onExpand = { expandedFieldId = if (expandedFieldId == field.localId) null else field.localId },
+                    onDelete = { onFieldsChange(fields.filter { it.localId != field.localId }) },
                     onDuplicate = {
-                        val copy = field.copy(id = nextId(), backendId = null, fieldOrder = 0)
-                        val idx = fields.indexOfFirst { it.id == field.id }
+                        val copy = field.copy(localId = UUID.randomUUID().toString(), backendId = null, fieldOrder = 0)
+                        val idx = fields.indexOfFirst { it.localId == field.localId }
                         onFieldsChange(fields.toMutableList().apply { add(idx + 1, copy) })
                     },
-                    onLabelChange = { v -> updateField(field.id) { it.copy(label = v) } },
-                    onPlaceholderChange = { v -> updateField(field.id) { it.copy(placeholder = v) } },
-                    onRequiredToggle = { updateField(field.id) { it.copy(isRequired = !it.isRequired) } },
-                    onTypeClick = { showTypeSheet = field.id },
-                    onAddOption = { updateField(field.id) { it.copy(options = it.options + "Option ${it.options.size + 1}") } },
+                    onLabelChange = { v -> updateField(field.localId) { it.copy(label = v) } },
+                    onPlaceholderChange = { v -> updateField(field.localId) { it.copy(placeholder = v) } },
+                    onRequiredToggle = { updateField(field.localId) { it.copy(isRequired = !it.isRequired) } },
+                    onTypeClick = { showTypeSheet = field.localId },
+                    onAddOption = { updateField(field.localId) { it.copy(options = it.options + "Option ${it.options.size + 1}") } },
                     onOptionChange = { optIdx, v ->
-                        updateField(field.id) { f -> f.copy(options = f.options.toMutableList().also { it[optIdx] = v }) }
+                        updateField(field.localId) { f -> f.copy(options = f.options.toMutableList().also { it[optIdx] = v }) }
                     },
                     onOptionDelete = { optIdx ->
-                        updateField(field.id) { f -> f.copy(options = f.options.toMutableList().also { it.removeAt(optIdx) }) }
+                        updateField(field.localId) { f -> f.copy(options = f.options.toMutableList().also { it.removeAt(optIdx) }) }
                     },
                 )
             }

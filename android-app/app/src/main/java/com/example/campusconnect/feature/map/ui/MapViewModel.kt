@@ -19,7 +19,7 @@ import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
 import com.example.campusconnect.feature.map.data.repo.MapRepo
 import com.example.campusconnect.feature.map.data.repo.PresenceUploadPolicy
-import com.example.campusconnect.feature.map.data.PoiRepositoryProvider
+import com.example.campusconnect.feature.metadata.poi.PoiRepositoryProvider
 import com.example.campusconnect.feature.map.mapengine.MapCalibration
 import com.example.campusconnect.feature.map.mapengine.viewport.MAP_IMAGE_HEIGHT
 import com.example.campusconnect.feature.map.mapengine.viewport.MAP_IMAGE_WIDTH

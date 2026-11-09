@@ -10,7 +10,6 @@ import com.example.campusconnect.feature.posts.navigation.EVENTS_FEED_ROUTE
 import com.example.campusconnect.feature.posts.navigation.POSTS_FEED_ROUTE
 import com.example.campusconnect.feature.profile.ProfileRoutes
 import com.example.campusconnect.feature.map.ui.MapScreen
-import com.example.campusconnect.feature.registrations.navigateToParticipantRegistration
 
 fun NavGraphBuilder.mapNav(
     navController: NavController
@@ -74,7 +73,9 @@ fun NavGraphBuilder.mapNav(
                     EVENTS_POSTER_VIEW
                 )
             },
-            onRegister = { eventId -> navController.navigateToParticipantRegistration(eventId) }
+            onInAppRegistrationClick = { eventId ->
+                navController.navigate("user_registration/$eventId")
+            },
         )
     }
 }

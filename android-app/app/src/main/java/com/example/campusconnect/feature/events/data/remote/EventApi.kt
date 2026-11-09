@@ -1,6 +1,5 @@
 package com.example.campusconnect.feature.events.data.remote
 
-import android.util.Log
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.events.data.remote.request.AwardMedalRequest
 import com.example.campusconnect.feature.events.data.remote.request.GrantAccessRequest
@@ -9,7 +8,6 @@ import com.example.campusconnect.feature.events.data.remote.response.EventRespon
 import com.example.campusconnect.feature.events.data.remote.response.MedalCandidateResponse
 import com.example.campusconnect.feature.events.data.remote.response.MedalsResponse
 import com.example.campusconnect.feature.events.data.remote.response.ParticipantsResponse
-import com.example.campusconnect.feature.events.data.remote.response.RegistrationResponse
 import com.example.campusconnect.feature.events.data.remote.response.UserAccessResponse
 import okhttp3.MultipartBody
 import retrofit2.Response

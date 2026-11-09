@@ -103,7 +103,6 @@ fun EventMarkerDialog(
     endTime: String? = null,
     description: String? = null,
     registrationsCount: Int? = null,
-    eventType: String? = null,
     onViewAllHostsClick: () -> Unit = {},
     nearbyEvents: List<MapEventInfo> = emptyList(),
     onNearbyEventClick: (MapEventInfo) -> Unit = {}
@@ -146,7 +145,7 @@ fun EventMarkerDialog(
             endTime = endTime,
             description = description,
             registrationsCount = registrationsCount,
-            eventType = eventType,
+            eventType = event.categories.firstOrNull()?.name,
             onViewAllHostsClick = onViewAllHostsClick,
             nearbyEvents = nearbyEvents,
             isExpanded = isExpanded,
@@ -268,12 +267,20 @@ private fun EventQuickPreviewContent(
     val sheetHeightFraction = 0.80f
 
     val displayRegistrationsCount = registrationsCount ?: event.registrationCount
-    val displayEventType = eventType ?: event.eventType
+    val registrationType = event.registrationType?.trim()?.uppercase()
+    val hasRegistrationLink = event.registrationLink?.trim()?.let { link ->
+        link.startsWith("https://", ignoreCase = true) ||
+                link.startsWith("http://", ignoreCase = true)
+    } ?: false
+    val registrationEnabled = when (registrationType) {
+        "THROUGH_APP" -> true
+        "THROUGH_LINK" -> hasRegistrationLink
+        else -> false
+    }
+    val registrationLabel = if (registrationEnabled) "Register at" else "Open entry"
+    val displayEventType = event.categories.firstOrNull()?.name
     val displayHosts = event.hosts.map { it.name }
-    val hostLabel = event.creatorName?.takeIf { it.isNotBlank() }
-        ?: event.clubName?.takeIf { it.isNotBlank() }
-        ?: event.hostName.takeIf { it.isNotBlank() }
-        ?: event.hosts.firstOrNull()?.name
+    val hostLabel = event.subtitle?.takeIf { it.isNotBlank() }
 
     Box(
         modifier = Modifier
@@ -392,7 +399,9 @@ private fun EventQuickPreviewContent(
                 )
 
                 RegisterActionButton(
-                    isJoined = event.isJoined,
+                    registrationStatus = event.registrationStatus,
+                    label = registrationLabel,
+                    enabled = registrationEnabled,
                     onClick = onRegisterClick,
                     modifier = Modifier.weight(1f)
                 )

@@ -6,6 +6,7 @@ import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.entity.Event;
 import com.campus.Campus_Connect.features.event.entity.EventTeam;
 import com.campus.Campus_Connect.features.event.repository.EventRepository;
+import com.campus.Campus_Connect.features.event.repository.EventTeamRepository;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.registration.constants.QuickFieldMask;
 import com.campus.Campus_Connect.features.registration.dto.request.RegistrationConfigRequest;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 public class HostRegistrationService {
 
     private final EventRepository eventRepository;
+    private final EventTeamRepository teamRepository;
     private final RegistrationConfigRepository configRepository;
     private final EventRegistrationRepository registrationRepository;
     private final RegistrationAnswerRepository answerRepository;
@@ -417,6 +419,15 @@ public class HostRegistrationService {
             );
         }
 
+        for (EventTeam team : teamRepository.findAllByEvent_Id(eventId)) {
+            EventRegistration leaderRegistration = registrationRepository
+                    .findByEventIdAndUserId(eventId, team.getLeader().getId()).orElse(null);
+            if (leaderRegistration == null || leaderRegistration.getTeam() == null
+                    || !leaderRegistration.getTeam().getId().equals(team.getId())) {
+                return ApiResponse.failure("A team has an invalid leader registration association. Team ID: " + team.getId());
+            }
+        }
+
         List<EventRegistration> registrations =
                 registrationRepository.findShortRegistrations(eventId);
 
@@ -469,6 +480,9 @@ public class HostRegistrationService {
 
         if (registration == null) {
             return ApiResponse.failure("Registration not found.");
+        }
+        if (registration.getStatus() == RegistrationStatus.PENDING) {
+            return ApiResponse.failure("Draft registrations are not submitted responses.");
         }
 
         return ApiResponse.success(
@@ -732,19 +746,38 @@ public class HostRegistrationService {
         if (event == null) return ApiResponse.failure("Event not found.");
         if (!isOrganizer(event)) return ApiResponse.failure("Only the event organizer can manage registrations.");
 
+        EventRegistration observed = registrationRepository.findById(registrationId).orElse(null);
+        if (observed != null && !observed.getEvent().getId().equals(eventId)) observed = null;
+        EventTeam team = observed == null ? null : observed.getTeam();
+        if (team != null) team = teamRepository.findByIdForUpdate(team.getId()).orElse(null);
         EventRegistration registration = registrationRepository.findByIdForUpdate(registrationId).orElse(null);
         if (registration != null && !registration.getEvent().getId().equals(eventId)) registration = null;
         if (registration == null) return ApiResponse.failure("Registration not found.");
 
-        if (registration.getStatus() != RegistrationStatus.WAITLISTED)
-            return ApiResponse.failure("Only submitted registrations awaiting host approval can be reviewed.");
+        List<EventRegistration> affected = List.of(registration);
+        if (registration.getTeam() != null) {
+            if (team == null || team.getLeader() == null
+                    || !team.getLeader().getId().equals(registration.getUser().getId()))
+                return ApiResponse.failure("Team status must be managed through its leader registration.");
+            EventRegistration leaderRegistration = registrationRepository.findByEventIdAndUserId(
+                    eventId, team.getLeader().getId()).orElse(null);
+            if (leaderRegistration == null || leaderRegistration.getTeam() == null
+                    || !leaderRegistration.getTeam().getId().equals(team.getId()))
+                return ApiResponse.failure("The team's leader registration is inconsistent.");
+            affected = registrationRepository.findByEventIdAndTeamId(eventId, team.getId());
+        }
+
+        for (EventRegistration item : affected) {
+            if (item.getStatus() != RegistrationStatus.WAITLISTED)
+                return ApiResponse.failure("Only submitted registrations awaiting host approval can be reviewed.");
+        }
 
         if (registration.getStatus() == targetStatus) {
             return ApiResponse.failure("Registration is already " + targetStatus.name());
         }
 
-        registration.setStatus(targetStatus);
-        registrationRepository.save(registration);
+        for (EventRegistration item : affected) item.setStatus(targetStatus);
+        registrationRepository.saveAll(affected);
         return ApiResponse.success(
                 RegistrationResponse.builder()
                         .registrationId(registration.getId())

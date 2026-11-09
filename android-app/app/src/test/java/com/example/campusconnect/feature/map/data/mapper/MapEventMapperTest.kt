@@ -18,18 +18,15 @@ class MapEventMapperTest {
                 title = "Campus event",
                 description = "Details",
                 posterUrl = null,
-                hostName = "Host",
-                creatorName = "Creator",
-                clubName = "Robotics",
+                subtitle = "Robotics",
                 registrationCount = 18,
-                eventType = "Workshop",
                 categories = listOf(EventCategoryResponse(7, "Workshop")),
                 startTime = "2026-10-20T09:00:00Z",
                 endTime = "2026-10-20T10:00:00Z",
                 venue = "Hall",
                 registrationType = "TEAM",
                 registrationLink = "https://example.invalid/register",
-                isJoined = true,
+                registrationStatus = "CONFIRMED",
                 isReminderEnabled = false,
                 priority = 2,
                 hosts = listOf(EventHostResponse(41, "Host", "avatar", "ADMIN"))
@@ -40,11 +37,9 @@ class MapEventMapperTest {
         assertEquals("2026-10-20T09:00:00Z", result.date)
         assertEquals("2026-10-20T09:00:00Z", result.time)
         assertEquals("2026-10-20T10:00:00Z", result.endTime)
-        assertEquals("Host", result.hostName)
-        assertEquals("Creator", result.creatorName)
-        assertEquals("Robotics", result.clubName)
+        assertEquals("Robotics", result.subtitle)
         assertEquals(18, result.registrationCount)
-        assertEquals("Workshop", result.eventType)
+        assertEquals("CONFIRMED", result.registrationStatus)
         assertEquals(listOf("Workshop"), result.categories.map { it.name })
         assertEquals(7, result.categories.single().id)
         assertEquals("TEAM", result.registrationType)
@@ -58,13 +53,13 @@ class MapEventMapperTest {
     fun missingOptionalPreviewFieldsStayEmptyOrNull() {
         val result = MapEventMapper.toInfo(EventPreviewResponse(id = 2, title = "No metadata"))
 
-        assertEquals("", result.hostName)
         assertEquals("", result.date)
         assertEquals("", result.time)
         assertEquals("", result.description)
         assertTrue(result.hosts.isEmpty())
         assertTrue(result.categories.isEmpty())
         assertNull(result.registrationCount)
+        assertNull(result.registrationStatus)
         assertNull(result.registrationType)
         assertNull(result.registrationLink)
     }

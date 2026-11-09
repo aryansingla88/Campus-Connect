@@ -9,7 +9,6 @@ import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.MedalAward
 import com.example.campusconnect.feature.events.model.MedalType
 import com.example.campusconnect.feature.events.model.UserAccess
-import com.example.campusconnect.feature.registrations.model.Registration
 import okhttp3.MultipartBody
 
 interface EventRepository {
@@ -46,13 +45,6 @@ interface EventRepository {
     suspend fun getManagedEvents(): Result<List<Event>>
 
     suspend fun getEventHistory(): Result<EventHistoryResponse>
-
-
-    // Registration -------------------------------------------------------
-
-    suspend fun getRegistration(
-        eventId: Int
-    ): Result<Registration>
 
 
     // Participants -------------------------------------------------------

@@ -38,6 +38,6 @@ public class EventRegistration {
     @JoinColumn(name = "team_id")
     private EventTeam team;
 
-    @Column(name = "submitted_at", nullable = false, updatable = false)
+    @Column(name = "submitted_at")
     private Instant submittedAt;
 }

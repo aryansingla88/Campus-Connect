@@ -9,6 +9,9 @@ import com.campus.Campus_Connect.features.registration.dto.response.Registration
 import com.campus.Campus_Connect.features.registration.dto.response.RegistrationResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.AvailableTeamResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.TeamRequestResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.ParticipantRegistrationConfigResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamPortalResponse;
+import com.campus.Campus_Connect.features.registration.dto.response.TeamCandidateResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.TeamMemberResponse;
 import com.campus.Campus_Connect.features.registration.dto.response.TeamInviteCandidateResponse;
 import com.campus.Campus_Connect.features.registration.service.UserRegistrationService;
@@ -46,15 +49,32 @@ public class UserRegistrationController {
         return service.getPublishedFields(eventId, individual);
     }
 
+    @GetMapping("/{eventId}/registration/participant-config")
+    public ApiResponse<ParticipantRegistrationConfigResponse> participantConfig(@PathVariable Integer eventId) {
+        return service.getParticipantConfig(eventId);
+    }
+
+    @GetMapping("/{eventId}/registration/team-name-availability")
+    public ApiResponse<Boolean> teamNameAvailability(@PathVariable Integer eventId,
+                                                      @RequestParam String teamName) {
+        return service.isTeamNameAvailable(eventId, teamName);
+    }
+
+    @GetMapping("/{eventId}/registration/my-team")
+    public ApiResponse<TeamPortalResponse> myTeam(@PathVariable Integer eventId) {
+        return service.getMyTeam(eventId);
+    }
+
+    @GetMapping("/{eventId}/registration/team-candidates")
+    public ApiResponse<List<TeamCandidateResponse>> teamCandidates(@PathVariable Integer eventId,
+                                                                    @RequestParam(defaultValue = "") String query) {
+        return service.getTeamCandidates(eventId, query);
+    }
+
     @GetMapping("/{eventId}/registration/teams")
     public ApiResponse<List<AvailableTeamResponse>> teams(@PathVariable Integer eventId,
                                                            @RequestParam(required = false) String search) {
         return service.getAvailableTeams(eventId, search);
-    }
-
-    @GetMapping("/{eventId}/registration/team-name-availability")
-    public ApiResponse<Boolean> teamNameAvailability(@PathVariable Integer eventId, @RequestParam String teamName) {
-        return service.isTeamNameAvailable(eventId, teamName);
     }
 
     @GetMapping("/teams/{teamId}")
@@ -101,11 +121,13 @@ public class UserRegistrationController {
         return service.getTeamRequests(teamId);
     }
 
+    /** Retained for existing clients; the participant flow now loads this through my-team. */
     @GetMapping("/teams/{teamId}/members")
     public ApiResponse<List<TeamMemberResponse>> teamMembers(@PathVariable Integer teamId) {
         return service.getTeamMembers(teamId);
     }
 
+    /** Retained for existing clients; the participant flow now loads candidates by event. */
     @GetMapping("/teams/{teamId}/invite-candidates")
     public ApiResponse<List<TeamInviteCandidateResponse>> inviteCandidates(@PathVariable Integer teamId) {
         return service.getTeamInviteCandidates(teamId);

@@ -1,7 +1,8 @@
 package com.example.campusconnect.feature.registrations.data
 
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigRequest
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigResponse
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationConfigRequest
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationConfigResponse
+import com.example.campusconnect.feature.registrations.data.mapper.toRegistrationSettings
 import com.example.campusconnect.feature.registrations.data.mapper.RegistrationConfigMapper
 import com.example.campusconnect.feature.registrations.model.RegistrationSettings
 import com.google.gson.Gson
@@ -26,17 +27,17 @@ class RegistrationConfigMappingTest {
     fun responseMappingDefaultsMissingAutoConfirmToTrueAndPreservesFalse() {
         val legacyJson = """{"eventId":3,"minTeamMembers":1,"maxTeamMembers":1}"""
         val legacy = gson.fromJson(legacyJson, RegistrationConfigResponse::class.java)
-        assertEquals(true, RegistrationConfigMapper.toModel(legacy).autoConfirm)
+        assertEquals(true, legacy.toRegistrationSettings().autoConfirm)
 
         val explicitFalse = gson.fromJson(
             """{"eventId":3,"minTeamMembers":1,"maxTeamMembers":1,"auto_confirm":false}""",
             RegistrationConfigResponse::class.java,
         )
-        assertEquals(false, RegistrationConfigMapper.toModel(explicitFalse).autoConfirm)
+        assertEquals(false, explicitFalse.toRegistrationSettings().autoConfirm)
     }
 
     @Test
-    fun configMappingPreservesDeadlineAndFallsBackForMalformedDates() {
+    fun configMappingPreservesDeadlineAndIgnoresMalformedDates() {
         val settings = RegistrationSettings(
             minMembers = 2,
             maxMembers = 5,
@@ -59,12 +60,7 @@ class RegistrationConfigMappingTest {
             ),
         ))
 
-        val malformed = RegistrationConfigResponse(
-            eventId = 3,
-            minTeamMembers = 1,
-            maxTeamMembers = 1,
-            registrationEndAt = "not-a-date",
-        )
+        val malformed = RegistrationConfigResponse(3, 1, 1, registrationEndAt = "not-a-date")
         assertEquals(null, RegistrationConfigMapper.toModel(malformed).deadline)
     }
 }

@@ -17,12 +17,14 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import androidx.compose.material3.CircularProgressIndicator
 import com.example.campusconnect.R
 
 @Composable
 fun SplashScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToOfflineFallback: () -> Unit,
     viewModel: SplashViewModel = viewModel()
 ) {
     /*
@@ -46,21 +48,19 @@ navController.navigate(...)
 
 
     // Lottie animation composition
-    val composition by rememberLottieComposition(
+    val compositionResult = rememberLottieComposition(
         LottieCompositionSpec.RawRes(R.raw.campus)
     )
+    val composition = compositionResult.value
 
     val progress by animateLottieCompositionAsState(
         composition = composition,
         iterations = 1
     )
 
-    var showText by remember { mutableStateOf(false) }
-
-    // Trigger text after animation ends
-    LaunchedEffect(progress) {
-        if (progress == 1f) {
-            showText = true
+    // Route after playback, or continue to authentication if loading fails.
+    LaunchedEffect(progress, compositionResult.isFailure) {
+        if (progress == 1f || compositionResult.isFailure) {
             viewModel.startSplash()
         }
     }
@@ -75,6 +75,10 @@ navController.navigate(...)
 
             SplashDestination.Login -> {
                 onNavigateToLogin()
+            }
+
+            SplashDestination.OfflineFallback -> {
+                onNavigateToOfflineFallback()
             }
 
             null -> Unit
@@ -100,13 +104,17 @@ navController.navigate(...)
             Spacer(modifier = Modifier.height(40.dp))
 
             AnimatedVisibility(
-                visible = showText,
+                visible = progress == 1f,
                 enter = fadeIn() + slideInVertically { it / 2 }
             ) {
                 Text(
                     text = "Campus Connect",
                     fontSize = 24.sp
                 )
+            }
+
+            if (compositionResult.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
         }
     }

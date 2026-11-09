@@ -8,16 +8,17 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.example.campusconnect.feature.events.model.EventStatus
+import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.ui.screen.EventScreen
 import com.example.campusconnect.feature.events.ui.screen.EventViewModeScreen
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
-import com.example.campusconnect.feature.registrations.navigateToParticipantRegistration
-import com.example.campusconnect.feature.registrations.navigateToRegistrationSetup
 
 const val EVENTS_POSTER_VIEW = "events_poster_view"
 
 fun NavGraphBuilder.eventNav(
-    navController: NavController
+    navController: NavController,
+    onRegistrationSetup: (event: Event) -> Unit,
+    onParticipantRegistration: (eventId: Int) -> Unit,
 ) {
     navigation(
         startDestination = "events_main",
@@ -30,11 +31,8 @@ fun NavGraphBuilder.eventNav(
                 onBack = {
                     navController.popBackStack()
                 },
-                onRegister = { eventId ->
-                    navController.navigateToParticipantRegistration(eventId)
-                },
-                onHostRegistration = { eventId ->
-                    navController.navigateToRegistrationSetup(eventId)
+                onRegistration = { event ->
+                    onRegistrationSetup(event)
                 },
             )
         }
@@ -61,7 +59,9 @@ fun NavGraphBuilder.eventNav(
                 onBack = {
                     navController.popBackStack()
                 },
-                onRegister = { event -> navController.navigateToParticipantRegistration(event.id) },
+                onRegister = { event ->
+                    onParticipantRegistration(event.id)
+                },
                 onNotify = {},
                 onOpenDetail = {},
                 categories = categories,

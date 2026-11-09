@@ -53,6 +53,13 @@ public class AuthController {
         return authService.resetPassword(request);
     }
 
+    @PostMapping("/change-password")
+    public ApiResponse<Void> changePassword(
+            @RequestBody ChangePasswordRequest request
+    ) {
+        return authService.changePassword(request);
+    }
+
     @GetMapping("/me")
     public ApiResponse<UserResponse> me() {
         System.out.println(SecurityContextHolder.getContext().getAuthentication());

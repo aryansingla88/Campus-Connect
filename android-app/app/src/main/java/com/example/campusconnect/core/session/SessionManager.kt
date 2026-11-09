@@ -12,22 +12,36 @@ object SessionManager {
 
     private const val PREF_NAME = "campus_connect_session"
     private const val KEY_ACCESS_TOKEN = "access_token"
+    private const val KEY_ACCOUNT_ROLE = "account_role"
 
     private lateinit var preferences: SharedPreferences
     private val _sessionVersion = MutableStateFlow(0L)
     val sessionVersion: StateFlow<Long> = _sessionVersion.asStateFlow()
+    private val _accountRole = MutableStateFlow<AppRole?>(null)
+    val accountRole: StateFlow<AppRole?> = _accountRole.asStateFlow()
 
     fun initialize(context: Context) {
         preferences = context.applicationContext.getSharedPreferences(
             PREF_NAME,
             Context.MODE_PRIVATE
         )
+        _accountRole.value = AppRole.parse(preferences.getString(KEY_ACCOUNT_ROLE, null))
     }
 
-    fun saveToken(token: String) {
+    fun saveToken(token: String, role: AppRole) {
         preferences.edit()
             .putString(KEY_ACCESS_TOKEN, token)
+            .putString(KEY_ACCOUNT_ROLE, role.name)
             .apply()
+        _accountRole.value = role
+        _sessionVersion.value += 1
+    }
+
+    /** Refresh the cached role only from a successful authenticated /auth/me response. */
+    fun updateAccountRole(role: AppRole) {
+        checkInitialized()
+        preferences.edit().putString(KEY_ACCOUNT_ROLE, role.name).apply()
+        _accountRole.value = role
         _sessionVersion.value += 1
     }
 
@@ -56,7 +70,9 @@ object SessionManager {
         checkInitialized()
         preferences.edit()
             .remove(KEY_ACCESS_TOKEN)
+            .remove(KEY_ACCOUNT_ROLE)
             .apply()
+        _accountRole.value = null
         _sessionVersion.value += 1
     }
 

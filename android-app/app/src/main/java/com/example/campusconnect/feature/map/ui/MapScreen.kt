@@ -65,6 +65,8 @@ import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 import androidx.compose.ui.geometry.Offset
 import com.example.campusconnect.core.location.TrackingMode
 import com.example.campusconnect.core.location.model.LocationStatus
+import com.example.campusconnect.core.session.AppRole
+import com.example.campusconnect.core.session.SessionManager
 
 internal val OrangePrimary = Color(0xFFFF6F00)
 internal val OrangeLight = Color(0xFFFFF3E0)
@@ -79,7 +81,7 @@ fun MapScreen(
     onEventPostsClick: () -> Unit = {},
     onEventFeatureClick: () -> Unit = {},
     onPosterClick: () -> Unit = {},
-    onRegister: (Int) -> Unit = {},
+    onInAppRegistrationClick: (Int) -> Unit = {},
     isFeatureActive: Boolean = true,
     viewModel: MapViewModel = viewModel()
 ) {
@@ -90,6 +92,8 @@ fun MapScreen(
     val mapLoadComplete = remember(cloudTransition) { CompletableDeferred<Unit>() }
     val uiState by viewModel.uiState.collectAsState()
     val trackingMode by viewModel.trackingMode.collectAsState()
+    val accountRole by SessionManager.accountRole.collectAsState()
+    val restrictedExperience = accountRole == AppRole.TEACHER || accountRole == AppRole.CAMPUS_CONNECT
     var lifecycleStarted by remember(lifecycleOwner) {
         mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
     }
@@ -192,7 +196,7 @@ fun MapScreen(
     )
 
     var searchQuery by remember { mutableStateOf("") }
-    val searchSuggestions = remember(searchQuery, uiState.mode, uiState.renderMarkers) {
+    val searchSuggestions = remember(searchQuery, uiState.mode, uiState.renderMarkers, restrictedExperience) {
         val query = searchQuery.trim()
         if (query.length < 2) {
             emptyList()
@@ -200,7 +204,7 @@ fun MapScreen(
             uiState.renderMarkers
                 .filter { marker ->
                     when (uiState.mode) {
-                        MapMode.HOME -> marker is PoiMarkerData || marker is UserMarkerData
+                        MapMode.HOME -> marker is PoiMarkerData || (!restrictedExperience && marker is UserMarkerData)
                         MapMode.EVENT -> marker is EventMarkerData
                         MapMode.SHOP, MapMode.POSTER -> false
                     }
@@ -296,7 +300,10 @@ fun MapScreen(
                     modifier = Modifier.fillMaxSize(),
                     viewportState = viewportState,
                     markers = engineMarkers,
-                    isMarkerTappable = { marker -> marker !is LocalUserMarkerData },
+                    isMarkerTappable = { marker ->
+                        marker !is LocalUserMarkerData &&
+                                (!restrictedExperience || marker !is UserMarkerData)
+                    },
                     onMapLoadComplete = { mapLoadComplete.complete(Unit) },
                     markerPriority = { marker ->
                         when (marker) {
@@ -352,7 +359,8 @@ fun MapScreen(
                     )
                 },
                 onProfileClick = onProfileClick,
-                onSettingsClick = onSettingsClick
+                onSettingsClick = onSettingsClick,
+                showAccountActions = !restrictedExperience
             )
 
             if (uiState.mode != MapMode.POSTER) {
@@ -440,6 +448,7 @@ fun MapScreen(
                         expandedFilterRows = 0
                     },
                     expandedFilterRows = expandedFilterRows,
+                    showSocialTabs = !restrictedExperience,
 
                     onBoardClick = {
                         selectedSidePanel =
@@ -598,9 +607,26 @@ fun MapScreen(
                 endTime = selectedEventInfo.endTime,
                 description = selectedEventInfo.description,
                 registrationsCount = selectedEventInfo.registrationCount,
-                eventType = selectedEventInfo.eventType,
                 onNavigateClick = {},
-                onRegisterClick = { onRegister(selectedEventInfo.id) }
+                onRegisterClick = {
+                    when (selectedEventInfo.registrationType?.trim()?.uppercase()) {
+                        "THROUGH_LINK" -> {
+                            val link = selectedEventInfo.registrationLink?.trim().orEmpty()
+                            if (link.startsWith("https://", true) || link.startsWith("http://", true)) {
+                                runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                                }.onFailure { Log.w("MapScreen", "Unable to open event registration link", it) }
+                            }
+                        }
+                        "THROUGH_APP" -> {
+                            val eventId = selectedEventInfo.id
+                            // EventMarkerDialog is a modal window; close it before
+                            // navigating so it cannot cover registration's loading UI.
+                            viewModel.clearSelection()
+                            onInAppRegistrationClick(eventId)
+                        }
+                    }
+                }
             )
         }
 

@@ -1,5 +1,8 @@
 package com.example.campusconnect.feature.registrations.ui.screens
 
+import com.example.campusconnect.feature.registrations.ui.components.*
+import com.example.campusconnect.feature.registrations.ui.components.responses.*
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,12 +40,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseItem
-import com.example.campusconnect.feature.registrations.model.RegistrationDetailResponse
 import com.example.campusconnect.feature.registrations.ui.components.AccentPurple
 import com.example.campusconnect.feature.registrations.ui.components.CardBg
-import com.example.campusconnect.feature.registrations.ui.components.DetailLimits
 import com.example.campusconnect.feature.registrations.ui.components.OrangePrimary
-import com.example.campusconnect.feature.registrations.ui.components.RegistrationDetailBody
 import com.example.campusconnect.feature.registrations.ui.components.SubtleDivider
 import com.example.campusconnect.feature.registrations.ui.components.TextPrimary
 import com.example.campusconnect.feature.registrations.ui.components.TextSecondary
@@ -62,24 +62,15 @@ fun RegistrationResponseDetailScreen(
     viewModel: RegistrationResponsesViewModel,
     onBack: () -> Unit,
     onMore: () -> Unit = {},
-    initialDetail: RegistrationDetailResponse? = null,
-    initialLoadError: String? = null,
-    initialLoading: Boolean = false,
-    loadHostDetail: Boolean = true,
 ) {
     val detailStates by viewModel.details.collectAsState()
     val selectedMembers by viewModel.selectedMembers.collectAsState()
-    val state = when {
-        initialDetail != null -> RegistrationDetailState.Loaded(initialDetail)
-        initialLoadError != null -> RegistrationDetailState.Failed(initialLoadError)
-        initialLoading -> RegistrationDetailState.Loading
-        else -> detailStates[registrationId]
-    }
+    val listState by viewModel.listState.collectAsState()
+    val belongsToCurrentEvent = listState.eventId == eventId
+    val state = detailStates[registrationId].takeIf { belongsToCurrentEvent }
 
     // No-op when the list already loaded this registration.
-    LaunchedEffect(eventId, registrationId, initialDetail, initialLoadError) {
-        if (loadHostDetail && initialDetail == null && initialLoadError == null && !initialLoading) viewModel.loadDetails(eventId, registrationId)
-    }
+    LaunchedEffect(eventId, registrationId) { viewModel.loadDetails(eventId, registrationId) }
 
     Scaffold(
         containerColor = CardBg,
@@ -109,9 +100,6 @@ fun RegistrationResponseDetailScreen(
                         overflow = TextOverflow.Ellipsis,
                     )
                     response?.let { Text(registrationTypeLabel(it), fontSize = 12.sp, color = TextSecondary) }
-                    response?.teamName?.takeIf(String::isNotBlank)?.let {
-                        Text("Team: $it", fontSize = 12.sp, color = TextSecondary)
-                    }
                     if (!response?.email.isNullOrBlank()) Text(
                         response?.email.orEmpty(),
                         fontSize = 12.sp,
@@ -142,17 +130,15 @@ fun RegistrationResponseDetailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(state.message, fontSize = 14.sp, color = TextSecondary, textAlign = TextAlign.Center)
-                    if (initialLoadError == null) {
-                        TextButton(onClick = { viewModel.loadDetails(eventId, registrationId, force = true) }) {
-                            Text("Retry", color = AccentPurple)
-                        }
+                    TextButton(onClick = { viewModel.loadDetails(eventId, registrationId, force = true) }) {
+                        Text("Retry", color = AccentPurple)
                     }
                 }
 
                 is RegistrationDetailState.Loaded -> RegistrationDetailBody(
                     registrationId = registrationId,
                     detail = state.detail,
-                    selectedUserId = selectedMembers[registrationId],
+                    selectedUserId = selectedMembers[registrationId].takeIf { belongsToCurrentEvent },
                     onSelectMember = { viewModel.selectMember(registrationId, it) },
                     limits = DetailLimits.Full,
                 )
