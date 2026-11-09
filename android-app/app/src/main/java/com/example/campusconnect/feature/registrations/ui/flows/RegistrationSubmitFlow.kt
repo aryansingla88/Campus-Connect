@@ -53,7 +53,16 @@ fun RegistrationSubmitFlow(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(eventId, registrationId, eventName, mode, teamId, participantAnswers) {
-        viewModel.start(SubmissionContext(eventId, registrationId, eventName, mode, teamId, participantAnswers))
+        viewModel.start(
+            SubmissionContext(
+                eventId = eventId,
+                registrationId = registrationId,
+                eventName = eventName,
+                mode = mode,
+                teamId = teamId,
+                participantAnswers = participantAnswers,
+            ),
+        )
     }
 
     val phase = state.phase

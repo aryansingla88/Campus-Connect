@@ -368,6 +368,10 @@ public class UserRegistrationService {
                 return ApiResponse.success(toTeamRequestResponse(pending), "Join request is already pending.");
             return ApiResponse.failure("A conflicting team request or invitation is already pending.");
         }
+        long currentMembers = registrationRepository.countByEventIdAndTeamIdAndStatusIn(
+                registration.getEvent().getId(), team.getId(),
+                List.of(RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED, RegistrationStatus.CONFIRMED));
+        if (currentMembers >= config.getMaxTeamMembers()) return ApiResponse.failure("Team is full.");
         TeamRequest saved = teamRequestRepository.save(TeamRequest.builder().team(team).registration(registration)
                 .initiatedBy(TeamRequestInitiator.PARTICIPANT).status(TeamRequestStatus.PENDING).build());
         return ApiResponse.success(toTeamRequestResponse(saved), "Team join request created.");

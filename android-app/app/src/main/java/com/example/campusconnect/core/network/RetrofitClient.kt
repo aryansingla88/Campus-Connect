@@ -10,7 +10,6 @@ import com.example.campusconnect.feature.metadata.courses.remote.CourseApi
 import com.example.campusconnect.feature.metadata.eventcategories.remote.EventCategoryApi
 import com.example.campusconnect.feature.posts.data.remote.PostsApi
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationApi
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

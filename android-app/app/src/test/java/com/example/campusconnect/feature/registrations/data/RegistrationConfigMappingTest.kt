@@ -3,7 +3,7 @@ package com.example.campusconnect.feature.registrations.data
 import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationConfigRequest
 import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationConfigResponse
 import com.example.campusconnect.feature.registrations.data.mapper.toRegistrationSettings
-import com.example.campusconnect.feature.registrations.data.mapper.RegistrationConfigMapper
+import com.example.campusconnect.feature.registrations.data.mapper.toRegistrationConfigRequest
 import com.example.campusconnect.feature.registrations.model.RegistrationSettings
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
@@ -46,21 +46,19 @@ class RegistrationConfigMappingTest {
             registrationCreatedAt = "created",
             deadline = 1_767_323_045_000L,
         )
-        val request = RegistrationConfigMapper.toRequest(settings)
+        val request = settings.toRegistrationConfigRequest()
         assertEquals("2026-01-02T03:04:05Z", request.registrationEndAt)
-        assertEquals(settings, RegistrationConfigMapper.toModel(
-            RegistrationConfigResponse(
-                eventId = 3,
-                minTeamMembers = 2,
-                maxTeamMembers = 5,
-                quickFieldMask = 12L,
-                autoConfirm = false,
-                registrationCreatedAt = "created",
-                registrationEndAt = request.registrationEndAt,
-            ),
-        ))
+        assertEquals(settings, RegistrationConfigResponse(
+            eventId = 3,
+            minTeamMembers = 2,
+            maxTeamMembers = 5,
+            quickFieldMask = 12L,
+            autoConfirm = false,
+            registrationCreatedAt = "created",
+            registrationEndAt = request.registrationEndAt,
+        ).toRegistrationSettings())
 
         val malformed = RegistrationConfigResponse(3, 1, 1, registrationEndAt = "not-a-date")
-        assertEquals(null, RegistrationConfigMapper.toModel(malformed).deadline)
+        assertEquals(null, malformed.toRegistrationSettings().deadline)
     }
 }

@@ -1,39 +1,43 @@
 package com.example.campusconnect.feature.registrations.data
 
-import com.example.campusconnect.feature.registrations.data.mapper.RegistrationResponseMapper
-import com.example.campusconnect.feature.registrations.data.remote.QuickFieldDto
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationAnswerDto
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationMemberDto
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationSubmissionDetailResponse
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationSubmissionResponse
+import com.example.campusconnect.feature.registrations.data.mapper.toRegistrationDetailResponse
+import com.example.campusconnect.feature.registrations.data.mapper.toRegistrationResponseItemOrNull
+import com.example.campusconnect.feature.registrations.data.remote.dto.QuickFieldDto
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationAnswerDto
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationMemberDto
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationSubmissionDetailResponse
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationSubmissionResponse
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseStatus
 import com.example.campusconnect.feature.registrations.model.RegistrationResponseType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RegistrationResponseMapperTest {
     @Test fun submissionMappingPreservesUnknownsNullsAndParsedTimestamp() {
-        assertNull(RegistrationResponseMapper.toModel(RegistrationSubmissionResponse(null, "TEAM", null, null, null, null, null)))
+        assertNull(
+            RegistrationSubmissionResponse(null, "TEAM", null, null, null, null, null)
+                .toRegistrationResponseItemOrNull(),
+        )
 
-        val mapped = RegistrationResponseMapper.toModel(
-            RegistrationSubmissionResponse(
-                registrationId = 14,
-                type = "unknown",
-                name = " ",
-                teamCount = 3,
-                email = null,
-                status = "future-status",
-                submittedAt = "2026-01-02T03:04:05Z",
-            ),
-        )!!
+        val mapped = RegistrationSubmissionResponse(
+            registrationId = 14,
+            type = "unknown",
+            name = " ",
+            teamCount = 3,
+            email = null,
+            status = "future-status",
+            submittedAt = "2026-01-02T03:04:05Z",
+        ).toRegistrationResponseItemOrNull()!!
         assertEquals(RegistrationResponseType.OTHER, mapped.type)
         assertNull(mapped.status)
         assertNull(mapped.name)
         assertNull(mapped.email)
         assertEquals(3, mapped.memberCount)
-        assertEquals(InstantForTest.epochMillis, mapped.submittedAtEpochMillis)
+        assertEquals(RegistrationResponseStatus.CONFIRMED, RegistrationSubmissionResponse(
+            15, "INDIVIDUAL", "Ari", null, null, "CONFIRMED", null,
+        ).toRegistrationResponseItemOrNull()?.status)
+        assertEquals(1767323045000L, mapped.submittedAtEpochMillis)
     }
 
     @Test fun detailMappingDropsMembersWithoutUserIdsAndOrdersAnswersByFieldOrder() {
@@ -54,15 +58,11 @@ class RegistrationResponseMapperTest {
             ),
         )
 
-        val mapped = RegistrationResponseMapper.toDetailModel(response, mapOf(3 to 0, 7 to 1))
+        val mapped = response.toRegistrationDetailResponse(mapOf(3 to 0, 7 to 1))
         assertEquals(listOf(3, 7, null), mapped.teamAnswers.map { it.fieldId })
         assertEquals(1, mapped.members.size)
         assertEquals(22, mapped.members.single().userId)
         assertEquals(listOf("—", "—"), mapped.members.single().quickFields.map { it.value })
-        assertTrue(mapped.members.single().individualAnswers.isEmpty())
+        assertEquals(emptyList<Int>(), mapped.members.single().individualAnswers.mapNotNull { it.fieldId })
     }
-}
-
-private object InstantForTest {
-    const val epochMillis = 1767323045000L
 }

@@ -206,7 +206,7 @@ private fun IconTile(icon: ImageVector, tileColor: Color, iconColor: Color) {
 }
 
 @Composable
-private fun orangeSwitchColors() = SwitchDefaults.colors(
+internal fun orangeSwitchColors() = SwitchDefaults.colors(
     checkedThumbColor   = Color.White,
     checkedTrackColor   = OrangePrimary,
     uncheckedThumbColor = Color.White,

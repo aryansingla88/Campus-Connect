@@ -1,8 +1,8 @@
 package com.example.campusconnect.feature.registrations.data.mapper
 
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationFieldOptionRequest
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationFieldResponse
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationFieldRequest
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationFieldOptionRequest
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationFieldResponse
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationFieldRequest
 import com.example.campusconnect.feature.registrations.model.FieldType
 import com.example.campusconnect.feature.registrations.model.FormField
 import com.example.campusconnect.feature.registrations.model.RegistrationQuestionContext

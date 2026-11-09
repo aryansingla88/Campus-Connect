@@ -1,7 +1,7 @@
 package com.example.campusconnect.feature.registrations.data.mapper
 
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigRequest
-import com.example.campusconnect.feature.registrations.data.remote.RegistrationConfigResponse
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationConfigRequest
+import com.example.campusconnect.feature.registrations.data.remote.dto.RegistrationConfigResponse
 import com.example.campusconnect.feature.registrations.model.RegistrationSettings
 import java.time.Instant
 import java.time.format.DateTimeParseException

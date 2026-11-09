@@ -37,6 +37,12 @@ data class RegistrationSnapshot(
     val teamAnswers: Map<Int, String> = emptyMap(),
 )
 
+/** Minimal event context needed by organizer registration setup. */
+data class RegistrationEventHeader(
+    val title: String,
+    val isPublished: Boolean,
+)
+
 sealed interface RegistrationConfigLoadResult {
     data class Existing(val settings: RegistrationSettings) : RegistrationConfigLoadResult
     data object Missing : RegistrationConfigLoadResult

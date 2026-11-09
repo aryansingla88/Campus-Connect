@@ -20,11 +20,14 @@ class NetworkRegistrationResponseRepository(
         val items = api.getEventRegistrations(eventId)
             .requireRegistrationData("Could not load registrations.")
         // Reuse registration question retrieval/mapping to retain answer ordering.
-        registrations.loadQuestions(eventId).getOrNull()?.let { questions ->
-            fieldOrderByEvent[eventId] = questions.associate { question ->
-                requireNotNull(question.backendId) to question.fieldOrder
-            }
-        }
+        registrations.loadQuestions(eventId).fold(
+            onSuccess = { questions ->
+                fieldOrderByEvent[eventId] = questions.mapNotNull { question ->
+                    question.backendId?.let { backendId -> backendId to question.fieldOrder }
+                }.toMap()
+            },
+            onFailure = { fieldOrderByEvent.remove(eventId) },
+        )
         Result.success(items.mapNotNull { it.toRegistrationResponseItemOrNull() })
     } catch (error: Exception) {
         Result.failure(error)

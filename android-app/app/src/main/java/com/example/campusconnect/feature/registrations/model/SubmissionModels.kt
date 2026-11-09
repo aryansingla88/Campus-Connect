@@ -1,5 +1,20 @@
 package com.example.campusconnect.feature.registrations.model
 
+import java.util.Locale
+
+data class AttachedFile(
+    val uri: String,
+    val name: String,
+    val sizeBytes: Long,
+) {
+    val readableSize: String
+        get() = when {
+            sizeBytes <= 0 -> ""
+            sizeBytes < 1024 * 1024 -> String.format(Locale.US, "%.0f KB", sizeBytes / 1024.0)
+            else -> String.format(Locale.US, "%.1f MB", sizeBytes / (1024.0 * 1024.0))
+        }
+}
+
 /** Everything the earlier steps decided, passed into the submission flow. */
 data class SubmissionContext(
     val eventId: Int,
@@ -20,6 +35,7 @@ data class SubmissionContext(
 data class SubmissionRequest(
     val context: SubmissionContext,
     val teamAnswers: Map<Int, String>,
+    val files: Map<Int, AttachedFile> = emptyMap(),
 )
 
 data class SubmissionReceipt(
