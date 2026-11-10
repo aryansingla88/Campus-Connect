@@ -70,7 +70,7 @@ fun PostDetailCard(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = Color.White)
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 12.dp)) {
             if (isEventPost) {
                 EventHeader(
                     post = post,
@@ -200,7 +200,7 @@ fun PostDetailCard(
                 Text(post.body, style = MaterialTheme.typography.bodyMedium)
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

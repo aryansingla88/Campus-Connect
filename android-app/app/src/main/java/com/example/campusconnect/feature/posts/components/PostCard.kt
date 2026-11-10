@@ -79,7 +79,7 @@ fun PostCard(
     ) {
 
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 12.dp)
         ) {
 
             /*
@@ -189,7 +189,7 @@ fun PostCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             /*
             ---------------- TITLE ----------------
@@ -250,7 +250,7 @@ fun PostCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             /*
             ---------------- ACTION ROW ----------------
