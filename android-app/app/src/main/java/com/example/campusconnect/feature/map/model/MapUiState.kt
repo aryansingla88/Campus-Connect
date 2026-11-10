@@ -5,6 +5,7 @@ import com.example.campusconnect.feature.map.mapengine.model.MarkerType
 
 data class MapUiState(
     val mode: MapMode = MapMode.HOME,
+    val currentUser: MapCurrentUser? = null,
     val markers: List<MapMarker> = emptyList(),
     val renderMarkers: List<MapMarker> = emptyList(),
     val localLocationMarker: LocalUserMarkerData? = null,
@@ -36,6 +37,12 @@ data class MapUiState(
 
     val isDetailLoading: Boolean = false,
     val detailErrorMessage: String? = null
+)
+
+data class MapCurrentUser(
+    val id: Int,
+    val displayName: String,
+    val avatarUrl: String?,
 )
 
 enum class MapFilterContext {

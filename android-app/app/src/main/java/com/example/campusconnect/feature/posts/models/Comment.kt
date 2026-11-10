@@ -20,5 +20,11 @@ data class Comment(
 
     val canDelete: Boolean = false,
 
-    val canEdit: Boolean = false
+    val canEdit: Boolean = false,
+
+    val authorId: Int? = null,
+
+    val authorDisplayName: String? = null,
+
+    val authorAvatarUrl: String? = null
 )

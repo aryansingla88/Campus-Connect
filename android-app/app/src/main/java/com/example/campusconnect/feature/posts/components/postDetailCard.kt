@@ -47,6 +47,7 @@ import com.example.campusconnect.core.ui.theme.HintColor
 import com.example.campusconnect.core.ui.theme.OrangeBg
 import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
+import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.core.util.formatBackendDateTime
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.utils.formatEventClockTime
@@ -81,15 +82,15 @@ fun PostDetailCard(
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier.size(48.dp).background(OrangeLight, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(post.username.firstOrNull()?.uppercase() ?: "?", color = OrangePrimary)
-                    }
+                    AppAvatar(
+                        entityId = post.authorId,
+                        displayName = post.authorDisplayName?.takeIf(String::isNotBlank) ?: post.username,
+                        imageUrl = post.authorAvatarUrl,
+                        size = 48.dp,
+                    )
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text(post.username, style = MaterialTheme.typography.bodyMedium)
+                        Text(post.authorDisplayName?.takeIf(String::isNotBlank) ?: post.username, style = MaterialTheme.typography.bodyMedium)
                         Text(formatBackendDateTime(post.createdAt), style = MaterialTheme.typography.bodySmall, color = HintColor)
                         if (post.isEdited) Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
                     }
@@ -236,23 +237,18 @@ private fun EventHeader(
     onEditClick: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.Top) {
-        Box(
-            Modifier
-                .padding(top = 2.dp)
-                .size(42.dp)
-                .background(OrangeLight, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                post.eventOrganizerName?.firstOrNull()?.uppercase()
-                    ?: post.title.firstOrNull()?.uppercase() ?: "E",
-                color = OrangePrimary
-            )
-        }
+        AppAvatar(
+            entityId = post.eventOrganizerUserId,
+            displayName = post.eventOrganizerDisplayName?.takeIf(String::isNotBlank)
+                ?: post.eventOrganizerName.orEmpty(),
+            imageUrl = post.eventOrganizerAvatarUrl,
+            size = 42.dp,
+        )
         Column(Modifier.weight(1f).padding(start = 10.dp, end = 4.dp)) {
             Text(post.title, style = MaterialTheme.typography.titleMedium)
             Text(
-                post.eventOrganizerName.orEmpty(),
+                post.eventOrganizerDisplayName?.takeIf(String::isNotBlank)
+                    ?: post.eventOrganizerName.orEmpty(),
                 modifier = Modifier.padding(top = 2.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = HintColor,

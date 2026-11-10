@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.campusconnect.core.ui.theme.HintColor
 import com.example.campusconnect.core.ui.theme.LabelColor
 import com.example.campusconnect.core.ui.theme.OrangeBorder
@@ -40,6 +41,7 @@ import com.example.campusconnect.core.ui.theme.ErrorRed
 import com.example.campusconnect.core.ui.theme.White
 import com.example.campusconnect.core.util.formatBackendDateTime
 import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.core.components.AppAvatar
 
 @Composable
 fun CommentCard(
@@ -68,19 +70,13 @@ fun CommentCard(
             ),
         verticalAlignment = Alignment.Top
     ) {
-        Box(
-            modifier = Modifier
-                .size(34.dp)
-                .background(OrangeLight, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = comment.username.firstOrNull()?.uppercase() ?: "?",
-                style = MaterialTheme.typography.labelLarge,
-                color = LabelColor,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        AppAvatar(
+            entityId = comment.authorId,
+            displayName = comment.authorDisplayName?.takeIf(String::isNotBlank) ?: comment.username,
+            imageUrl = comment.authorAvatarUrl,
+            size = 34.dp,
+            fontSize = 13.sp,
+        )
 
         Spacer(modifier = Modifier.width(10.dp))
 
@@ -97,7 +93,7 @@ fun CommentCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = comment.username,
+                        text = comment.authorDisplayName?.takeIf(String::isNotBlank) ?: comment.username,
                         style = MaterialTheme.typography.titleSmall,
                         color = LabelColor,
                         fontWeight = FontWeight.SemiBold

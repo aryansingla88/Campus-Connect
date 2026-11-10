@@ -108,7 +108,7 @@ fun EventScreen(
     var showParticipants    by remember { mutableStateOf(false) }
     var showHistoryDrawer   by remember { mutableStateOf(false) }
 
-    var showViewMode by remember { mutableStateOf(false) }
+    var showPosterMode by remember { mutableStateOf(false) }
 
     var toastMessage        by remember { mutableStateOf<String?>(null) }
 
@@ -332,7 +332,7 @@ fun EventScreen(
                     .align(Alignment.BottomStart)
                     .padding(start = 16.dp, bottom = 16.dp),
                 onClick = {
-                    showViewMode = true
+                    showPosterMode = true
                 }
             )
         }
@@ -561,18 +561,18 @@ fun EventScreen(
         }
 
         // ── VIEW MODE OVERLAY ─────────────────────────────────────────────────  ← ADD HERE
-        if (showViewMode) {
+        if (showPosterMode) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .zIndex(10f)
             ) {
-                EventViewModeScreen(
+                PosterModeScreen(
                     events       = filteredEvents,
-                    onBack       = { showViewMode = false },
+                    onBack       = { showPosterMode = false },
                     onRegister   = { },
                     onNotify     = { },
-                    onOpenDetail = { showViewMode = false },
+                    onOpenDetail = { showPosterMode = false },
                     showActionButtons = false,
                     categories = categories,
                     clubs = clubs,

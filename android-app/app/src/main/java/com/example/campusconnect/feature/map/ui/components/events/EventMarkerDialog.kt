@@ -279,7 +279,7 @@ private fun EventQuickPreviewContent(
     }
     val registrationLabel = if (registrationEnabled) "Register at" else "Open entry"
     val displayEventType = event.categories.firstOrNull()?.name
-    val displayHosts = event.hosts.map { it.name }
+    val displayHosts = event.hosts
     val hostLabel = event.subtitle?.takeIf { it.isNotBlank() }
 
     Box(

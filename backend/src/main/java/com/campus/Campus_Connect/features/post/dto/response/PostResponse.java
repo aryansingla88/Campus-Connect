@@ -20,6 +20,12 @@ public class PostResponse {
 
     private String username;
 
+    private Integer authorId;
+
+    private String authorDisplayName;
+
+    private String authorAvatarUrl;
+
     private String title;
 
     private String body;
@@ -52,6 +58,12 @@ public class PostResponse {
     private String eventCategoryName;
 
     private String eventOrganizerName;
+
+    private Integer eventOrganizerUserId;
+
+    private String eventOrganizerDisplayName;
+
+    private String eventOrganizerAvatarUrl;
 
     private String eventVenue;
 

@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -31,6 +32,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.core.components.PanelSearchBar
+import com.example.campusconnect.core.components.AppAvatar
+import com.example.campusconnect.feature.map.model.MapCurrentUser
 import com.example.campusconnect.feature.map.ui.OrangeLight
 import com.example.campusconnect.feature.map.ui.OrangePrimary
 import com.example.campusconnect.feature.map.ui.TextDark
@@ -41,6 +44,13 @@ import com.example.campusconnect.feature.map.model.PoiMarkerData
 import com.example.campusconnect.feature.map.model.UserMarkerData
 
 internal enum class SidePanel { NONE, PROFILE, CHAT }
+
+// Shared sizing for the floating top controls so the avatar, search pill and
+// settings button stay visually consistent.
+private val TopControlSize = 44.dp
+private val TopAvatarSize = 48.dp
+private val TopAvatarRing = 2.5.dp
+private val TopSearchShape = RoundedCornerShape(30.dp)
 
 private fun highlightedSearchLabel(label: String, query: String): AnnotatedString {
     val matchStart = label.indexOf(query.trim(), ignoreCase = true)
@@ -67,6 +77,7 @@ internal fun TopMapControls(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     searchSuggestions: List<MapMarker>,
+    currentUser: MapCurrentUser? = null,
     onSearchSuggestionSelected: (MapMarker) -> Unit,
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -79,20 +90,47 @@ internal fun TopMapControls(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showAccountActions) {
-            RoundIconButton(
-                icon = Icons.Default.Person,
-                contentDescription = "Profile",
-                onClick = onProfileClick
-            )
-            Spacer(modifier = Modifier.width(14.dp))
+            // Profile avatar with a white ring and soft shadow, floating over the map.
+            Box(
+                modifier = Modifier
+                    .size(TopAvatarSize)
+                    .shadow(6.dp, CircleShape)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable(onClick = onProfileClick)
+                    .padding(TopAvatarRing),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (currentUser != null) {
+                    AppAvatar(
+                        entityId = currentUser.id,
+                        displayName = currentUser.displayName,
+                        imageUrl = currentUser.avatarUrl,
+                        size = TopAvatarSize - TopAvatarRing * 2,
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Profile",
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
         }
 
         BoxWithConstraints(modifier = Modifier.weight(1f)) {
-            Box(modifier = Modifier.clip(RoundedCornerShape(30.dp))) {
+            // Pill-shaped search bar with a soft drop shadow.
+            Box(
+                modifier = Modifier
+                    .shadow(6.dp, TopSearchShape)
+                    .clip(TopSearchShape)
+            ) {
                 PanelSearchBar(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
-                    placeholder = "Search"
+                    placeholder = "Search campus..."
                 )
             }
 
@@ -154,7 +192,7 @@ internal fun TopMapControls(
         }
 
         if (showAccountActions) {
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             RoundIconButton(
                 icon = Icons.Default.Settings,
                 contentDescription = "Settings",
@@ -173,7 +211,8 @@ internal fun RoundIconButton(
 ) {
     Box(
         modifier = modifier
-            .size(44.dp)
+            .size(TopControlSize)
+            .shadow(6.dp, CircleShape)
             .clip(CircleShape)
             .background(Color.White)
             .clickable {
@@ -185,7 +224,7 @@ internal fun RoundIconButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = OrangePrimary,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(22.dp)
         )
     }
 }
@@ -333,14 +372,14 @@ internal fun SideTab(
 }
 
 @Composable
-
 internal fun EventShortcutButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
-            .size(44.dp)
+            .size(TopControlSize)
+            .shadow(6.dp, CircleShape)
             .clip(CircleShape)
             .background(Color.White)
             .clickable {

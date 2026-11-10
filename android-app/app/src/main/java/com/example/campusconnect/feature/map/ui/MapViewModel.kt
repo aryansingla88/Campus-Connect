@@ -19,6 +19,7 @@ import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.feature.map.data.repo.ApiMapRepo
 import com.example.campusconnect.feature.map.data.repo.MapRepo
 import com.example.campusconnect.feature.map.data.repo.PresenceUploadPolicy
+import com.example.campusconnect.feature.profile.data.repo.ApiProfileRepository
 import com.example.campusconnect.feature.metadata.poi.PoiRepositoryProvider
 import com.example.campusconnect.feature.map.mapengine.MapCalibration
 import com.example.campusconnect.feature.map.mapengine.viewport.MAP_IMAGE_HEIGHT
@@ -57,6 +58,7 @@ class MapViewModel(
             courseRepository = courseRepository,
             poiRepository = PoiRepositoryProvider.get(application.applicationContext)
         )
+    private val profileRepository = ApiProfileRepository(courseRepository = courseRepository)
     private val coordinateConverter = MapCalibration.converter
     private val locationCoordinator = LocationTrackingCoordinator(
         source = FusedLocationSource(application.applicationContext),
@@ -134,6 +136,7 @@ class MapViewModel(
                 currentUserId = null
                 currentUsername = null
                 identitySessionVersion = Long.MIN_VALUE
+                _uiState.value = _uiState.value.copy(currentUser = null)
                 lastUploadedFix = null
                 lastUploadElapsedRealtime = null
                 if (mapSessionActive) {
@@ -276,27 +279,38 @@ class MapViewModel(
 
     private suspend fun resolveCurrentUserIdentity(expectedSessionVersion: Long): Boolean {
         if (identitySessionVersion == expectedSessionVersion) {
+            if (_uiState.value.currentUser == null && currentUserId != null) {
+                loadCurrentUserProfile(expectedSessionVersion)
+            }
             return currentUserId != null || !currentUsername.isNullOrBlank()
         }
         if (SessionManager.sessionVersion.value != expectedSessionVersion) return false
 
         currentUserId = SessionManager.getAuthenticatedUserId()
-        if (currentUserId != null) {
+        loadCurrentUserProfile(expectedSessionVersion)
+        if (currentUserId != null || !currentUsername.isNullOrBlank()) {
             identitySessionVersion = expectedSessionVersion
-            return true
         }
+        return currentUserId != null || !currentUsername.isNullOrBlank()
+    }
 
-        val user = runCatching { RetrofitClient.authApi.getCurrentUser() }
-            .getOrNull()
-            ?.takeIf { it.isSuccessful && SessionManager.sessionVersion.value == expectedSessionVersion }
-            ?.body()?.data
-        if (user != null && SessionManager.sessionVersion.value == expectedSessionVersion) {
-            currentUserId = user.id
-            currentUsername = user.username
-            identitySessionVersion = expectedSessionVersion
-            return true
-        }
-        return false
+    private suspend fun loadCurrentUserProfile(expectedSessionVersion: Long) {
+        if (SessionManager.sessionVersion.value != expectedSessionVersion) return
+        val profile = profileRepository.getMyProfile().getOrNull()
+            ?.takeIf { SessionManager.sessionVersion.value == expectedSessionVersion }
+            ?: return
+
+        val profileUserId = profile.userId.takeIf { it > 0 } ?: return
+        if (currentUserId == null) currentUserId = profileUserId
+        if (currentUserId != profileUserId) return
+
+        currentUsername = profile.username.takeIf(String::isNotBlank) ?: currentUsername
+        val displayName = profile.fullName.takeIf(String::isNotBlank)
+            ?: profile.username.takeIf(String::isNotBlank)
+            ?: return
+        _uiState.value = _uiState.value.copy(
+            currentUser = MapCurrentUser(profileUserId, displayName, profile.avatarUrl)
+        )
     }
 
     private fun startPresenceUploadWorker() {

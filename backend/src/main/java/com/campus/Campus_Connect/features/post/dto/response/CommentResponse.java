@@ -24,6 +24,12 @@ public class CommentResponse {
 
     private String username;
 
+    private Integer authorId;
+
+    private String authorDisplayName;
+
+    private String authorAvatarUrl;
+
     private String body;
 
     private LocalDateTime createdAt;

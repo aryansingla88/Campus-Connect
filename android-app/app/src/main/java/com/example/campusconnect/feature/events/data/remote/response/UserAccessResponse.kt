@@ -13,5 +13,8 @@ data class UserAccessResponse(
     val courseId: Int?,
 
     @SerializedName("admissionYear")
-    val admissionYear: Int?
+    val admissionYear: Int?,
+
+    @SerializedName("avatarUrl")
+    val avatarUrl: String? = null
 )

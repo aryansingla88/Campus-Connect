@@ -10,7 +10,7 @@ import androidx.navigation.compose.navigation
 import com.example.campusconnect.feature.events.model.EventStatus
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.ui.screen.EventScreen
-import com.example.campusconnect.feature.events.ui.screen.EventViewModeScreen
+import com.example.campusconnect.feature.events.ui.screen.PosterModeScreen
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
 
 const val EVENTS_POSTER_VIEW = "events_poster_view"
@@ -54,7 +54,7 @@ fun NavGraphBuilder.eventNav(
                 it.status != EventStatus.PAST
             }
 
-            EventViewModeScreen(
+            PosterModeScreen(
                 events = activeEvents,
                 onBack = {
                     navController.popBackStack()

@@ -48,18 +48,19 @@ class CloudTransitionState {
 
         try {
             transitionMutex.withLock {
-                // Cover the screen immediately instead of animating in
-                // from an uncovered state.
+                // Cover the screen immediately.
                 progress.snapTo(1f)
 
+                // Wait until the map is ready.
                 action()
 
-                delay(200)
-
-                // Reveal the map only after it is ready.
+                // Smoothly reveal the map.
                 progress.animateTo(
                     0f,
-                    tween(1400, easing = FastOutSlowInEasing)
+                    tween(
+                        durationMillis = 1100,
+                        easing = FastOutSlowInEasing
+                    )
                 )
             }
         } finally {

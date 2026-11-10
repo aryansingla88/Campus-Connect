@@ -58,6 +58,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.UserAccess
+import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.metadata.courses.Course
 import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 
@@ -461,20 +462,13 @@ private fun AccessUserCard(
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(OrangeLight),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text       = user.initials,
-                    fontSize   = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = OrangePrimary
-                )
-            }
+            AppAvatar(
+                entityId = user.id,
+                displayName = user.name,
+                imageUrl = user.avatarUrl,
+                size = 38.dp,
+                fontSize = 13.sp,
+            )
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(

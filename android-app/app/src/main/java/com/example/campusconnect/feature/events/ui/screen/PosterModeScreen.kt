@@ -96,6 +96,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
+import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.map.model.HostInfo
@@ -111,10 +112,10 @@ private val OrangeLight  = Color(0xFFFFF3E0)
 private val TextDark     = Color(0xFF1A1A1A)
 private val TextMuted    = Color(0xFF888888)
 
-// ─── EventViewModeScreen ──────────────────────────────────────────────────────
+// ─── PosterModeScreen ──────────────────────────────────────────────────────
 
 /**
- * Full-screen "view mode" triggered when the user taps the Visibility button.
+ * Full-screen poster mode triggered when the user taps the Visibility button.
  *
  * Features:
  *  • Circular fan-style HorizontalPager: right of the last poster wraps to the
@@ -135,7 +136,7 @@ private val TextMuted    = Color(0xFF888888)
  * @param onOpenDetail   Expand/fullscreen square button tapped
  */
 @Composable
-fun EventViewModeScreen(
+fun PosterModeScreen(
     events: List<Event>,
     onBack: () -> Unit,
     onRegister: (Event) -> Unit = {},
@@ -148,7 +149,7 @@ fun EventViewModeScreen(
     onLoadEventPreview: (Int) -> Unit = {},
 ) {
     if (events.isEmpty()) {
-        EmptyViewMode(onBack)
+        EmptyPosterMode(onBack)
         return
     }
 
@@ -921,24 +922,13 @@ private fun EventHostAvatar(host: HostInfo) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Box(
-            Modifier
-                .size(42.dp)
-                .clip(CircleShape)
-                .background(OrangeLight),
-            contentAlignment = Alignment.Center
-        ) {
-            if (!host.avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = host.avatarUrl,
-                    contentDescription = host.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clip(CircleShape)
-                )
-            } else {
-                Text(hostInitials(host.name), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Orange)
-            }
-        }
+        AppAvatar(
+            entityId = host.id,
+            displayName = host.name,
+            imageUrl = host.avatarUrl,
+            size = 42.dp,
+            fontSize = 13.sp,
+        )
         Text(
             host.name,
             fontSize = 10.sp,
@@ -947,6 +937,16 @@ private fun EventHostAvatar(host: HostInfo) {
             textAlign = TextAlign.Center,
             overflow = TextOverflow.Ellipsis
         )
+        host.role?.takeIf(String::isNotBlank)?.let { role ->
+            Text(
+                role,
+                fontSize = 9.sp,
+                color = TextMuted,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -960,14 +960,6 @@ private fun EventMetaLine(icon: androidx.compose.ui.graphics.vector.ImageVector,
         Text(text, fontSize = 12.sp, color = Color(0xFF444444), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
-
-private fun hostInitials(name: String): String = name
-    .trim()
-    .split(Regex("\\s+"))
-    .filter(String::isNotBlank)
-    .take(2)
-    .joinToString("") { it.take(1).uppercase() }
-    .ifBlank { "?" }
 
 @Composable
 private fun DetailPill(label: String) {
@@ -1400,10 +1392,10 @@ private fun FilterSheet(
     }
 }
 
-// ─── EmptyViewMode ────────────────────────────────────────────────────────────
+// ─── EmptyPosterMode ────────────────────────────────────────────────────────────
 
 @Composable
-private fun EmptyViewMode(onBack: () -> Unit) {
+private fun EmptyPosterMode(onBack: () -> Unit) {
     Box(
         modifier         = Modifier.fillMaxSize().background(Color(0xFFF0EFE9)),
         contentAlignment = Alignment.Center

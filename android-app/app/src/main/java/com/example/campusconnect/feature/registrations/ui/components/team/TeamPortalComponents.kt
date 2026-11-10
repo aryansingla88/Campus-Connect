@@ -147,6 +147,7 @@ internal fun TeamCard(team: TeamSummary, requested: Boolean, pending: Boolean, o
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // TODO: If team images are added later, render them through AppAvatar's shared image infrastructure.
             AppAvatar(entityId = team.id, displayName = team.name, size = 44.dp)
 
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {

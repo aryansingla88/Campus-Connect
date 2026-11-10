@@ -19,5 +19,8 @@ data class PostEvent(
     val upvotes: Int = 0,
     val downvotes: Int = 0,
     val userVote: VoteType? = null,
-    val canDelete: Boolean = false
+    val canDelete: Boolean = false,
+    val organizerUserId: Int? = null,
+    val organizerDisplayName: String? = null,
+    val organizerAvatarUrl: String? = null
 )

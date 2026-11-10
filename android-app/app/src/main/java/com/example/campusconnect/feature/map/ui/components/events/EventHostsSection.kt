@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -70,7 +69,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import com.example.campusconnect.core.components.AppAvatar
+import com.example.campusconnect.feature.map.model.HostInfo
 import com.example.campusconnect.R
 import com.example.campusconnect.feature.map.model.MapEventInfo
 import com.example.campusconnect.feature.map.ui.util.formatEventDate
@@ -84,7 +84,7 @@ import kotlin.math.roundToInt
 
 @Composable
 internal fun HostsSection(
-    hosts: List<String>,
+    hosts: List<HostInfo>,
     onViewAllClick: () -> Unit
 ) {
 
@@ -94,12 +94,25 @@ internal fun HostsSection(
         modifier = Modifier.fillMaxWidth()
     ) {
 
-        Text(
-            text = "Hosts",
-            color = TextDark,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Hosts",
+                color = TextDark,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
+            )
+            Text(
+                text = "View all",
+                color = OrangePrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onViewAllClick),
+            )
+        }
 
         Spacer(
             modifier = Modifier.height(10.dp)
@@ -114,11 +127,11 @@ internal fun HostsSection(
 
             items(
                 items = hosts,
-                key = { it }
-            ) { name ->
+                key = { it.id }
+            ) { host ->
 
                 HostAvatar(
-                    name = name
+                    host = host
                 )
             }
         }
@@ -264,7 +277,7 @@ private fun HostsScrollIndicator(
 
 @Composable
 private fun HostAvatar(
-    name: String
+    host: HostInfo
 ) {
 
     Column(
@@ -273,34 +286,20 @@ private fun HostAvatar(
             Alignment.CenterHorizontally
     ) {
 
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(
-                    avatarColorFor(name)
-                ),
-            contentAlignment =
-                Alignment.Center
-        ) {
-
-            Text(
-                text =
-                    name.firstOrNull()
-                        ?.uppercase()
-                        ?: "?",
-                color = TextDark,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        AppAvatar(
+            entityId = host.id,
+            displayName = host.name,
+            imageUrl = host.avatarUrl,
+            size = 48.dp,
+            fontSize = 16.sp,
+        )
 
         Spacer(
             modifier = Modifier.height(4.dp)
         )
 
         Text(
-            text = name,
+            text = host.name,
             color = TextDark,
             fontSize = 12.sp,
             maxLines = 1,
@@ -308,29 +307,18 @@ private fun HostAvatar(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
+        host.role?.takeIf(String::isNotBlank)?.let { role ->
+            Text(
+                text = role,
+                color = TextDark.copy(alpha = 0.65f),
+                fontSize = 10.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
-}
-
-
-private val hostAvatarPalette = listOf(
-    Color(0xFFD2E9FC),
-    Color(0xFFD3F2D3),
-    Color(0xFFFCF1D3),
-    Color(0xFFFDDEE4)
-)
-
-
-private fun avatarColorFor(
-    name: String
-): Color {
-
-    val hash = name.hashCode().let {
-        if (it < 0) -it else it
-    }
-
-    return hostAvatarPalette[
-        hash % hostAvatarPalette.size
-    ]
 }
 
 

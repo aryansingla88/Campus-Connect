@@ -3,6 +3,7 @@ package com.campus.Campus_Connect.features.post.repository;
 import com.campus.Campus_Connect.features.post.entity.Comment;
 import com.campus.Campus_Connect.features.post.entity.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +15,7 @@ import java.util.List;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Integer> {
 
+    @EntityGraph(attributePaths = {"creator", "creator.profile"})
     List<Comment> findByPostOrderByCreatedAtAsc(Post post);
 
     List<Comment> findByPostAndParentCommentIsNullOrderByCreatedAtAsc(Post post);

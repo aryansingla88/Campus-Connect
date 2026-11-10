@@ -81,20 +81,7 @@ fun <T : MapMarkerItem> MapView(
                         }.onFailure {
                             Log.e(
                                 "MapView",
-                                "Could not decode assets/campus_map__v2.png; " +
-                                        "trying drawable fallback",
-                                it
-                            )
-                        }.getOrNull() ?: runCatching {
-                            decodeCampusMap {
-                                context.resources.openRawResource(
-                                    R.drawable.campus_map
-                                )
-                            }
-                        }.onFailure {
-                            Log.e(
-                                "MapView",
-                                "Could not decode drawable/campus_map as fallback",
+                                "Could not decode assets/campus_map__v2.png",
                                 it
                             )
                         }.getOrNull()

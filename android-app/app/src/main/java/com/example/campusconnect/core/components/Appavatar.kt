@@ -4,11 +4,13 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,7 +21,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.example.campusconnect.core.network.ApiConfig
 import com.example.campusconnect.core.utils.toInitials
 
@@ -63,7 +66,7 @@ enum class AvatarShape { CIRCLE, ROUNDED }
  */
 @Composable
 fun AppAvatar(
-    entityId    : Int,
+    entityId    : Int?,
     displayName : String,
     imageUrl    : String?   = null,
     size        : Dp        = 40.dp,
@@ -71,8 +74,9 @@ fun AppAvatar(
     showBorder  : Boolean   = false,
     borderWidth : Dp        = 2.dp,
     fontSize    : TextUnit  = (size.value * 0.35f).sp,
+    imageModel  : Any?      = null,
 ) {
-    val colors   = avatarColorsFor(entityId)
+    val colors   = avatarColorsFor(entityId ?: displayName.hashCode())
     val initials = displayName.toInitials().ifBlank { "?" }
     val clipShape: Shape = when (shape) {
         AvatarShape.CIRCLE  -> CircleShape
@@ -88,26 +92,33 @@ fun AppAvatar(
             else Modifier
         )
 
-    if (!imageUrl.isNullOrBlank()) {
-        // Image avatar
-        AsyncImage(
-            model              = ApiUrlResolver.resolve(imageUrl),
+    val resolvedImageUrl = remember(imageUrl) { ApiUrlResolver.resolve(imageUrl) }
+    val requestModel = imageModel ?: resolvedImageUrl
+
+    if (requestModel != null) {
+        SubcomposeAsyncImage(
+            model              = requestModel,
             contentDescription = displayName,
             contentScale       = ContentScale.Crop,
             modifier           = modifier,
+            loading            = { AvatarFallback(initials, colors, fontSize) },
+            error              = { AvatarFallback(initials, colors, fontSize) },
+            success            = { SubcomposeAsyncImageContent() },
         )
     } else {
-        // Initials fallback
         Box(
-            modifier         = modifier.background(colors.background),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text       = initials,
-                fontSize   = fontSize,
-                fontWeight = FontWeight.Bold,
-                color      = colors.foreground,
-            )
-        }
+            modifier = modifier.background(colors.background),
+            contentAlignment = Alignment.Center,
+        ) { Text(initials, fontSize = fontSize, fontWeight = FontWeight.Bold, color = colors.foreground) }
+    }
+}
+
+@Composable
+private fun AvatarFallback(initials: String, colors: AvatarColors, fontSize: TextUnit) {
+    Box(
+        modifier = Modifier.fillMaxSize().background(colors.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(initials, fontSize = fontSize, fontWeight = FontWeight.Bold, color = colors.foreground)
     }
 }

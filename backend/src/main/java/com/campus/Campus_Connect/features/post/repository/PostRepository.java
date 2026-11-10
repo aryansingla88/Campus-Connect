@@ -2,6 +2,7 @@ package com.campus.Campus_Connect.features.post.repository;
 
 import com.campus.Campus_Connect.features.post.entity.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,12 +15,14 @@ import java.util.Optional;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Integer> {
 
+    @EntityGraph(attributePaths = {"creator", "creator.profile"})
     List<Post> findAllByPostTypeAndDeletedAtIsNullOrderByCreatedAtDesc(String postType);
 
     List<Post> findAllByPostTypeAndEventIdIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc(String postType);
 
     boolean existsByEventIdAndPostTypeAndDeletedAtIsNull(Integer eventId, String postType);
 
+    @EntityGraph(attributePaths = {"creator", "creator.profile"})
     Optional<Post> findByIdAndDeletedAtIsNull(Integer postId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

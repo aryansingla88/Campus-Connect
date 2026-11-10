@@ -9,6 +9,7 @@ import com.campus.Campus_Connect.features.post.entity.Post;
 import com.campus.Campus_Connect.features.post.entity.PostImage;
 import com.campus.Campus_Connect.features.post.entity.PostTag;
 import com.campus.Campus_Connect.features.post.entity.PostVote;
+import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -67,10 +68,16 @@ public class PostMapper {
                 .findFirst()
                 .orElse(null);
 
+        UserProfile profile = post.getCreator().getProfile();
+
         return PostResponse.builder()
                 .id(post.getId())
                 .postType(post.getPostType())
                 .username(post.getCreator().getUsername())
+                .authorId(post.getCreator().getId())
+                .authorDisplayName(profile != null && profile.getFullName() != null
+                        ? profile.getFullName() : post.getCreator().getUsername())
+                .authorAvatarUrl(profile != null ? profile.getAvatarUrl() : null)
                 .title(post.getTitle())
                 .body(post.getContentRaw())
                 .tags(toPostTagResponseList(post.getTags()))
@@ -94,6 +101,8 @@ public class PostMapper {
                 && comment.getCreator().getId().equals(SecurityUtils.getCurrentUserId());
         boolean canEdit = canDelete;
 
+        UserProfile profile = comment.getCreator().getProfile();
+
         return CommentResponse.builder()
                 .id(comment.getId())
                 .postId(comment.getPost().getId())
@@ -103,6 +112,10 @@ public class PostMapper {
                                 : null
                 )
                 .username(comment.getCreator().getUsername())
+                .authorId(comment.getCreator().getId())
+                .authorDisplayName(profile != null && profile.getFullName() != null
+                        ? profile.getFullName() : comment.getCreator().getUsername())
+                .authorAvatarUrl(profile != null ? profile.getAvatarUrl() : null)
                 .body(deleted ? "Comment deleted" : comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .isDeleted(deleted)

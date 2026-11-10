@@ -34,6 +34,7 @@ public class EventMemberMapper {
                 .name(profile.getFullName())
                 .courseId(profile.getCourseId())
                 .admissionYear(profile.getAdmissionYear())
+                .avatarUrl(profile.getAvatarUrl())
                 .role(role)
                 .hasAccess(hasAccess)
                 .build();

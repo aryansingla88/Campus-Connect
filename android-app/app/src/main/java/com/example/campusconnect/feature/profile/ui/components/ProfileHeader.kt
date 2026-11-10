@@ -175,23 +175,13 @@ fun ProfileHeader(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (avatarUri != null) {
-                            AsyncImage(
-                                model = avatarUri,
-                                contentDescription = displayName,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            AppAvatar(
-                                entityId = entityId,
-                                displayName = displayName,
-                                imageUrl = avatarUrl,
-                                size = 90.dp
-                            )
-                        }
+                        AppAvatar(
+                            entityId = entityId,
+                            displayName = displayName,
+                            imageUrl = if (avatarUri == null) avatarUrl else null,
+                            imageModel = avatarUri,
+                            size = 90.dp,
+                        )
 
                         avatarOverlay?.invoke(this)
                     }

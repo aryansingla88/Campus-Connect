@@ -68,6 +68,7 @@ public class PostServiceImpl implements PostService {
     private EntityManager entityManager;
 
 
+    @Transactional(readOnly = true)
     @Override
     public List<PostResponse> getAllPosts() {
 
@@ -144,7 +145,7 @@ public class PostServiceImpl implements PostService {
 
         List<Integer> eventIds = eventPosts.stream().map(Post::getEventId).distinct().toList();
         List<Event> events = entityManager.createQuery(
-                        "select distinct e from Event e left join fetch e.categories left join fetch e.creator where e.id in :ids",
+                        "select distinct e from Event e left join fetch e.categories left join fetch e.creator c left join fetch c.profile where e.id in :ids",
                         Event.class)
                 .setParameter("ids", eventIds)
                 .getResultList();
@@ -205,6 +206,14 @@ public class PostServiceImpl implements PostService {
                             .organizerName(event.getClubId() != null
                                     ? clubNames.getOrDefault(event.getClubId(), event.getCreator().getUsername())
                                     : event.getCreator().getUsername())
+                            .organizerUserId(event.getCreator().getId())
+                            .organizerDisplayName(event.getCreator().getProfile() != null
+                                    && event.getCreator().getProfile().getFullName() != null
+                                    ? event.getCreator().getProfile().getFullName()
+                                    : event.getCreator().getUsername())
+                            .organizerAvatarUrl(event.getCreator().getProfile() != null
+                                    ? event.getCreator().getProfile().getAvatarUrl()
+                                    : null)
                             .categoryId(event.getCategories().stream().findFirst().map(EventCategory::getId).orElse(null))
                             .categoryName(event.getCategories().stream().findFirst().map(category -> category.getName()).orElse(null))
                             .description(post.getContentRaw())
@@ -359,6 +368,14 @@ public class PostServiceImpl implements PostService {
         } else {
             response.setEventOrganizerName(event.getCreator().getUsername());
         }
+        response.setEventOrganizerUserId(event.getCreator().getId());
+        response.setEventOrganizerDisplayName(event.getCreator().getProfile() != null
+                && event.getCreator().getProfile().getFullName() != null
+                ? event.getCreator().getProfile().getFullName()
+                : event.getCreator().getUsername());
+        response.setEventOrganizerAvatarUrl(event.getCreator().getProfile() != null
+                ? event.getCreator().getProfile().getAvatarUrl()
+                : null);
     }
     @Transactional
     @Override
@@ -522,6 +539,7 @@ public class PostServiceImpl implements PostService {
         }
 
     }
+    @Transactional(readOnly = true)
     @Override
     public List<CommentResponse> getComments(Integer postId) {
 

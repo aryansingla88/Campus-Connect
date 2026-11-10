@@ -36,4 +36,10 @@ data class Post(
     val eventStartTime: String? = null,
     val eventId: Int? = null,
     val eventCategoryId: Int? = null,
+    val authorId: Int? = null,
+    val authorDisplayName: String? = null,
+    val authorAvatarUrl: String? = null,
+    val eventOrganizerUserId: Int? = null,
+    val eventOrganizerDisplayName: String? = null,
+    val eventOrganizerAvatarUrl: String? = null,
 )

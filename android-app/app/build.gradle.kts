@@ -97,6 +97,7 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     implementation("com.airbnb.android:lottie:6.7.1")
     implementation("com.airbnb.android:lottie-compose:6.4.0")

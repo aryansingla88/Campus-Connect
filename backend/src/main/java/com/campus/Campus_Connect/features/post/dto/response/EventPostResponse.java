@@ -15,6 +15,9 @@ public class EventPostResponse {
     String title;
     String hostName;
     String organizerName;
+    Integer organizerUserId;
+    String organizerDisplayName;
+    String organizerAvatarUrl;
     Integer categoryId;
     String categoryName;
     String description;

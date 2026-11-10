@@ -349,6 +349,7 @@ fun MapScreen(
                     searchQuery = query
                 },
                 searchSuggestions = searchSuggestions,
+                currentUser = uiState.currentUser,
                 onSearchSuggestionSelected = { marker: MapMarker ->
                     searchQuery = ""
                     selectedSidePanel = SidePanel.NONE

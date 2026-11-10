@@ -57,6 +57,7 @@ import com.example.campusconnect.core.ui.theme.HintColor
 import com.example.campusconnect.core.ui.theme.OrangeBg
 import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
+import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.utils.formatEventClockTime
 import com.example.campusconnect.feature.posts.utils.formatEventDateWithoutYear
@@ -104,20 +105,14 @@ fun EventPostCard(
         Column(Modifier.padding(14.dp)) {
             Column {
                 Row(verticalAlignment = Alignment.Top) {
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 2.dp)
-                            .size(42.dp)
-                            .background(OrangeLight, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = event.hostName?.firstOrNull()?.uppercase()
-                                ?: event.title.firstOrNull()?.uppercase() ?: "E",
-                            color = OrangePrimary,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
+                    AppAvatar(
+                        entityId = event.organizerUserId,
+                        displayName = event.organizerDisplayName?.takeIf(String::isNotBlank)
+                            ?: event.organizerName?.takeIf(String::isNotBlank)
+                            ?: event.hostName.orEmpty(),
+                        imageUrl = event.organizerAvatarUrl,
+                        size = 42.dp,
+                    )
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -129,7 +124,8 @@ fun EventPostCard(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
-                            text = event.organizerName?.takeIf(String::isNotBlank)
+                            text = event.organizerDisplayName?.takeIf(String::isNotBlank)
+                                ?: event.organizerName?.takeIf(String::isNotBlank)
                                 ?: event.hostName.orEmpty(),
                             modifier = Modifier.padding(top = 2.dp),
                             style = MaterialTheme.typography.bodySmall,

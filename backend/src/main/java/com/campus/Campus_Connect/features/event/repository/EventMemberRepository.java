@@ -5,6 +5,7 @@ import com.campus.Campus_Connect.features.event.entity.EventMember;
 import com.campus.Campus_Connect.features.event.entity.EventMemberId;
 import com.campus.Campus_Connect.features.event.entity.enums.EventMemberRole;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,6 +18,7 @@ public interface EventMemberRepository extends JpaRepository<EventMember, EventM
             Integer userId
     );
 
+    @EntityGraph(attributePaths = {"user", "user.profile"})
     List<EventMember> findByEventIdAndRoleIn(
             Integer eventId,
             List<EventMemberRole> roles
