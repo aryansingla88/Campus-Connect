@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.posts.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -92,6 +93,7 @@ fun EventPostCard(
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
+            .border(1.dp, Color(0xFFE6E7EA), RoundedCornerShape(22.dp))
             .onGloballyPositioned { coordinates ->
                 val bounds = coordinates.boundsInWindow()
                 val visible = view.height > 0 && bounds.bottom > 0f && bounds.top < view.height.toFloat()
@@ -99,9 +101,13 @@ fun EventPostCard(
             }
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color.White)
+        colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 3.dp,
+            pressedElevation = 5.dp
+        )
     ) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 4.dp)) {
             Column {
                 Row(verticalAlignment = Alignment.Top) {
                     Box(
@@ -255,7 +261,7 @@ fun EventPostCard(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

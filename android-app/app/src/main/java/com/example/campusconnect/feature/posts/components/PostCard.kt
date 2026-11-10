@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.posts.components
 /*This line imports the clickable modifier from Compose Foundation library.*/
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 
 /*below import helps us use-
@@ -69,12 +70,18 @@ fun PostCard(
 
         modifier = Modifier
             .fillMaxWidth()
+            .border(1.dp, Color(0xFFE6E7EA), RoundedCornerShape(24.dp))
             .clickable { onClick() },
 
         shape = RoundedCornerShape(24.dp),
 
         colors = CardDefaults.elevatedCardColors(
             containerColor = Color.White
+        ),
+
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 3.dp,
+            pressedElevation = 5.dp
         )
     ) {
 
@@ -202,23 +209,6 @@ fun PostCard(
                 color = LabelColor
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            /*
-            ---------------- BODY ----------------
-             */
-
-            Text(
-
-                text = post.body,
-
-                style = MaterialTheme.typography.bodyMedium,
-
-                color = LabelColor.copy(alpha = 0.8f),
-
-                lineHeight = 24.sp
-            )
-
             /*
             ---------------- IMAGE ----------------
              */
@@ -247,6 +237,19 @@ fun PostCard(
                     contentScale = ContentScale.Crop
                 )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            /*
+            ---------------- BODY ----------------
+             */
+
+            Text(
+                text = post.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = LabelColor.copy(alpha = 0.8f),
+                lineHeight = 24.sp
+            )
 
             Spacer(modifier = Modifier.height(2.dp))
 

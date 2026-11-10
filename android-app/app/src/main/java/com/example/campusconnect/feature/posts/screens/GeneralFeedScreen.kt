@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -513,6 +516,12 @@ fun GeneralFeedScreen(
                             Text("Topics unavailable: $message")
                         }
 
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                        )
+
                         /*
                         In Jetpack Compose, LazyColumn is a vertically scrolling list that only renders
                          the items currently visible on the screen. It is the modern, declarative equivalent
@@ -528,7 +537,7 @@ fun GeneralFeedScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                             //above line is for adding space between items
 
-                            contentPadding = PaddingValues(vertical = 12.dp)
+                            contentPadding = PaddingValues(top = 6.dp, bottom = 12.dp)
                             /*
                             contentPadding = PaddingValues(vertical = 12.dp)
 
