@@ -3,7 +3,6 @@ package com.example.campusconnect.feature.posts.components
 /*This line imports the clickable modifier from Compose Foundation library.*/
 import android.util.Log
 import androidx.compose.foundation.background
-import com.example.campusconnect.core.util.formatBackendDateTime
 import androidx.compose.foundation.clickable
 
 /*below import helps us use-
@@ -46,6 +45,7 @@ import com.example.campusconnect.core.ui.theme.*
 
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
+import com.example.campusconnect.feature.posts.utils.formatPostTimestamp
 
 @Composable
 fun PostCard(
@@ -79,7 +79,7 @@ fun PostCard(
     ) {
 
         Column(
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 12.dp)
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp)
         ) {
 
             /*
@@ -90,7 +90,7 @@ fun PostCard(
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
@@ -118,7 +118,7 @@ fun PostCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = formatBackendDateTime(post.createdAt),
+                            text = formatPostTimestamp(post.createdAt),
                             modifier = Modifier.padding(top = 2.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = HintColor,
@@ -129,6 +129,25 @@ fun PostCard(
                                 text = "Edited",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = HintColor
+                            )
+                        }
+                    }
+
+                    if (topicName != null) {
+                        Surface(
+                            color = OrangeLight,
+                            shape = RoundedCornerShape(18.dp)
+                        ) {
+                            Text(
+                                text = topicName,
+                                modifier = Modifier
+                                    .widthIn(max = 120.dp)
+                                    .padding(horizontal = 9.dp, vertical = 5.dp),
+                                color = OrangePrimary,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -166,27 +185,6 @@ fun PostCard(
                     }
                 }
 
-                if (topicName != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Surface(color = OrangeLight, shape = RoundedCornerShape(18.dp)) {
-                            Text(
-                                text = topicName,
-                                modifier = Modifier
-                                    .widthIn(max = 180.dp)
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                color = OrangePrimary,
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -250,7 +248,7 @@ fun PostCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
             /*
             ---------------- ACTION ROW ----------------

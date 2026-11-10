@@ -47,11 +47,11 @@ import com.example.campusconnect.core.ui.theme.HintColor
 import com.example.campusconnect.core.ui.theme.OrangeBg
 import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
-import com.example.campusconnect.core.util.formatBackendDateTime
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.utils.formatEventClockTime
 import com.example.campusconnect.feature.posts.utils.formatEventDate
 import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
+import com.example.campusconnect.feature.posts.utils.formatPostTimestamp
 
 @Composable
 fun PostDetailCard(
@@ -70,7 +70,7 @@ fun PostDetailCard(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = Color.White)
     ) {
-        Column(Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 12.dp)) {
+        Column(Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp)) {
             if (isEventPost) {
                 EventHeader(
                     post = post,
@@ -88,12 +88,27 @@ fun PostDetailCard(
                         Text(post.username.firstOrNull()?.uppercase() ?: "?", color = OrangePrimary)
                     }
                     Spacer(Modifier.width(12.dp))
-                    Column {
+                    Column(Modifier.weight(1f)) {
                         Text(post.username, style = MaterialTheme.typography.bodyMedium)
-                        Text(formatBackendDateTime(post.createdAt), style = MaterialTheme.typography.bodySmall, color = HintColor)
+                        Text(formatPostTimestamp(post.createdAt), style = MaterialTheme.typography.bodySmall, color = HintColor)
                         if (post.isEdited) Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
                     }
-                    Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.width(8.dp))
+                    post.tags.firstOrNull()?.name?.takeIf(String::isNotBlank)?.let { tagName ->
+                        Surface(shape = RoundedCornerShape(18.dp), color = OrangeLight) {
+                            Text(
+                                text = tagName,
+                                modifier = Modifier
+                                    .widthIn(max = 120.dp)
+                                    .padding(horizontal = 9.dp, vertical = 5.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = OrangePrimary,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                     if (post.canDelete) {
                         Box {
                             IconButton(onClick = { showMenu = true }) {
@@ -110,51 +125,7 @@ fun PostDetailCard(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                post.tags.firstOrNull()?.name?.takeIf(String::isNotBlank)?.let { tagName ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Surface(shape = RoundedCornerShape(50), color = OrangeLight) {
-                            Text(
-                                text = tagName,
-                                modifier = Modifier
-                                    .widthIn(max = 180.dp)
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = OrangePrimary,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
                 Text(post.title, style = MaterialTheme.typography.titleMedium)
-            }
-
-            if (isEventPost) {
-                post.eventCategoryName?.takeIf(String::isNotBlank)?.let { category ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Surface(shape = RoundedCornerShape(18.dp), color = OrangeLight) {
-                            Text(
-                                text = category,
-                                modifier = Modifier
-                                    .widthIn(max = 180.dp)
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = OrangePrimary,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
             }
 
             resolvePostImageUrl(post.imageUrl)?.let { imageUrl ->
@@ -200,7 +171,7 @@ fun PostDetailCard(
                 Text(post.body, style = MaterialTheme.typography.bodyMedium)
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(2.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -261,6 +232,21 @@ private fun EventHeader(
             )
             if (post.isEdited) {
                 Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
+            }
+        }
+        post.eventCategoryName?.takeIf(String::isNotBlank)?.let { category ->
+            Surface(shape = RoundedCornerShape(18.dp), color = OrangeLight) {
+                Text(
+                    text = category,
+                    modifier = Modifier
+                        .widthIn(max = 120.dp)
+                        .padding(horizontal = 9.dp, vertical = 5.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = OrangePrimary,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
         if (post.canDelete) {
