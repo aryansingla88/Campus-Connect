@@ -10,5 +10,6 @@ interface MapMarkerItem {
     val y: Float
     val type: MarkerType
     val label: String get() = ""
+    val subLabel: String get() = ""
     val isSelected: Boolean get() = false
 }

@@ -30,8 +30,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Group
@@ -73,8 +71,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.campusconnect.R
 import com.example.campusconnect.feature.map.model.MapEventInfo
-import com.example.campusconnect.feature.map.ui.util.formatEventDate
-import com.example.campusconnect.feature.map.ui.util.formatEventTimeRange
 import kotlin.math.roundToInt
 
 
@@ -357,19 +353,6 @@ private fun EventQuickPreviewContent(
 
                     Spacer(
                         modifier = Modifier.height(10.dp)
-                    )
-
-                    MetaRow(
-                        icon = Icons.Default.CalendarToday,
-                        text = formatEventDate(event.date)
-                    )
-
-                    MetaRow(
-                        icon = Icons.Default.AccessTime,
-                        text = formatEventTimeRange(
-                            event.time,
-                            endTime
-                        )
                     )
 
                     MetaRow(

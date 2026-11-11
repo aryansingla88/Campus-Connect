@@ -2,6 +2,7 @@ package com.example.campusconnect.feature.map.model
 
 import com.example.campusconnect.feature.map.mapengine.model.MapMarkerItem
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
+import com.example.campusconnect.feature.map.ui.util.formatEventChip
 
 /** Shared map identity, geographic source location, and positioned selection state. */
 sealed class MapMarker(
@@ -82,6 +83,7 @@ data class EventMarkerData(
     override val longitude: Double,
     val title: String,
     val priority: Int,
+    val startTime: String? = null,
     private val markerId: String = "EVENT_$sourceId",
     private val mapX: Float = 0f,
     private val mapY: Float = 0f,
@@ -89,6 +91,7 @@ data class EventMarkerData(
 ) : MapMarker(markerId, mapX, mapY, selected) {
     override val type: MarkerType get() = MarkerType.EVENT
     override val label: String get() = title
+    override val subLabel: String = formatEventChip(startTime)
     override fun withMapPosition(x: Float, y: Float) = copy(mapX = x, mapY = y)
     override fun withSelection(isSelected: Boolean) = copy(selected = isSelected)
 }

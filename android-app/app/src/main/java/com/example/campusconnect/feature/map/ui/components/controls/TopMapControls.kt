@@ -81,7 +81,8 @@ internal fun TopMapControls(
     onSearchSuggestionSelected: (MapMarker) -> Unit,
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    showAccountActions: Boolean = true
+    showAccountActions: Boolean = true,
+    showSearchSuggestions: Boolean = true
 ) {
     Row(
         modifier = modifier
@@ -134,7 +135,7 @@ internal fun TopMapControls(
                 )
             }
 
-            if (searchQuery.trim().length >= 2 && searchSuggestions.isNotEmpty()) {
+            if (showSearchSuggestions && searchQuery.trim().length >= 2 && searchSuggestions.isNotEmpty()) {
                 val popupOffset = with(androidx.compose.ui.platform.LocalDensity.current) {
                     IntOffset(0, 54.dp.roundToPx())
                 }
@@ -376,22 +377,27 @@ internal fun EventShortcutButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    // Solid orange pill with a white calendar-edit icon and bold white label,
+    // floating over the map in Event mode.
+    val pillShape = RoundedCornerShape(percent = 50)
+    Row(
         modifier = modifier
-            .size(TopControlSize)
-            .shadow(6.dp, CircleShape)
-            .clip(CircleShape)
-            .background(Color.White)
-            .clickable {
-                onClick()
-            },
-        contentAlignment = Alignment.Center
+            .height(36.dp)
+            .shadow(6.dp, pillShape)
+            .clip(pillShape)
+            .background(OrangePrimary)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Default.Event,
-            contentDescription = "Events",
-            tint = OrangePrimary,
-            modifier = Modifier.size(21.dp)
+        Text(
+            text = "Manage Events",
+            color = Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }

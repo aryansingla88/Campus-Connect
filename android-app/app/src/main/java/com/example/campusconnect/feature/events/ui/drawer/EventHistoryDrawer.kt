@@ -113,7 +113,7 @@ private val BronzeColor = Color(0xFFBF8651)
 @Composable
 fun EventHistoryDrawer(
     isOpen: Boolean,
-    onToggle: () -> Unit,
+    onDismiss: () -> Unit,
     liveEvents: List<EventHistoryItem>,
     upcomingEvents: List<EventHistoryItem>,
     pastEvents: List<EventHistoryItem>,
@@ -144,7 +144,7 @@ fun EventHistoryDrawer(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x55000000))
-                    .clickable { onToggle() }
+                    .clickable { onDismiss() }
             )
         }
 
@@ -166,7 +166,7 @@ fun EventHistoryDrawer(
                         .fillMaxWidth(0.82f)
                         .pointerInput(Unit) {
                             detectHorizontalDragGestures { _, drag ->
-                                if (drag > 12f) onToggle()
+                                if (drag > 12f) onDismiss()
                             }
                         },
                     shape           = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),

@@ -17,5 +17,8 @@ data class EventMarkerResponse(
     val longitude: Double? = null,
 
 
-    val priority: Int? = null
+    val priority: Int? = null,
+
+
+    val startTime: String? = null
 )

@@ -1,15 +1,20 @@
 package com.example.campusconnect.feature.map.mapengine.rendering
 
 import android.graphics.Paint
+import android.graphics.Typeface
+import android.text.TextPaint
+import android.text.TextUtils
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,6 +92,7 @@ object StandardMarkerPainter : MarkerCanvasPainter<MapMarkerItem> {
         val markerRadius = style.radius * style.selectionScale
         drawEventMarker(
             label = marker.label,
+            subLabel = marker.subLabel,
             x = x,
             y = y,
             radius = markerRadius,
@@ -468,70 +474,134 @@ object StandardMarkerPainter : MarkerCanvasPainter<MapMarkerItem> {
 
     private fun DrawScope.drawEventMarker(
         label: String,
+        subLabel: String,
         x: Float,
         y: Float,
         radius: Float,
         color: Color,
         isSelected: Boolean
     ) {
-        val iconSize = radius * 3.5f
-        val iconLeft = x - iconSize / 2f
-        val iconTop = y - iconSize / 2f
-        val pinPath = createLocationOnPath(iconLeft, iconTop, iconSize)
-        drawPath(path = pinPath, color = color)
+        val pinRadius = radius * 1.4f
+        val center = Offset(x, y - pinRadius * 0.15f)
+        val tipY = center.y + pinRadius * 1.75f
 
-        val textPaint = Paint().apply {
-            isAntiAlias = true
-            this.color = android.graphics.Color.rgb(0x2A, 0x2A, 0x2A)
-            textSize = 10.sp.toPx()
-            typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+        val glowRadius = pinRadius * 2.2f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(color.copy(alpha = if (isSelected) 0.6f else 0.45f), Color.Transparent),
+                center = center,
+                radius = glowRadius
+            ),
+            radius = glowRadius,
+            center = center
+        )
+
+        drawPath(createPinPath(center.x, center.y, pinRadius + 3f, tipY + 3f), Color.White)
+        drawPath(
+            path = createPinPath(center.x, center.y, pinRadius, tipY),
+            brush = Brush.verticalGradient(
+                colors = listOf(lerp(color, Color.White, 0.2f), lerp(color, Color.Black, 0.12f)),
+                startY = center.y - pinRadius,
+                endY = tipY
+            )
+        )
+        drawCalendarGlyph(center, pinRadius * 0.95f, color)
+        drawEventCard(label, subLabel, x, tipY + 3f + 3.dp.toPx(), color, isSelected)
+    }
+
+    private fun DrawScope.drawCalendarGlyph(center: Offset, size: Float, accent: Color) {
+        val left = center.x - size / 2f
+        val top = center.y - size / 2f + size * 0.08f
+        val corner = CornerRadius(size * 0.16f, size * 0.16f)
+
+        listOf(0.26f, 0.64f).forEach { fx ->
+            drawRoundRect(
+                color = Color.White,
+                topLeft = Offset(left + size * fx, top - size * 0.16f),
+                size = Size(size * 0.1f, size * 0.26f),
+                cornerRadius = CornerRadius(size * 0.05f, size * 0.05f)
+            )
         }
-        val horizontalPadding = 7.dp.toPx()
-        val verticalPadding = 3.dp.toPx()
-        val textWidth = textPaint.measureText(label)
-        val labelHeight = textPaint.descent() - textPaint.ascent() + verticalPadding * 2f
-        val labelWidth = textWidth + horizontalPadding * 2f
-        val labelTop = iconTop + iconSize + 2.dp.toPx()
-        val labelLeft = x - labelWidth / 2f
-
+        drawRoundRect(Color.White, Offset(left, top), Size(size, size * 0.88f), corner)
+        drawRect(accent, Offset(left, top + size * 0.26f), Size(size, size * 0.06f))
         drawRoundRect(
-            color = Color.White,
-            topLeft = Offset(labelLeft, labelTop),
-            size = Size(labelWidth, labelHeight),
-            cornerRadius = CornerRadius(10.dp.toPx(), 10.dp.toPx())
-        )
-        drawContext.canvas.nativeCanvas.drawText(
-            label,
-            x - textWidth / 2f,
-            labelTop + verticalPadding - textPaint.ascent(),
-            textPaint
-        )
-
-        val pulseWidth = (if (isSelected) 34.dp else 22.dp).toPx()
-        val pulseHeight = (if (isSelected) 13.dp else 9.dp).toPx()
-        val pulseTop = labelTop + labelHeight + 2.dp.toPx()
-        drawRoundRect(
-            color = color.copy(alpha = if (isSelected) 0.4f else 0.2f),
-            topLeft = Offset(x - pulseWidth / 2f, pulseTop),
-            size = Size(pulseWidth, pulseHeight),
-            cornerRadius = CornerRadius(pulseHeight / 2f, pulseHeight / 2f)
+            color = accent,
+            topLeft = Offset(left + size * 0.2f, top + size * 0.5f),
+            size = Size(size * 0.22f, size * 0.22f),
+            cornerRadius = CornerRadius(size * 0.04f, size * 0.04f)
         )
     }
 
-    /** Material `Icons.Default.LocationOn` silhouette, including its circular cutout. */
-    private fun createLocationOnPath(left: Float, top: Float, size: Float): Path {
-        fun px(value: Float) = left + value / 24f * size
-        fun py(value: Float) = top + value / 24f * size
-
-        return Path().apply {
-            fillType = PathFillType.EvenOdd
-            moveTo(px(12f), py(2f))
-            cubicTo(px(8.13f), py(2f), px(5f), py(5.13f), px(5f), py(9f))
-            cubicTo(px(5f), py(14.25f), px(12f), py(22f), px(12f), py(22f))
-            cubicTo(px(12f), py(22f), px(19f), py(14.25f), px(19f), py(9f))
-            cubicTo(px(19f), py(5.13f), px(15.87f), py(2f), px(12f), py(2f))
-            close()
-            addOval(Rect(px(9.5f), py(6.5f), px(14.5f), py(11.5f)))
+    private fun DrawScope.drawEventCard(
+        label: String,
+        subLabel: String,
+        centerX: Float,
+        top: Float,
+        accent: Color,
+        isSelected: Boolean
+    ) {
+        val titlePaint = Paint().apply {
+            isAntiAlias = true
+            color = android.graphics.Color.rgb(0x1F, 0x1F, 0x1F)
+            textSize = 11.sp.toPx()
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
         }
+        val subPaint = Paint().apply {
+            isAntiAlias = true
+            color = android.graphics.Color.rgb(0x6B, 0x6B, 0x6B)
+            textSize = 9.sp.toPx()
+        }
+
+        val barInset = 4.dp.toPx()
+        val barWidth = 3.dp.toPx()
+        val textStart = barInset + barWidth + 10.dp.toPx()
+        val endPadding = 24.dp.toPx() // right gap plus chevron
+        val verticalPadding = 4.dp.toPx()
+
+        val title = TextUtils.ellipsize(
+            label, TextPaint(titlePaint), 170.dp.toPx() - textStart - endPadding, TextUtils.TruncateAt.END
+        ).toString()
+        val titleHeight = titlePaint.descent() - titlePaint.ascent()
+        val subHeight = if (subLabel.isEmpty()) 0f else subPaint.descent() - subPaint.ascent()
+        val lineGap = if (subLabel.isEmpty()) 0f else 0.5.dp.toPx()
+
+        val width = textStart + maxOf(titlePaint.measureText(title), subPaint.measureText(subLabel)) + endPadding
+        val height = verticalPadding * 2f + titleHeight + lineGap + subHeight
+        val left = centerX - width / 2f
+        val corner = CornerRadius(12.dp.toPx(), 12.dp.toPx())
+        val cardColor = Color(0xFFFFF7F0)
+
+        drawRoundRect(Color.Black.copy(alpha = 0.14f), Offset(left, top + 2.dp.toPx()), Size(width, height), corner)
+        drawRoundRect(cardColor, Offset(left, top), Size(width, height), corner)
+        if (isSelected) {
+            drawRoundRect(accent, Offset(left, top), Size(width, height), corner, style = Stroke(1.5.dp.toPx()))
+        }
+        drawRoundRect(
+            color = accent,
+            topLeft = Offset(left + barInset, top + barInset),
+            size = Size(barWidth, height - barInset * 2f),
+            cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
+        )
+
+        val canvas = drawContext.canvas.nativeCanvas
+        canvas.drawText(title, left + textStart, top + verticalPadding - titlePaint.ascent(), titlePaint)
+        if (subLabel.isNotEmpty()) {
+            canvas.drawText(
+                subLabel, left + textStart, top + verticalPadding + titleHeight + lineGap - subPaint.ascent(), subPaint
+            )
+        }
+
+        val chevronX = left + width - 12.dp.toPx()
+        val chevronY = top + height / 2f
+        val arm = 3.5.dp.toPx()
+        drawPath(
+            path = Path().apply {
+                moveTo(chevronX - arm / 2f, chevronY - arm)
+                lineTo(chevronX + arm / 2f, chevronY)
+                lineTo(chevronX - arm / 2f, chevronY + arm)
+            },
+            color = Color(0xFF555555),
+            style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
     }
 }

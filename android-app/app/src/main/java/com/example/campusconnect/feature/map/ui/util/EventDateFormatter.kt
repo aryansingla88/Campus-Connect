@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.map.ui.util
 
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 private val isoDateTimeRegex =
@@ -290,4 +291,30 @@ fun formatEventTimeRange(
     }
 
     return raw
+}
+
+
+/** Marker chip text such as "Today • 04:00 PM"; empty when [raw] has no parseable ISO date-time. */
+fun formatEventChip(raw: String?): String {
+    val start = raw?.trim().orEmpty()
+    val date = runCatching {
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(start.take(19))
+    }.getOrNull() ?: return ""
+    val time = formatSingleTime(start) ?: return ""
+
+    fun startOfDay(millis: Long) = Calendar.getInstance().apply {
+        timeInMillis = millis
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    val dayOffset = Math.round((startOfDay(date.time) - startOfDay(System.currentTimeMillis())) / 86_400_000.0)
+    val day = when (dayOffset) {
+        0L -> "Today"
+        1L -> "Tomorrow"
+        else -> SimpleDateFormat("dd MMM", Locale.getDefault()).format(date)
+    }
+    return "$day \u2022 $time"
 }

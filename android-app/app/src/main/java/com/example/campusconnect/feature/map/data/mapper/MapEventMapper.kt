@@ -22,7 +22,8 @@ object MapEventMapper {
             latitude = latitude,
             longitude = longitude,
             title = response.title,
-            priority = response.priority ?: 0
+            priority = response.priority ?: 0,
+            startTime = response.startTime
         )
     }
 

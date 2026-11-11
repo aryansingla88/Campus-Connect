@@ -107,6 +107,7 @@ fun EventScreen(
 
     var showParticipants    by remember { mutableStateOf(false) }
     var showHistoryDrawer   by remember { mutableStateOf(false) }
+    var previewBackRequest  by remember { mutableStateOf(0) }
 
     var showPosterMode by remember { mutableStateOf(false) }
 
@@ -359,6 +360,7 @@ fun EventScreen(
                 EventPreviewSheet(
                     events        = filteredEvents,
                     activeIndex   = filteredActiveIndex,
+                    backRequest   = previewBackRequest,
                     onPageChanged = { index ->
                         val globalIndex = events.indexOf(filteredEvents.getOrNull(index))
                         if (globalIndex >= 0) viewModel.onPreviewPageChanged(globalIndex)
@@ -416,15 +418,12 @@ fun EventScreen(
             }
         }
 
-        // Back closes the drawer first, then (via the sheet's own handler) the preview.
-        BackHandler(enabled = showParticipants) { showParticipants = false }
-
         // ── HISTORY DRAWER ────────────────────────────────────────────────────
         if (!isSelectingLocation && !showDialog) {
             Box(modifier = Modifier.fillMaxSize().zIndex(2f)) {
                 EventHistoryDrawer(
                     isOpen = showHistoryDrawer,
-                    onToggle = { showHistoryDrawer = !showHistoryDrawer },
+                    onDismiss = { showHistoryDrawer = false },
 
                     liveEvents = liveHistory,
                     upcomingEvents = upcomingHistory,
@@ -487,6 +486,21 @@ fun EventScreen(
                 onConfirm = viewModel::confirmDelete,
                 onCancel  = viewModel::cancelDelete
             )
+        }
+
+        // Modal Dialogs (including medal confirmation) handle their own back
+        // request. This single screen handler orders the remaining in-window
+        // overlays; with none open it stays disabled so NavHost handles navigation.
+        BackHandler(
+            enabled = showPosterMode || showHistoryDrawer ||
+                (showPreview && showParticipants) || showPreview
+        ) {
+            when {
+                showPosterMode -> showPosterMode = false
+                showHistoryDrawer -> showHistoryDrawer = false
+                showPreview && showParticipants -> showParticipants = false
+                showPreview -> previewBackRequest++
+            }
         }
 
         // ── ACCESS DIALOG ─────────────────────────────────────────────────────

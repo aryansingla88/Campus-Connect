@@ -2,7 +2,6 @@
 
 package com.example.campusconnect.feature.events.ui.preview
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -125,6 +124,7 @@ private fun loopStartPage(index: Int, count: Int) = (LoopPages / 2) - ((LoopPage
 fun EventPreviewSheet(
     events: List<Event>,
     activeIndex: Int = 0,
+    backRequest: Int = 0,
     onPageChanged: (Int) -> Unit,
     onClose: () -> Unit,
     onEdit: (Event) -> Unit = {},
@@ -211,9 +211,15 @@ fun EventPreviewSheet(
         }
     }
 
-    // Back closes the sheet — unless the participants drawer is open
-    // (EventScreen's own BackHandler closes the drawer first).
-    BackHandler(enabled = !participantsOpen && !isDismissing) { dismiss() }
+    // EventScreen owns back priority; turn its request into the sheet's normal
+    // animated dismissal so system back and swipe/tap close share the same path.
+    var lastBackRequest by remember { mutableStateOf(backRequest) }
+    LaunchedEffect(backRequest) {
+        if (backRequest != lastBackRequest) {
+            lastBackRequest = backRequest
+            dismiss()
+        }
+    }
 
     val dragState = rememberDraggableState { delta ->
         if (!isDismissing) {

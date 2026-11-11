@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
@@ -89,7 +90,9 @@ fun MapScreen(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val mapLoadComplete = remember(cloudTransition) { CompletableDeferred<Unit>() }
+    var mapLoadComplete by remember(cloudTransition) {
+        mutableStateOf(CompletableDeferred<Unit>())
+    }
     val uiState by viewModel.uiState.collectAsState()
     val trackingMode by viewModel.trackingMode.collectAsState()
     val accountRole by SessionManager.accountRole.collectAsState()
@@ -170,24 +173,26 @@ fun MapScreen(
         }
     }
 
-    LaunchedEffect(isFeatureActive, cloudTransition, mapLoadComplete) {
+    LaunchedEffect(isFeatureActive, cloudTransition) {
         if (isFeatureActive) {
+            if (uiState.mode == MapMode.POSTER) {
+                // Poster Mode is a separate destination. When Map becomes active
+                // again, restore its Home content before revealing the map.
+                mapLoadComplete = CompletableDeferred()
+                viewModel.selectMode(MapMode.HOME)
+            }
             cloudTransition.runEntry {
                 mapLoadComplete.await()
             }
         }
     }
 
-    LaunchedEffect(uiState.mode, mapLoadComplete) {
-        if (uiState.mode == MapMode.POSTER) {
-            // Poster mode does not compose MapView, so there is no map bitmap to await.
-            mapLoadComplete.complete(Unit)
-        }
-    }
-
     val showCenteredMarkerDialog =
         uiState.selectedMarker?.type == MarkerType.USER ||
                 uiState.selectedMarker?.type == MarkerType.EVENT
+    val hasSelectedMarkerPopup = uiState.selectedMarker?.type?.let {
+        it != MarkerType.EVENT
+    } == true
 
     val animatedBlur by animateDpAsState(
         targetValue = if (showCenteredMarkerDialog) 3.dp else 0.dp,
@@ -196,6 +201,7 @@ fun MapScreen(
     )
 
     var searchQuery by remember { mutableStateOf("") }
+    var searchSuggestionsDismissed by remember { mutableStateOf(false) }
     val searchSuggestions = remember(searchQuery, uiState.mode, uiState.renderMarkers, restrictedExperience) {
         val query = searchQuery.trim()
         if (query.length < 2) {
@@ -345,13 +351,16 @@ fun MapScreen(
                     .align(Alignment.TopCenter)
                     .padding(top = 20.dp),
                 searchQuery = searchQuery,
+                showSearchSuggestions = !searchSuggestionsDismissed,
                 onSearchQueryChange = { query ->
                     searchQuery = query
+                    searchSuggestionsDismissed = false
                 },
                 searchSuggestions = searchSuggestions,
                 currentUser = uiState.currentUser,
                 onSearchSuggestionSelected = { marker: MapMarker ->
                     searchQuery = ""
+                    searchSuggestionsDismissed = false
                     selectedSidePanel = SidePanel.NONE
                     viewModel.selectMarker(marker.id)
                     viewportState.focusOn(
@@ -485,41 +494,48 @@ fun MapScreen(
                 )
             }
 
-            ModeBar(
-                selectedMode = uiState.mode,
-                onModeSelected = { mode ->
-                    if (mode != uiState.mode && !cloudTransition.isRunning) {
-                        coroutineScope.launch {
-                            cloudTransition.run {
-                                viewModel.selectMode(mode)
-                                when (mode) {
-                                    MapMode.POSTER -> onPosterClick()
-                                    MapMode.HOME -> viewportState.resetViewport()
-                                    MapMode.EVENT, MapMode.SHOP -> Unit
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (uiState.mode == MapMode.EVENT) {
+                    EventShortcutButton(
+                        onClick = {
+                            if (!cloudTransition.isRunning) {
+                                coroutineScope.launch {
+                                    cloudTransition.run {
+                                        onEventFeatureClick()
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.padding(start = 14.dp)
+                    )
+                }
+
+                ModeBar(
+                    selectedMode = uiState.mode,
+                    onModeSelected = { mode ->
+                        if (mode != uiState.mode && !cloudTransition.isRunning) {
+                            coroutineScope.launch {
+                                cloudTransition.run {
+                                    viewModel.selectMode(mode)
+                                    when (mode) {
+                                        MapMode.POSTER -> onPosterClick()
+                                        MapMode.HOME -> viewportState.resetViewport()
+                                        MapMode.EVENT, MapMode.SHOP -> Unit
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(
-                        start = 42.dp,
-                        end = 42.dp,
-                        bottom = 24.dp
-                    )
-            )
-
-            if (uiState.mode == MapMode.EVENT) {
-
-                EventShortcutButton(
-                    onClick = onEventFeatureClick,
+                    },
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(
-                            start = 24.dp,
-                            bottom = 38.dp
-                        )
+                        .fillMaxWidth()
+                        .padding(horizontal = 42.dp)
                 )
             }
 
@@ -680,6 +696,30 @@ fun MapScreen(
                 )
             }
         }
+
+        val searchSuggestionsVisible =
+            !searchSuggestionsDismissed &&
+                    searchQuery.trim().length >= 2 && searchSuggestions.isNotEmpty()
+        val eventMarkerDialogVisible =
+            uiState.selectedMarker is EventMarkerData &&
+                    uiState.selectedEventInfo?.id == uiState.selectedMarker?.sourceId
+
+        // Event marker details use their own modal sheet back handling. For the
+        // in-screen overlays, dismiss from the visually topmost layer downward.
+        BackHandler(
+            enabled = !eventMarkerDialogVisible &&
+                    (searchSuggestionsVisible || hasSelectedMarkerPopup || showFilters)
+        ) {
+            when {
+                searchSuggestionsVisible -> searchSuggestionsDismissed = true
+                hasSelectedMarkerPopup -> viewModel.clearSelection()
+                showFilters -> {
+                    showFilters = false
+                    expandedFilterSection = null
+                    expandedFilterRows = 0
+                }
+            }
+        }
     }
 }
 
@@ -760,5 +800,3 @@ private fun locationStatusHint(
         "Location is temporarily unavailable"
     }
 }
-
-
