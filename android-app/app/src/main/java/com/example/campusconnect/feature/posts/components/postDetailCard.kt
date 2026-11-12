@@ -1,6 +1,8 @@
+
 package com.example.campusconnect.feature.posts.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -43,16 +44,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+
+import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.core.ui.theme.HintColor
 import com.example.campusconnect.core.ui.theme.OrangeBg
 import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
-import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.core.util.formatBackendDateTime
+
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.utils.formatEventClockTime
 import com.example.campusconnect.feature.posts.utils.formatEventDate
 import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
+import com.example.campusconnect.feature.posts.utils.formatPostTimestamp
 
 @Composable
 fun PostDetailCard(
@@ -67,11 +71,27 @@ fun PostDetailCard(
     val isEventPost = post.postType.equals("EVENTS", ignoreCase = true)
 
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp)
+            .border(1.dp, Color(0xFFE6E7EA), RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color.White)
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 3.dp,
+            pressedElevation = 5.dp
+        )
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(
+            Modifier.padding(
+                start = 16.dp,
+                top = 16.dp,
+                end = 16.dp,
+                bottom = 4.dp
+            )
+        ) {
             if (isEventPost) {
                 EventHeader(
                     post = post,
@@ -82,28 +102,104 @@ fun PostDetailCard(
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+
                     AppAvatar(
                         entityId = post.authorId,
-                        displayName = post.authorDisplayName?.takeIf(String::isNotBlank) ?: post.username,
+                        displayName = post.authorDisplayName
+                            ?.takeIf(String::isNotBlank)
+                            ?: post.username,
                         imageUrl = post.authorAvatarUrl,
-                        size = 48.dp,
+                        size = 48.dp
                     )
+
                     Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(post.authorDisplayName?.takeIf(String::isNotBlank) ?: post.username, style = MaterialTheme.typography.bodyMedium)
-                        Text(formatBackendDateTime(post.createdAt), style = MaterialTheme.typography.bodySmall, color = HintColor)
-                        if (post.isEdited) Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
+
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            post.authorDisplayName
+                                ?.takeIf(String::isNotBlank)
+                                ?: post.username,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        Text(
+                            formatPostTimestamp(post.createdAt),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = HintColor
+                        )
+
+                        if (post.isEdited) {
+                            Text(
+                                "Edited",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = HintColor
+                            )
+                        }
                     }
-                    Spacer(Modifier.weight(1f))
+
+                    Spacer(Modifier.width(8.dp))
+
+                    post.tags.firstOrNull()?.name
+                        ?.takeIf(String::isNotBlank)
+                        ?.let { tagName ->
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = OrangeLight
+                            ) {
+                                Text(
+                                    text = tagName,
+                                    modifier = Modifier
+                                        .widthIn(max = 120.dp)
+                                        .padding(
+                                            horizontal = 9.dp,
+                                            vertical = 5.dp
+                                        ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = OrangePrimary,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
                     if (post.canDelete) {
                         Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "Post options", tint = HintColor)
+                            IconButton(
+                                onClick = { showMenu = true }
+                            ) {
+                                Icon(
+                                    Icons.Outlined.MoreVert,
+                                    contentDescription = "Post options",
+                                    tint = HintColor
+                                )
                             }
-                            MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(surface = OrangeLight, primary = OrangePrimary)) {
-                                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                    DropdownMenuItem(text = { Text("Edit post") }, onClick = { showMenu = false; onEditClick() })
-                                    DropdownMenuItem(text = { Text("Delete post") }, onClick = { showMenu = false; onDeleteClick() })
+
+                            MaterialTheme(
+                                colorScheme = MaterialTheme.colorScheme.copy(
+                                    surface = OrangeLight,
+                                    primary = OrangePrimary
+                                )
+                            ) {
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Edit post") },
+                                        onClick = {
+                                            showMenu = false
+                                            onEditClick()
+                                        }
+                                    )
+
+                                    DropdownMenuItem(
+                                        text = { Text("Delete post") },
+                                        onClick = {
+                                            showMenu = false
+                                            onDeleteClick()
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -111,97 +207,110 @@ fun PostDetailCard(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                post.tags.firstOrNull()?.name?.takeIf(String::isNotBlank)?.let { tagName ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Surface(shape = RoundedCornerShape(50), color = OrangeLight) {
-                            Text(
-                                text = tagName,
-                                modifier = Modifier
-                                    .widthIn(max = 180.dp)
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = OrangePrimary,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(post.title, style = MaterialTheme.typography.titleMedium)
-            }
 
-            if (isEventPost) {
-                post.eventCategoryName?.takeIf(String::isNotBlank)?.let { category ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Surface(shape = RoundedCornerShape(18.dp), color = OrangeLight) {
-                            Text(
-                                text = category,
-                                modifier = Modifier
-                                    .widthIn(max = 180.dp)
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = OrangePrimary,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
+                Text(
+                    post.title,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
 
             resolvePostImageUrl(post.imageUrl)?.let { imageUrl ->
                 Spacer(Modifier.height(12.dp))
+
                 AsyncImage(
                     model = imageUrl,
-                    contentDescription = if (isEventPost) "${post.title} poster" else null,
-                    modifier = Modifier.fillMaxWidth().height(if (isEventPost) 220.dp else 220.dp),
+                    contentDescription = if (isEventPost) {
+                        "${post.title} poster"
+                    } else {
+                        null
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
                     contentScale = ContentScale.Crop
                 )
             }
 
             if (isEventPost) {
                 Spacer(Modifier.height(10.dp))
+
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
                     EventInfoCell(
-                        icon = { Icon(Icons.Outlined.CalendarMonth, null, tint = OrangePrimary, modifier = Modifier.size(18.dp)) },
+                        icon = {
+                            Icon(
+                                Icons.Outlined.CalendarMonth,
+                                null,
+                                tint = OrangePrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
                         label = "DATE",
-                        value = post.eventStartTime?.let(::formatEventDate).orEmpty(),
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        value = post.eventStartTime
+                            ?.let(::formatEventDate)
+                            .orEmpty(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
                     )
+
                     EventInfoCell(
-                        icon = { Icon(Icons.Outlined.Schedule, null, tint = OrangePrimary, modifier = Modifier.size(18.dp)) },
+                        icon = {
+                            Icon(
+                                Icons.Outlined.Schedule,
+                                null,
+                                tint = OrangePrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
                         label = "TIME",
-                        value = post.eventStartTime?.let(::formatEventClockTime).orEmpty(),
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        value = post.eventStartTime
+                            ?.let(::formatEventClockTime)
+                            .orEmpty(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
                     )
+
                     EventInfoCell(
-                        icon = { Icon(Icons.Outlined.LocationOn, null, tint = OrangePrimary, modifier = Modifier.size(18.dp)) },
+                        icon = {
+                            Icon(
+                                Icons.Outlined.LocationOn,
+                                null,
+                                tint = OrangePrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
                         label = "MAP",
                         value = post.eventVenue?.takeIf(String::isNotBlank)
-                            ?: listOfNotNull(post.eventLatitude, post.eventLongitude).joinToString(", ").ifBlank { "Location TBD" },
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                            ?: listOfNotNull(
+                                post.eventLatitude,
+                                post.eventLongitude
+                            ).joinToString(", ").ifBlank {
+                                "Location TBD"
+                            },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
                     )
                 }
             }
 
             if (post.body.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))
-                Text(post.body, style = MaterialTheme.typography.bodyMedium)
+
+                Text(
+                    post.body,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(2.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -214,6 +323,7 @@ fun PostDetailCard(
                     onUpvoteClick = onUpvoteClick,
                     onDownvoteClick = onDownvoteClick
                 )
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Outlined.ChatBubbleOutline,
@@ -221,7 +331,12 @@ fun PostDetailCard(
                         tint = OrangePrimary,
                         modifier = Modifier.size(19.dp)
                     )
-                    Text(" $commentCount", color = HintColor, style = MaterialTheme.typography.bodyMedium)
+
+                    Text(
+                        " $commentCount",
+                        color = HintColor,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }
@@ -237,17 +352,29 @@ private fun EventHeader(
     onEditClick: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.Top) {
+
         AppAvatar(
             entityId = post.eventOrganizerUserId,
-            displayName = post.eventOrganizerDisplayName?.takeIf(String::isNotBlank)
+            displayName = post.eventOrganizerDisplayName
+                ?.takeIf(String::isNotBlank)
                 ?: post.eventOrganizerName.orEmpty(),
             imageUrl = post.eventOrganizerAvatarUrl,
-            size = 42.dp,
+            size = 42.dp
         )
-        Column(Modifier.weight(1f).padding(start = 10.dp, end = 4.dp)) {
-            Text(post.title, style = MaterialTheme.typography.titleMedium)
+
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(start = 10.dp, end = 4.dp)
+        ) {
             Text(
-                post.eventOrganizerDisplayName?.takeIf(String::isNotBlank)
+                post.title,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Text(
+                post.eventOrganizerDisplayName
+                    ?.takeIf(String::isNotBlank)
                     ?: post.eventOrganizerName.orEmpty(),
                 modifier = Modifier.padding(top = 2.dp),
                 style = MaterialTheme.typography.bodySmall,
@@ -255,15 +382,52 @@ private fun EventHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
             if (post.isEdited) {
-                Text("Edited", style = MaterialTheme.typography.labelSmall, color = HintColor)
+                Text(
+                    "Edited",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = HintColor
+                )
             }
         }
+
+        post.eventCategoryName
+            ?.takeIf(String::isNotBlank)
+            ?.let { category ->
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = OrangeLight
+                ) {
+                    Text(
+                        text = category,
+                        modifier = Modifier
+                            .widthIn(max = 120.dp)
+                            .padding(
+                                horizontal = 9.dp,
+                                vertical = 5.dp
+                            ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OrangePrimary,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
         if (post.canDelete) {
             Box {
-                IconButton(onClick = { onMenuExpandedChange(true) }) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = "Post options", tint = HintColor)
+                IconButton(
+                    onClick = { onMenuExpandedChange(true) }
+                ) {
+                    Icon(
+                        Icons.Outlined.MoreVert,
+                        contentDescription = "Post options",
+                        tint = HintColor
+                    )
                 }
+
                 MaterialTheme(
                     colorScheme = MaterialTheme.colorScheme.copy(
                         surface = OrangeLight,
@@ -272,15 +436,24 @@ private fun EventHeader(
                 ) {
                     DropdownMenu(
                         expanded = showMenu,
-                        onDismissRequest = { onMenuExpandedChange(false) }
+                        onDismissRequest = {
+                            onMenuExpandedChange(false)
+                        }
                     ) {
                         DropdownMenuItem(
                             text = { Text("Edit post") },
-                            onClick = { onMenuExpandedChange(false); onEditClick() }
+                            onClick = {
+                                onMenuExpandedChange(false)
+                                onEditClick()
+                            }
                         )
+
                         DropdownMenuItem(
                             text = { Text("Delete post") },
-                            onClick = { onMenuExpandedChange(false); onDeleteClick() }
+                            onClick = {
+                                onMenuExpandedChange(false)
+                                onDeleteClick()
+                            }
                         )
                     }
                 }
@@ -296,11 +469,27 @@ private fun EventInfoCell(
     value: String,
     modifier: Modifier = Modifier
 ) {
-    Row(modifier.background(OrangeBg, RoundedCornerShape(12.dp)).padding(9.dp), verticalAlignment = Alignment.Top) {
+    Row(
+        modifier
+            .background(OrangeBg, RoundedCornerShape(12.dp))
+            .padding(9.dp),
+        verticalAlignment = Alignment.Top
+    ) {
         icon()
+
         Column(Modifier.padding(start = 7.dp)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = HintColor)
-            Text(value, style = MaterialTheme.typography.bodySmall, color = Color.Black, maxLines = 2)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = HintColor
+            )
+
+            Text(
+                value,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Black,
+                maxLines = 2
+            )
         }
     }
 }
