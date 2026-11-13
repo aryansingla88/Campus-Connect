@@ -70,11 +70,14 @@ public class PostServiceImpl implements PostService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<PostResponse> getAllPosts() {
+    public List<PostResponse> getAllPosts(String query) {
 
         Integer currentUserId = SecurityUtils.getCurrentUserId();
 
-        List<Post> posts = postRepository.findAllByPostTypeAndDeletedAtIsNullOrderByCreatedAtDesc("GENERAL");
+        String normalizedQuery = query == null ? "" : query.trim();
+        List<Post> posts = normalizedQuery.isEmpty()
+                ? postRepository.findAllByPostTypeAndDeletedAtIsNullOrderByCreatedAtDesc("GENERAL")
+                : postRepository.searchGeneralPosts(normalizedQuery);
         if (posts.isEmpty()) {
             return List.of();
         }
@@ -138,9 +141,11 @@ public class PostServiceImpl implements PostService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<EventPostResponse> getEventPosts() {
-        List<Post> eventPosts = postRepository
-                .findAllByPostTypeAndEventIdIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc("EVENTS");
+    public List<EventPostResponse> getEventPosts(String query) {
+        String normalizedQuery = query == null ? "" : query.trim();
+        List<Post> eventPosts = normalizedQuery.isEmpty()
+                ? postRepository.findAllByPostTypeAndEventIdIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc("EVENTS")
+                : postRepository.searchEventPosts(normalizedQuery);
         if (eventPosts.isEmpty()) return List.of();
 
         List<Integer> eventIds = eventPosts.stream().map(Post::getEventId).distinct().toList();

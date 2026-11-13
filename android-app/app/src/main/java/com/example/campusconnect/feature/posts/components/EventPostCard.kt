@@ -62,6 +62,7 @@ import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.utils.formatEventClockTime
 import com.example.campusconnect.feature.posts.utils.formatEventDateWithoutYear
+import com.example.campusconnect.feature.posts.utils.highlightPostSearchMatches
 import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -75,7 +76,8 @@ fun EventPostCard(
     onDeleteClick: () -> Unit = {},
     onUpvoteClick: () -> Unit = {},
     onDownvoteClick: () -> Unit = {},
-    isVoting: Boolean = false
+    isVoting: Boolean = false,
+    searchHighlightQuery: String = ""
 ) {
     var showMenu by remember(event.id) { mutableStateOf(false) }
     var isVisible by remember(event.id) { mutableStateOf(false) }
@@ -127,12 +129,14 @@ fun EventPostCard(
                         MarqueeValue(
                             value = event.title,
                             enabled = marqueeEnabled,
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
+                            searchHighlightQuery = searchHighlightQuery
                         )
+                        val organizerName = event.organizerDisplayName?.takeIf(String::isNotBlank)
+                            ?: event.organizerName?.takeIf(String::isNotBlank)
+                            ?: event.hostName.orEmpty()
                         Text(
-                            text = event.organizerDisplayName?.takeIf(String::isNotBlank)
-                                ?: event.organizerName?.takeIf(String::isNotBlank)
-                                ?: event.hostName.orEmpty(),
+                            text = highlightPostSearchMatches(organizerName, searchHighlightQuery),
                             modifier = Modifier.padding(top = 2.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = HintColor,
@@ -210,7 +214,7 @@ fun EventPostCard(
                 ?.takeIf(String::isNotBlank)
                 ?.let { descriptionPreview ->
                     Text(
-                        text = descriptionPreview,
+                        text = highlightPostSearchMatches(descriptionPreview, searchHighlightQuery),
                         modifier = Modifier.padding(top = 10.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 2
@@ -312,7 +316,8 @@ private fun EventInfoCell(
 private fun MarqueeValue(
     value: String,
     enabled: Boolean,
-    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodySmall
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodySmall,
+    searchHighlightQuery: String = ""
 ) {
     val scrollState = remember(value) { ScrollState(0) }
     val density = LocalDensity.current
@@ -349,7 +354,7 @@ private fun MarqueeValue(
             .horizontalScroll(scrollState, enabled = false)
     ) {
         Text(
-            text = value,
+            text = highlightPostSearchMatches(value, searchHighlightQuery),
             style = style,
             color = Color.Black,
             maxLines = 1,

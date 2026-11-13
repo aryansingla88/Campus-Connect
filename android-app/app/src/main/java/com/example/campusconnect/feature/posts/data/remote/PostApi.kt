@@ -28,7 +28,9 @@ interface PostsApi {
     // Feed -------------------------------------------------------------
 
     @GET("posts")
-    suspend fun getPosts():
+    suspend fun getPosts(
+        @Query("q") query: String? = null
+    ):
             Response<ApiResponse<List<Post>>>
 
     @GET("posts/tags")
@@ -47,7 +49,9 @@ interface PostsApi {
     suspend fun getEventCategories(): Response<ApiResponse<List<PostEventCategory>>>
 
     @GET("posts/events")
-    suspend fun getEventPosts(): Response<ApiResponse<List<PostEvent>>>
+    suspend fun getEventPosts(
+        @Query("q") query: String? = null
+    ): Response<ApiResponse<List<PostEvent>>>
     @GET("posts/{postId}")
     suspend fun getPost(
 

@@ -16,7 +16,7 @@ import java.util.List;
 
 public interface PostService {
 
-    List<PostResponse> getAllPosts();
+    List<PostResponse> getAllPosts(String query);
 
     PostResponse getPostById(Integer postId);
 
@@ -24,7 +24,7 @@ public interface PostService {
 
     List<PostTagCountResponse> getGeneralPostTagCounts();
 
-    List<EventPostResponse> getEventPosts();
+    List<EventPostResponse> getEventPosts(String query);
 
     PostResponse createPost(CreatePostRequest request);
 

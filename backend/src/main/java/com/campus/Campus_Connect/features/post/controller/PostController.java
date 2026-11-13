@@ -76,8 +76,10 @@ public class PostController {
     }
 
     @GetMapping("/events")
-    public ApiResponse<List<EventPostResponse>> getEventPosts() {
-        return ApiResponse.success(postService.getEventPosts(), null);
+    public ApiResponse<List<EventPostResponse>> getEventPosts(
+            @RequestParam(value = "q", required = false) String query
+    ) {
+        return ApiResponse.success(postService.getEventPosts(query), null);
     }
     @DeleteMapping("/{postId}")
     public ApiResponse<Void> deletePost(
@@ -93,9 +95,11 @@ public class PostController {
     }
 
     @GetMapping
-    public ApiResponse<List<PostResponse>> getAllPosts() {
+    public ApiResponse<List<PostResponse>> getAllPosts(
+            @RequestParam(value = "q", required = false) String query
+    ) {
 
-        List<PostResponse> posts = postService.getAllPosts();
+        List<PostResponse> posts = postService.getAllPosts(query);
 
         return ApiResponse.success(
                 posts,

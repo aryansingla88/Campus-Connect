@@ -22,7 +22,9 @@ fun <T> SearchPopup(
     onSearch: (String) -> Unit,
     itemContent: @Composable (T) -> Unit,
     onDismiss: () -> Unit,
-    showEmbeddedPlus: Boolean = false
+    showEmbeddedPlus: Boolean = false,
+    isLoading: Boolean = false,
+    statusMessage: String? = null
 ) {
     if (!visible) return
 
@@ -78,8 +80,20 @@ fun <T> SearchPopup(
                     verticalArrangement =
                         Arrangement.spacedBy(8.dp)
                 ) {
-                    items.forEach { item ->
-                        itemContent(item)
+                    when {
+                        isLoading -> Box(
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                        items.isEmpty() && statusMessage != null -> Text(
+                            text = statusMessage,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        else -> items.forEach { item -> itemContent(item) }
                     }
                 }
             }

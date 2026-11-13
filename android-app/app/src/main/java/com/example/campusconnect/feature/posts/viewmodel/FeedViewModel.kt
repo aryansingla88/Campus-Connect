@@ -14,9 +14,9 @@ class FeedViewModel(
     private val repository: PostsRepository = ApiPostsRepository()
 ) : ViewModel() {
 
-    suspend fun getPosts(): Result<List<Post>> {
+    suspend fun getPosts(query: String? = null): Result<List<Post>> {
 
-        return repository.getPosts()
+        return repository.getPosts(query)
     }
 
     suspend fun getPost(
@@ -39,7 +39,7 @@ class FeedViewModel(
 
     suspend fun getEventCategories(): Result<List<PostEventCategory>> = repository.getEventCategories()
 
-    suspend fun getEventPosts() = repository.getEventPosts()
+    suspend fun getEventPosts(query: String? = null) = repository.getEventPosts(query)
 
     suspend fun createPost(
         postType: String,

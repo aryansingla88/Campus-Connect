@@ -22,6 +22,7 @@ import com.example.campusconnect.feature.posts.models.PostEventCategory
 
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
+import kotlinx.coroutines.CancellationException
 
 
 class ApiPostsRepository(
@@ -59,17 +60,19 @@ class ApiPostsRepository(
                 )
             }
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
 
             Result.failure(e)
         }
     }
 
-    override suspend fun getPosts(): Result<List<Post>> {
+    override suspend fun getPosts(query: String?): Result<List<Post>> {
 
         return try {
 
-            val response = api.getPosts()
+            val response = api.getPosts(query?.takeIf { it.isNotBlank() })
 
             if (
                 response.isSuccessful &&
@@ -90,6 +93,8 @@ class ApiPostsRepository(
                 )
             }
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
 
             Result.failure(e)
@@ -128,11 +133,13 @@ class ApiPostsRepository(
         Result.failure(Exception(error.message ?: "Could not connect to load your events."))
     }
 
-    override suspend fun getEventPosts(): Result<List<PostEvent>> = try {
-        val response = api.getEventPosts()
+    override suspend fun getEventPosts(query: String?): Result<List<PostEvent>> = try {
+        val response = api.getEventPosts(query?.takeIf { it.isNotBlank() })
         val events = response.body()?.data
         if (response.isSuccessful && events != null) Result.success(events)
         else Result.failure(Exception(response.body()?.message ?: "Failed to load event posts."))
+    } catch (error: CancellationException) {
+        throw error
     } catch (error: Exception) {
         Result.failure(error)
     }

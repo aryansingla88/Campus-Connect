@@ -15,7 +15,7 @@ interface PostsRepository {
 
     // Feed -------------------------------------------------------------
 
-    suspend fun getPosts(): Result<List<Post>>
+    suspend fun getPosts(query: String? = null): Result<List<Post>>
 
     suspend fun getTags(): Result<List<PostTag>>
 
@@ -25,7 +25,7 @@ interface PostsRepository {
 
     suspend fun getEventCategories(): Result<List<PostEventCategory>>
 
-    suspend fun getEventPosts(): Result<List<PostEvent>>
+    suspend fun getEventPosts(query: String? = null): Result<List<PostEvent>>
 
     suspend fun getPost(
         postId: Int

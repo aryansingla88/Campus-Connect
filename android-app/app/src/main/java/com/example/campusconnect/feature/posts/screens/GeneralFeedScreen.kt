@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.campusconnect.core.ui.theme.*
 import com.example.campusconnect.feature.posts.components.FeedTopBar
+import com.example.campusconnect.feature.posts.components.FeedSearchBar
 import com.example.campusconnect.feature.posts.components.EventPostCard
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.PostTag
@@ -52,6 +54,7 @@ import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
 import com.example.campusconnect.feature.posts.models.VoteType
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 //@OptIn means ->"I know I'm using an experimental Material 3 API, and I accept that it may change in future versions."
@@ -105,6 +108,8 @@ fun GeneralFeedScreen(
 
     var voteError by remember { mutableStateOf<String?>(null) }
     var votingEventPostIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    var generalSearchResults by remember { mutableStateOf<List<Post>>(emptyList()) }
+    var eventSearchResults by remember { mutableStateOf<List<PostEvent>>(emptyList()) }
 
     var postToDelete by remember { mutableStateOf<Post?>(null) }
     var deleteError by remember { mutableStateOf<String?>(null) }
@@ -219,6 +224,9 @@ fun GeneralFeedScreen(
                     }
                 }
             }
+            generalSearchResults = generalSearchResults.map { searchedPost ->
+                posts.firstOrNull { it.id == searchedPost.id } ?: searchedPost
+            }
         }
         result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
     }
@@ -286,26 +294,30 @@ fun GeneralFeedScreen(
                     }
                 }
             }
+            generalSearchResults = generalSearchResults.map { searchedPost ->
+                posts.firstOrNull { it.id == searchedPost.id } ?: searchedPost
+            }
         }
         result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
     }
 
     fun updateEventVoteCounts(postId: Int, from: VoteType?, to: VoteType?) {
-        eventPosts = eventPosts.map { currentEvent ->
-            if (currentEvent.postId != postId) {
-                currentEvent
+        fun update(event: PostEvent): PostEvent =
+            if (event.postId != postId) {
+                event
             } else {
-                currentEvent.copy(
-                    upvotes = (currentEvent.upvotes
+                event.copy(
+                    upvotes = (event.upvotes
                         - (if (from == VoteType.UPVOTE) 1 else 0)
                         + (if (to == VoteType.UPVOTE) 1 else 0)).coerceAtLeast(0),
-                    downvotes = (currentEvent.downvotes
+                    downvotes = (event.downvotes
                         - (if (from == VoteType.DOWNVOTE) 1 else 0)
                         + (if (to == VoteType.DOWNVOTE) 1 else 0)).coerceAtLeast(0),
                     userVote = to
                 )
             }
-        }
+        eventPosts = eventPosts.map { currentEvent -> update(currentEvent) }
+        eventSearchResults = eventSearchResults.map { currentEvent -> update(currentEvent) }
     }
 
     suspend fun handleEventVote(event: PostEvent, requestedVote: VoteType) {
@@ -340,6 +352,71 @@ fun GeneralFeedScreen(
 
     var selectedTab by rememberSaveable {
         mutableIntStateOf(initialTab)
+    }
+
+    var showSearchPopup by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var isSearchLoading by remember { mutableStateOf(false) }
+    var searchError by remember { mutableStateOf<String?>(null) }
+    var searchGeneration by remember { mutableIntStateOf(0) }
+    var searchRequestJob by remember { mutableStateOf<Job?>(null) }
+
+    fun resetPostSearch() {
+        searchGeneration++
+        searchRequestJob?.cancel()
+        searchRequestJob = null
+        showSearchPopup = false
+        searchQuery = ""
+        generalSearchResults = emptyList()
+        eventSearchResults = emptyList()
+        isSearchLoading = false
+        searchError = null
+    }
+
+    fun updatePostSearchQuery(query: String) {
+        searchQuery = query
+        searchGeneration++
+        searchRequestJob?.cancel()
+        generalSearchResults = emptyList()
+        eventSearchResults = emptyList()
+        isSearchLoading = query.trim().length >= 2
+        searchError = null
+    }
+
+    fun submitPostSearch(rawQuery: String) {
+        val query = rawQuery.trim()
+        if (query.length < 2) return
+
+        searchRequestJob?.cancel()
+        val requestGeneration = searchGeneration
+        val requestTab = selectedTab
+        isSearchLoading = true
+        searchError = null
+        searchRequestJob = coroutineScope.launch {
+            if (requestTab == 0) {
+                val result = viewModel.getPosts(query)
+                if (requestGeneration != searchGeneration || requestTab != selectedTab || query != searchQuery.trim()) {
+                    return@launch
+                }
+                result.onSuccess { generalSearchResults = it }
+                    .onFailure { searchError = it.message ?: "Couldn't search posts." }
+            } else if (requestTab == 1) {
+                val result = viewModel.getEventPosts(query)
+                if (requestGeneration != searchGeneration || requestTab != selectedTab || query != searchQuery.trim()) {
+                    return@launch
+                }
+                result.onSuccess { eventSearchResults = it }
+                    .onFailure { searchError = it.message ?: "Couldn't search event posts." }
+            }
+            isSearchLoading = false
+        }
+    }
+
+    LaunchedEffect(showSearchPopup, searchQuery, selectedTab) {
+        val query = searchQuery.trim()
+        if (!showSearchPopup || query.length < 2 || selectedTab !in 0..1) return@LaunchedEffect
+        kotlinx.coroutines.delay(300)
+        submitPostSearch(query)
     }
 
     var selectedTopicId by remember {
@@ -389,6 +466,7 @@ fun GeneralFeedScreen(
                     selected = selectedTab == 0,//if selectedTab is 0 then selectedTab==0 returns true and thus selected gets true
 
                     onClick = {
+                        resetPostSearch()
                         selectedTab = 0
                     },
 
@@ -415,6 +493,7 @@ fun GeneralFeedScreen(
                     selected = selectedTab == 1,
 
                     onClick = {
+                        resetPostSearch()
                         selectedTab = 1
                     },
 
@@ -441,6 +520,7 @@ fun GeneralFeedScreen(
                     selected = selectedTab == 2,
 
                     onClick = {
+                        resetPostSearch()
                         selectedTab = 2
                     },
 
@@ -484,15 +564,16 @@ fun GeneralFeedScreen(
                             .padding(padding)
                     ) {
 
-                        FeedTopBar(
-
-                            currentTitle = when (selectedTab) {
-
-                                0 -> "General"
-                                1 -> "Events"
-                                else -> "Custom"
-                            }
-                        )
+                        if (showSearchPopup) {
+                            FeedSearchBar(
+                                query = searchQuery,
+                                onQueryChange = ::updatePostSearchQuery,
+                                onBack = ::resetPostSearch
+                            )
+                            FeedTopBar(currentTitle = "General", showSearchButton = false)
+                        } else {
+                            FeedTopBar(currentTitle = "General", onSearchClick = { showSearchPopup = true })
+                        }
 
                         TopicChipsRow(
 
@@ -555,7 +636,35 @@ fun GeneralFeedScreen(
                                 item(key = "vote-error") { Text(message, color = ErrorRed) }
                             }
 
-                            if (isLoading && posts.isEmpty()) {
+                            if (showSearchPopup) {
+                                item(key = "search-result-summary") {
+                                    val trimmedQuery = searchQuery.trim()
+                                    when {
+                                        trimmedQuery.length < 2 -> Text("Enter at least 2 characters to search.", color = HintColor)
+                                        isSearchLoading -> Text("Searching…", color = HintColor)
+                                        searchError != null -> Text(searchError!!, color = ErrorRed)
+                                        else -> Text(
+                                            "${generalSearchResults.size} ${if (generalSearchResults.size == 1) "result" else "results"} for “$trimmedQuery”",
+                                            color = HintColor
+                                        )
+                                    }
+                                }
+                                if (searchQuery.trim().length >= 2 && !isSearchLoading && searchError == null && generalSearchResults.isEmpty()) {
+                                    item(key = "search-no-results") { Text("No matching posts found.", color = HintColor) }
+                                }
+                                items(generalSearchResults, key = { "search-post-${it.id}" }) { post ->
+                                    com.example.campusconnect.feature.posts.components.PostCard(
+                                        post = post,
+                                        commentCount = post.commentCount,
+                                        searchHighlightQuery = searchQuery,
+                                        onClick = { resetPostSearch(); onPostClick(post.id) },
+                                        onUpvoteClick = { coroutineScope.launch { handleUpvote(post) } },
+                                        onDownvoteClick = { coroutineScope.launch { handleDownvote(post) } },
+                                        onDeleteClick = { postToDelete = post; deleteError = null },
+                                        onEditClick = { onEditPostClick(post.id) }
+                                    )
+                                }
+                            } else if (isLoading && posts.isEmpty()) {
                                 item { Text("Loading posts…") }
                             } else if (errorMessage != null && posts.isEmpty()) {
                                 item { Text(errorMessage!!) }
@@ -609,7 +718,16 @@ fun GeneralFeedScreen(
                     Column(
                         modifier = Modifier.fillMaxSize().padding(padding)
                     ) {
-                        FeedTopBar(currentTitle = "Events")
+                        if (showSearchPopup) {
+                            FeedSearchBar(
+                                query = searchQuery,
+                                onQueryChange = ::updatePostSearchQuery,
+                                onBack = ::resetPostSearch
+                            )
+                            FeedTopBar(currentTitle = "Events", showSearchButton = false)
+                        } else {
+                            FeedTopBar(currentTitle = "Events", onSearchClick = { showSearchPopup = true })
+                        }
                         LazyColumn(
                             modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -618,7 +736,35 @@ fun GeneralFeedScreen(
                             voteError?.let { message ->
                                 item(key = "event-vote-error") { Text(message, color = ErrorRed) }
                             }
-                            if (isLoadingEventPosts && eventPosts.isEmpty()) {
+                            if (showSearchPopup) {
+                                item(key = "event-search-result-summary") {
+                                    val trimmedQuery = searchQuery.trim()
+                                    when {
+                                        trimmedQuery.length < 2 -> Text("Enter at least 2 characters to search.", color = HintColor)
+                                        isSearchLoading -> Text("Searching…", color = HintColor)
+                                        searchError != null -> Text(searchError!!, color = ErrorRed)
+                                        else -> Text(
+                                            "${eventSearchResults.size} ${if (eventSearchResults.size == 1) "result" else "results"} for “$trimmedQuery”",
+                                            color = HintColor
+                                        )
+                                    }
+                                }
+                                if (searchQuery.trim().length >= 2 && !isSearchLoading && searchError == null && eventSearchResults.isEmpty()) {
+                                    item(key = "event-search-no-results") { Text("No matching event posts found.", color = HintColor) }
+                                }
+                                items(eventSearchResults, key = { "search-event-${it.id}" }) { event ->
+                                    EventPostCard(
+                                        event = event,
+                                        isVoting = event.postId?.let(votingEventPostIds::contains) == true,
+                                        searchHighlightQuery = searchQuery,
+                                        onClick = { event.postId?.let { resetPostSearch(); onPostClick(it) } },
+                                        onEditClick = { event.postId?.let(onEditPostClick) },
+                                        onDeleteClick = { eventPostToDelete = event; eventPostDeleteError = null },
+                                        onUpvoteClick = { coroutineScope.launch { handleEventVote(event, VoteType.UPVOTE) } },
+                                        onDownvoteClick = { coroutineScope.launch { handleEventVote(event, VoteType.DOWNVOTE) } }
+                                    )
+                                }
+                            } else if (isLoadingEventPosts && eventPosts.isEmpty()) {
                                 item { Text("Loading event posts…") }
                             } else if (eventPostsError != null && eventPosts.isEmpty()) {
                                 item { Text(eventPostsError!!, color = ErrorRed) }
@@ -675,6 +821,7 @@ fun GeneralFeedScreen(
                             deleteResult
                                 .onSuccess {
                                     posts = posts.filterNot { current -> current.id == post.id }
+                                    generalSearchResults = generalSearchResults.filterNot { current -> current.id == post.id }
                                     postToDelete = null
                                 }
                                 .onFailure { deleteError = it.message ?: "Couldn't delete the post." }
@@ -732,6 +879,7 @@ fun GeneralFeedScreen(
                             deleteResult
                                 .onSuccess {
                                     eventPosts = eventPosts.filterNot { it.postId == postId }
+                                    eventSearchResults = eventSearchResults.filterNot { it.postId == postId }
                                     eventPostToDelete = null
                                 }
                                 .onFailure {

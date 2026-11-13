@@ -32,6 +32,7 @@ import com.example.campusconnect.core.ui.theme.*
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
 import com.example.campusconnect.feature.posts.utils.formatPostTimestamp
+import com.example.campusconnect.feature.posts.utils.highlightPostSearchMatches
 
 @Composable
 fun PostCard(
@@ -41,7 +42,8 @@ fun PostCard(
     onUpvoteClick: () -> Unit,
     onDownvoteClick: () -> Unit,
     onDeleteClick: () -> Unit = {},
-    onEditClick: () -> Unit = {}
+    onEditClick: () -> Unit = {},
+    searchHighlightQuery: String = ""
 ) {
     var showMenu by remember(post.id) { mutableStateOf(false) }
 
@@ -98,7 +100,7 @@ fun PostCard(
                             .padding(start = 10.dp, end = 4.dp)
                     ) {
                         Text(
-                            text = post.username,
+                            text = highlightPostSearchMatches(post.username, searchHighlightQuery),
                             style = MaterialTheme.typography.labelLarge,
                             color = LabelColor,
                             maxLines = 1,
@@ -190,7 +192,7 @@ fun PostCard(
             */
 
             Text(
-                text = post.title,
+                text = highlightPostSearchMatches(post.title, searchHighlightQuery),
                 style = MaterialTheme.typography.titleMedium,
                 color = LabelColor
             )
@@ -224,7 +226,7 @@ fun PostCard(
             */
 
             Text(
-                text = post.body,
+                text = highlightPostSearchMatches(post.body, searchHighlightQuery),
                 style = MaterialTheme.typography.bodyMedium,
                 color = LabelColor.copy(alpha = 0.8f),
                 lineHeight = 24.sp
