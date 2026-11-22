@@ -15,6 +15,8 @@ public class ClubDetailResponse {
 
     private String name;
 
+    private String clubType;
+
     private String description;
 
     private String logoUrl;

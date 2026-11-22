@@ -7,7 +7,6 @@ import com.campus.Campus_Connect.features.auth.dto.response.UserResponse;
 import com.campus.Campus_Connect.features.auth.dto.response.VerifyPasswordResetOtpResponse;
 import com.campus.Campus_Connect.features.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 
@@ -62,7 +61,6 @@ public class AuthController {
 
     @GetMapping("/me")
     public ApiResponse<UserResponse> me() {
-        System.out.println(SecurityContextHolder.getContext().getAuthentication());
         return authService.getCurrentUser();
     }
 }

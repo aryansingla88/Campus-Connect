@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.profile.data.repo
 
 import com.example.campusconnect.CampusConnectApplication
+import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.core.network.RetrofitClient
 import com.example.campusconnect.core.utils.Image.ImageConverter
 import com.example.campusconnect.feature.metadata.courses.CourseRepository
@@ -8,11 +9,13 @@ import com.example.campusconnect.feature.profile.data.mapper.*
 import com.example.campusconnect.feature.profile.data.remote.ProfileApi
 import com.example.campusconnect.feature.profile.data.remote.request.UpdateHonorPriorityRequest
 import com.example.campusconnect.feature.profile.data.remote.request.UpdateProfileRequest
+import com.example.campusconnect.feature.profile.data.remote.response.ClubMembershipResponse
 import com.example.campusconnect.feature.profile.model.*
 import android.net.Uri
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.Response
 class ApiProfileRepository(
     private val api: ProfileApi = RetrofitClient.profileApi,
     private val courseRepository: CourseRepository
@@ -473,42 +476,53 @@ class ApiProfileRepository(
         }
     }
 
-    override suspend fun joinClub(
-        clubId: Int
-    ): Result<Unit> {
-        return try {
-            val response = api.joinClub(clubId)
-
-            if (!response.isSuccessful) {
-                return Result.failure(
-                    Exception("Failed to join club")
-                )
-            }
-
-            Result.success(Unit)
-
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun getClubDetails(clubId: Int): Result<ClubDetails> = try {
+        val response = api.getClubDetails(clubId)
+        if (!response.isSuccessful) {
+            Result.failure(Exception("Failed to fetch club details: ${response.code()}"))
+        } else {
+            val body = response.body()?.data
+            if (body == null) Result.failure(Exception("Club details are empty"))
+            else Result.success(ClubMapper.toClubDetails(body))
         }
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 
-    override suspend fun leaveClub(
-        clubId: Int
-    ): Result<Unit> {
-        return try {
-            val response = api.leaveClub(clubId)
-
-            if (!response.isSuccessful) {
-                return Result.failure(
-                    Exception("Failed to leave club")
-                )
-            }
-
-            Result.success(Unit)
-
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun getClubMembers(clubId: Int): Result<List<ClubMember>> = try {
+        val response = api.getClubMembers(clubId)
+        if (!response.isSuccessful) {
+            Result.failure(Exception("Failed to fetch club members: ${response.code()}"))
+        } else {
+            val body = response.body()?.data
+            if (body == null) Result.failure(Exception("Club members data is empty"))
+            else Result.success(ClubMapper.toClubMembers(body))
         }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun joinClub(clubId: Int): Result<ClubStatus> =
+        changeMembership("join club", ClubStatus.PENDING) { api.joinClub(clubId) }
+
+    override suspend fun leaveClub(clubId: Int): Result<ClubStatus> =
+        changeMembership("leave club", ClubStatus.NOT_JOINED) { api.leaveClub(clubId) }
+
+    // Server's resulting status wins; fallback only if the body omits it.
+    private suspend fun changeMembership(
+        action: String,
+        fallback: ClubStatus,
+        call: suspend () -> Response<ApiResponse<ClubMembershipResponse>>
+    ): Result<ClubStatus> = try {
+        val response = call()
+        if (response.isSuccessful) {
+            val status = response.body()?.data?.memberStatus
+            Result.success(status?.let(ClubMapper::toStatus) ?: fallback)
+        } else {
+            Result.failure(Exception("Failed to $action: ${response.code()}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 
     // Honors-------------------------------------------------------------

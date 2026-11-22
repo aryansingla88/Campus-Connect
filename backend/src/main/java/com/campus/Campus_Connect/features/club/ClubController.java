@@ -51,4 +51,11 @@ public class ClubController {
     ) {
         return clubService.getClub(clubId);
     }
+
+    @GetMapping("/{clubId}/members")
+    public ApiResponse<List<ClubMemberResponse>> getClubMembers(
+            @PathVariable Integer clubId
+    ) {
+        return clubService.getClubMembers(clubId);
+    }
 }

@@ -20,6 +20,7 @@ data class PublicUserProfile(
     // Personal
     val gender: String = "",
     val dob: String = "",
+    val age: Int? = null,
 
     // Contact
     val phone: String = "",
@@ -37,4 +38,10 @@ data class PublicUserProfile(
     // Visibility
     val showPhone: Boolean = false,
     val showSocials: Boolean = true,
+    val showHometown: Boolean = false,
+    val showGender: Boolean = false,
+    val showAge: Boolean = false,
+    val showHonor: Boolean = false,
+    val headerBadges: List<ProfileHonor> = emptyList(),
+    val headerMedals: List<ProfileHonor> = emptyList(),
 )

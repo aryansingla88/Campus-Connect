@@ -5,6 +5,7 @@ import com.campus.Campus_Connect.features.club.entity.ClubMemberId;
 import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberRole;
 import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +37,12 @@ public interface ClubMemberRepository extends JpaRepository<ClubMember, ClubMemb
     );
 
     List<ClubMember> findAllByIdClubIdAndMemberStatus(
+            Integer clubId,
+            ClubMemberStatus memberStatus
+    );
+
+    @EntityGraph(attributePaths = {"user", "user.profile"})
+    List<ClubMember> findAllWithUserProfileByIdClubIdAndMemberStatus(
             Integer clubId,
             ClubMemberStatus memberStatus
     );

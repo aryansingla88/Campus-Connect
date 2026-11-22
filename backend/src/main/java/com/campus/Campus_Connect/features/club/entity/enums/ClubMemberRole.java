@@ -1,7 +1,11 @@
 package com.campus.Campus_Connect.features.club.entity.enums;
 
 public enum ClubMemberRole {
-    MEMBER,
-    ADMIN,
-    PRESIDENT
+    PRESIDENT,
+    VICE_PRESIDENT,
+    SECRETARY,
+    JOINT_SECRETARY,
+    ADDITIONAL_SECRETARY,
+    COMMITTEE_HEAD,
+    MEMBER
 }

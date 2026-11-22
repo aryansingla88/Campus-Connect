@@ -29,6 +29,7 @@ data class ProfileResponse(
     val hometown: String?,
     val gender: String?,
     val dob: String?,
+    val age: Int?,
     val phone: String?,
 
     val github: String?,
@@ -42,6 +43,13 @@ data class ProfileResponse(
 
     val showPhone: Boolean?,
     val showSocials: Boolean?,
+    val showHometown: Boolean?,
+    val showGender: Boolean?,
+    val showAge: Boolean?,
+    val showHonor: Boolean?,
+
+    val headerBadges: List<HonorResponse>?,
+    val headerMedals: List<HonorResponse>?,
 
     val relationshipStatus: String?
 

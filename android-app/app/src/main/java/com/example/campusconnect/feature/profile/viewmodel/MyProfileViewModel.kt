@@ -320,26 +320,9 @@ class MyProfileViewModel(
         }
     }
 
-    fun joinClub(clubId: Int) {
-        viewModelScope.launch {
-            repository
-                .joinClub(clubId)
-                .onSuccess {
-                    refreshClubs()
-                    loadStats()
-                }
-        }
-    }
-
-    fun leaveClub(clubId: Int) {
-        viewModelScope.launch {
-            repository
-                .leaveClub(clubId)
-                .onSuccess {
-                    refreshClubs()
-                    loadStats()
-                }
-        }
+    override suspend fun onMembershipChanged() {
+        refreshClubs()
+        loadStats()
     }
 
     private fun loadConnections() {

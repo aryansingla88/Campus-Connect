@@ -16,6 +16,7 @@ import com.example.campusconnect.core.utils.Image.ImagePickerSheet
 import com.example.campusconnect.core.utils.Image.ImageSource
 import com.example.campusconnect.core.utils.Image.rememberImagePicker
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
+import com.example.campusconnect.feature.profile.model.Club as ProfileClub
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.model.StatPanel
 import com.example.campusconnect.feature.profile.ui.components.*
@@ -27,6 +28,10 @@ import com.example.campusconnect.feature.profile.ui.panels.honor.ManageCollectio
 import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.ui.panels.interests.ManageInterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.MyProfileViewModel
+import com.example.clubs.ui.ClubDetailRoute
+
+private val HeaderBadgePalette = listOf(Color(0xFF2196F3), Color(0xFF9C27B0), Color(0xFF00C853))
+private val HeaderMedalPalette = listOf(Color(0xFFFFA000), Color(0xFF9E9E9E))
 
 //-------------------------------
 // My Profile Screen
@@ -48,6 +53,7 @@ fun MyProfileScreen(
     var showImagePicker by remember {
         mutableStateOf(false)
     }
+    var selectedClub by remember { mutableStateOf<ProfileClub?>(null) }
 
     val snackbarHostState = remember {
         SnackbarHostState()
@@ -72,12 +78,15 @@ fun MyProfileScreen(
 
     BackHandler(
         enabled =
-            showImagePicker ||
+            selectedClub != null ||
+                    showImagePicker ||
                     vm.isEditMode ||
                     vm.activeManagePanel != null ||
                     vm.activePanel != null
     ) {
         when {
+            selectedClub != null -> selectedClub = null
+
             showImagePicker -> {
                 showImagePicker = false
             }
@@ -94,6 +103,16 @@ fun MyProfileScreen(
                 vm.togglePanel(vm.activePanel!!)
             }
         }
+    }
+
+    selectedClub?.let { club ->
+        ClubDetailRoute(
+            club = club,
+            vm = vm,
+            onBack = { selectedClub = null },
+            onMemberClick = onNavigateToProfile
+        )
+        return
     }
 
     //-------------------------------
@@ -230,16 +249,13 @@ fun MyProfileScreen(
                 username = currentProfile.username,
                 bio = currentProfile.bio,
 
-                badgeColors = listOf(
-                    Color(0xFF2196F3),
-                    Color(0xFF9C27B0),
-                    Color(0xFF00C853)
-                ),
+                badgeColors = currentProfile.headerBadges.mapIndexed { index, _ ->
+                    HeaderBadgePalette[index % HeaderBadgePalette.size]
+                },
 
-                medalColors = listOf(
-                    Color(0xFFFFA000),
-                    Color(0xFF9E9E9E)
-                ),
+                medalColors = currentProfile.headerMedals.mapIndexed { index, _ ->
+                    HeaderMedalPalette[index % HeaderMedalPalette.size]
+                },
 
                 isEditMode = vm.isEditMode,
 
@@ -402,7 +418,8 @@ fun MyProfileScreen(
                                 mode = ProfileMode.OWN,
                                 allClubs = vm.allClubs,
                                 onJoinClub = vm::joinClub,
-                                onLeaveClub = vm::leaveClub
+                                onLeaveClub = vm::leaveClub,
+                                onClubClick = { selectedClub = it }
                             )
                         }
 

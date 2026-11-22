@@ -2,7 +2,10 @@ package com.campus.Campus_Connect.features.profile.dto.response;
 
 import com.campus.Campus_Connect.features.connection.dto.ConnectionRelationshipStatus;
 import com.campus.Campus_Connect.features.metadata.courses.dto.CourseResponse;
+import com.campus.Campus_Connect.features.honor.dto.response.HonorResponse;
 import lombok.*;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -30,6 +33,7 @@ public class UserProfileResponse {
     private String hometown;
     private String gender;
     private String dob;
+    private Integer age;
     private String phone;
 
     private String github;
@@ -42,4 +46,12 @@ public class UserProfileResponse {
     // Preferences
     private Boolean showPhone;
     private Boolean showSocials;
+    private Boolean showHometown;
+    private Boolean showGender;
+    private Boolean showAge;
+    private Boolean showHonor;
+
+    private List<HonorResponse> headerBadges;
+
+    private List<HonorResponse> headerMedals;
 }

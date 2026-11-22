@@ -67,7 +67,10 @@ fun NavGraphBuilder.ProfileNav(
 
             ViewProfileScreen(
                 userId = userId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateToProfile = { memberId ->
+                    navController.navigate(ProfileRoutes.viewProfile(memberId))
+                }
             )
         }
     }

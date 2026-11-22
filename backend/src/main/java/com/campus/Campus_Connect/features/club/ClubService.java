@@ -74,6 +74,44 @@ public class ClubService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public ApiResponse<List<ClubMemberResponse>> getClubMembers(Integer clubId) {
+        // Match GET /clubs/{clubId}: member listings require an authenticated context.
+        SecurityUtils.getCurrentUser();
+        if (!clubRepository.existsById(clubId)) {
+            return ApiResponse.failure("Club not found.");
+        }
+
+        List<ClubMemberResponse> members = clubMemberRepository
+                .findAllWithUserProfileByIdClubIdAndMemberStatus(
+                        clubId,
+                        ClubMemberStatus.APPROVED
+                )
+                .stream()
+                .map(member -> {
+                    User user = member.getUser();
+                    String fullName = user.getProfile() == null
+                            ? null
+                            : user.getProfile().getFullName();
+                    String avatarUrl = user.getProfile() == null
+                            ? null
+                            : user.getProfile().getAvatarUrl();
+                    if (fullName == null || fullName.isBlank()) {
+                        fullName = user.getUsername();
+                    }
+                    return ClubMemberResponse.builder()
+                            .userId(user.getId())
+                            .fullName(fullName)
+                            .avatarUrl(avatarUrl)
+                            .role(member.getRole())
+                            .joinedAt(member.getJoinedAt())
+                            .build();
+                })
+                .toList();
+
+        return ApiResponse.success(members, "Club members fetched successfully.");
+    }
+
     //------------------------------------------------------
     @Transactional
     public ApiResponse<ClubMembershipResponse> joinClub(Integer clubId) {
@@ -247,6 +285,7 @@ public class ClubService {
         return ClubResponse.builder()
                 .clubId(club.getId())
                 .name(club.getName())
+                .clubType(club.getClubType())
                 .logoUrl(club.getLogoUrl())
                 .memberCount(getMemberCount(club.getId()))
                 .memberStatus(
@@ -272,6 +311,7 @@ public class ClubService {
         return ClubDetailResponse.builder()
                 .clubId(club.getId())
                 .name(club.getName())
+                .clubType(club.getClubType())
                 .description(club.getDescription())
                 .logoUrl(club.getLogoUrl())
                 .memberCount(getMemberCount(club.getId()))

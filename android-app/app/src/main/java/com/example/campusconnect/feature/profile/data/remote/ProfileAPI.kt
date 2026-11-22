@@ -3,12 +3,21 @@ package com.example.campusconnect.feature.profile.data.remote
 import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.feature.profile.data.remote.request.*
 import com.example.campusconnect.feature.profile.data.remote.response.*
+import com.example.campusconnect.feature.settings.data.UpdateProfileVisibilityPreferencesRequest
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
 interface ProfileApi {
+
+    @GET("settings/preferences")
+    suspend fun getUserPreferences(): Response<ApiResponse<ProfileVisibilityPreferencesResponse>>
+
+    @PATCH("settings/preferences")
+    suspend fun updateUserPreferences(
+        @Body body: UpdateProfileVisibilityPreferencesRequest
+    ): Response<ApiResponse<ProfileVisibilityPreferencesResponse>>
 
 
 
@@ -98,6 +107,16 @@ interface ProfileApi {
     suspend fun getUserClubs(
         @Path("userId") userId: Int
     ): Response<ApiResponse<List<ClubResponse>>>
+
+    @GET("clubs/{clubId}")
+    suspend fun getClubDetails(
+        @Path("clubId") clubId: Int
+    ): Response<ApiResponse<ClubDetailResponse>>
+
+    @GET("clubs/{clubId}/members")
+    suspend fun getClubMembers(
+        @Path("clubId") clubId: Int
+    ): Response<ApiResponse<List<ClubMemberResponse>>>
 
     @POST("clubs/{clubId}/join")
     suspend fun joinClub(
