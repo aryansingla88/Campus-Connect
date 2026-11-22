@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -260,6 +259,9 @@ fun EventPostCard(
                 )
             }
 
+            Spacer(Modifier.height(6.dp))
+            ActionRowSeparator()
+            Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -273,10 +275,7 @@ fun EventPostCard(
                     onDownvoteClick = onDownvoteClick,
                     enabled = !isVoting && event.postId != null
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Comments", tint = OrangePrimary, modifier = Modifier.size(19.dp))
-                    Text(" ${event.commentCount}", color = HintColor, style = MaterialTheme.typography.bodyMedium)
-                }
+                CommentCountButton(event.commentCount)
             }
         }
     }

@@ -24,14 +24,12 @@ fun NavGraphBuilder.postNav(navController: NavController) {
     feedDestination(
         route = POSTS_FEED_ROUTE,
         initialTab = 0,
-        postType = "GENERAL",
         navController = navController
     )
 
     feedDestination(
         route = EVENTS_FEED_ROUTE,
         initialTab = 1,
-        postType = "EVENTS",
         navController = navController
     )
 
@@ -110,7 +108,6 @@ fun NavGraphBuilder.postNav(navController: NavController) {
 private fun NavGraphBuilder.feedDestination(
     route: String,
     initialTab: Int,
-    postType: String,
     navController: NavController
 ) {
     composable(route) { backStackEntry ->
@@ -124,7 +121,7 @@ private fun NavGraphBuilder.feedDestination(
             onPostClick = { postId ->
                 navController.navigate("post_detail/$postId")
             },
-            onCreatePostClick = {
+            onCreatePostClick = { postType ->
                 navController.navigate("$CREATE_POST_ROUTE_BASE/$postType")
             },
             onEditPostClick = { postId -> navController.navigate("edit_post/$postId") }

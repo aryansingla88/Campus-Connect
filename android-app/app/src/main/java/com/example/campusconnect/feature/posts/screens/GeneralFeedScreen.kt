@@ -12,6 +12,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material.icons.Icons
@@ -32,6 +38,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -64,7 +71,7 @@ fun GeneralFeedScreen(
 
     initialTab: Int = 0,
     onPostClick: (Int) -> Unit,
-    onCreatePostClick: () -> Unit,
+    onCreatePostClick: (postType: String) -> Unit,
     onEditPostClick: (Int) -> Unit = {},
     refreshTrigger: Int = 0,
     viewModel: FeedViewModel = FeedViewModel()
@@ -424,6 +431,33 @@ fun GeneralFeedScreen(
         mutableStateOf<Int?>(null)
     }
 
+    val generalFeedListState = rememberLazyListState()
+    var isTopicRowVisible by rememberSaveable { mutableStateOf(true) }
+
+    LaunchedEffect(generalFeedListState) {
+        var previousIndex = generalFeedListState.firstVisibleItemIndex
+        var previousOffset = generalFeedListState.firstVisibleItemScrollOffset
+
+        snapshotFlow {
+            Triple(
+                generalFeedListState.firstVisibleItemIndex,
+                generalFeedListState.firstVisibleItemScrollOffset,
+                generalFeedListState.isScrollInProgress
+            )
+        }.collect { (index, offset, isScrolling) ->
+            if (isScrolling) {
+                when {
+                    index > previousIndex || (index == previousIndex && offset > previousOffset) ->
+                        isTopicRowVisible = false
+                    index < previousIndex || (index == previousIndex && offset < previousOffset) ->
+                        isTopicRowVisible = true
+                }
+            }
+            previousIndex = index
+            previousOffset = offset
+        }
+    }
+
     val filteredPosts =
 
         if (selectedTopicId == null) {
@@ -443,15 +477,19 @@ fun GeneralFeedScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreatePostClick,
-                containerColor = OrangePrimary
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Outlined.Add,
-                    contentDescription = "Create post",
-                    tint = Color.White
-                )
+            if (selectedTab != 2) {
+                FloatingActionButton(
+                    onClick = {
+                        onCreatePostClick(if (selectedTab == 1) "EVENTS" else "GENERAL")
+                    },
+                    containerColor = OrangePrimary
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = "Create post",
+                        tint = Color.White
+                    )
+                }
             }
         },
         bottomBar = {
@@ -570,38 +608,31 @@ fun GeneralFeedScreen(
                                 onQueryChange = ::updatePostSearchQuery,
                                 onBack = ::resetPostSearch
                             )
-                            FeedTopBar(currentTitle = "General", showSearchButton = false)
+                            FeedTopBar(currentTitle = "General", showSearchButton = false, showBrand = false)
                         } else {
                             FeedTopBar(currentTitle = "General", onSearchClick = { showSearchPopup = true })
                         }
 
-                        TopicChipsRow(
-
-                            tags = tags,
-
-                            tagCounts = tagCounts,
-
-                            countsLoading = countsLoading,
-
-                            countsError = countsError,
-
-                            selectedTopic = selectedTopicId,
-
-                            onTopicSelected = {
-
-                                selectedTopicId = it
+                        AnimatedVisibility(
+                            visible = isTopicRowVisible,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column {
+                                TopicChipsRow(
+                                    tags = tags,
+                                    tagCounts = tagCounts,
+                                    countsLoading = countsLoading,
+                                    countsError = countsError,
+                                    selectedTopic = selectedTopicId,
+                                    onTopicSelected = { selectedTopicId = it }
+                                )
+                                tagsError?.let { message ->
+                                    Text("Topics unavailable: $message")
+                                }
+                                Spacer(Modifier.fillMaxWidth().height(6.dp))
                             }
-                        )
-
-                        tagsError?.let { message ->
-                            Text("Topics unavailable: $message")
                         }
-
-                        Spacer(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                        )
 
                         /*
                         In Jetpack Compose, LazyColumn is a vertically scrolling list that only renders
@@ -614,6 +645,8 @@ fun GeneralFeedScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 12.dp),
+
+                            state = generalFeedListState,
 
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                             //above line is for adding space between items
@@ -724,7 +757,7 @@ fun GeneralFeedScreen(
                                 onQueryChange = ::updatePostSearchQuery,
                                 onBack = ::resetPostSearch
                             )
-                            FeedTopBar(currentTitle = "Events", showSearchButton = false)
+                            FeedTopBar(currentTitle = "Events", showSearchButton = false, showBrand = false)
                         } else {
                             FeedTopBar(currentTitle = "Events", onSearchClick = { showSearchPopup = true })
                         }

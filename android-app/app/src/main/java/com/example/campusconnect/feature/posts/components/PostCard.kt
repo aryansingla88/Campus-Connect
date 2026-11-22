@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -232,7 +231,9 @@ fun PostCard(
                 lineHeight = 24.sp
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+            ActionRowSeparator()
+            Spacer(modifier = Modifier.height(4.dp))
 
             /*
             ---------------- ACTION ROW ----------------
@@ -251,16 +252,7 @@ fun PostCard(
                     onDownvoteClick = onDownvoteClick
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.ChatBubbleOutline,
-                        contentDescription = "Comments",
-                        tint = OrangePrimary,
-                        modifier = Modifier.size(19.dp)
-                    )
-
-                    Text(" $commentCount", color = HintColor)
-                }
+                CommentCountButton(commentCount)
             }
         }
     }

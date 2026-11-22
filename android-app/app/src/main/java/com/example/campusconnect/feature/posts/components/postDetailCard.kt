@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Schedule
@@ -309,7 +308,9 @@ fun PostDetailCard(
                 )
             }
 
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(6.dp))
+            ActionRowSeparator()
+            Spacer(Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -324,20 +325,7 @@ fun PostDetailCard(
                     onDownvoteClick = onDownvoteClick
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.ChatBubbleOutline,
-                        contentDescription = "Comments",
-                        tint = OrangePrimary,
-                        modifier = Modifier.size(19.dp)
-                    )
-
-                    Text(
-                        " $commentCount",
-                        color = HintColor,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                CommentCountButton(commentCount)
             }
         }
     }

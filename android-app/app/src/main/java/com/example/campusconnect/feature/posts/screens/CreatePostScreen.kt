@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -18,11 +19,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -39,9 +47,11 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,11 +59,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.campusconnect.core.ui.theme.ErrorRed
 import com.example.campusconnect.core.ui.theme.LabelColor
@@ -65,6 +84,7 @@ import com.example.campusconnect.core.ui.theme.White
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.models.PostEventCategory
+import com.example.campusconnect.feature.posts.components.CreatePostHeaderArt
 import com.example.campusconnect.feature.posts.utils.formatEventDateTime
 import com.example.campusconnect.feature.posts.utils.toTemporaryImageFile
 import com.example.campusconnect.feature.posts.utils.resolvePostImageUrl
@@ -86,7 +106,9 @@ fun CreatePostScreen(
 
     var title by remember { mutableStateOf("") }
     var body by remember { mutableStateOf("") }
-    var postType by remember(initialPostType) { mutableStateOf(initialPostType) }
+    var postType by remember(initialPostType) {
+        mutableStateOf(if (initialPostType.equals("EVENTS", ignoreCase = true)) "EVENTS" else "GENERAL")
+    }
     var tags by remember { mutableStateOf<List<PostTag>>(emptyList()) }
     var selectedTags by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -123,7 +145,7 @@ fun CreatePostScreen(
                     existingPost = post
                     title = post.title
                     body = post.body
-                    selectedTags = post.tags.map { it.id }.toSet()
+                    selectedTags = post.tags.firstOrNull()?.let { setOf(it.id) }.orEmpty()
                     postType = post.postType
                     removeExistingImage = false
                     if (post.postType == "EVENTS") {
@@ -182,50 +204,71 @@ fun CreatePostScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (editPostId == null) "Create Post" else "Edit Post") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
+            if (eventPostMode) {
+                TopAppBar(
+                    title = { Text(if (editPostId == null) "Create Post" else "Edit Post") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp),
+                    color = OrangePrimary,
+                    shadowElevation = 3.dp
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(82.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colorStops = arrayOf(
+                                        0f to Color(0xFFFF5B00),
+                                        0.52f to OrangePrimary,
+                                        1f to Color(0xFFFF9A1F)
+                                    )
+                                )
+                            )
+                    ) {
+                        CreatePostHeaderArt(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(175.dp)
+                                .fillMaxSize()
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = onBackClick) {
+                                Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = White)
+                            }
+                            Text(
+                                text = if (editPostId == null) "Create Post" else "Edit Post",
+                                color = White,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
-            )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = PostsBackground
+        containerColor = if (eventPostMode) PostsBackground else Color(0xFFFFFAF6)
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(if (eventPostMode) 16.dp else 18.dp),
+            verticalArrangement = Arrangement.spacedBy(if (eventPostMode) 14.dp else 16.dp)
         ) {
-            if (editPostId == null) Text("Post type", style = MaterialTheme.typography.titleMedium)
-
-            if (editPostId == null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("GENERAL", "EVENTS", "CUSTOM").forEach { type ->
-                    FilterChip(
-                        selected = postType == type,
-                        onClick = { postType = type },
-                        label = {
-                            Text(type.lowercase().replaceFirstChar { it.uppercase() })
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = White,
-                            labelColor = Color.Black,
-                            selectedContainerColor = White,
-                            selectedLabelColor = OrangePrimary
-                        ),
-                        border = BorderStroke(
-                            1.dp,
-                            if (postType == type) OrangePrimary else Color.Black
-                        )
-                    )
-                }
-            }
-
             if (eventPostMode) {
                 if (editPostId == null) {
                     Text("Choose one of your events", style = MaterialTheme.typography.titleMedium)
@@ -240,7 +283,6 @@ fun CreatePostScreen(
                                 .clickable {
                                     selectedEvent = event
                                     selectedEventCategoryId = event.categoryId
-                                    body = event.description.orEmpty()
                                     imageUri = null
                                     imageFile = null
                                     removeExistingImage = false
@@ -305,34 +347,39 @@ fun CreatePostScreen(
                                 ?.let { Text(it, color = LabelColor) }
 
                             Text("Event category", style = MaterialTheme.typography.titleSmall)
-                            if (categoryLoadError != null) {
-                                Text(categoryLoadError!!, color = ErrorRed)
-                            } else if (eventCategories.isEmpty()) {
-                                Text("No event categories are available.", color = LabelColor)
-                            } else {
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                            val lockedCategoryName = eventCategories
+                                .firstOrNull { it.id == selectedEventCategoryId }
+                                ?.name
+                                ?.takeIf(String::isNotBlank)
+                                ?: event.categoryName?.takeIf(String::isNotBlank)
+                            if (lockedCategoryName != null) {
+                                Surface(
+                                    color = White,
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, OrangePrimary)
                                 ) {
-                                    eventCategories.forEach { category ->
-                                        FilterChip(
-                                            selected = selectedEventCategoryId == category.id,
-                                            onClick = { selectedEventCategoryId = category.id },
-                                            label = { Text(category.name) },
-                                            colors = FilterChipDefaults.filterChipColors(
-                                                containerColor = White,
-                                                labelColor = LabelColor,
-                                                selectedContainerColor = White,
-                                                selectedLabelColor = OrangePrimary
-                                            ),
-                                            border = BorderStroke(
-                                                1.dp,
-                                                if (selectedEventCategoryId == category.id) OrangePrimary else OrangeBorder
-                                            )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                    ) {
+                                        Text(
+                                            text = lockedCategoryName,
+                                            color = OrangePrimary,
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Outlined.Lock,
+                                            contentDescription = "Event category is locked",
+                                            tint = OrangePrimary,
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }
+                            } else if (categoryLoadError != null) {
+                                Text(categoryLoadError!!, color = ErrorRed)
+                            } else {
+                                Text("This event has no category.", color = ErrorRed)
                             }
 
                             Text("Date & time: ${formatEventDateTime(event.startTime)}", color = LabelColor)
@@ -410,114 +457,150 @@ fun CreatePostScreen(
                     }
                 }
             } else {
-            OutlinedTextField(
-                value = title,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = White,
-                    unfocusedContainerColor = White,
-                    focusedBorderColor = OrangePrimary,
-                    unfocusedBorderColor = OrangeBorder,
-                    focusedLabelColor = OrangePrimary,
-                    cursorColor = OrangePrimary
-                ),
-                onValueChange = { title = it },
-                readOnly = editPostId != null,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Title") },
-                singleLine = true,
-                isError = title.isBlank() && errorMessage != null
+                PostComposerTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    placeholder = "Title",
+                    modifier = Modifier.fillMaxWidth().height(68.dp),
+                    singleLine = true,
+                    readOnly = editPostId != null,
+                    isError = title.isBlank() && errorMessage != null
+                )
 
-            )
+                PostComposerTextField(
+                    value = body,
+                    onValueChange = { body = it },
+                    placeholder = "What do you want to share?",
+                    modifier = Modifier.fillMaxWidth().height(220.dp)
+                )
 
-            OutlinedTextField(
-                value = body,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = White,
-                    unfocusedContainerColor = White,
-                    focusedBorderColor = OrangePrimary,
-                    unfocusedBorderColor = OrangeBorder,
-                    focusedLabelColor = OrangePrimary,
-                    cursorColor = OrangePrimary
-                ),
-                onValueChange = { body = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                label = { Text("What do you want to share?") },
-                minLines = 6
-            )
-
-            Text("Tags", style = MaterialTheme.typography.titleMedium)
-
-            if (tags.isEmpty()) {
-                Text("No tags are available yet.", color = ErrorRed)
-            } else {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(top = 4.dp)
                 ) {
-                    tags.forEach { tag ->
-                        FilterChip(
-                            selected = selectedTags.contains(tag.id),
-                            onClick = {
-                                selectedTags = if (selectedTags.contains(tag.id)) {
-                                    selectedTags - tag.id
-                                } else {
-                                    selectedTags + tag.id
-                                }
-                            },
-                            label = { Text(tag.name) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = White,
-                                labelColor = LabelColor,
-                                selectedContainerColor = White,
-                                selectedLabelColor = OrangePrimary
-                            ),
-                            border = BorderStroke(
-                                1.dp,
-                                if (selectedTags.contains(tag.id)) OrangePrimary else OrangeBorder
+                    Icon(
+                        imageVector = Icons.Outlined.LocalOffer,
+                        contentDescription = null,
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Text("Select Categories", style = MaterialTheme.typography.titleMedium, color = LabelColor)
+                }
+
+                if (tags.isEmpty()) {
+                    Text("No tags are available yet.", color = ErrorRed)
+                } else {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        tags.forEach { tag ->
+                            val selected = selectedTags.contains(tag.id)
+                            FilterChip(
+                                selected = selected,
+                                onClick = {
+                                    selectedTags = if (selected) emptySet() else setOf(tag.id)
+                                },
+                                label = { Text(tag.name) },
+                                trailingIcon = if (selected) {
+                                    {
+                                        Icon(
+                                            Icons.Outlined.Check,
+                                            contentDescription = null,
+                                            tint = White,
+                                            modifier = Modifier.size(17.dp)
+                                        )
+                                    }
+                                } else null,
+                                shape = RoundedCornerShape(24.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = White,
+                                    labelColor = LabelColor,
+                                    selectedContainerColor = OrangePrimary,
+                                    selectedLabelColor = White
+                                ),
+                                border = BorderStroke(1.dp, if (selected) OrangePrimary else OrangeBorder)
                             )
-                        )
+                        }
                     }
                 }
-            }
 
-            if ((editPostId == null || existingPost != null) && existingPost?.imageUrl == null) OutlinedButton(
-                onClick = { imagePicker.launch("image/*") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = OrangePrimary),
-                border = BorderStroke(1.dp, OrangePrimary)
-            ) {
-                Icon(
-                    Icons.Outlined.AddPhotoAlternate,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.size(8.dp))
-                Text(if (imageUri == null) "Add image" else "Change image", color=OrangePrimary)
-            }
+                if ((editPostId == null || existingPost != null) && existingPost?.imageUrl == null) {
+                    val imageShape = RoundedCornerShape(20.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(104.dp)
+                            .clip(imageShape)
+                            .background(Color(0xFFFFF3E8))
+                            .drawWithContent {
+                                drawContent()
+                                val dash = 9.dp.toPx()
+                                drawRoundRect(
+                                    color = OrangePrimary,
+                                    cornerRadius = CornerRadius(20.dp.toPx()),
+                                    style = Stroke(
+                                        width = 1.2.dp.toPx(),
+                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, 6.dp.toPx()))
+                                    )
+                                )
+                            }
+                            .clickable { imagePicker.launch("image/*") }
+                            .padding(horizontal = 18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Surface(color = OrangeLight, shape = RoundedCornerShape(15.dp)) {
+                            Icon(
+                                Icons.Outlined.AddPhotoAlternate,
+                                contentDescription = null,
+                                tint = OrangePrimary,
+                                modifier = Modifier.padding(12.dp).size(28.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                if (imageUri == null) "Add Image (Optional)" else "Change Image",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = LabelColor
+                            )
+                            Text(
+                                "Tap to upload or choose from gallery",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LabelColor.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
 
-            if (existingPost?.imageUrl != null) {
-                AsyncImage(
-                    model = resolvePostImageUrl(existingPost?.imageUrl),
-                    contentDescription = "Post image (read only)",
-                    modifier = Modifier.fillMaxWidth().height(220.dp),
-                    contentScale = ContentScale.Crop
-                )
-            }
+                if (existingPost?.imageUrl != null) {
+                    AsyncImage(
+                        model = resolvePostImageUrl(existingPost?.imageUrl),
+                        contentDescription = "Post image (read only)",
+                        modifier = Modifier.fillMaxWidth().height(220.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
 
-            imageUri?.let { uri ->
-                AsyncImage(
-                    model = uri,
-                    contentDescription = "Selected image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp),
-                    contentScale = ContentScale.Crop
-                )
-            }
+                if (existingPost?.imageUrl != null) {
+                    AsyncImage(
+                        model = resolvePostImageUrl(existingPost?.imageUrl),
+                        contentDescription = "Post image (read only)",
+                        modifier = Modifier.fillMaxWidth().height(220.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                imageUri?.let { uri ->
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = "Selected image",
+                        modifier = Modifier.fillMaxWidth().height(220.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
 
             errorMessage?.let {
@@ -525,6 +608,7 @@ fun CreatePostScreen(
             }
 
             Button(
+                shape = if (eventPostMode) RoundedCornerShape(12.dp) else RoundedCornerShape(32.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = OrangePrimary,
                     contentColor = White
@@ -586,9 +670,99 @@ fun CreatePostScreen(
                     }
                 },
                 enabled = !isLoading && !isLoadingPost && (editPostId == null || existingPost?.canDelete == true),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (eventPostMode) 48.dp else 58.dp)
             ) {
+                if (!eventPostMode) {
+                    Icon(Icons.Outlined.Send, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                }
                 Text(when { isLoading -> if (editPostId == null) "Creating..." else "Saving..."; isLoadingPost -> "Loading..."; editPostId != null -> "Save Changes"; else -> "Create Post" })
+            }
+
+        }
+    }
+}
+
+@Composable
+private fun PostComposerTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = false,
+    readOnly: Boolean = false,
+    isError: Boolean = false
+) {
+    val fieldShape = RoundedCornerShape(22.dp)
+    val inputTextStyle = MaterialTheme.typography.bodyLarge.copy(color = LabelColor)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val fieldBorderColor = when {
+        isFocused -> OrangePrimary
+        isError -> ErrorRed
+        else -> OrangeBorder
+    }
+    Surface(
+        modifier = modifier,
+        shape = fieldShape,
+        color = White,
+        border = BorderStroke(if (isFocused) 1.5.dp else 1.dp, fieldBorderColor),
+        shadowElevation = if (isFocused) 2.dp else 0.dp
+    ) {
+        if (singleLine) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = readOnly,
+                    singleLine = true,
+                    interactionSource = interactionSource,
+                    textStyle = inputTextStyle,
+                    cursorBrush = SolidColor(OrangePrimary),
+                    decorationBox = { innerTextField ->
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                            if (value.isEmpty()) {
+                                Text(
+                                    text = placeholder,
+                                    style = inputTextStyle.copy(color = LabelColor.copy(alpha = 0.65f))
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.Top
+            ) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    interactionSource = interactionSource,
+                    textStyle = inputTextStyle,
+                    cursorBrush = SolidColor(OrangePrimary),
+                    maxLines = Int.MAX_VALUE,
+                    decorationBox = { innerTextField ->
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
+                            if (value.isEmpty()) {
+                                Text(
+                                    text = placeholder,
+                                    style = inputTextStyle.copy(color = LabelColor.copy(alpha = 0.65f))
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
+                )
             }
         }
     }

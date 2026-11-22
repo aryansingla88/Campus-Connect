@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +61,57 @@ fun VoteSection(
             enabled = enabled,
             onClick = onDownvoteClick
         )
+    }
+}
+
+@Composable
+fun ActionRowSeparator() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(Color(0xFFE9EAEC))
+    )
+}
+
+@Composable
+fun CommentCountButton(commentCount: Int) {
+    val shape = RoundedCornerShape(15.dp)
+    val hasComments = commentCount > 0
+    val contentColor = if (hasComments) OrangePrimary else HintColor
+    val borderColor = if (hasComments) OrangePrimary else HintColor.copy(alpha = 0.35f)
+    Box(
+        modifier = Modifier
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$commentCount comments"
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier
+                .widthIn(min = 48.dp)
+                .height(30.dp)
+                .clip(shape)
+                .background(if (hasComments) OrangeLight else Color.White)
+                .border(1.dp, borderColor, shape)
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = Icons.Outlined.ChatBubbleOutline,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(17.dp)
+            )
+            Text(
+                text = commentCount.toString(),
+                color = contentColor,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 
