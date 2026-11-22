@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.profile.ui.screen
 import android.app.Application
 
 import androidx.compose.animation.*
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -12,6 +13,10 @@ import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -20,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
+import com.example.campusconnect.feature.profile.model.Club as ProfileClub
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.model.StatPanel
 import com.example.campusconnect.feature.profile.ui.components.*
@@ -28,6 +34,10 @@ import com.example.campusconnect.feature.profile.ui.panels.connections.Connectio
 import com.example.campusconnect.feature.profile.ui.panels.honor.HonorPanel
 import com.example.campusconnect.feature.profile.ui.panels.interests.InterestsPanel
 import com.example.campusconnect.feature.profile.viewmodel.ViewProfileViewModel
+import com.example.clubs.ui.ClubDetailRoute
+
+private val HeaderBadgePalette = listOf(Color(0xFF2196F3), Color(0xFF9C27B0), Color(0xFF00C853))
+private val HeaderMedalPalette = listOf(Color(0xFFFFA000), Color(0xFF9E9E9E))
 
 //-------------------------------
 // View Profile Screen
@@ -36,8 +46,14 @@ import com.example.campusconnect.feature.profile.viewmodel.ViewProfileViewModel
 @Composable
 fun ViewProfileScreen(
     userId: Int,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToProfile: (Int) -> Unit = {}
 ) {
+    var selectedClub by remember { mutableStateOf<ProfileClub?>(null) }
+
+    BackHandler(enabled = selectedClub != null) {
+        selectedClub = null
+    }
 
     //-------------------------------
     // ViewModel
@@ -52,6 +68,16 @@ fun ViewProfileScreen(
             userId = userId
         )
     )
+
+    selectedClub?.let { club ->
+        ClubDetailRoute(
+            club = club,
+            vm = vm,
+            onBack = { selectedClub = null },
+            onMemberClick = onNavigateToProfile
+        )
+        return
+    }
 
     //-------------------------------
     // Scaffold
@@ -78,16 +104,13 @@ fun ViewProfileScreen(
                 username = vm.profile.username,
                 bio = vm.profile.bio,
 
-                badgeColors = listOf(
-                    Color(0xFF2196F3),
-                    Color(0xFF9C27B0),
-                    Color(0xFF00C853)
-                ),
+                badgeColors = vm.profile.headerBadges.mapIndexed { index, _ ->
+                    HeaderBadgePalette[index % HeaderBadgePalette.size]
+                },
 
-                medalColors = listOf(
-                    Color(0xFFFFA000),
-                    Color(0xFF9E9E9E)
-                ),
+                medalColors = vm.profile.headerMedals.mapIndexed { index, _ ->
+                    HeaderMedalPalette[index % HeaderMedalPalette.size]
+                },
 
                 onBack = onBack,
 
@@ -241,7 +264,8 @@ fun ViewProfileScreen(
                         StatPanel.CLUBS -> {
                             ClubsPanel(
                                 clubs = vm.clubs,
-                                mode = ProfileMode.VIEW
+                                mode = ProfileMode.VIEW,
+                                onClubClick = { selectedClub = it }
                             )
                         }
 

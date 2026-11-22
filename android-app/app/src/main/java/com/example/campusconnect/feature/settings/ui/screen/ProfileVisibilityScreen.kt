@@ -40,7 +40,11 @@ fun ProfileVisibilityScreen(
             )
         },
         bottomBar = {
-            SettingsPrimaryButton(text = "Save Changes", onClick = onSaveChanges)
+            SettingsPrimaryButton(
+                text = if (vm.visibilitySaving) "Saving..." else "Save Changes",
+                onClick = { vm.saveProfileVisibility(onSaveChanges) },
+                enabled = !vm.visibilitySaving
+            )
         }
     ) { innerPadding ->
 
@@ -57,6 +61,10 @@ fun ProfileVisibilityScreen(
                 text = "You can choose which information is visible on Campus Connect. " +
                         "Some basic information like your name and course will always be visible."
             )
+
+            vm.visibilityError?.let { error ->
+                Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 4.dp))
+            }
 
             Column {
                 Text(

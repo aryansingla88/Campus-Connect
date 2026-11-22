@@ -34,6 +34,22 @@ public class UserPreference {
     @Builder.Default
     private Boolean showSocials = true;
 
+    @Column(name = "show_hometown", nullable = false)
+    @Builder.Default
+    private Boolean showHometown = false;
+
+    @Column(name = "show_gender", nullable = false)
+    @Builder.Default
+    private Boolean showGender = false;
+
+    @Column(name = "show_age", nullable = false)
+    @Builder.Default
+    private Boolean showAge = false;
+
+    @Column(name = "show_honor", nullable = false)
+    @Builder.Default
+    private Boolean showHonor = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "show_presence", nullable = false)
     @Builder.Default

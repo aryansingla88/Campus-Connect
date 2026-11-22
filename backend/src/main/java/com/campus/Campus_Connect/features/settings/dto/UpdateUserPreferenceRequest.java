@@ -14,6 +14,14 @@ public class UpdateUserPreferenceRequest {
 
     private Boolean showSocials;
 
+    private Boolean showHometown;
+
+    private Boolean showGender;
+
+    private Boolean showAge;
+
+    private Boolean showHonor;
+
     private ShowPresence showPresence;
 
     private Boolean notifyConnections;

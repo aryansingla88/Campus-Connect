@@ -10,6 +10,9 @@ import com.campus.Campus_Connect.features.connection.dto.ConnectionRelationshipS
 import com.campus.Campus_Connect.features.connection.entity.ConnectionStatus;
 import com.campus.Campus_Connect.features.connection.repository.ConnectionRepository;
 import com.campus.Campus_Connect.features.honor.repository.UserHonorRepository;
+import com.campus.Campus_Connect.features.honor.dto.response.HonorResponse;
+import com.campus.Campus_Connect.features.honor.entity.UserHonor;
+import com.campus.Campus_Connect.features.honor.enums.HonorType;
 import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
 import com.campus.Campus_Connect.features.profile.dto.request.UpdateUserProfileRequest;
 import com.campus.Campus_Connect.features.profile.dto.response.UserProfileResponse;
@@ -30,6 +33,8 @@ import com.campus.Campus_Connect.features.club.repository.ClubMemberRepository;
 import com.campus.Campus_Connect.features.metadata.interest.repo.UserInterestRepository;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -59,7 +64,7 @@ public class UserProfileService {
 
         UserPreference preference = getUserPreference(currentUser.getId());
 
-        UserProfileResponse response = buildUserProfileResponse(profile, preference, null);
+        UserProfileResponse response = buildUserProfileResponse(profile, preference, null, true);
 
         return ApiResponse.success(
                 response,
@@ -76,6 +81,7 @@ public class UserProfileService {
         UserPreference preference = getUserPreference(profile.getUserId());
 
         User currentUser = SecurityUtils.getCurrentUser();
+        boolean isOwner = currentUser.getId().equals(profile.getUserId());
 
         ConnectionRelationshipStatus relationshipStatus =
                 connectionService.getRelationshipStatus(
@@ -87,7 +93,8 @@ public class UserProfileService {
                 buildUserProfileResponse(
                         profile,
                         preference,
-                        relationshipStatus
+                        relationshipStatus,
+                        isOwner
                 ),
                 "Profile fetched successfully."
         );
@@ -123,7 +130,7 @@ public class UserProfileService {
                 getUserPreference(currentUser.getId());
 
         UserProfileResponse response =
-                buildUserProfileResponse(profile, preference, null);
+                buildUserProfileResponse(profile, preference, null, true);
 
         return ApiResponse.success(
                 response,
@@ -190,16 +197,20 @@ public class UserProfileService {
         return createdAt.format(formatter);
     }
     //-------------------
-    // TODO: Move showPhone/showSocials privacy enforcement to the backend.
-    // Currently filtered on the frontend.
-
     private UserProfileResponse buildUserProfileResponse(
             UserProfile profile,
             UserPreference preference,
-            ConnectionRelationshipStatus relationshipStatus
+            ConnectionRelationshipStatus relationshipStatus,
+            boolean isOwner
     ) {
 
         User user = profile.getUser();
+        boolean showPhone = isOwner || Boolean.TRUE.equals(preference.getShowPhone());
+        boolean showSocials = isOwner || Boolean.TRUE.equals(preference.getShowSocials());
+        boolean showHometown = isOwner || Boolean.TRUE.equals(preference.getShowHometown());
+        boolean showGender = isOwner || Boolean.TRUE.equals(preference.getShowGender());
+        boolean showAge = isOwner || Boolean.TRUE.equals(preference.getShowAge());
+        boolean showHonor = isOwner || Boolean.TRUE.equals(preference.getShowHonor());
 
         return UserProfileResponse.builder()
                 // User
@@ -214,20 +225,52 @@ public class UserProfileService {
                 .courseId(profile.getCourseId())
                 .admissionYear(profile.getAdmissionYear())
                 .hostel(profile.getHostel())
-                .hometown(profile.getHometown())
-                .gender(profile.getGender())
-                .dob(profile.getDob() != null ? profile.getDob().toString() : null)
-                .phone(profile.getPhone())
-                .github(profile.getGithub())
-                .linkedin(profile.getLinkedin())
-                .instagram(profile.getInstagram())
+                .hometown(showHometown ? profile.getHometown() : null)
+                .gender(showGender ? profile.getGender() : null)
+                .dob(isOwner && profile.getDob() != null ? profile.getDob().toString() : null)
+                .age(showAge ? calculateAge(profile.getDob()) : null)
+                .phone(showPhone ? profile.getPhone() : null)
+                .github(showSocials ? profile.getGithub() : null)
+                .linkedin(showSocials ? profile.getLinkedin() : null)
+                .instagram(showSocials ? profile.getInstagram() : null)
                 .memberSince(formatMemberSince(profile.getCreatedAt()))
                 .relationshipStatus(relationshipStatus)
 
                 // Preferences
-                .showPhone(preference.getShowPhone())
-                .showSocials(preference.getShowSocials())
+                .showPhone(showPhone)
+                .showSocials(showSocials)
+                .showHometown(showHometown)
+                .showGender(showGender)
+                .showAge(showAge)
+                .showHonor(showHonor)
+                .headerBadges(showHonor ? getHeaderHonors(profile.getUserId(), HonorType.BADGE) : java.util.List.of())
+                .headerMedals(showHonor ? getHeaderHonors(profile.getUserId(), HonorType.MEDAL) : java.util.List.of())
 
+                .build();
+    }
+
+    private Integer calculateAge(LocalDate dob) {
+        return dob == null ? null : Period.between(dob, LocalDate.now()).getYears();
+    }
+
+    private java.util.List<HonorResponse> getHeaderHonors(Integer userId, HonorType type) {
+        return userHonorRepository.findByUser_IdAndHonor_TypeOrderByPriorityAsc(userId, type)
+                .stream()
+                .map(this::toHonorResponse)
+                .toList();
+    }
+
+    private HonorResponse toHonorResponse(UserHonor userHonor) {
+        var honor = userHonor.getHonor();
+        return HonorResponse.builder()
+                .honorId(honor.getId())
+                .type(honor.getType())
+                .title(honor.getTitle())
+                .subtitle(honor.getSubtitle())
+                .iconUrl(honor.getIconUrl())
+                .eventId(honor.getEvent() == null ? null : honor.getEvent().getId())
+                .priority(userHonor.getPriority())
+                .awardedAt(userHonor.getAwardedAt())
                 .build();
     }
 //---------------

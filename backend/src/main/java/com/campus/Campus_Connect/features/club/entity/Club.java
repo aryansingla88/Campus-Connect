@@ -27,6 +27,10 @@ public class Club {
     @Column(name = "logo_url")
     private String logoUrl;
 
+    @Column(name = "club_type", nullable = false, length = 32)
+    @Builder.Default
+    private String clubType = "CLUB";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

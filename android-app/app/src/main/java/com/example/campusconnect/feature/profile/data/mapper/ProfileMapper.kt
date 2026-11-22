@@ -10,11 +10,11 @@ object ProfileMapper {
 
     suspend fun toPublicUserProfile(
         response: ProfileResponse,
-        courseRepository: CourseRepository
+        courseRepository: CourseRepository? = null
     ): PublicUserProfile {
 
         val course = response.courseId?.let { courseId ->
-            courseRepository.getCourseById(courseId)
+            courseRepository?.getCourseById(courseId)
         }
 
         val programName = course?.programName.orEmpty()
@@ -62,6 +62,7 @@ object ProfileMapper {
             // Personal
             gender = response.gender.orEmpty(),
             dob = response.dob.orEmpty(),
+            age = response.age,
 
             // Contact
             phone = response.phone.orEmpty(),
@@ -77,6 +78,12 @@ object ProfileMapper {
             // Visibility
             showPhone = response.showPhone ?: false,
             showSocials = response.showSocials ?: true,
+            showHometown = response.showHometown ?: false,
+            showGender = response.showGender ?: false,
+            showAge = response.showAge ?: false,
+            showHonor = response.showHonor ?: false,
+            headerBadges = if (response.showHonor == true) response.headerBadges.orEmpty().map(HonorMapper::toHonor) else emptyList(),
+            headerMedals = if (response.showHonor == true) response.headerMedals.orEmpty().map(HonorMapper::toHonor) else emptyList(),
 
             // Relationship status (null for /users/me)
             relationshipStatus = when (response.relationshipStatus) {

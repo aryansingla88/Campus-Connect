@@ -6,6 +6,8 @@ data class ClubResponse(
 
     val name: String,
 
+    val clubType: String = "CLUB",
+
     val logoUrl: String?,
 
     val memberCount: Int,

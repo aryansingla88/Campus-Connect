@@ -80,6 +80,10 @@ public class UserPreferenceService {
         return UserPreferenceResponse.builder()
                 .showSocials(preference.getShowSocials())
                 .showPhone(preference.getShowPhone())
+                .showHometown(preference.getShowHometown())
+                .showGender(preference.getShowGender())
+                .showAge(preference.getShowAge())
+                .showHonor(preference.getShowHonor())
                 .showPresence(preference.getShowPresence())
                 .notifyConnections(preference.getNotifyConnections())
                 .notifyEvents(preference.getNotifyEvents())
@@ -100,6 +104,22 @@ public class UserPreferenceService {
 
         if (request.getShowSocials() != null) {
             preference.setShowSocials(request.getShowSocials());
+        }
+
+        if (request.getShowHometown() != null) {
+            preference.setShowHometown(request.getShowHometown());
+        }
+
+        if (request.getShowGender() != null) {
+            preference.setShowGender(request.getShowGender());
+        }
+
+        if (request.getShowAge() != null) {
+            preference.setShowAge(request.getShowAge());
+        }
+
+        if (request.getShowHonor() != null) {
+            preference.setShowHonor(request.getShowHonor());
         }
 
         if (request.getShowPresence() != null) {

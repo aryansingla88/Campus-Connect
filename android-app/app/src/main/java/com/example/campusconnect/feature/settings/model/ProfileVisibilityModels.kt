@@ -30,6 +30,8 @@ data class VisibilityToggle(
 object ProfileVisibilityDefaults {
 
     fun alwaysVisibleFields(): List<AlwaysVisibleField> = listOf(
+        AlwaysVisibleField("Email", Icons.Outlined.Email),
+        AlwaysVisibleField("Hostel", Icons.Outlined.House),
         AlwaysVisibleField("Full Name", Icons.Outlined.Badge),
         AlwaysVisibleField("Username", Icons.Outlined.AlternateEmail),
         AlwaysVisibleField("Course", Icons.Outlined.MenuBook),
@@ -44,7 +46,7 @@ object ProfileVisibilityDefaults {
             icon = Icons.Outlined.Phone,
             iconTint = IconOrange,
             iconBackground = IconOrangeBg,
-            isOn = true
+            isOn = false
         ),
         VisibilityToggle(
             id = VisibilityFieldId.SOCIAL_LINKS,
@@ -62,7 +64,7 @@ object ProfileVisibilityDefaults {
             icon = Icons.Outlined.Home,
             iconTint = IconBlue,
             iconBackground = IconBlueBg,
-            isOn = true
+            isOn = false
         ),
         VisibilityToggle(
             id = VisibilityFieldId.GENDER,
@@ -75,8 +77,8 @@ object ProfileVisibilityDefaults {
         ),
         VisibilityToggle(
             id = VisibilityFieldId.AGE,
-            label = "Age",
-            subtitle = "Show your age on profile",
+            label = "Age / DOB",
+            subtitle = "Show your age on profile; your date of birth stays private",
             icon = Icons.Outlined.Cake,
             iconTint = IconRed,
             iconBackground = IconRedBg,
@@ -84,12 +86,12 @@ object ProfileVisibilityDefaults {
         ),
         VisibilityToggle(
             id = VisibilityFieldId.HONORS_ACHIEVEMENTS,
-            label = "Honors & Achievements",
-            subtitle = "Show your honors and achievements in header",
+            label = "Honors Badges and Medals",
+            subtitle = "Show your honors badges and medals in profile header",
             icon = Icons.Outlined.WorkspacePremium,
             iconTint = IconOrange,
             iconBackground = IconOrangeBg,
-            isOn = true
+            isOn = false
         )
     )
 }

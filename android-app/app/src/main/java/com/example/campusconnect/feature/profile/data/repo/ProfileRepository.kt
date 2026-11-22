@@ -45,9 +45,13 @@ interface ProfileRepository {
 
     suspend fun getUserClubs(userId: Int): Result<List<Club>>
 
-    suspend fun joinClub(clubId: Int): Result<Unit>
+    suspend fun getClubDetails(clubId: Int): Result<ClubDetails>
 
-    suspend fun leaveClub(clubId: Int): Result<Unit>
+    suspend fun getClubMembers(clubId: Int): Result<List<ClubMember>>
+
+    suspend fun joinClub(clubId: Int): Result<ClubStatus>
+
+    suspend fun leaveClub(clubId: Int): Result<ClubStatus>
 
     suspend fun getProfileHonors(): Result<ProfileHonors>
 

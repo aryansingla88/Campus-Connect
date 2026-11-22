@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -34,39 +33,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalTextStyle
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 
 // -- Constants ----------------------------------------------------
 private val HOSTEL_OPTIONS = listOf("Hostel 1","Hostel 2","Hostel 3","Hostel 4","Hostel 5","Day Scholar")
 private const val DOB_ISO = "yyyy-MM-dd"
 private const val DOB_DISPLAY = "dd MMM yyyy"
-private fun dobToAge(dob: String): Int? {
-    return runCatching {
-        val format = SimpleDateFormat(DOB_ISO, Locale.getDefault())
-        val birthDate = format.parse(dob) ?: return null
-
-        val today = Calendar.getInstance()
-        val birth = Calendar.getInstance().apply {
-            time = birthDate
-        }
-
-        var age = today.get(Calendar.YEAR) - birth.get(Calendar.YEAR)
-
-        if (
-            today.get(Calendar.MONTH) < birth.get(Calendar.MONTH) ||
-            (
-                    today.get(Calendar.MONTH) == birth.get(Calendar.MONTH) &&
-                            today.get(Calendar.DAY_OF_MONTH) < birth.get(Calendar.DAY_OF_MONTH)
-                    )
-        ) {
-            age--
-        }
-
-        age
-    }.getOrNull()
-}
-
 private fun dobToDisplay(dob: String): String {
     return runCatching {
         val input = SimpleDateFormat(DOB_ISO, Locale.getDefault())
@@ -351,7 +323,7 @@ fun ProfileContent(
                     SectionDivider()
                 }
 
-                if (profile.hometown.isNotBlank()) {
+                if ((mode == ProfileMode.OWN || profile.showHometown) && profile.hometown.isNotBlank()) {
                     InfoRow(
                         Icons.Outlined.LocationOn,
                         "HOMETOWN",
@@ -361,14 +333,17 @@ fun ProfileContent(
                     SectionDivider()
                 }
 
-                if (
-                    profile.gender.isNotBlank() ||
-                    profile.dob.isNotBlank()
-                ) {
+                val canShowGender = mode == ProfileMode.OWN || profile.showGender
+                val canShowAge = mode == ProfileMode.OWN || profile.showAge
+                if ((canShowGender && profile.gender.isNotBlank()) || (canShowAge && profile.age != null)) {
                     GenderAgeRow(
-                        gender = profile.gender,
-                        dob = profile.dob
+                        gender = profile.gender.takeIf { canShowGender }.orEmpty(),
+                        age = profile.age.takeIf { canShowAge }
                     )
+                }
+
+                if (mode == ProfileMode.OWN && profile.dob.isNotBlank()) {
+                    InfoRow(Icons.Outlined.Cake, "DATE OF BIRTH", dobToDisplay(profile.dob))
                 }
             }
 
@@ -524,14 +499,6 @@ private fun InfoRow(
                 ViewText(value)
             }
         }
-        if (!isEditMode) {
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = TextMuted,
-                modifier = Modifier.size(18.dp)
-            )
-        }
     }
 }
 
@@ -539,7 +506,7 @@ private fun InfoRow(
 @Composable
 private fun GenderAgeRow(
     gender: String,
-    dob: String
+    age: Int?
 ) {
     Row(
         modifier              = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
@@ -547,15 +514,20 @@ private fun GenderAgeRow(
         verticalAlignment     = Alignment.CenterVertically
     ) {
         // Gender half
-        SmallInfoItem(Icons.Outlined.Wc, "GENDER", modifier = Modifier.weight(1f)) {
-            ViewText(gender)
+        if (gender.isNotBlank()) {
+            SmallInfoItem(Icons.Outlined.Wc, "GENDER", modifier = Modifier.weight(1f)) {
+                ViewText(gender)
+            }
         }
 
-        Box(Modifier.width(1.dp).height(34.dp).background(DividerColor))
+        if (gender.isNotBlank() && age != null) {
+            Box(Modifier.width(1.dp).height(34.dp).background(DividerColor))
+        }
 
-        // Age half
-        SmallInfoItem(Icons.Outlined.Cake, "AGE", modifier = Modifier.weight(1f)) {
-            ViewText(dobToAge(dob)?.toString() ?: "—")
+        if (age != null) {
+            SmallInfoItem(Icons.Outlined.Cake, "AGE", modifier = Modifier.weight(1f)) {
+                ViewText(age.toString())
+            }
         }
     }
 }
@@ -614,7 +586,6 @@ private fun SocialLinkRow(iconColor: Color, iconText: String, label: String, val
             Text(label, fontSize = 10.sp, color = TextMuted, letterSpacing = 0.4.sp)
             Text(value, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
         }
-        Icon(Icons.Default.ChevronRight, null, tint = TextMuted, modifier = Modifier.size(18.dp))
     }
 }
 

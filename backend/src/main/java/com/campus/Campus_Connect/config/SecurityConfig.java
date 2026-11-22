@@ -33,8 +33,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(request -> AccountRolePolicy.isPublic(
                                 request.getMethod(), request.getServletPath())).permitAll()
-                        // Role enforcement is held while existing ADMIN/MODERATOR accounts are reviewed.
-                        .anyRequest().permitAll())
+                        .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) ->
                                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED))

@@ -6,9 +6,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.campusconnect.feature.settings.data.ProfileVisibilityRepository
+import com.example.campusconnect.feature.settings.data.UpdateProfileVisibilityPreferencesRequest
 import com.example.campusconnect.core.location.TrackingMode
 import com.example.campusconnect.core.location.TrackingModePreferences
 import com.example.campusconnect.feature.settings.model.*
+import kotlinx.coroutines.launch
 
 // --- Which modal sheet (if any) is currently showing over the Settings list -----------
 // LOCATION_VISIBILITY and SELECT_CLUBS are treated as a small chained stack: opening
@@ -19,12 +23,10 @@ enum class SettingsSheet {
 }
 
 // --- Settings screen state holder --------------------------------------------------
-// There is no backing repository — every row is either static copy (rows that aren't
-// built yet, see SettingsDestinations) or local, in-memory state for the screens that
-// ARE built here. Once account/preference data needs to be read or written for real, a
-// SettingsRepository can be introduced the same way ProfileRepository was, and the
-// fields below would move from local mutableStateOf to loaded/saved state.
-class SettingsViewModel : ViewModel() {
+// Profile visibility is loaded and saved through the existing backend preferences API.
+class SettingsViewModel(
+    private val profileVisibilityRepository: ProfileVisibilityRepository = ProfileVisibilityRepository()
+) : ViewModel() {
 
     // --- Main list ---------------------------------------------------------------
     val sections: List<SettingsSection> = SettingsContent.sections()
@@ -45,12 +47,64 @@ class SettingsViewModel : ViewModel() {
     // --- Profile Visibility (full screen) -------------------------------------------
     val alwaysVisibleFields: List<AlwaysVisibleField> = ProfileVisibilityDefaults.alwaysVisibleFields()
     val visibilityToggles = mutableStateListOf(*ProfileVisibilityDefaults.controlFields().toTypedArray())
+    var visibilitySaving by mutableStateOf(false)
+        private set
+    var visibilityError by mutableStateOf<String?>(null)
+        private set
+
+    init {
+        viewModelScope.launch {
+            profileVisibilityRepository.get().onSuccess(::applyVisibilityPreferences)
+                .onFailure { visibilityError = it.message }
+        }
+    }
 
     fun setVisibilityToggle(id: VisibilityFieldId, isOn: Boolean) {
         val index = visibilityToggles.indexOfFirst { it.id == id }
         if (index != -1) {
             visibilityToggles[index] = visibilityToggles[index].copy(isOn = isOn)
         }
+    }
+
+    fun saveProfileVisibility(onSaved: () -> Unit) {
+        if (visibilitySaving) return
+        val values = visibilityToggles.associate { it.id to it.isOn }
+        visibilitySaving = true
+        visibilityError = null
+        viewModelScope.launch {
+            profileVisibilityRepository.update(
+                UpdateProfileVisibilityPreferencesRequest(
+                    showPhone = values[VisibilityFieldId.PHONE_NUMBER] ?: false,
+                    showSocials = values[VisibilityFieldId.SOCIAL_LINKS] ?: true,
+                    showHometown = values[VisibilityFieldId.HOMETOWN] ?: false,
+                    showGender = values[VisibilityFieldId.GENDER] ?: false,
+                    showAge = values[VisibilityFieldId.AGE] ?: false,
+                    showHonor = values[VisibilityFieldId.HONORS_ACHIEVEMENTS] ?: false
+                )
+            ).onSuccess { response ->
+                applyVisibilityPreferences(response)
+                onSaved()
+            }.onFailure { visibilityError = it.message }
+            visibilitySaving = false
+        }
+    }
+
+    private fun applyVisibilityPreferences(
+        response: com.example.campusconnect.feature.profile.data.remote.response.ProfileVisibilityPreferencesResponse
+    ) {
+        val values = mapOf(
+            VisibilityFieldId.PHONE_NUMBER to (response.showPhone ?: false),
+            VisibilityFieldId.SOCIAL_LINKS to (response.showSocials ?: true),
+            VisibilityFieldId.HOMETOWN to (response.showHometown ?: false),
+            VisibilityFieldId.GENDER to (response.showGender ?: false),
+            VisibilityFieldId.AGE to (response.showAge ?: false),
+            VisibilityFieldId.HONORS_ACHIEVEMENTS to (response.showHonor ?: false)
+        )
+        visibilityToggles.indices.forEach { index ->
+            val toggle = visibilityToggles[index]
+            visibilityToggles[index] = toggle.copy(isOn = values[toggle.id] ?: false)
+        }
+        visibilityError = null
     }
 
     // --- Manage Social Links (full screen) -------------------------------------------

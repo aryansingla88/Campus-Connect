@@ -14,6 +14,8 @@ public class ClubResponse {
 
     private String name;
 
+    private String clubType;
+
     private String logoUrl;
 
     private Integer memberCount;

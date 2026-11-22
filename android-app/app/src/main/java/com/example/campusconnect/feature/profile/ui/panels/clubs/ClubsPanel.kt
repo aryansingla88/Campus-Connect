@@ -27,7 +27,8 @@ fun ClubsPanel(
     mode: ProfileMode,
     allClubs: List<Club> = emptyList(),
     onJoinClub: (Int) -> Unit = {},
-    onLeaveClub: (Int) -> Unit = {}
+    onLeaveClub: (Int) -> Unit = {},
+    onClubClick: (Club) -> Unit = {}
 ) {
     var showSearchPopup by remember {
         mutableStateOf(false)
@@ -103,6 +104,7 @@ fun ClubsPanel(
             ProfileListCard(
                 title = club.name,
                 subtitle = "${club.memberCount} members",
+                onClick = { onClubClick(club) },
 
                 leadingContent = {
                     AppAvatar(
@@ -177,6 +179,11 @@ fun ClubsPanel(
             ProfileListCard(
                 title = club.name,
                 subtitle = "${club.memberCount} members",
+                onClick = {
+                    showSearchPopup = false
+                    query = ""
+                    onClubClick(club)
+                },
 
                 leadingContent = {
                     AppAvatar(
