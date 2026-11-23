@@ -24,8 +24,6 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -170,9 +168,7 @@ fun PostDetailCard(
 
                     if (post.canDelete) {
                         Box {
-                            IconButton(
-                                onClick = { showMenu = true }
-                            ) {
+                            IconButton(onClick = { showMenu = true }) {
                                 Icon(
                                     Icons.Outlined.MoreVert,
                                     contentDescription = "Post options",
@@ -180,32 +176,13 @@ fun PostDetailCard(
                                 )
                             }
 
-                            MaterialTheme(
-                                colorScheme = MaterialTheme.colorScheme.copy(
-                                    surface = OrangeLight,
-                                    primary = OrangePrimary
-                                )
-                            ) {
-                                DropdownMenu(
+                            if (showMenu) {
+                                PostActionsMenu(
                                     expanded = showMenu,
-                                    onDismissRequest = { showMenu = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Edit post") },
-                                        onClick = {
-                                            showMenu = false
-                                            onEditClick()
-                                        }
-                                    )
-
-                                    DropdownMenuItem(
-                                        text = { Text("Delete post") },
-                                        onClick = {
-                                            showMenu = false
-                                            onDeleteClick()
-                                        }
-                                    )
-                                }
+                                    onDismiss = { showMenu = false },
+                                    onEdit = onEditClick,
+                                    onDelete = onDeleteClick
+                                )
                             }
                         }
                     }
@@ -416,9 +393,7 @@ private fun EventHeader(
 
         if (post.canDelete) {
             Box {
-                IconButton(
-                    onClick = { onMenuExpandedChange(true) }
-                ) {
+                IconButton(onClick = { onMenuExpandedChange(true) }) {
                     Icon(
                         Icons.Outlined.MoreVert,
                         contentDescription = "Post options",
@@ -426,34 +401,13 @@ private fun EventHeader(
                     )
                 }
 
-                MaterialTheme(
-                    colorScheme = MaterialTheme.colorScheme.copy(
-                        surface = OrangeLight,
-                        primary = OrangePrimary
-                    )
-                ) {
-                    DropdownMenu(
+                if (showMenu) {
+                    PostActionsMenu(
                         expanded = showMenu,
-                        onDismissRequest = {
-                            onMenuExpandedChange(false)
-                        }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Edit post") },
-                            onClick = {
-                                onMenuExpandedChange(false)
-                                onEditClick()
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Delete post") },
-                            onClick = {
-                                onMenuExpandedChange(false)
-                                onDeleteClick()
-                            }
-                        )
-                    }
+                        onDismiss = { onMenuExpandedChange(false) },
+                        onEdit = onEditClick,
+                        onDelete = onDeleteClick
+                    )
                 }
             }
         }

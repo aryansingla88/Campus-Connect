@@ -22,8 +22,6 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -163,25 +161,13 @@ fun EventPostCard(
                                     tint = HintColor
                                 )
                             }
-                            MaterialTheme(
-                                colorScheme = MaterialTheme.colorScheme.copy(
-                                    surface = OrangeLight,
-                                    primary = OrangePrimary
-                                )
-                            ) {
-                                DropdownMenu(
+                            if (showMenu) {
+                                PostActionsMenu(
                                     expanded = showMenu,
-                                    onDismissRequest = { showMenu = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Edit post") },
-                                        onClick = { showMenu = false; onEditClick() }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Delete post") },
-                                        onClick = { showMenu = false; onDeleteClick() }
-                                    )
-                                }
+                                    onDismiss = { showMenu = false },
+                                    onEdit = onEditClick,
+                                    onDelete = onDeleteClick
+                                )
                             }
                         }
                     }
