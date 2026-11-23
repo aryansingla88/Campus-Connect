@@ -43,6 +43,8 @@ fun TopicChipsRow(
 
     countsLoading: Boolean,
 
+    tagsLoading: Boolean = false,
+
     countsError: String?,
 
     selectedTopic: Int?,
@@ -83,24 +85,24 @@ fun TopicChipsRow(
         TOPIC CHIPS
          */
 
-            items(tags) { tag ->
-                val postCount = tagCounts
-                    ?.firstOrNull { count -> count.id == tag.id }
-                    ?.postCount
+            if (tagsLoading && tags.isEmpty()) {
+                items(listOf(96.dp, 128.dp, 104.dp, 120.dp, 88.dp)) { chipWidth ->
+                    TopicChipGhost(width = chipWidth)
+                }
+            } else {
+                items(tags) { tag ->
+                    val postCount = tagCounts
+                        ?.firstOrNull { count -> count.id == tag.id }
+                        ?.postCount
 
-                TopicChip(
-
-                    tag = tag,
-
-                    postCount = postCount,
-
-                    isSelected = selectedTopic == tag.id,
-
-                    onClick = {
-
-                        onTopicSelected(tag.id)
-                    }
-                )
+                    TopicChip(
+                        tag = tag,
+                        postCount = postCount,
+                        isCountLoading = countsLoading,
+                        isSelected = selectedTopic == tag.id,
+                        onClick = { onTopicSelected(tag.id) }
+                    )
+                }
             }
         }
 
@@ -120,8 +122,7 @@ fun TopicChipsRow(
         }
     }
 
-    when {
-        countsLoading -> Text("Loading topic counts…")
-        countsError != null -> Text("Topic counts unavailable: $countsError")
+    if (countsError != null) {
+        Text("Topic counts unavailable: $countsError")
     }
 }

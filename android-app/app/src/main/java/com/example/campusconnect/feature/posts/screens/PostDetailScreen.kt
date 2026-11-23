@@ -24,7 +24,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.core.ui.theme.HintColor
 import com.example.campusconnect.feature.posts.components.CommentCard
 import com.example.campusconnect.feature.posts.components.CommentComposer
+import com.example.campusconnect.feature.posts.components.CommentRowGhost
+import com.example.campusconnect.feature.posts.components.CommentsHeaderGhost
 import com.example.campusconnect.feature.posts.components.PostDetailCard
+import com.example.campusconnect.feature.posts.components.PostDetailCardGhost
 import com.example.campusconnect.feature.posts.components.PostDetailTopBar
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
@@ -35,19 +38,28 @@ import kotlinx.coroutines.launch
 @Composable
 fun PostDetailScreen(
     postId: Int,
+    initialPostType: String = "GENERAL",
     onBackClick: () -> Unit,
     onEditPost: (Int) -> Unit = {},
     onUserProfileClick: (Int) -> Unit = {},
     refreshTrigger: Int = 0
 ) {
     key(postId) {
-        PostDetailContent(postId, onBackClick, onEditPost, onUserProfileClick, refreshTrigger)
+        PostDetailContent(
+            postId,
+            initialPostType,
+            onBackClick,
+            onEditPost,
+            onUserProfileClick,
+            refreshTrigger
+        )
     }
 }
 
 @Composable
 private fun PostDetailContent(
     postId: Int,
+    initialPostType: String,
     onBackClick: () -> Unit,
     onEditPost: (Int) -> Unit,
     onUserProfileClick: (Int) -> Unit,
@@ -215,9 +227,13 @@ private fun PostDetailContent(
             modifier = Modifier.weight(1f)
         ) {
             if (isLoadingPost) {
-                item(key = "post-loading") {
-                    Text("Loading post…", color = HintColor, modifier = Modifier.padding(16.dp))
+                item(key = "post-detail-skeleton") {
+                    PostDetailCardGhost(
+                        isEventPost = initialPostType.equals("EVENTS", ignoreCase = true)
+                    )
                 }
+                item(key = "comments-header-skeleton") { CommentsHeaderGhost() }
+                items(2, key = { "comment-skeleton-$it" }) { CommentRowGhost() }
             } else if (postLoadError != null) {
                 item(key = "post-error") {
                     Text(postLoadError ?: "Post not found.", color = HintColor, modifier = Modifier.padding(16.dp))
@@ -247,21 +263,19 @@ private fun PostDetailContent(
             }
 
             item(key = "comments-header") {
-                Text(
-                    text = "Comments (${commentsForPost.size})",
-                    style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                if (isLoadingComments) {
+                    CommentsHeaderGhost()
+                } else {
+                    Text(
+                        text = "Comments (${commentsForPost.size})",
+                        style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
             }
 
             if (isLoadingComments) {
-                item(key = "comments-loading") {
-                    Text(
-                        text = "Loading comments…",
-                        color = HintColor,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                    )
-                }
+                items(2, key = { "comment-loading-$it" }) { CommentRowGhost() }
             } else if (commentsForPost.isEmpty()) {
                 item(key = "comments-empty") {
                     Text(

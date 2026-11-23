@@ -3,7 +3,9 @@ package com.example.campusconnect.feature.posts.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 
@@ -29,6 +31,8 @@ fun TopicChip(
     tag: PostTag,
 
     postCount: Long?,
+
+    isCountLoading: Boolean = false,
 
     isSelected: Boolean,
 
@@ -94,17 +98,22 @@ fun TopicChip(
         POST COUNT
          */
 
-        Text(
-
-            text = postCount?.toString() ?: "…",
-
-            color =
-                if (isSelected)
-                    Color.White
-                else
-                    OrangePrimary,
-
-            style = MaterialTheme.typography.labelMedium
-        )
+        if (isCountLoading) {
+            androidx.compose.foundation.layout.Box(
+                modifier = androidx.compose.ui.Modifier
+                    .width(12.dp)
+                    .height(14.dp)
+                    .background(
+                        color = if (isSelected) Color.White.copy(alpha = 0.48f) else OrangePrimary.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            )
+        } else {
+            Text(
+                text = postCount?.toString() ?: "…",
+                color = if (isSelected) Color.White else OrangePrimary,
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
     }
 }
