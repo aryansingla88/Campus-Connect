@@ -60,6 +60,7 @@ import com.example.campusconnect.feature.posts.models.PostTagCount
 import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
+import com.example.campusconnect.feature.posts.components.PostCardGhost
 import com.example.campusconnect.feature.posts.models.VoteType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -70,7 +71,7 @@ import kotlinx.coroutines.launch
 fun GeneralFeedScreen(
 
     initialTab: Int = 0,
-    onPostClick: (Int) -> Unit,
+    onPostClick: (Int, String) -> Unit,
     onCreatePostClick: (postType: String) -> Unit,
     onEditPostClick: (Int) -> Unit = {},
     refreshTrigger: Int = 0,
@@ -88,6 +89,7 @@ fun GeneralFeedScreen(
     var tags by remember {
         mutableStateOf<List<PostTag>>(emptyList())
     }
+    var isLoadingTags by remember { mutableStateOf(true) }
 
     var tagCounts by remember {
         mutableStateOf<List<PostTagCount>?>(null)
@@ -138,6 +140,7 @@ fun GeneralFeedScreen(
             }
 
         tagsError = null
+        isLoadingTags = true
         viewModel.getTags()
             .onSuccess {
                 tags = it
@@ -145,6 +148,7 @@ fun GeneralFeedScreen(
             .onFailure {
                 tagsError = it.message ?: "Failed to load topics"
             }
+        isLoadingTags = false
 
         countsLoading = true
         countsError = null
@@ -623,6 +627,7 @@ fun GeneralFeedScreen(
                                     tags = tags,
                                     tagCounts = tagCounts,
                                     countsLoading = countsLoading,
+                                    tagsLoading = isLoadingTags,
                                     countsError = countsError,
                                     selectedTopic = selectedTopicId,
                                     onTopicSelected = { selectedTopicId = it }
@@ -690,7 +695,7 @@ fun GeneralFeedScreen(
                                         post = post,
                                         commentCount = post.commentCount,
                                         searchHighlightQuery = searchQuery,
-                                        onClick = { resetPostSearch(); onPostClick(post.id) },
+                                        onClick = { resetPostSearch(); onPostClick(post.id, "GENERAL") },
                                         onUpvoteClick = { coroutineScope.launch { handleUpvote(post) } },
                                         onDownvoteClick = { coroutineScope.launch { handleDownvote(post) } },
                                         onDeleteClick = { postToDelete = post; deleteError = null },
@@ -698,7 +703,9 @@ fun GeneralFeedScreen(
                                     )
                                 }
                             } else if (isLoading && posts.isEmpty()) {
-                                item { Text("Loading posts…") }
+                                items(3, key = { "post-ghost-$it" }) { index ->
+                                    PostCardGhost(showImage = index != 0)
+                                }
                             } else if (errorMessage != null && posts.isEmpty()) {
                                 item { Text(errorMessage!!) }
                             } else if (filteredPosts.isEmpty()) {
@@ -718,7 +725,7 @@ fun GeneralFeedScreen(
 
                                     onClick = {
 
-                                        onPostClick(post.id)
+                                        onPostClick(post.id, "GENERAL")
                                     },
                                     onUpvoteClick = {
 
@@ -790,7 +797,7 @@ fun GeneralFeedScreen(
                                         event = event,
                                         isVoting = event.postId?.let(votingEventPostIds::contains) == true,
                                         searchHighlightQuery = searchQuery,
-                                        onClick = { event.postId?.let { resetPostSearch(); onPostClick(it) } },
+                                        onClick = { event.postId?.let { resetPostSearch(); onPostClick(it, "EVENTS") } },
                                         onEditClick = { event.postId?.let(onEditPostClick) },
                                         onDeleteClick = { eventPostToDelete = event; eventPostDeleteError = null },
                                         onUpvoteClick = { coroutineScope.launch { handleEventVote(event, VoteType.UPVOTE) } },
@@ -798,7 +805,9 @@ fun GeneralFeedScreen(
                                     )
                                 }
                             } else if (isLoadingEventPosts && eventPosts.isEmpty()) {
-                                item { Text("Loading event posts…") }
+                                items(3, key = { "event-post-ghost-$it" }) { index ->
+                                    PostCardGhost(showImage = index != 0)
+                                }
                             } else if (eventPostsError != null && eventPosts.isEmpty()) {
                                 item { Text(eventPostsError!!, color = ErrorRed) }
                             } else if (eventPosts.isEmpty()) {
@@ -808,7 +817,12 @@ fun GeneralFeedScreen(
                                     EventPostCard(
                                         event = event,
                                         isVoting = event.postId?.let(votingEventPostIds::contains) == true,
-                                        onClick = { event.postId?.let(onPostClick) },
+                                        onClick = {
+                                            event.postId?.let {
+                                                resetPostSearch()
+                                                onPostClick(it, "EVENTS")
+                                            }
+                                        },
                                         onEditClick = { event.postId?.let(onEditPostClick) },
                                         onDeleteClick = {
                                             eventPostToDelete = event

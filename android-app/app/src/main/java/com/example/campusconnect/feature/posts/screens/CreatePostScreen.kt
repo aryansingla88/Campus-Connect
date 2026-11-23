@@ -41,7 +41,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -50,7 +49,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,7 +77,6 @@ import com.example.campusconnect.core.ui.theme.LabelColor
 import com.example.campusconnect.core.ui.theme.OrangeBorder
 import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
-import com.example.campusconnect.core.ui.theme.PostsBackground
 import com.example.campusconnect.core.ui.theme.White
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostEvent
@@ -204,70 +201,59 @@ fun CreatePostScreen(
 
     Scaffold(
         topBar = {
-            if (eventPostMode) {
-                TopAppBar(
-                    title = { Text(if (editPostId == null) "Create Post" else "Edit Post") },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                )
-            } else {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp),
-                    color = OrangePrimary,
-                    shadowElevation = 3.dp
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(82.dp)
-                            .background(
-                                Brush.horizontalGradient(
-                                    colorStops = arrayOf(
-                                        0f to Color(0xFFFF5B00),
-                                        0.52f to OrangePrimary,
-                                        1f to Color(0xFFFF9A1F)
-                                    )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp),
+                color = OrangePrimary,
+                shadowElevation = 3.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(82.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0f to Color(0xFFFF5B00),
+                                    0.52f to OrangePrimary,
+                                    1f to Color(0xFFFF9A1F)
                                 )
                             )
-                    ) {
-                        CreatePostHeaderArt(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .width(175.dp)
-                                .fillMaxSize()
                         )
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(onClick = onBackClick) {
-                                Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = White)
-                            }
-                            Text(
-                                text = if (editPostId == null) "Create Post" else "Edit Post",
-                                color = White,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                            )
+                ) {
+                    CreatePostHeaderArt(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .width(175.dp)
+                            .fillMaxSize()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = White)
                         }
+                        Text(
+                            text = if (editPostId == null) "Create Post" else "Edit Post",
+                            color = White,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                        )
                     }
                 }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = if (eventPostMode) PostsBackground else Color(0xFFFFFAF6)
+        containerColor = Color(0xFFFFFAF6)
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(if (eventPostMode) 16.dp else 18.dp),
-            verticalArrangement = Arrangement.spacedBy(if (eventPostMode) 14.dp else 16.dp)
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (eventPostMode) {
                 if (editPostId == null) {
@@ -333,6 +319,14 @@ fun CreatePostScreen(
                                 readOnly = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Lock,
+                                        contentDescription = "Event title is locked",
+                                        tint = OrangePrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = White,
                                     unfocusedContainerColor = White,
@@ -388,38 +382,63 @@ fun CreatePostScreen(
                                 color = LabelColor
                             )
 
-                            OutlinedTextField(
+                            PostComposerTextField(
                                 value = body,
                                 onValueChange = { body = it },
-                                modifier = Modifier.fillMaxWidth().height(150.dp),
-                                label = { Text("Event post description") },
-                                minLines = 4,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = White,
-                                    unfocusedContainerColor = White,
-                                    focusedBorderColor = OrangePrimary,
-                                    unfocusedBorderColor = OrangeBorder,
-                                    focusedLabelColor = OrangePrimary,
-                                    cursorColor = OrangePrimary
-                                )
+                                placeholder = "Event post description",
+                                modifier = Modifier.fillMaxWidth().height(150.dp)
                             )
 
-                            OutlinedButton(
-                                onClick = { imagePicker.launch("image/*") },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary),
-                                border = BorderStroke(1.dp, OrangePrimary)
+                            val eventImageShape = RoundedCornerShape(20.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(104.dp)
+                                    .clip(eventImageShape)
+                                    .background(Color(0xFFFFF3E8))
+                                    .drawWithContent {
+                                        drawContent()
+                                        val dash = 9.dp.toPx()
+                                        drawRoundRect(
+                                            color = OrangePrimary,
+                                            cornerRadius = CornerRadius(20.dp.toPx()),
+                                            style = Stroke(
+                                                width = 1.2.dp.toPx(),
+                                                pathEffect = PathEffect.dashPathEffect(
+                                                    floatArrayOf(dash, 6.dp.toPx())
+                                                )
+                                            )
+                                        )
+                                    }
+                                    .clickable { imagePicker.launch("image/*") }
+                                    .padding(horizontal = 18.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.size(8.dp))
-                                Text(
-                                    when {
-                                        imageUri != null -> "Change event post photo"
-                                        event.posterUrl != null && !removeExistingImage -> "Change event post photo"
-                                        else -> "Add event post photo"
-                                    },
-                                    color = OrangePrimary
-                                )
+                                Surface(color = OrangeLight, shape = RoundedCornerShape(15.dp)) {
+                                    Icon(
+                                        Icons.Outlined.AddPhotoAlternate,
+                                        contentDescription = null,
+                                        tint = OrangePrimary,
+                                        modifier = Modifier.padding(12.dp).size(28.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        when {
+                                            imageUri != null -> "Change event post photo"
+                                            event.posterUrl != null && !removeExistingImage -> "Change event post photo"
+                                            else -> "Add event post photo"
+                                        },
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = LabelColor
+                                    )
+                                    Text(
+                                        "Tap to upload or choose from gallery",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = LabelColor.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                             if (editPostId != null && (event.posterUrl != null || imageUri != null)) {
                                 TextButton(
@@ -448,11 +467,6 @@ fun CreatePostScreen(
                                     contentScale = ContentScale.Crop
                                 )
                             }
-                            Text(
-                                "The description and photo belong to the post. The selected category is saved on the event.",
-                                color = LabelColor,
-                                style = MaterialTheme.typography.bodySmall
-                            )
                         }
                     }
                 }
@@ -608,7 +622,7 @@ fun CreatePostScreen(
             }
 
             Button(
-                shape = if (eventPostMode) RoundedCornerShape(12.dp) else RoundedCornerShape(32.dp),
+                shape = RoundedCornerShape(32.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = OrangePrimary,
                     contentColor = White
@@ -672,12 +686,10 @@ fun CreatePostScreen(
                 enabled = !isLoading && !isLoadingPost && (editPostId == null || existingPost?.canDelete == true),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (eventPostMode) 48.dp else 58.dp)
+                    .height(58.dp)
             ) {
-                if (!eventPostMode) {
-                    Icon(Icons.Outlined.Send, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(10.dp))
-                }
+                Icon(Icons.Outlined.Send, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
                 Text(when { isLoading -> if (editPostId == null) "Creating..." else "Saving..."; isLoadingPost -> "Loading..."; editPostId != null -> "Save Changes"; else -> "Create Post" })
             }
 

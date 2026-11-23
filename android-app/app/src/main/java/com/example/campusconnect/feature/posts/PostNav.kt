@@ -13,7 +13,7 @@ import com.example.campusconnect.feature.posts.screens.PostDetailScreen
 
 const val POSTS_FEED_ROUTE = "posts"
 const val EVENTS_FEED_ROUTE = "posts/events"
-const val POST_DETAIL_ROUTE = "post_detail/{postId}"
+const val POST_DETAIL_ROUTE = "post_detail/{postId}/{postType}"
 const val CREATE_POST_ROUTE = "create_post/{postType}"
 private const val EDIT_POST_ROUTE = "edit_post/{postId}"
 
@@ -81,17 +81,22 @@ fun NavGraphBuilder.postNav(navController: NavController) {
         }
     }
 
-    composable(POST_DETAIL_ROUTE) { backStackEntry ->
+    composable(
+        route = POST_DETAIL_ROUTE,
+        arguments = listOf(navArgument("postType") { type = NavType.StringType })
+    ) { backStackEntry ->
         val refreshTrigger by backStackEntry.savedStateHandle
             .getStateFlow(POST_REFRESH_KEY, 0)
             .collectAsState()
         val postId = backStackEntry.arguments
             ?.getString("postId")
             ?.toIntOrNull()
+        val postType = backStackEntry.arguments?.getString("postType") ?: "GENERAL"
 
         if (postId != null) {
             PostDetailScreen(
                 postId = postId,
+                initialPostType = postType,
                 refreshTrigger = refreshTrigger,
                 onBackClick = {
                     navController.previousBackStackEntry?.savedStateHandle?.let { state ->
@@ -118,8 +123,8 @@ private fun NavGraphBuilder.feedDestination(
         GeneralFeedScreen(
             initialTab = initialTab,
             refreshTrigger = refreshTrigger,
-            onPostClick = { postId ->
-                navController.navigate("post_detail/$postId")
+            onPostClick = { postId, postType ->
+                navController.navigate("post_detail/$postId/$postType")
             },
             onCreatePostClick = { postType ->
                 navController.navigate("$CREATE_POST_ROUTE_BASE/$postType")
