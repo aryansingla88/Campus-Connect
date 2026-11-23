@@ -118,6 +118,24 @@ interface ProfileApi {
         @Path("clubId") clubId: Int
     ): Response<ApiResponse<List<ClubMemberResponse>>>
 
+    @GET("clubs/{clubId}/requests")
+    suspend fun getClubRequests(
+        @Path("clubId") clubId: Int
+    ): Response<ApiResponse<List<ClubMemberRequestResponse>>>
+
+    @POST("clubs/{clubId}/requests/{userId}/approve")
+    suspend fun approveClubRequest(
+        @Path("clubId") clubId: Int,
+        @Path("userId") userId: Int,
+        @Body body: ApproveClubRequest
+    ): Response<ApiResponse<ClubMemberRequestResponse>>
+
+    @POST("clubs/{clubId}/requests/{userId}/reject")
+    suspend fun rejectClubRequest(
+        @Path("clubId") clubId: Int,
+        @Path("userId") userId: Int
+    ): Response<ApiResponse<ClubMemberRequestResponse>>
+
     @POST("clubs/{clubId}/join")
     suspend fun joinClub(
         @Path("clubId") clubId: Int

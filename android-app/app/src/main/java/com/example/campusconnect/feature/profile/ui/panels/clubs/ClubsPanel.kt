@@ -28,6 +28,7 @@ fun ClubsPanel(
     allClubs: List<Club> = emptyList(),
     onJoinClub: (Int) -> Unit = {},
     onLeaveClub: (Int) -> Unit = {},
+    onManageClub: (Club) -> Unit = {},
     onClubClick: (Club) -> Unit = {}
 ) {
     var showSearchPopup by remember {
@@ -135,6 +136,8 @@ fun ClubsPanel(
                                     ClubStatus.JOINED -> {
                                         clubToLeave = club
                                     }
+
+                                    ClubStatus.LEAD -> onManageClub(club)
                                 }
                             }
                         )
@@ -214,6 +217,12 @@ fun ClubsPanel(
                                     ClubStatus.JOINED -> {
                                         clubToLeave = club
                                     }
+
+                                    ClubStatus.LEAD -> {
+                                        showSearchPopup = false
+                                        query = ""
+                                        onManageClub(club)
+                                    }
                                 }
                             }
                         )
@@ -243,18 +252,21 @@ private fun ClubButton(
         ClubStatus.NOT_JOINED -> Orange
         ClubStatus.PENDING -> OrangeLight
         ClubStatus.JOINED -> Orange
+        ClubStatus.LEAD -> Orange
     }
 
     val contentColor = when (status) {
         ClubStatus.NOT_JOINED -> Color.White
         ClubStatus.PENDING -> OrangeDark
         ClubStatus.JOINED -> Color.White
+        ClubStatus.LEAD -> Color.White
     }
 
     val label = when (status) {
         ClubStatus.NOT_JOINED -> "Join"
         ClubStatus.PENDING -> "Pending"
         ClubStatus.JOINED -> "Leave"
+        ClubStatus.LEAD -> "Manage"
     }
 
     Button(

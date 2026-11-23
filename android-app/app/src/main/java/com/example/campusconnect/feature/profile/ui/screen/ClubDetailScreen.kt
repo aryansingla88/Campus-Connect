@@ -112,7 +112,8 @@ fun ClubDetailRoute(
     club: ProfileClub,
     vm: BaseProfileViewModel,
     onBack: () -> Unit,
-    onMemberClick: (Int) -> Unit = {}
+    onMemberClick: (Int) -> Unit = {},
+    onManageClub: (ProfileClub) -> Unit = {}
 ) {
     val context = LocalContext.current
     LaunchedEffect(club.clubId) { vm.loadClubDetails(club.clubId) }
@@ -144,6 +145,11 @@ fun ClubDetailRoute(
         onBack = onBack,
         membershipStatus = details.status,
         isMembershipLoading = club.clubId in vm.joiningClubIds,
+        onManageClick = {
+            if (details.status == ClubStatus.LEAD) {
+                onManageClub(club.copy(status = ClubStatus.LEAD))
+            }
+        },
         onMembersSelected = { vm.loadClubMembers(club.clubId) },
         onRetryMembers = { vm.loadClubMembers(club.clubId, force = true) },
         onMemberClick = { onMemberClick(it.userId) },
@@ -177,6 +183,7 @@ fun ClubDetailScreen(
     isMembershipLoading: Boolean = false,
     onJoinClick: () -> Unit = {},
     onLeaveClick: () -> Unit = {},
+    onManageClick: () -> Unit = {},
     onNotifyClick: () -> Unit = {},
     onMembersSelected: () -> Unit = {},
     onRetryMembers: () -> Unit = {},
@@ -224,6 +231,7 @@ fun ClubDetailScreen(
                     loading = isMembershipLoading,
                     onJoin = onJoinClick,
                     onLeave = { confirmLeave = true },
+                    onManage = onManageClick,
                     onNotify = onNotifyClick,
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
@@ -275,6 +283,7 @@ private fun MembershipActions(
     loading: Boolean,
     onJoin: () -> Unit,
     onLeave: () -> Unit,
+    onManage: () -> Unit,
     onNotify: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -307,7 +316,22 @@ private fun MembershipActions(
                     onClick = { if (!loading) onLeave() },
                     modifier = buttonModifier.weight(1f),
                     shape = shape, border = outline, colors = outlineColors,
-                ) { ActionLabel(Icons.Outlined.Check, "Joined", loading) }
+                ) { ActionLabel(Icons.Outlined.PersonRemove, "Leave Club", loading) }
+                OutlinedIconButton(
+                    onClick = onNotify,
+                    modifier = buttonModifier.width(42.dp),
+                    shape = shape, border = outline,
+                    colors = IconButtonDefaults.outlinedIconButtonColors(containerColor = OrangeSoft.copy(alpha = 0.5f)),
+                ) { Icon(Icons.Outlined.NotificationsNone, "Club notifications", tint = Orange) }
+            }
+
+            ClubStatus.LEAD -> {
+                Button(
+                    onClick = onManage,
+                    modifier = buttonModifier.weight(1f),
+                    shape = shape,
+                    colors = ButtonDefaults.buttonColors(containerColor = Orange),
+                ) { ActionLabel(Icons.Outlined.Settings, "Manage Club", false) }
                 OutlinedIconButton(
                     onClick = onNotify,
                     modifier = buttonModifier.width(42.dp),

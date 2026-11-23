@@ -47,6 +47,12 @@ public interface ClubMemberRepository extends JpaRepository<ClubMember, ClubMemb
             ClubMemberStatus memberStatus
     );
 
+    @EntityGraph(attributePaths = {"user", "user.profile"})
+    List<ClubMember> findAllWithUserProfileByIdClubIdAndMemberStatusOrderByCreatedAtDesc(
+            Integer clubId,
+            ClubMemberStatus memberStatus
+    );
+
     List<ClubMember> findAllByIdClubIdAndRole(
             Integer clubId,
             ClubMemberRole role

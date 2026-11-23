@@ -55,6 +55,7 @@ fun MyProfileScreen(
         mutableStateOf(false)
     }
     var selectedClub by remember { mutableStateOf<ProfileClub?>(null) }
+    var selectedManagementClub by remember { mutableStateOf<ProfileClub?>(null) }
 
     val snackbarHostState = remember {
         SnackbarHostState()
@@ -80,12 +81,15 @@ fun MyProfileScreen(
     BackHandler(
         enabled =
             selectedClub != null ||
+                    selectedManagementClub != null ||
                     showImagePicker ||
                     vm.isEditMode ||
                     vm.activeManagePanel != null ||
                     vm.activePanel != null
     ) {
         when {
+            selectedManagementClub != null -> selectedManagementClub = null
+
             selectedClub != null -> selectedClub = null
 
             showImagePicker -> {
@@ -106,12 +110,18 @@ fun MyProfileScreen(
         }
     }
 
+    selectedManagementClub?.let { club ->
+        ClubManagementRoute(club = club, vm = vm, onBack = { selectedManagementClub = null })
+        return
+    }
+
     selectedClub?.let { club ->
         ClubDetailRoute(
             club = club,
             vm = vm,
             onBack = { selectedClub = null },
-            onMemberClick = onNavigateToProfile
+            onMemberClick = onNavigateToProfile,
+            onManageClub = { selectedManagementClub = it }
         )
         return
     }
@@ -430,6 +440,7 @@ fun MyProfileScreen(
                                 allClubs = vm.allClubs,
                                 onJoinClub = vm::joinClub,
                                 onLeaveClub = vm::leaveClub,
+                                onManageClub = { selectedManagementClub = it },
                                 onClubClick = { selectedClub = it }
                             )
                         }

@@ -502,6 +502,55 @@ class ApiProfileRepository(
         Result.failure(e)
     }
 
+    override suspend fun getClubRequests(clubId: Int): Result<List<ClubMembershipRequest>> = try {
+        val response = api.getClubRequests(clubId)
+        if (!response.isSuccessful) {
+            Result.failure(Exception(clubRequestHttpError("load requests", response.code())))
+        } else {
+            val body = response.body()?.data
+            if (body == null) Result.failure(Exception("Club requests data is empty"))
+            else Result.success(body.map(ClubMapper::toMembershipRequest))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun approveClubRequest(
+        clubId: Int,
+        userId: Int,
+        role: ClubMemberRole
+    ): Result<ClubMembershipRequest> = try {
+        val response = api.approveClubRequest(
+            clubId,
+            userId,
+            com.example.campusconnect.feature.profile.data.remote.request.ApproveClubRequest(role.name)
+        )
+        if (!response.isSuccessful) {
+            Result.failure(Exception(clubRequestHttpError("approve request", response.code())))
+        } else {
+            val body = response.body()?.data
+            if (body == null) Result.failure(Exception("Approval response is empty"))
+            else Result.success(ClubMapper.toMembershipRequest(body))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun rejectClubRequest(clubId: Int, userId: Int): Result<Unit> = try {
+        val response = api.rejectClubRequest(clubId, userId)
+        if (response.isSuccessful) Result.success(Unit)
+        else Result.failure(Exception(clubRequestHttpError("reject request", response.code())))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    private fun clubRequestHttpError(action: String, code: Int): String = when (code) {
+        403 -> "You don't have permission to $action for this club."
+        404 -> "This club or membership request could not be found."
+        409 -> "This request has already been processed. Refresh the list and try again."
+        else -> "Couldn't $action (HTTP $code). Please try again."
+    }
+
     override suspend fun joinClub(clubId: Int): Result<ClubStatus> =
         changeMembership("join club", ClubStatus.PENDING) { api.joinClub(clubId) }
 

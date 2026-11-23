@@ -37,6 +37,13 @@ abstract class BaseProfileViewModel(
     val clubMembersLoadingIds = mutableStateListOf<Int>()
     val clubDetailsErrors = mutableStateMapOf<Int, String>()
     val clubMembersErrors = mutableStateMapOf<Int, String>()
+    val clubRequests = mutableStateMapOf<Int, List<ClubMembershipRequest>>()
+    val clubRequestsLoadingIds = mutableStateListOf<Int>()
+    val clubRequestsRefreshingIds = mutableStateListOf<Int>()
+    val clubRequestsErrors = mutableStateMapOf<Int, String>()
+    val clubRequestActions = mutableStateMapOf<String, Boolean>()
+    val clubRequestSuccessMessages = mutableStateMapOf<Int, String>()
+    private val clubRequestLoadVersions = mutableMapOf<Int, Int>()
 
     var honorRank by mutableIntStateOf(0)
         protected set
@@ -123,6 +130,64 @@ abstract class BaseProfileViewModel(
                 .onSuccess { clubMembers[clubId] = it }
                 .onFailure { clubMembersErrors[clubId] = it.message ?: "Couldn't load club members" }
             clubMembersLoadingIds.remove(clubId)
+        }
+    }
+
+    fun loadClubRequests(clubId: Int, force: Boolean = false) {
+        if (clubId in clubRequestsLoadingIds) return
+        if (!force && clubId in clubRequests) return
+        val isRefreshing = clubId in clubRequests
+        val version = (clubRequestLoadVersions[clubId] ?: 0) + 1
+        clubRequestLoadVersions[clubId] = version
+        if (isRefreshing) clubRequestsRefreshingIds.add(clubId) else clubRequestsLoadingIds.add(clubId)
+        clubRequestsErrors.remove(clubId)
+        viewModelScope.launch {
+            repository.getClubRequests(clubId)
+                .onSuccess { requests ->
+                    if (clubRequestLoadVersions[clubId] == version) clubRequests[clubId] = requests
+                }
+                .onFailure { error ->
+                    if (clubRequestLoadVersions[clubId] == version) {
+                        clubRequestsErrors[clubId] = error.message ?: "Couldn't load requests"
+                    }
+                }
+            clubRequestsLoadingIds.remove(clubId)
+            clubRequestsRefreshingIds.remove(clubId)
+        }
+    }
+
+    fun approveClubRequest(clubId: Int, userId: Int, role: ClubMemberRole) =
+        manageClubRequest(clubId, userId, "Request approved") {
+            repository.approveClubRequest(clubId, userId, role).map { Unit }
+        }
+
+    fun rejectClubRequest(clubId: Int, userId: Int) =
+        manageClubRequest(clubId, userId, "Request rejected") {
+            repository.rejectClubRequest(clubId, userId)
+        }
+
+    private fun manageClubRequest(
+        clubId: Int,
+        userId: Int,
+        successMessage: String,
+        action: suspend () -> Result<Unit>
+    ) {
+        val key = "$clubId:$userId"
+        if (clubRequestActions[key] == true) return
+        clubRequestActions[key] = true
+        clubRequestSuccessMessages.remove(clubId)
+        viewModelScope.launch {
+            action().onSuccess {
+                clubRequestSuccessMessages[clubId] = successMessage
+                // Force a new request after the mutation; invalidate any in-flight list result first.
+                clubRequestLoadVersions[clubId] = (clubRequestLoadVersions[clubId] ?: 0) + 1
+                clubRequestsLoadingIds.remove(clubId)
+                clubRequestsRefreshingIds.remove(clubId)
+                loadClubRequests(clubId, force = true)
+            }.onFailure {
+                clubRequestsErrors[clubId] = it.message ?: "Club request action failed"
+            }
+            clubRequestActions.remove(key)
         }
     }
 

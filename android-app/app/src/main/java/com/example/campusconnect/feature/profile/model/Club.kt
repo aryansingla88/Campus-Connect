@@ -4,7 +4,8 @@ package com.example.campusconnect.feature.profile.model
 enum class ClubStatus {
     NOT_JOINED,
     PENDING,
-    JOINED
+    JOINED,
+    LEAD
 }
 
 enum class ClubMemberRole {
@@ -40,6 +41,16 @@ data class ClubMember(
     val avatarUrl: String?,
     val role: ClubMemberRole,
     val joinedAt: String?
+)
+
+data class ClubMembershipRequest(
+    val clubId: Int,
+    val userId: Int,
+    val fullName: String,
+    val username: String?,
+    val avatarUrl: String?,
+    val role: ClubMemberRole,
+    val requestedAt: String?
 )
 
 sealed interface ClubLoadState<out T> {

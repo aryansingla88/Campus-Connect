@@ -3,9 +3,11 @@ package com.example.campusconnect.feature.profile.data.mapper
 import com.example.campusconnect.feature.profile.data.remote.response.ClubResponse
 import com.example.campusconnect.feature.profile.data.remote.response.ClubDetailResponse
 import com.example.campusconnect.feature.profile.data.remote.response.ClubMemberResponse
+import com.example.campusconnect.feature.profile.data.remote.response.ClubMemberRequestResponse
 import com.example.campusconnect.feature.profile.model.Club
 import com.example.campusconnect.feature.profile.model.ClubDetails
 import com.example.campusconnect.feature.profile.model.ClubMember
+import com.example.campusconnect.feature.profile.model.ClubMembershipRequest
 import com.example.campusconnect.feature.profile.model.ClubMemberRole
 import com.example.campusconnect.feature.profile.model.ClubStatus
 
@@ -26,15 +28,25 @@ object ClubMapper {
         return responses.map(::toClub)
     }
 
-    fun toClubDetails(response: ClubDetailResponse) = ClubDetails(
-        clubId = response.clubId,
-        name = response.name,
-        clubType = response.clubType,
-        description = response.description,
-        memberCount = response.memberCount,
-        status = toStatus(response.memberStatus),
-        role = response.role?.let(::toRole)
-    )
+    fun toClubDetails(response: ClubDetailResponse): ClubDetails {
+        val role = response.role?.let(::toRole)
+        val type = response.clubType.trim().uppercase().replace("_", " ")
+        val isLeader = response.memberStatus == "APPROVED" && when (type) {
+            "CLUB", "STUDENT CLUB" -> role == ClubMemberRole.SECRETARY
+            "SOCIETY" -> role == ClubMemberRole.PRESIDENT
+            else -> false
+        }
+
+        return ClubDetails(
+            clubId = response.clubId,
+            name = response.name,
+            clubType = response.clubType,
+            description = response.description,
+            memberCount = response.memberCount,
+            status = if (isLeader) ClubStatus.LEAD else toStatus(response.memberStatus),
+            role = role
+        )
+    }
 
     fun toClubMembers(responses: List<ClubMemberResponse>): List<ClubMember> =
         responses.map { response ->
@@ -46,6 +58,17 @@ object ClubMapper {
                 joinedAt = response.joinedAt
             )
         }
+
+    fun toMembershipRequest(response: ClubMemberRequestResponse): ClubMembershipRequest =
+        ClubMembershipRequest(
+            clubId = response.clubId,
+            userId = response.userId,
+            fullName = response.fullName.orEmpty().ifBlank { "Campus member" },
+            username = response.username?.takeIf(String::isNotBlank),
+            avatarUrl = response.avatarUrl,
+            role = toRole(response.role.orEmpty()),
+            requestedAt = response.requestedAt
+        )
 
     fun toRole(role: String): ClubMemberRole = when (role.trim().uppercase()) {
         "PRESIDENT" -> ClubMemberRole.PRESIDENT
@@ -60,7 +83,8 @@ object ClubMapper {
     fun toStatus(status: String?): ClubStatus {
         return when (status) {
             "PENDING" -> ClubStatus.PENDING
-            "APPROVED", "LEAD" -> ClubStatus.JOINED
+            "APPROVED" -> ClubStatus.JOINED
+            "LEAD" -> ClubStatus.LEAD
             else -> ClubStatus.NOT_JOINED
         }
     }

@@ -48,10 +48,11 @@ fun ViewProfileScreen(
     onNavigateToPosts: (Int) -> Unit = {}
 ) {
     var selectedClub by remember { mutableStateOf<ProfileClub?>(null) }
+    var selectedManagementClub by remember { mutableStateOf<ProfileClub?>(null) }
     var confirmRemoveConnection by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = selectedClub != null) {
-        selectedClub = null
+    BackHandler(enabled = selectedManagementClub != null || selectedClub != null) {
+        if (selectedManagementClub != null) selectedManagementClub = null else selectedClub = null
     }
 
     //-------------------------------
@@ -68,12 +69,18 @@ fun ViewProfileScreen(
         )
     )
 
+    selectedManagementClub?.let { club ->
+        ClubManagementRoute(club = club, vm = vm, onBack = { selectedManagementClub = null })
+        return
+    }
+
     selectedClub?.let { club ->
         ClubDetailRoute(
             club = club,
             vm = vm,
             onBack = { selectedClub = null },
-            onMemberClick = onNavigateToProfile
+            onMemberClick = onNavigateToProfile,
+            onManageClub = { selectedManagementClub = it }
         )
         return
     }
