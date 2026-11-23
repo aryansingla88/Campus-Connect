@@ -156,32 +156,13 @@ fun PostCard(
                                 )
                             }
 
-                            MaterialTheme(
-                                colorScheme = MaterialTheme.colorScheme.copy(
-                                    surface = OrangeLight,
-                                    primary = OrangePrimary
-                                )
-                            ) {
-                                DropdownMenu(
+                            if (showMenu) {
+                                PostActionsMenu(
                                     expanded = showMenu,
-                                    onDismissRequest = { showMenu = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Edit post") },
-                                        onClick = {
-                                            showMenu = false
-                                            onEditClick()
-                                        }
-                                    )
-
-                                    DropdownMenuItem(
-                                        text = { Text("Delete post") },
-                                        onClick = {
-                                            showMenu = false
-                                            onDeleteClick()
-                                        }
-                                    )
-                                }
+                                    onDismiss = { showMenu = false },
+                                    onEdit = onEditClick,
+                                    onDelete = onDeleteClick
+                                )
                             }
                         }
                     }

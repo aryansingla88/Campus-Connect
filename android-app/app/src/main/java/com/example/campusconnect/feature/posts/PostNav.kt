@@ -7,6 +7,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.campusconnect.core.session.SessionManager
 import com.example.campusconnect.feature.posts.screens.CreatePostScreen
 import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
 import com.example.campusconnect.feature.posts.screens.PostDetailScreen
@@ -116,6 +117,11 @@ fun NavGraphBuilder.postNav(navController: NavController) {
                     navController.popBackStack()
                 },
                 onEditPost = { id -> navController.navigate("edit_post/$id") },
+                onCurrentUserProfileClick = {
+                    SessionManager.getAuthenticatedUserId()?.let { userId ->
+                        navController.navigateToUserProfile(userId)
+                    }
+                },
                 onUserProfileClick = { userId -> navController.navigateToUserProfile(userId) }
             )
         }

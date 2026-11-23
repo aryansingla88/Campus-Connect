@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -19,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.campusconnect.core.ui.theme.HintColor
@@ -40,6 +43,7 @@ fun PostDetailScreen(
     postId: Int,
     initialPostType: String = "GENERAL",
     onBackClick: () -> Unit,
+    onCurrentUserProfileClick: () -> Unit = {},
     onEditPost: (Int) -> Unit = {},
     onUserProfileClick: (Int) -> Unit = {},
     refreshTrigger: Int = 0
@@ -49,6 +53,7 @@ fun PostDetailScreen(
             postId,
             initialPostType,
             onBackClick,
+            onCurrentUserProfileClick,
             onEditPost,
             onUserProfileClick,
             refreshTrigger
@@ -61,6 +66,7 @@ private fun PostDetailContent(
     postId: Int,
     initialPostType: String,
     onBackClick: () -> Unit,
+    onCurrentUserProfileClick: () -> Unit,
     onEditPost: (Int) -> Unit,
     onUserProfileClick: (Int) -> Unit,
     refreshTrigger: Int
@@ -120,6 +126,7 @@ private fun PostDetailContent(
     }
 
     val topLevelComments = commentsForPost.filter { it.parentCommentId == null }
+    val repliesByParentId = commentsForPost.groupBy { it.parentCommentId }
 
     suspend fun submitVote(voteType: VoteType) {
         val currentPost = post ?: return
@@ -221,7 +228,10 @@ private fun PostDetailContent(
             .imePadding()
             .navigationBarsPadding()
     ) {
-        PostDetailTopBar(onBackClick = onBackClick)
+        PostDetailTopBar(
+            onBackClick = onBackClick,
+            onProfileClick = onCurrentUserProfileClick
+        )
 
         LazyColumn(
             modifier = Modifier.weight(1f)
@@ -267,7 +277,7 @@ private fun PostDetailContent(
                     CommentsHeaderGhost()
                 } else {
                     Text(
-                        text = "Comments (${commentsForPost.size})",
+                        text = "Comments",
                         style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
@@ -286,54 +296,76 @@ private fun PostDetailContent(
                     )
                 }
             } else {
-                items(
-                    items = topLevelComments,
-                    key = { comment -> "comment-${comment.id}" }
-                ) { comment ->
-                    CommentCard(
-                        comment = comment,
-                        isEditing = editingCommentId == comment.id,
-                        editDraft = editDraft,
-                        onEditDraftChange = { editDraft = it },
-                        isSavingEdit = isSavingCommentEdit,
-                        editError = if (editingCommentId == comment.id) commentEditError else null,
-                        onEdit = ::startCommentEdit,
-                        onSaveEdit = { saveCommentEdit(comment) },
-                        onCancelEdit = ::cancelCommentEdit,
-                        onReply = {
-                            if (!isSubmitting) {
-                                replyTarget = it
-                                submissionError = null
-                            }
-                        },
-                        onDelete = {
-                            commentToDelete = it
-                            commentDeleteError = null
-                        },
-                        onAuthorClick = onUserProfileClick
+                item(key = "comments-top-divider") {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = Color(0xFFE2E2E2),
+                        thickness = 1.dp
                     )
+                }
 
-                    commentsForPost
-                        .filter { it.parentCommentId == comment.id }
-                        .forEach { reply ->
-                            CommentCard(
-                                comment = reply,
-                                isReply = true,
-                                isEditing = editingCommentId == reply.id,
-                                editDraft = editDraft,
-                                onEditDraftChange = { editDraft = it },
-                                isSavingEdit = isSavingCommentEdit,
-                                editError = if (editingCommentId == reply.id) commentEditError else null,
-                                onEdit = ::startCommentEdit,
-                                onSaveEdit = { saveCommentEdit(reply) },
-                                onCancelEdit = ::cancelCommentEdit,
-                                onDelete = {
-                                    commentToDelete = it
-                                    commentDeleteError = null
-                                },
-                                onAuthorClick = onUserProfileClick
+                itemsIndexed(
+                    items = topLevelComments,
+                    key = { _, comment -> "comment-${comment.id}" }
+                ) { topLevelIndex, comment ->
+                    val replies = repliesByParentId[comment.id].orEmpty()
+
+                    Column {
+                        CommentCard(
+                            comment = comment,
+                            hasReplies = replies.isNotEmpty(),
+                            isEditing = editingCommentId == comment.id,
+                            editDraft = editDraft,
+                            onEditDraftChange = { editDraft = it },
+                            isSavingEdit = isSavingCommentEdit,
+                            editError = if (editingCommentId == comment.id) commentEditError else null,
+                            onEdit = ::startCommentEdit,
+                            onSaveEdit = { saveCommentEdit(comment) },
+                            onCancelEdit = ::cancelCommentEdit,
+                            onReply = {
+                                if (!isSubmitting) {
+                                    replyTarget = it
+                                    submissionError = null
+                                }
+                            },
+                            onDelete = {
+                                commentToDelete = it
+                                commentDeleteError = null
+                            },
+                            onAuthorClick = onUserProfileClick
+                        )
+
+                        if (replies.isNotEmpty()) {
+                            replies.forEachIndexed { replyIndex, reply ->
+                                CommentCard(
+                                    comment = reply,
+                                    isReply = true,
+                                    isLastReply = replyIndex == replies.lastIndex,
+                                    isEditing = editingCommentId == reply.id,
+                                    editDraft = editDraft,
+                                    onEditDraftChange = { editDraft = it },
+                                    isSavingEdit = isSavingCommentEdit,
+                                    editError = if (editingCommentId == reply.id) commentEditError else null,
+                                    onEdit = ::startCommentEdit,
+                                    onSaveEdit = { saveCommentEdit(reply) },
+                                    onCancelEdit = ::cancelCommentEdit,
+                                    onDelete = {
+                                        commentToDelete = it
+                                        commentDeleteError = null
+                                    },
+                                    onAuthorClick = onUserProfileClick
+                                )
+                            }
+                        }
+
+                        if (topLevelIndex < topLevelComments.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = Color(0xFFE2E2E2),
+                                thickness = 1.dp
                             )
                         }
+                    }
                 }
             }
             }

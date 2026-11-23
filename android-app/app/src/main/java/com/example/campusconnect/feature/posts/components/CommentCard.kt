@@ -11,6 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
@@ -39,14 +44,22 @@ import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
 import com.example.campusconnect.core.ui.theme.ErrorRed
 import com.example.campusconnect.core.ui.theme.White
-import com.example.campusconnect.core.util.formatBackendDateTime
 import com.example.campusconnect.feature.posts.models.Comment
+import com.example.campusconnect.feature.posts.utils.formatPostTimestamp
 import com.example.campusconnect.core.components.AppAvatar
+
+private val CommentAvatarSize = 34.dp
+private val CommentHorizontalInset = 16.dp
+private val CommentVerticalInset = 6.dp
+private val CommentConnectorStroke = 1.dp
+private val CommentConnectorColor = Color(0xFFD8D8D8)
 
 @Composable
 fun CommentCard(
     comment: Comment,
     isReply: Boolean = false,
+    isLastReply: Boolean = false,
+    hasReplies: Boolean = false,
     onReply: (Comment) -> Unit = {},
     onDelete: (Comment) -> Unit = {},
     onEdit: (Comment) -> Unit = {},
@@ -63,11 +76,67 @@ fun CommentCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .drawBehind {
+                if (isReply || hasReplies) {
+                    val avatarSizePx = CommentAvatarSize.toPx()
+                    val horizontalInsetPx = CommentHorizontalInset.toPx()
+                    val verticalInsetPx = CommentVerticalInset.toPx()
+                    val railX = horizontalInsetPx + avatarSizePx / 2f
+                    val avatarCenterY = verticalInsetPx + avatarSizePx / 2f
+                    val branchStartY = avatarCenterY - avatarSizePx / 4f
+                    val replyAvatarLeftX = horizontalInsetPx + avatarSizePx
+                    val strokeWidth = CommentConnectorStroke.toPx()
+                    if (isReply) {
+                        drawLine(
+                            color = CommentConnectorColor,
+                            start = Offset(railX, 0f),
+                            end = Offset(
+                                railX,
+                                if (isLastReply) branchStartY else size.height
+                            ),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round
+                        )
+                    }
+                    if (hasReplies) {
+                        drawLine(
+                            color = CommentConnectorColor,
+                            // Start below the parent avatar so the guide never crosses it.
+                            start = Offset(railX, verticalInsetPx + avatarSizePx),
+                            end = Offset(railX, size.height),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round
+                        )
+                    }
+                    if (isReply) {
+                        val branchWidth = replyAvatarLeftX - railX
+                        val path = Path().apply {
+                            moveTo(railX, branchStartY)
+                            cubicTo(
+                                railX,
+                                avatarCenterY,
+                                railX + branchWidth / 2f,
+                                avatarCenterY,
+                                replyAvatarLeftX,
+                                avatarCenterY
+                            )
+                        }
+                        drawPath(
+                            path = path,
+                            color = CommentConnectorColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = strokeWidth,
+                                cap = StrokeCap.Round
+                            )
+                        )
+                    }
+                }
+            }
             .padding(
-                start = if (isReply) 32.dp else 16.dp,
-                end = 16.dp,
-                top = 6.dp,
-                bottom = 6.dp
+                start = if (isReply) CommentHorizontalInset + CommentAvatarSize else CommentHorizontalInset,
+                end = CommentHorizontalInset,
+                top = CommentVerticalInset,
+                bottom = CommentVerticalInset
             ),
         verticalAlignment = Alignment.Top
     ) {
@@ -75,7 +144,7 @@ fun CommentCard(
             entityId = comment.authorId,
             displayName = comment.authorDisplayName?.takeIf(String::isNotBlank) ?: comment.username,
             imageUrl = comment.authorAvatarUrl,
-            size = 34.dp,
+            size = CommentAvatarSize,
             fontSize = 13.sp,
             modifier = Modifier.clickable(enabled = comment.authorId != null) {
                 comment.authorId?.let(onAuthorClick)
@@ -104,7 +173,7 @@ fun CommentCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = formatBackendDateTime(comment.createdAt),
+                        text = formatPostTimestamp(comment.createdAt),
                         style = MaterialTheme.typography.labelSmall,
                         color = HintColor
                     )
