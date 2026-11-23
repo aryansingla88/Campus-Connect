@@ -346,6 +346,7 @@ public class HonorServiceImpl implements HonorService {
         response.add(
                 MedalCandidateResponse.builder()
                         .registrationId(registration.getId())
+                        .userId(userId)
                         .name(display.getName())
                         .courseId(
                                 registration.getUser()
@@ -398,6 +399,7 @@ public class HonorServiceImpl implements HonorService {
         response.add(
                 MedalCandidateResponse.builder()
                         .registrationId(registration.getId())
+                        .userId(null)
                         .name(team.getTeamName())
                         .courseId(null)
                         .admissionYear(null)

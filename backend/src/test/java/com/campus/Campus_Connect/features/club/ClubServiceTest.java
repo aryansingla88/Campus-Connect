@@ -4,6 +4,8 @@ import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.club.dto.response.ClubDetailResponse;
 import com.campus.Campus_Connect.features.club.dto.response.ClubMemberResponse;
+import com.campus.Campus_Connect.features.club.dto.response.ClubResponse;
+import com.campus.Campus_Connect.features.club.dto.response.ClubResponseMemberStatus;
 import com.campus.Campus_Connect.features.club.entity.Club;
 import com.campus.Campus_Connect.features.club.entity.ClubMember;
 import com.campus.Campus_Connect.features.club.entity.ClubMemberId;
@@ -137,5 +139,111 @@ class ClubServiceTest {
 
         assertThrows(IllegalStateException.class, () -> clubService.getClubMembers(4));
         assertThrows(IllegalStateException.class, () -> clubService.getClub(4));
+    }
+
+    @Test
+    void getMyClubsClassifiesLeadersAndMembersWithoutReloadingMemberships() {
+        Club robotics = Club.builder().id(4).name("Robotics").build();
+        Club debate = Club.builder().id(5).name("Debate").build();
+        ClubMember lead = ClubMember.builder()
+                .club(robotics)
+                .role(ClubMemberRole.PRESIDENT)
+                .memberStatus(ClubMemberStatus.APPROVED)
+                .build();
+        ClubMember ordinary = ClubMember.builder()
+                .club(debate)
+                .role(ClubMemberRole.MEMBER)
+                .memberStatus(ClubMemberStatus.APPROVED)
+                .build();
+        when(clubMemberRepository.findAllByIdUserIdAndMemberStatus(
+                10, ClubMemberStatus.APPROVED
+        )).thenReturn(List.of(lead, ordinary));
+        when(clubMemberRepository.countByIdClubIdAndMemberStatus(4, ClubMemberStatus.APPROVED))
+                .thenReturn(5L);
+        when(clubMemberRepository.countByIdClubIdAndMemberStatus(5, ClubMemberStatus.APPROVED))
+                .thenReturn(8L);
+
+        ApiResponse<List<ClubResponse>> response = clubService.getMyClubs();
+
+        assertTrue(response.isSuccess());
+        assertEquals(List.of(
+                ClubResponseMemberStatus.LEAD,
+                ClubResponseMemberStatus.APPROVED
+        ), response.getData().stream().map(ClubResponse::getMemberStatus).toList());
+        verify(clubMemberRepository).findAllByIdUserIdAndMemberStatus(
+                10, ClubMemberStatus.APPROVED
+        );
+        verify(clubMemberRepository, never()).findByIdClubIdAndIdUserId(anyInt(), anyInt());
+    }
+
+    @Test
+    void getUserClubsClassifiesTheViewedUsersMembershipNotTheAuthenticatedUsers() {
+        Integer viewedUserId = 20;
+        Club robotics = Club.builder().id(4).name("Robotics").build();
+        Club debate = Club.builder().id(5).name("Debate").build();
+        ClubMember lead = ClubMember.builder()
+                .club(robotics)
+                .role(ClubMemberRole.COMMITTEE_HEAD)
+                .memberStatus(ClubMemberStatus.APPROVED)
+                .build();
+        ClubMember ordinary = ClubMember.builder()
+                .club(debate)
+                .role(ClubMemberRole.MEMBER)
+                .memberStatus(ClubMemberStatus.APPROVED)
+                .build();
+        when(userRepository.existsById(viewedUserId)).thenReturn(true);
+        when(clubMemberRepository.findAllByIdUserIdAndMemberStatus(
+                viewedUserId, ClubMemberStatus.APPROVED
+        )).thenReturn(List.of(lead, ordinary));
+        when(clubMemberRepository.countByIdClubIdAndMemberStatus(4, ClubMemberStatus.APPROVED))
+                .thenReturn(5L);
+        when(clubMemberRepository.countByIdClubIdAndMemberStatus(5, ClubMemberStatus.APPROVED))
+                .thenReturn(8L);
+
+        ApiResponse<List<ClubResponse>> response = clubService.getUserClubs(viewedUserId);
+
+        assertTrue(response.isSuccess());
+        assertEquals(List.of(
+                ClubResponseMemberStatus.LEAD,
+                ClubResponseMemberStatus.APPROVED
+        ), response.getData().stream().map(ClubResponse::getMemberStatus).toList());
+        verify(clubMemberRepository).findAllByIdUserIdAndMemberStatus(
+                viewedUserId, ClubMemberStatus.APPROVED
+        );
+        verify(clubMemberRepository, never()).findByIdClubIdAndIdUserId(anyInt(), anyInt());
+    }
+
+    @Test
+    void allClubsEndpointPreservesPendingAndNonMemberStatuses() {
+        Club pendingClub = Club.builder().id(4).name("Robotics").build();
+        Club nonMemberClub = Club.builder().id(5).name("Debate").build();
+        ClubMember pending = ClubMember.builder()
+                .memberStatus(ClubMemberStatus.PENDING)
+                .role(ClubMemberRole.MEMBER)
+                .build();
+        when(clubRepository.findAll()).thenReturn(List.of(pendingClub, nonMemberClub));
+        when(clubMemberRepository.findByIdClubIdAndIdUserId(4, 10))
+                .thenReturn(Optional.of(pending));
+        when(clubMemberRepository.findByIdClubIdAndIdUserId(5, 10))
+                .thenReturn(Optional.empty());
+        when(clubMemberRepository.countByIdClubIdAndMemberStatus(anyInt(), eq(ClubMemberStatus.APPROVED)))
+                .thenReturn(0L);
+
+        ApiResponse<List<ClubResponse>> response = clubService.getClubs();
+
+        assertTrue(response.isSuccess());
+        assertEquals(ClubResponseMemberStatus.PENDING, response.getData().get(0).getMemberStatus());
+        assertNull(response.getData().get(1).getMemberStatus());
+    }
+
+    @Test
+    void everyDefinedNonMemberClubRoleIsClassifiedAsLeadership() {
+        assertTrue(ClubMemberRole.PRESIDENT.isLeadershipRole());
+        assertTrue(ClubMemberRole.VICE_PRESIDENT.isLeadershipRole());
+        assertTrue(ClubMemberRole.SECRETARY.isLeadershipRole());
+        assertTrue(ClubMemberRole.JOINT_SECRETARY.isLeadershipRole());
+        assertTrue(ClubMemberRole.ADDITIONAL_SECRETARY.isLeadershipRole());
+        assertTrue(ClubMemberRole.COMMITTEE_HEAD.isLeadershipRole());
+        assertFalse(ClubMemberRole.MEMBER.isLeadershipRole());
     }
 }

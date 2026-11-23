@@ -60,7 +60,7 @@ object ClubMapper {
     fun toStatus(status: String?): ClubStatus {
         return when (status) {
             "PENDING" -> ClubStatus.PENDING
-            "APPROVED" -> ClubStatus.JOINED
+            "APPROVED", "LEAD" -> ClubStatus.JOINED
             else -> ClubStatus.NOT_JOINED
         }
     }

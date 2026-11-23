@@ -11,6 +11,8 @@ public class MedalCandidateResponse {
 
     private Integer registrationId;
 
+    private Integer userId;
+
     private String name;
 
     private Integer courseId;

@@ -12,6 +12,7 @@ import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.ui.screen.EventScreen
 import com.example.campusconnect.feature.events.ui.screen.PosterModeScreen
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
+import com.example.campusconnect.feature.profile.navigateToUserProfile
 
 const val EVENTS_POSTER_VIEW = "events_poster_view"
 
@@ -33,6 +34,9 @@ fun NavGraphBuilder.eventNav(
                 },
                 onRegistration = { event ->
                     onRegistrationSetup(event)
+                },
+                onUserProfile = { userId ->
+                    navController.navigateToUserProfile(userId)
                 },
             )
         }
@@ -64,6 +68,9 @@ fun NavGraphBuilder.eventNav(
                 },
                 onNotify = {},
                 onOpenDetail = {},
+                onUserProfileClick = { userId ->
+                    navController.navigateToUserProfile(userId)
+                },
                 categories = categories,
                 clubs = clubs,
                 eventPreviews = eventPreviews,

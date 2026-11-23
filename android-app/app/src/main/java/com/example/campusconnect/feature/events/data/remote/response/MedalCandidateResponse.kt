@@ -7,6 +7,9 @@ data class MedalCandidateResponse(
     @SerializedName("registrationId")
     val registrationId: Int,
 
+    @SerializedName("userId")
+    val userId: Int? = null,
+
     @SerializedName("name")
     val name: String,
 

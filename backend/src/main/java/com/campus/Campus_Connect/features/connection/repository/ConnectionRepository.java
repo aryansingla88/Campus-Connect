@@ -4,6 +4,7 @@ import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.connection.entity.ConnectionStatus;
 import com.campus.Campus_Connect.features.connection.entity.UserConnection;
 import com.campus.Campus_Connect.features.connection.entity.UserConnectionId;
+import com.campus.Campus_Connect.features.connection.dto.ConnectionRelationshipStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -67,6 +68,45 @@ public interface ConnectionRepository extends JpaRepository<UserConnection, User
             @Param("query") String query,
             @Param("currentUserId") Integer currentUserId
     );
+
+    @Query(value = """
+        SELECT u.id AS userId,
+               u.username AS username,
+               p.full_name AS fullName,
+               p.avatar_url AS avatarUrl,
+               p.course_id AS courseId,
+               p.admission_year AS admissionYear,
+               CASE
+                   WHEN uc.status = 'CONNECTED' THEN 'CONNECTED'
+                   WHEN uc.sender_id = :currentUserId THEN 'PENDING_SENT'
+                   WHEN uc.receiver_id = :currentUserId THEN 'PENDING_RECEIVED'
+                   ELSE 'NOT_CONNECTED'
+               END AS relationshipStatus
+        FROM users u
+        JOIN user_profile p ON p.user_id = u.id
+        LEFT JOIN user_friends uc
+          ON (uc.sender_id = :currentUserId AND uc.receiver_id = u.id)
+          OR (uc.sender_id = u.id AND uc.receiver_id = :currentUserId)
+        WHERE u.id <> :currentUserId
+          AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%'))
+            OR LOWER(p.full_name) LIKE LOWER(CONCAT('%', :query, '%')))
+        ORDER BY p.full_name
+        LIMIT 25
+        """, nativeQuery = true)
+    List<UserSearchProjection> searchUsersWithRelationship(
+            @Param("query") String query,
+            @Param("currentUserId") Integer currentUserId
+    );
+
+    interface UserSearchProjection {
+        Integer getUserId();
+        String getUsername();
+        String getFullName();
+        String getAvatarUrl();
+        Integer getCourseId();
+        Integer getAdmissionYear();
+        String getRelationshipStatus();
+    }
 
     @Query("""
     SELECT COUNT(uc)

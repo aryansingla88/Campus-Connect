@@ -1,12 +1,10 @@
 package com.example.campusconnect.feature.profile.ui.screen
 
 import android.app.Application
-
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.animation.*
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
@@ -18,7 +16,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -47,9 +44,11 @@ private val HeaderMedalPalette = listOf(Color(0xFFFFA000), Color(0xFF9E9E9E))
 fun ViewProfileScreen(
     userId: Int,
     onBack: () -> Unit,
-    onNavigateToProfile: (Int) -> Unit = {}
+    onNavigateToProfile: (Int) -> Unit = {},
+    onNavigateToPosts: (Int) -> Unit = {}
 ) {
     var selectedClub by remember { mutableStateOf<ProfileClub?>(null) }
+    var confirmRemoveConnection by remember { mutableStateOf(false) }
 
     BackHandler(enabled = selectedClub != null) {
         selectedClub = null
@@ -114,69 +113,34 @@ fun ViewProfileScreen(
 
                 onBack = onBack,
 
+                startAction = {
+                    HeaderActionButton(
+                        icon = Icons.Outlined.Description,
+                        contentDescription = "Posts",
+                        onClick = { onNavigateToPosts(userId) }
+                    )
+                },
+
                 headerAction = {
-
-                    //-------------------------------
-                    // Connection Action
-                    //-------------------------------
-
                     when (vm.profile.relationshipStatus) {
+                        ConnectionStatus.NOT_CONNECTED -> HeaderActionButton(
+                            icon = Icons.Default.PersonAdd,
+                            contentDescription = "Connect",
+                            onClick = { vm.sendConnectionRequest() }
+                        )
 
-                        ConnectionStatus.NOT_CONNECTED -> {
-                            IconButton(
-                                onClick = {
-                                    vm.sendConnectionRequest()
-                                },
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(Orange)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PersonAdd,
-                                    contentDescription = "Connect",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        ConnectionStatus.PENDING -> HeaderActionButton(
+                            icon = Icons.Default.Schedule,
+                            contentDescription = "Pending",
+                            onClick = {},
+                            enabled = false
+                        )
 
-                        ConnectionStatus.PENDING -> {
-                            IconButton(
-                                onClick = {},
-                                enabled = false,
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(Orange)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = "Pending",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        ConnectionStatus.CONNECTED -> {
-                            IconButton(
-                                onClick = {
-                                    vm.removeConnection()
-                                },
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(Orange)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PersonRemove,
-                                    contentDescription = "Remove connection",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        ConnectionStatus.CONNECTED -> HeaderActionButton(
+                            icon = Icons.Default.PersonRemove,
+                            contentDescription = "Remove connection",
+                            onClick = { confirmRemoveConnection = true }
+                        )
 
                         null -> Unit
                     }
@@ -239,7 +203,7 @@ fun ViewProfileScreen(
                                 onSearch = {},
                                 onStatusChange = { _, _ -> },
                                 onRemoveConnection = {},
-                                onConnectionClick = {},
+                                onConnectionClick = onNavigateToProfile,
                                 onCancelConnectionRequest = {}
                             )
                         }
@@ -296,5 +260,15 @@ fun ViewProfileScreen(
                 }
             }
         }
+    }
+
+    if (confirmRemoveConnection) {
+        ProfileConfirmationDialog(
+            title = "Remove connection?",
+            message = "Remove this person from your connections?",
+            confirmLabel = "Remove",
+            onConfirm = { confirmRemoveConnection = false; vm.removeConnection() },
+            onDismiss = { confirmRemoveConnection = false }
+        )
     }
 }

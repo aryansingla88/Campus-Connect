@@ -8,6 +8,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.example.campusconnect.feature.profile.ui.screen.MyProfileScreen
 import com.example.campusconnect.feature.profile.ui.screen.ViewProfileScreen
+import com.example.campusconnect.feature.posts.navigation.userPostsRoute
 
 // --- Route constants -----------------------------------------------------------------
 object ProfileRoutes {
@@ -49,7 +50,12 @@ fun NavGraphBuilder.ProfileNav(
                 onBack = { navController.popBackStack() },
                 onSettings = { navController.navigate("settings") },
                 onNavigateToProfile = { userId ->
-                    navController.navigate(ProfileRoutes.viewProfile(userId))
+                    navController.navigateToUserProfile(userId)
+                },
+                onNavigateToPosts = { profileUserId ->
+                    navController.navigate(userPostsRoute(profileUserId)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -69,7 +75,12 @@ fun NavGraphBuilder.ProfileNav(
                 userId = userId,
                 onBack = { navController.popBackStack() },
                 onNavigateToProfile = { memberId ->
-                    navController.navigate(ProfileRoutes.viewProfile(memberId))
+                    navController.navigateToUserProfile(memberId)
+                },
+                onNavigateToPosts = { profileUserId ->
+                    navController.navigate(userPostsRoute(profileUserId)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }

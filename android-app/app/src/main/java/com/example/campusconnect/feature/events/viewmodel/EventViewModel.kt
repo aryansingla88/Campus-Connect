@@ -239,7 +239,8 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                         SoloParticipant(
                             id = participant.userId,
                             name = participant.name,
-                            subtitle = subtitle
+                            subtitle = subtitle,
+                            avatarUrl = participant.avatarUrl
                         )
                     }
 
@@ -272,6 +273,7 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                                     id = member.userId,
                                     name = member.name,
                                     subtitle = subtitle,
+                                    avatarUrl = member.avatarUrl,
                                     isLeader = member.leader
                                 )
                             }

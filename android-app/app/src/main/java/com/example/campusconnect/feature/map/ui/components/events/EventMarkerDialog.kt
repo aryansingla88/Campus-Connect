@@ -100,6 +100,7 @@ fun EventMarkerDialog(
     description: String? = null,
     registrationsCount: Int? = null,
     onViewAllHostsClick: () -> Unit = {},
+    onHostProfileClick: (Int) -> Unit = {},
     nearbyEvents: List<MapEventInfo> = emptyList(),
     onNearbyEventClick: (MapEventInfo) -> Unit = {}
 ) {
@@ -143,6 +144,7 @@ fun EventMarkerDialog(
             registrationsCount = registrationsCount,
             eventType = event.categories.firstOrNull()?.name,
             onViewAllHostsClick = onViewAllHostsClick,
+            onHostProfileClick = onHostProfileClick,
             nearbyEvents = nearbyEvents,
             isExpanded = isExpanded,
             onDismiss = onDismiss,
@@ -226,6 +228,7 @@ private fun EventQuickPreviewContent(
     registrationsCount: Int?,
     eventType: String?,
     onViewAllHostsClick: () -> Unit,
+    onHostProfileClick: (Int) -> Unit,
     nearbyEvents: List<MapEventInfo>,
     isExpanded: Boolean,
     onDismiss: () -> Unit,
@@ -462,7 +465,8 @@ private fun EventQuickPreviewContent(
                 if (displayHosts.isNotEmpty()) {
                     HostsSection(
                         hosts = displayHosts,
-                        onViewAllClick = onViewAllHostsClick
+                        onViewAllClick = onViewAllHostsClick,
+                        onHostClick = onHostProfileClick
                     )
                 }
 

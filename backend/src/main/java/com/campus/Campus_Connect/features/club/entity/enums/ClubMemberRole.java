@@ -7,5 +7,13 @@ public enum ClubMemberRole {
     JOINT_SECRETARY,
     ADDITIONAL_SECRETARY,
     COMMITTEE_HEAD,
-    MEMBER
+    MEMBER;
+
+    public boolean isLeadershipRole() {
+        return switch (this) {
+            case PRESIDENT, VICE_PRESIDENT, SECRETARY, JOINT_SECRETARY,
+                    ADDITIONAL_SECRETARY, COMMITTEE_HEAD -> true;
+            case MEMBER -> false;
+        };
+    }
 }

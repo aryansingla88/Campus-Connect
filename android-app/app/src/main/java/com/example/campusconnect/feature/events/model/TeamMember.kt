@@ -4,7 +4,6 @@ data class TeamMember(
     val id       : Int,
     val name     : String,
     val subtitle : String,
+    val avatarUrl: String? = null,
     val isLeader : Boolean = false,
-    val initials : String = name
-        .split(" ").take(2).joinToString("") { it.take(1).uppercase() }
 )

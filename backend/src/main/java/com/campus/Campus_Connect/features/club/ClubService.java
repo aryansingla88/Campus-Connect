@@ -8,6 +8,7 @@ import com.campus.Campus_Connect.features.club.dto.response.*;
 import com.campus.Campus_Connect.features.club.entity.Club;
 import com.campus.Campus_Connect.features.club.entity.ClubMember;
 import com.campus.Campus_Connect.features.club.entity.ClubMemberId;
+import com.campus.Campus_Connect.features.club.dto.response.ClubResponseMemberStatus;
 import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberRole;
 import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberStatus;
 import com.campus.Campus_Connect.features.club.repository.ClubMemberRepository;
@@ -206,7 +207,8 @@ public class ClubService {
             response.add(
                     buildClubResponse(
                             membership.getClub(),
-                            currentUser.getId()
+                            membership,
+                            true
                     )
             );
         }
@@ -224,7 +226,7 @@ public class ClubService {
             return ApiResponse.failure("User not found.");
         }
 
-        User currentUser = SecurityUtils.getCurrentUser();
+        SecurityUtils.getCurrentUser();
 
         List<ClubMember> memberships = clubMemberRepository
                 .findAllByIdUserIdAndMemberStatus(
@@ -238,7 +240,8 @@ public class ClubService {
             response.add(
                     buildClubResponse(
                             membership.getClub(),
-                            currentUser.getId()
+                            membership,
+                            true
                     )
             );
         }
@@ -276,11 +279,19 @@ public class ClubService {
             Club club,
             Integer currentUserId
     ) {
-
         ClubMember member = getMembership(
                 club.getId(),
                 currentUserId
         );
+
+        return buildClubResponse(club, member, false);
+    }
+
+    private ClubResponse buildClubResponse(
+            Club club,
+            ClubMember member,
+            boolean classifyLeadership
+    ) {
 
         return ClubResponse.builder()
                 .clubId(club.getId())
@@ -288,12 +299,26 @@ public class ClubService {
                 .clubType(club.getClubType())
                 .logoUrl(club.getLogoUrl())
                 .memberCount(getMemberCount(club.getId()))
-                .memberStatus(
-                        member == null
-                                ? null
-                                : member.getMemberStatus()
-                )
+                .memberStatus(toResponseMemberStatus(member, classifyLeadership))
                 .build();
+    }
+
+    private ClubResponseMemberStatus toResponseMemberStatus(
+            ClubMember member,
+            boolean classifyLeadership
+    ) {
+        if (member == null || member.getMemberStatus() == null) {
+            return null;
+        }
+
+        if (classifyLeadership
+                && member.getMemberStatus() == ClubMemberStatus.APPROVED
+                && member.getRole() != null
+                && member.getRole().isLeadershipRole()) {
+            return ClubResponseMemberStatus.LEAD;
+        }
+
+        return ClubResponseMemberStatus.valueOf(member.getMemberStatus().name());
     }
 
 

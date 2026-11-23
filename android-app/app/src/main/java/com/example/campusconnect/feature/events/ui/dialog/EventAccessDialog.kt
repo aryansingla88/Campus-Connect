@@ -82,6 +82,7 @@ fun EventAccessDialog(
     onSearch: (String) -> Unit,
     onGrantAccess: (Int) -> Unit,
     onRevokeAccess: (Int) -> Unit,
+    onUserClick: (Int) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -258,6 +259,7 @@ fun EventAccessDialog(
                                 ) { user ->
                                     AccessUserCard(
                                         user = user,
+                                        onUserClick = onUserClick,
                                         subtitle = if (
                                             user.courseId != null &&
                                             user.admissionYear != null &&
@@ -314,6 +316,7 @@ fun EventAccessDialog(
                                 items(addedUsers, key = { it.id }) { user ->
                                     AccessUserCard(
                                         user = user,
+                                        onUserClick = onUserClick,
                                         subtitle = if (
                                             user.courseId != null &&
                                             user.admissionYear != null
@@ -447,6 +450,7 @@ private fun AccessSearchBar(
 @Composable
 private fun AccessUserCard(
     user            : UserAccess,
+    onUserClick     : (Int) -> Unit,
     subtitle        : String,
     trailingContent : @Composable () -> Unit
 ) {
@@ -468,6 +472,7 @@ private fun AccessUserCard(
                 imageUrl = user.avatarUrl,
                 size = 38.dp,
                 fontSize = 13.sp,
+                modifier = Modifier.clickable { onUserClick(user.id) },
             )
 
             Column(modifier = Modifier.weight(1f)) {

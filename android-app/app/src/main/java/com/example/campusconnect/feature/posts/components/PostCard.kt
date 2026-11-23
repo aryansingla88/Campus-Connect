@@ -42,6 +42,7 @@ fun PostCard(
     onDownvoteClick: () -> Unit,
     onDeleteClick: () -> Unit = {},
     onEditClick: () -> Unit = {},
+    onAuthorClick: (Int) -> Unit = {},
     searchHighlightQuery: String = ""
 ) {
     var showMenu by remember(post.id) { mutableStateOf(false) }
@@ -90,7 +91,10 @@ fun PostCard(
                         entityId = post.authorId,
                         displayName = authorDisplayName,
                         imageUrl = post.authorAvatarUrl,
-                        size = 42.dp
+                        size = 42.dp,
+                        modifier = Modifier.clickable(enabled = post.authorId != null) {
+                            post.authorId?.let(onAuthorClick)
+                        }
                     )
 
                     Column(

@@ -269,27 +269,18 @@ public class ConnectionService {
 
         User currentUser = SecurityUtils.getCurrentUser();
 
-        List<User> users = connectionRepository.searchUsers(
-                query,
-                currentUser.getId()
-        );
-
         List<ConnectionResponse> responses = new ArrayList<>();
-
-        for (User user : users) {
-
-            ConnectionRelationshipStatus status =
-                    getRelationshipStatus(
-                            currentUser.getId(),
-                            user.getId()
-                    );
-
-            responses.add(
-                    buildConnectionResponse(
-                            user,
-                            status
-                    )
-            );
+        for (ConnectionRepository.UserSearchProjection user :
+                connectionRepository.searchUsersWithRelationship(query, currentUser.getId())) {
+            responses.add(ConnectionResponse.builder()
+                    .userId(user.getUserId())
+                    .username(user.getUsername())
+                    .fullName(user.getFullName())
+                    .avatarUrl(user.getAvatarUrl())
+                    .courseId(user.getCourseId())
+                    .admissionYear(user.getAdmissionYear())
+                    .status(ConnectionRelationshipStatus.valueOf(user.getRelationshipStatus()))
+                    .build());
         }
 
         return ApiResponse.success(

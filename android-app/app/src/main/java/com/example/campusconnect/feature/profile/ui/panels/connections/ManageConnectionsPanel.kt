@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.profile.ui.panels.connections
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,7 +29,8 @@ fun ManageConnectionsPanel(
     sentInvites: List<ConnectionRequest>,
     onAccept: (Int) -> Unit,
     onDecline: (Int) -> Unit,
-    onCancelInvite: (Int) -> Unit
+    onCancelInvite: (Int) -> Unit,
+    onUserClick: (Int) -> Unit = {}
 ) {
     var selectedTab by remember {
         mutableStateOf(ManageTab.RECEIVED)
@@ -135,7 +137,8 @@ fun ManageConnectionsPanel(
                                 entityId = person.userId,
                                 displayName = person.fullName,
                                 imageUrl = person.avatarUrl,
-                                size = 44.dp
+                                size = 44.dp,
+                                modifier = Modifier.clickable { onUserClick(person.userId) }
                             )
                         },
 

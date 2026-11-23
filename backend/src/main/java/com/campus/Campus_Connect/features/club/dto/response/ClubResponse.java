@@ -1,6 +1,5 @@
 package com.campus.Campus_Connect.features.club.dto.response;
 
-import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberStatus;
 import lombok.*;
 
 @Getter
@@ -20,9 +19,6 @@ public class ClubResponse {
 
     private Integer memberCount;
 
-    // Current authenticated user's membership status
-    // null -> Not joined
-    // PENDING -> Request sent
-    // APPROVED -> Joined
-    private ClubMemberStatus memberStatus;
+    // Response-only membership classification; actual member roles remain internal.
+    private ClubResponseMemberStatus memberStatus;
 }

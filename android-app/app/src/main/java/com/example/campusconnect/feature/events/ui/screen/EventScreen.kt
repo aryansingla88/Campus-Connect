@@ -53,6 +53,7 @@ import com.example.campusconnect.feature.events.ui.drawer.EventHistoryDrawer
 import com.example.campusconnect.feature.events.ui.drawer.EventParticipantsDrawer
 import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
+import com.example.campusconnect.feature.profile.ProfileRoutes
 import com.example.campusconnect.feature.map.mapengine.MapCalibration
 import com.example.campusconnect.feature.map.mapengine.MapView
 import com.example.campusconnect.feature.map.mapengine.model.MapMarkerItem
@@ -80,6 +81,7 @@ private data class EventMapMarker(
 fun EventScreen(
     onBack: () -> Unit,
     onRegistration: (Event) -> Unit = {},
+    onUserProfile: (Int) -> Unit = {},
 ) {
 
 
@@ -412,7 +414,8 @@ fun EventScreen(
                         solo     = participantSolo,
                         total    = participantsCount,
                         isOpen   = showPreview && showParticipants,
-                        onToggle = { showParticipants = false }
+                        onToggle = { showParticipants = false },
+                        onUserClick = onUserProfile
                     )
                 }
             }
@@ -460,6 +463,10 @@ fun EventScreen(
                             eventId,
                             medalType
                         )
+                    },
+                    onUserProfileClick = { userId ->
+                        showHistoryDrawer = false
+                        onUserProfile(userId)
                     },
                 )
             }
@@ -531,6 +538,12 @@ fun EventScreen(
                         eventId = accessEvent!!.id,
                         userId = userId
                     )
+                },
+
+                onUserClick = { userId ->
+                    showAccessDialog = false
+                    accessEvent = null
+                    onUserProfile(userId)
                 },
 
                 onDismiss = {

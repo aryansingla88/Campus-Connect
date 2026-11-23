@@ -75,6 +75,7 @@ fun AppAvatar(
     borderWidth : Dp        = 2.dp,
     fontSize    : TextUnit  = (size.value * 0.35f).sp,
     imageModel  : Any?      = null,
+    modifier    : Modifier  = Modifier,
 ) {
     val colors   = avatarColorsFor(entityId ?: displayName.hashCode())
     val initials = displayName.toInitials().ifBlank { "?" }
@@ -83,7 +84,7 @@ fun AppAvatar(
         AvatarShape.ROUNDED -> RoundedCornerShape((size.value * 0.25f).dp)
     }
 
-    val modifier = Modifier
+    val avatarModifier = modifier
         .size(size)
         .clip(clipShape)
         .then(
@@ -100,14 +101,14 @@ fun AppAvatar(
             model              = requestModel,
             contentDescription = displayName,
             contentScale       = ContentScale.Crop,
-            modifier           = modifier,
+            modifier           = avatarModifier,
             loading            = { AvatarFallback(initials, colors, fontSize) },
             error              = { AvatarFallback(initials, colors, fontSize) },
             success            = { SubcomposeAsyncImageContent() },
         )
     } else {
         Box(
-            modifier = modifier.background(colors.background),
+            modifier = avatarModifier.background(colors.background),
             contentAlignment = Alignment.Center,
         ) { Text(initials, fontSize = fontSize, fontWeight = FontWeight.Bold, color = colors.foreground) }
     }

@@ -13,7 +13,14 @@ class AccountRolePolicyTest {
         assertTrue(AccountRolePolicy.isPublic("POST", "/auth/password-reset/request"));
         assertTrue(AccountRolePolicy.isPublic("GET", "/metadata/courses"));
         assertTrue(AccountRolePolicy.isPublic("GET", "/metadata/courses/details"));
+        assertTrue(AccountRolePolicy.isPublic(
+                "GET", "/uploads/profiles/997012b1-61a0-4b8c-a1af-5cc15697c799.jpg"
+        ));
         assertFalse(AccountRolePolicy.isPublic("GET", "/auth/me"));
+        assertFalse(AccountRolePolicy.isPublic("GET", "/users/me"));
+        assertFalse(AccountRolePolicy.isPublic("GET", "/uploads/posts/private.jpg"));
+        assertFalse(AccountRolePolicy.isPublic("POST", "/uploads/profiles/avatar.jpg"));
+        assertFalse(AccountRolePolicy.isPublic("GET", "/uploads/profiles/../posts/private.jpg"));
         assertFalse(AccountRolePolicy.isPublic("POST", "/metadata/courses"));
     }
 

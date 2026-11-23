@@ -27,9 +27,13 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        val apiBaseUrl =
+        val configuredApiBaseUrl = (
             localProperties.getProperty("API_BASE_URL")
                 ?: "http://10.246.194.121:8000/"
+            ).trim()
+        val apiBaseUrl = configuredApiBaseUrl.let { url ->
+            if (url.endsWith("/")) url else "$url/"
+        }
 
         buildConfigField(
             "String",

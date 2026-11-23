@@ -37,6 +37,7 @@ fun ClubsPanel(
     var query by remember {
         mutableStateOf("")
     }
+    var clubToLeave by remember { mutableStateOf<Club?>(null) }
 
     val isOwnProfile = mode == ProfileMode.OWN
 
@@ -86,7 +87,7 @@ fun ClubsPanel(
                     } else {
                         "Search clubs…"
                     },
-                showEmbeddedPlus = isOwnProfile
+                showEmbeddedPlus = false
             )
 
             androidx.compose.foundation.layout.Box(
@@ -132,7 +133,7 @@ fun ClubsPanel(
                                     }
 
                                     ClubStatus.JOINED -> {
-                                        onLeaveClub(club.clubId)
+                                        clubToLeave = club
                                     }
                                 }
                             }
@@ -211,7 +212,7 @@ fun ClubsPanel(
                                     }
 
                                     ClubStatus.JOINED -> {
-                                        onLeaveClub(club.clubId)
+                                        clubToLeave = club
                                     }
                                 }
                             }
@@ -221,6 +222,16 @@ fun ClubsPanel(
             )
         }
     )
+
+    clubToLeave?.let { club ->
+        ProfileConfirmationDialog(
+            title = "Leave ${club.name}?",
+            message = "Are you sure you want to leave this club?",
+            confirmLabel = "Leave",
+            onConfirm = { clubToLeave = null; onLeaveClub(club.clubId) },
+            onDismiss = { clubToLeave = null }
+        )
+    }
 }
 
 @Composable

@@ -85,7 +85,8 @@ import kotlin.math.roundToInt
 @Composable
 internal fun HostsSection(
     hosts: List<HostInfo>,
-    onViewAllClick: () -> Unit
+    onViewAllClick: () -> Unit,
+    onHostClick: (Int) -> Unit = {}
 ) {
 
     val hostsListState = rememberLazyListState()
@@ -131,7 +132,8 @@ internal fun HostsSection(
             ) { host ->
 
                 HostAvatar(
-                    host = host
+                    host = host,
+                    onHostClick = onHostClick
                 )
             }
         }
@@ -277,7 +279,8 @@ private fun HostsScrollIndicator(
 
 @Composable
 private fun HostAvatar(
-    host: HostInfo
+    host: HostInfo,
+    onHostClick: (Int) -> Unit
 ) {
 
     Column(
@@ -292,6 +295,7 @@ private fun HostAvatar(
             imageUrl = host.avatarUrl,
             size = 48.dp,
             fontSize = 16.sp,
+            modifier = Modifier.clickable { onHostClick(host.id) },
         )
 
         Spacer(

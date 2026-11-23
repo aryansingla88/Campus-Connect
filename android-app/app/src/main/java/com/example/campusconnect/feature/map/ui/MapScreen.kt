@@ -77,6 +77,7 @@ internal val HintColor = Color(0xFFAAAAAA)
 @Composable
 fun MapScreen(
     onProfileClick: () -> Unit = {},
+    onUserProfileClick: (Int) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onHomePostsClick: () -> Unit = {},
     onEventPostsClick: () -> Unit = {},
@@ -609,7 +610,8 @@ fun MapScreen(
             selectedProfile = lastSelectedProfile,
             selectedPoi = lastSelectedPoi,
             onDismiss = viewModel::clearSelection,
-            onAddFriendClick = viewModel::sendConnectionRequest
+            onAddFriendClick = viewModel::sendConnectionRequest,
+            onUserProfileClick = onUserProfileClick
         )
         val selectedEventMarker = uiState.selectedMarker as? EventMarkerData
         val selectedEventInfo = uiState.selectedEventInfo
@@ -621,6 +623,7 @@ fun MapScreen(
             EventMarkerDialog(
                 event = selectedEventInfo,
                 onDismiss = viewModel::clearSelection,
+                onHostProfileClick = onUserProfileClick,
                 endTime = selectedEventInfo.endTime,
                 description = selectedEventInfo.description,
                 registrationsCount = selectedEventInfo.registrationCount,

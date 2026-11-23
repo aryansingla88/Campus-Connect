@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -71,6 +72,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.campusconnect.core.components.AppAvatar
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.campusconnect.feature.events.data.remote.response.MedalCandidateResponse
@@ -126,6 +128,7 @@ fun EventHistoryDrawer(
     onLoadMedalCandidates: (Int) -> Unit,
     onAwardMedal: (MedalAward) -> Unit,
     onRemoveMedal: (Int, MedalType) -> Unit,
+    onUserProfileClick: (Int) -> Unit = {},
 ){
 
     var selectedTab by remember { mutableStateOf(0) }  // 0=Live, 1=Upcoming, 2=Past
@@ -271,6 +274,7 @@ fun EventHistoryDrawer(
                                                 val available = medalCandidates.map { candidate ->
                                                     SearchableRecipient(
                                                         registrationId = candidate.registrationId,
+                                                        userId = candidate.userId,
                                                         name = candidate.name,
                                                         subtitle = if (
                                                             candidate.courseId != null &&
@@ -280,7 +284,8 @@ fun EventHistoryDrawer(
                                                         } else {
                                                             if (candidate.team) "Team" else ""
                                                         },
-                                                        isTeam = candidate.team
+                                                        isTeam = candidate.team,
+                                                        avatarUrl = candidate.avatarUrl
                                                     )
                                                 }
 
@@ -317,6 +322,7 @@ fun EventHistoryDrawer(
         MedalAwardDialog(
             medalType  = medalType,
             recipients = recipients,
+            onUserProfileClick = onUserProfileClick,
             onConfirm = { recipient ->
 
                 onAwardMedal(
@@ -782,6 +788,7 @@ private fun MedalRow(
 private fun MedalAwardDialog(
     medalType  : MedalType,
     recipients : List<SearchableRecipient>,
+    onUserProfileClick: (Int) -> Unit,
     onConfirm  : (SearchableRecipient) -> Unit,
     onDismiss  : () -> Unit
 ) {
@@ -885,6 +892,7 @@ private fun MedalAwardDialog(
                                 RecipientCard(
                                     recipient = recipient,
                                     isSelected = isSelected,
+                                    onUserProfileClick = onUserProfileClick,
                                     onClick = {
                                         selected =
                                             if (isSelected) null else recipient
@@ -928,6 +936,7 @@ private fun MedalAwardDialog(
 private fun RecipientCard(
     recipient  : SearchableRecipient,
     isSelected : Boolean,
+    onUserProfileClick: (Int) -> Unit,
     onClick    : () -> Unit
 ) {
     Card(
@@ -952,18 +961,23 @@ private fun RecipientCard(
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(if (isSelected) Orange else OrangeLight),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    recipient.initials,
-                    fontSize   = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = if (isSelected) Color.White else Orange
+            if (recipient.isTeam) {
+                Box(
+                    modifier = Modifier.size(36.dp).clip(CircleShape)
+                        .background(if (isSelected) Orange else OrangeLight),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Group, contentDescription = null, tint = if (isSelected) Color.White else Orange)
+                }
+            } else {
+                AppAvatar(
+                    entityId = recipient.registrationId,
+                    displayName = recipient.name,
+                    imageUrl = recipient.avatarUrl,
+                    size = 36.dp,
+                    modifier = Modifier.clickable(enabled = recipient.userId != null) {
+                        recipient.userId?.let(onUserProfileClick)
+                    }
                 )
             }
 
@@ -1175,15 +1189,11 @@ private fun EmptyState(title: String, subtitle: String, modifier: Modifier = Mod
 
 data class SearchableRecipient(
     val registrationId: Int,
+    val userId: Int?,
     val name: String,
     val subtitle: String,
     val isTeam: Boolean,
-    val initials: String = name
-        .split(" ")
-        .take(2)
-        .joinToString("") {
-            it.take(1).uppercase()
-        }
+    val avatarUrl: String? = null
 )
 
 

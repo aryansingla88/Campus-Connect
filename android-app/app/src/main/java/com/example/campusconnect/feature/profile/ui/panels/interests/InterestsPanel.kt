@@ -10,7 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +29,8 @@ fun InterestsPanel(
     onRemove: (Interest) -> Unit,
     onAddClick: () -> Unit = {}
 ) {
+    var interestToRemove by remember { mutableStateOf<Interest?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -71,7 +73,7 @@ fun InterestsPanel(
                     trailingContent = if (mode == ProfileMode.OWN) {
                         {
                             IconButton(
-                                onClick = { onRemove(interest) }
+                                onClick = { interestToRemove = interest }
                             ) {
                                 Icon(
                                     Icons.Default.Close,
@@ -85,5 +87,15 @@ fun InterestsPanel(
                 )
             }
         }
+    }
+
+    interestToRemove?.let { interest ->
+        ProfileConfirmationDialog(
+            title = "Remove interest?",
+            message = "Remove ${interest.label} from your profile?",
+            confirmLabel = "Remove",
+            onConfirm = { interestToRemove = null; onRemove(interest) },
+            onDismiss = { interestToRemove = null }
+        )
     }
 }

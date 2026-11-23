@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.profile
 import com.example.campusconnect.feature.profile.data.mapper.ClubMapper
 import com.example.campusconnect.feature.profile.data.remote.response.ClubDetailResponse
 import com.example.campusconnect.feature.profile.data.remote.response.ClubMemberResponse
+import com.example.campusconnect.feature.profile.data.remote.response.ClubResponse
 import com.example.campusconnect.feature.profile.model.ClubMemberFilter
 import com.example.campusconnect.feature.profile.model.ClubMemberRole
 import com.example.campusconnect.feature.profile.model.ClubLoadState
@@ -13,6 +14,22 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ClubMapperTest {
+    @Test
+    fun mapsLeadClubListStatusAsJoinedWithoutUsingItsRole() {
+        val club = ClubMapper.toClub(
+            ClubResponse(
+                clubId = 4,
+                name = "Robotics",
+                clubType = "CLUB",
+                logoUrl = null,
+                memberCount = 12,
+                memberStatus = "LEAD"
+            )
+        )
+
+        assertEquals(ClubStatus.JOINED, club.status)
+    }
+
     @Test
     fun mapsClubDetailsAndAuthenticatedMembershipState() {
         val details = ClubMapper.toClubDetails(

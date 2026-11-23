@@ -142,6 +142,7 @@ fun PosterModeScreen(
     onRegister: (Event) -> Unit = {},
     onNotify: (Event) -> Unit = {},
     onOpenDetail: (Event) -> Unit = {},
+    onUserProfileClick: (Int) -> Unit = {},
     showActionButtons: Boolean = true,
     categories: List<EventCategory> = emptyList(),
     clubs: List<Club> = emptyList(),
@@ -436,7 +437,8 @@ fun PosterModeScreen(
                                             event = cardEvent,
                                             preview = eventPreviews[cardEvent.id],
                                             clubName = clubs.firstOrNull { it.clubId == cardEvent.clubId }?.name
-                                                ?: cardEvent.clubName
+                                                ?: cardEvent.clubName,
+                                            onUserProfileClick = onUserProfileClick
                                         )
                                     }
                                 }
@@ -674,7 +676,12 @@ private fun PosterCard(event: Event) {
 }
 
 @Composable
-private fun EventDetailsCard(event: Event, preview: MapEventInfo?, clubName: String) {
+private fun EventDetailsCard(
+    event: Event,
+    preview: MapEventInfo?,
+    clubName: String,
+    onUserProfileClick: (Int) -> Unit
+) {
     val aboutScrollState = rememberScrollState()
     val hostsListState = rememberLazyListState()
     val hasClub = event.clubId != null
@@ -847,7 +854,7 @@ private fun EventDetailsCard(event: Event, preview: MapEventInfo?, clubName: Str
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(hosts.distinctBy { it.id }, key = { it.id }) { host ->
-                        EventHostAvatar(host)
+                        EventHostAvatar(host, onUserProfileClick)
                     }
                 }
                 if (hostsListState.canScrollBackward || hostsListState.canScrollForward) {
@@ -915,7 +922,7 @@ private fun EventDetailsSectionTitle(title: String) {
 }
 
 @Composable
-private fun EventHostAvatar(host: HostInfo) {
+private fun EventHostAvatar(host: HostInfo, onUserProfileClick: (Int) -> Unit) {
     Column(
         modifier = Modifier
             .width(58.dp),
@@ -928,6 +935,7 @@ private fun EventHostAvatar(host: HostInfo) {
             imageUrl = host.avatarUrl,
             size = 42.dp,
             fontSize = 13.sp,
+            modifier = Modifier.clickable { onUserProfileClick(host.id) },
         )
         Text(
             host.name,

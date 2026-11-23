@@ -43,6 +43,7 @@ fun ProfileHeader(
     onBioChange: ((String) -> Unit)? = null,
     avatarOverlay: (@Composable BoxScope.() -> Unit)? = null,
     headerAction: (@Composable () -> Unit)? = null,
+    startAction: (@Composable () -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null
 ) {
@@ -128,19 +129,30 @@ fun ProfileHeader(
             }
 
             /*
-             * View-profile relationship action.
-             * Keep it in the banner, below the settings button.
-             */
-            if (headerAction != null) {
-                Box(
+ * Action buttons flanking the avatar.
+ * Same vertical anchor as the avatar (bottom of banner, offset 25dp).
+ */
+            if (startAction != null || headerAction != null) {
+                Row(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(
-                            end = 12.dp,
-                            top = 52.dp
-                        )
+                        .align(Alignment.BottomCenter)
+                        .offset(y = 25.dp)
+                        .fillMaxWidth()
+                        .height(90.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    headerAction()
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterEnd
+                    ) { startAction?.invoke() }
+
+                    // avatar (90dp) + 16dp gap on each side
+                    Spacer(Modifier.width(122.dp))
+
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
+                    ) { headerAction?.invoke() }
                 }
             }
 

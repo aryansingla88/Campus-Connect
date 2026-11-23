@@ -9,6 +9,7 @@ import com.example.campusconnect.feature.events.EVENTS_POSTER_VIEW
 import com.example.campusconnect.feature.posts.navigation.EVENTS_FEED_ROUTE
 import com.example.campusconnect.feature.posts.navigation.POSTS_FEED_ROUTE
 import com.example.campusconnect.feature.profile.ProfileRoutes
+import com.example.campusconnect.feature.profile.navigateToUserProfile
 import com.example.campusconnect.feature.map.ui.MapScreen
 
 fun NavGraphBuilder.mapNav(
@@ -27,6 +28,9 @@ fun NavGraphBuilder.mapNav(
                 navController.navigate(
                     ProfileRoutes.MY_PROFILE
                 )
+            },
+            onUserProfileClick = { userId ->
+                navController.navigateToUserProfile(userId)
             },
 
             // -------------------------------

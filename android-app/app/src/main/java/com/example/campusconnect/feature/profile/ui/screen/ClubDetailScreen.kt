@@ -1,6 +1,5 @@
 package com.example.clubs.ui
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -65,12 +64,13 @@ private val ScreenBgBottom = Color(0xFFFFFAF6)
 // Models
 // ---------------------------------------------------------------------------
 data class Club(
+    val clubId: Int,
     val name: String,
     val clubType: String,
     val memberCount: Int,
     val isActive: Boolean = true,
     val description: String,
-    @DrawableRes val logoRes: Int? = null,
+    val logoUrl: String? = null,
 )
 
 private val ClubMemberRole.label: String
@@ -139,6 +139,7 @@ fun ClubDetailRoute(
 
     ClubDetailScreen(
         club = details,
+        clubLogoUrl = club.logoUrl,
         membersState = clubLoadState(club.clubId, vm.clubMembers, vm.clubMembersLoadingIds, vm.clubMembersErrors),
         onBack = onBack,
         membershipStatus = details.status,
@@ -169,6 +170,7 @@ fun ClubDetailRoute(
 @Composable
 fun ClubDetailScreen(
     club: ClubDetails,
+    clubLogoUrl: String?,
     membersState: ClubLoadState<List<ProfileClubMember>>,
     onBack: () -> Unit,
     membershipStatus: ClubStatus = ClubStatus.NOT_JOINED,
@@ -207,10 +209,12 @@ fun ClubDetailScreen(
                 }
                 ClubHeader(
                     Club(
+                        clubId = club.clubId,
                         name = club.name,
                         clubType = club.clubType,
                         memberCount = club.memberCount,
                         description = club.description.orEmpty(),
+                        logoUrl = clubLogoUrl,
                     ),
                     Modifier.padding(horizontal = 20.dp)
                 )
@@ -337,14 +341,13 @@ private fun ClubHeader(club: Club, modifier: Modifier = Modifier) {
                 Modifier.size(80.dp).clip(RoundedCornerShape(20.dp)).background(OrangeSoft),
                 contentAlignment = Alignment.Center,
             ) {
-                if (club.logoRes != null) {
-                    Image(
-                        painterResource(club.logoRes), contentDescription = "${club.name} logo",
-                        modifier = Modifier.size(56.dp),
-                    )
-                } else {
-                    Icon(Icons.Outlined.CameraAlt, null, tint = Orange, modifier = Modifier.size(40.dp))
-                }
+                AppAvatar(
+                    entityId = club.clubId,
+                    displayName = club.name,
+                    imageUrl = club.logoUrl,
+                    size = 56.dp,
+                    shape = AvatarShape.ROUNDED
+                )
             }
             Spacer(Modifier.width(14.dp))
             Column {

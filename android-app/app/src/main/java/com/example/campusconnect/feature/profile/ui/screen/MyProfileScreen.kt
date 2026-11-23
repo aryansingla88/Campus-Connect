@@ -42,6 +42,7 @@ fun MyProfileScreen(
     onBack: () -> Unit = {},
     onSettings: () -> Unit = {},
     onNavigateToProfile: (Int) -> Unit = {},
+    onNavigateToPosts: (Int) -> Unit = {},
     initialEditMode: Boolean = false,
     vm: MyProfileViewModel = viewModel()
 ) {
@@ -271,6 +272,15 @@ fun MyProfileScreen(
                     )
                 },
 
+                startAction = {
+                    HeaderActionButton(
+                        icon = Icons.Outlined.Description,
+                        contentDescription = "Posts",
+                        onClick = { onNavigateToPosts(currentProfile.userId) },
+                        enabled = currentProfile.userId > 0
+                    )
+                },
+
                 onBack = onBack,
                 onSettings = onSettings
             )
@@ -336,7 +346,8 @@ fun MyProfileScreen(
                                 sentInvites = vm.sentInvites,
                                 onAccept = vm::acceptRequest,
                                 onDecline = vm::declineRequest,
-                                onCancelInvite = vm::cancelInvite
+                                onCancelInvite = vm::cancelInvite,
+                                onUserClick = onNavigateToProfile
                             )
                         }
 

@@ -23,6 +23,7 @@ fun <T> SearchPopup(
     itemContent: @Composable (T) -> Unit,
     onDismiss: () -> Unit,
     showEmbeddedPlus: Boolean = false,
+    autoFocusSearch: Boolean = false,
     isLoading: Boolean = false,
     statusMessage: String? = null
 ) {
@@ -33,7 +34,7 @@ fun <T> SearchPopup(
             return@LaunchedEffect
         }
 
-        delay(300)
+        delay(150)
         onSearch(query)
     }
 
@@ -63,7 +64,8 @@ fun <T> SearchPopup(
                     value = query,
                     onValueChange = onQueryChange,
                     placeholder = placeholder,
-                    showEmbeddedPlus = showEmbeddedPlus
+                    showEmbeddedPlus = showEmbeddedPlus,
+                    autoFocus = autoFocusSearch
                 )
 
                 Spacer(

@@ -37,10 +37,11 @@ fun PostDetailScreen(
     postId: Int,
     onBackClick: () -> Unit,
     onEditPost: (Int) -> Unit = {},
+    onUserProfileClick: (Int) -> Unit = {},
     refreshTrigger: Int = 0
 ) {
     key(postId) {
-        PostDetailContent(postId, onBackClick, onEditPost, refreshTrigger)
+        PostDetailContent(postId, onBackClick, onEditPost, onUserProfileClick, refreshTrigger)
     }
 }
 
@@ -49,6 +50,7 @@ private fun PostDetailContent(
     postId: Int,
     onBackClick: () -> Unit,
     onEditPost: (Int) -> Unit,
+    onUserProfileClick: (Int) -> Unit,
     refreshTrigger: Int
 ) {
     val viewModel: PostDetailViewModel = viewModel()
@@ -228,6 +230,7 @@ private fun PostDetailContent(
                         commentCount = commentsForPost.size,
                         onDeleteClick = { showDeleteConfirmation = true },
                         onEditClick = { onEditPost(postId) },
+                        onAuthorClick = onUserProfileClick,
                         onUpvoteClick = { coroutineScope.launch { submitVote(VoteType.UPVOTE) } },
                         onDownvoteClick = { coroutineScope.launch { submitVote(VoteType.DOWNVOTE) } }
                     )
@@ -292,7 +295,8 @@ private fun PostDetailContent(
                         onDelete = {
                             commentToDelete = it
                             commentDeleteError = null
-                        }
+                        },
+                        onAuthorClick = onUserProfileClick
                     )
 
                     commentsForPost
@@ -312,7 +316,8 @@ private fun PostDetailContent(
                                 onDelete = {
                                     commentToDelete = it
                                     commentDeleteError = null
-                                }
+                                },
+                                onAuthorClick = onUserProfileClick
                             )
                         }
                 }

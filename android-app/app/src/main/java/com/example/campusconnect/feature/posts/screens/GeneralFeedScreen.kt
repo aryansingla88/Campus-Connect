@@ -70,9 +70,12 @@ import kotlinx.coroutines.launch
 fun GeneralFeedScreen(
 
     initialTab: Int = 0,
+    profileUserId: Int? = null,
     onPostClick: (Int) -> Unit,
     onCreatePostClick: (postType: String) -> Unit,
     onEditPostClick: (Int) -> Unit = {},
+    onUserProfileClick: (Int) -> Unit = {},
+    onBackClick: () -> Unit = {},
     refreshTrigger: Int = 0,
     viewModel: FeedViewModel = FeedViewModel()
 ) {
@@ -458,26 +461,23 @@ fun GeneralFeedScreen(
         }
     }
 
-    val filteredPosts =
-
-        if (selectedTopicId == null) {
-
-            posts
-        }
-        else {
-
-            posts.filter {
-
-                it.tags.any { tag ->
-
-                    tag.id == selectedTopicId
-                }
-            }
-        }
+    val filteredPosts = posts.filter { post ->
+        (profileUserId == null || post.authorId == profileUserId) &&
+                (selectedTopicId == null || post.tags.any { it.id == selectedTopicId })
+    }
+    val filteredGeneralSearchResults = generalSearchResults.filter { post ->
+        profileUserId == null || post.authorId == profileUserId
+    }
+    val filteredEventPosts = eventPosts.filter { event ->
+        profileUserId == null || event.organizerUserId == profileUserId
+    }
+    val filteredEventSearchResults = eventSearchResults.filter { event ->
+        profileUserId == null || event.organizerUserId == profileUserId
+    }
 
     Scaffold(
         floatingActionButton = {
-            if (selectedTab != 2) {
+            if (profileUserId == null && selectedTab != 2) {
                 FloatingActionButton(
                     onClick = {
                         onCreatePostClick(if (selectedTab == 1) "EVENTS" else "GENERAL")
@@ -608,9 +608,13 @@ fun GeneralFeedScreen(
                                 onQueryChange = ::updatePostSearchQuery,
                                 onBack = ::resetPostSearch
                             )
-                            FeedTopBar(currentTitle = "General", showSearchButton = false, showBrand = false)
+                            FeedTopBar(currentTitle = if (profileUserId == null) "General" else "Profile Posts", showSearchButton = false, showBrand = false)
                         } else {
-                            FeedTopBar(currentTitle = "General", onSearchClick = { showSearchPopup = true })
+                            FeedTopBar(
+                                currentTitle = if (profileUserId == null) "General" else "Profile Posts",
+                                onSearchClick = { showSearchPopup = true },
+                                onBackClick = onBackClick.takeIf { profileUserId != null }
+                            )
                         }
 
                         AnimatedVisibility(
@@ -677,15 +681,15 @@ fun GeneralFeedScreen(
                                         isSearchLoading -> Text("Searching…", color = HintColor)
                                         searchError != null -> Text(searchError!!, color = ErrorRed)
                                         else -> Text(
-                                            "${generalSearchResults.size} ${if (generalSearchResults.size == 1) "result" else "results"} for “$trimmedQuery”",
+                                            "${filteredGeneralSearchResults.size} ${if (filteredGeneralSearchResults.size == 1) "result" else "results"} for “$trimmedQuery”",
                                             color = HintColor
                                         )
                                     }
                                 }
-                                if (searchQuery.trim().length >= 2 && !isSearchLoading && searchError == null && generalSearchResults.isEmpty()) {
+                                if (searchQuery.trim().length >= 2 && !isSearchLoading && searchError == null && filteredGeneralSearchResults.isEmpty()) {
                                     item(key = "search-no-results") { Text("No matching posts found.", color = HintColor) }
                                 }
-                                items(generalSearchResults, key = { "search-post-${it.id}" }) { post ->
+                                items(filteredGeneralSearchResults, key = { "search-post-${it.id}" }) { post ->
                                     com.example.campusconnect.feature.posts.components.PostCard(
                                         post = post,
                                         commentCount = post.commentCount,
@@ -694,7 +698,8 @@ fun GeneralFeedScreen(
                                         onUpvoteClick = { coroutineScope.launch { handleUpvote(post) } },
                                         onDownvoteClick = { coroutineScope.launch { handleDownvote(post) } },
                                         onDeleteClick = { postToDelete = post; deleteError = null },
-                                        onEditClick = { onEditPostClick(post.id) }
+                                        onEditClick = { onEditPostClick(post.id) },
+                                        onAuthorClick = onUserProfileClick
                                     )
                                 }
                             } else if (isLoading && posts.isEmpty()) {
@@ -739,7 +744,8 @@ fun GeneralFeedScreen(
                                         postToDelete = post
                                         deleteError = null
                                     },
-                                    onEditClick = { onEditPostClick(post.id) }
+                                    onEditClick = { onEditPostClick(post.id) },
+                                    onAuthorClick = onUserProfileClick
 
                                 )
                             }
@@ -757,9 +763,13 @@ fun GeneralFeedScreen(
                                 onQueryChange = ::updatePostSearchQuery,
                                 onBack = ::resetPostSearch
                             )
-                            FeedTopBar(currentTitle = "Events", showSearchButton = false, showBrand = false)
+                            FeedTopBar(currentTitle = if (profileUserId == null) "Events" else "Profile Events", showSearchButton = false, showBrand = false)
                         } else {
-                            FeedTopBar(currentTitle = "Events", onSearchClick = { showSearchPopup = true })
+                            FeedTopBar(
+                                currentTitle = if (profileUserId == null) "Events" else "Profile Events",
+                                onSearchClick = { showSearchPopup = true },
+                                onBackClick = onBackClick.takeIf { profileUserId != null }
+                            )
                         }
                         LazyColumn(
                             modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
@@ -777,15 +787,15 @@ fun GeneralFeedScreen(
                                         isSearchLoading -> Text("Searching…", color = HintColor)
                                         searchError != null -> Text(searchError!!, color = ErrorRed)
                                         else -> Text(
-                                            "${eventSearchResults.size} ${if (eventSearchResults.size == 1) "result" else "results"} for “$trimmedQuery”",
+                                            "${filteredEventSearchResults.size} ${if (filteredEventSearchResults.size == 1) "result" else "results"} for “$trimmedQuery”",
                                             color = HintColor
                                         )
                                     }
                                 }
-                                if (searchQuery.trim().length >= 2 && !isSearchLoading && searchError == null && eventSearchResults.isEmpty()) {
+                                if (searchQuery.trim().length >= 2 && !isSearchLoading && searchError == null && filteredEventSearchResults.isEmpty()) {
                                     item(key = "event-search-no-results") { Text("No matching event posts found.", color = HintColor) }
                                 }
-                                items(eventSearchResults, key = { "search-event-${it.id}" }) { event ->
+                                items(filteredEventSearchResults, key = { "search-event-${it.id}" }) { event ->
                                     EventPostCard(
                                         event = event,
                                         isVoting = event.postId?.let(votingEventPostIds::contains) == true,
@@ -794,17 +804,18 @@ fun GeneralFeedScreen(
                                         onEditClick = { event.postId?.let(onEditPostClick) },
                                         onDeleteClick = { eventPostToDelete = event; eventPostDeleteError = null },
                                         onUpvoteClick = { coroutineScope.launch { handleEventVote(event, VoteType.UPVOTE) } },
-                                        onDownvoteClick = { coroutineScope.launch { handleEventVote(event, VoteType.DOWNVOTE) } }
+                                        onDownvoteClick = { coroutineScope.launch { handleEventVote(event, VoteType.DOWNVOTE) } },
+                                        onOrganizerClick = onUserProfileClick
                                     )
                                 }
-                            } else if (isLoadingEventPosts && eventPosts.isEmpty()) {
+                            } else if (isLoadingEventPosts && filteredEventPosts.isEmpty()) {
                                 item { Text("Loading event posts…") }
-                            } else if (eventPostsError != null && eventPosts.isEmpty()) {
+                            } else if (eventPostsError != null && filteredEventPosts.isEmpty()) {
                                 item { Text(eventPostsError!!, color = ErrorRed) }
-                            } else if (eventPosts.isEmpty()) {
-                                item { Text("No event posts yet.", color = HintColor) }
+                            } else if (filteredEventPosts.isEmpty()) {
+                                item { Text(if (profileUserId == null) "No event posts yet." else "No event posts for this user.", color = HintColor) }
                             } else {
-                                items(eventPosts, key = { it.id }) { event ->
+                                items(filteredEventPosts, key = { it.id }) { event ->
                                     EventPostCard(
                                         event = event,
                                         isVoting = event.postId?.let(votingEventPostIds::contains) == true,
@@ -819,7 +830,8 @@ fun GeneralFeedScreen(
                                         },
                                         onDownvoteClick = {
                                             coroutineScope.launch { handleEventVote(event, VoteType.DOWNVOTE) }
-                                        }
+                                        },
+                                        onOrganizerClick = onUserProfileClick
                                     )
                                 }
                             }

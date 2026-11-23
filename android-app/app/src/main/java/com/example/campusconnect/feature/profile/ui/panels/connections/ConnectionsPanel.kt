@@ -38,6 +38,10 @@ fun ConnectionsPanel(
     var query by remember {
         mutableStateOf("")
     }
+    var hasSearched by remember {
+        mutableStateOf(false)
+    }
+    var userToRemove by remember { mutableStateOf<Connection?>(null) }
 
     Column(
         modifier = Modifier
@@ -64,13 +68,15 @@ fun ConnectionsPanel(
                     } else {
                         "Search connections…"
                     },
-                showEmbeddedPlus = mode == ProfileMode.OWN
+                showEmbeddedPlus = false
             )
 
             Surface(
                 modifier = Modifier
                     .matchParentSize()
                     .clickable {
+                        query = ""
+                        hasSearched = false
                         showSearchPopup = true
                     },
                 color = Color.Transparent
@@ -119,9 +125,7 @@ fun ConnectionsPanel(
 
                                 ConnectionStatus.CONNECTED -> {
                                     if (mode == ProfileMode.OWN) {
-                                        onRemoveConnection(
-                                            connection.userId
-                                        )
+                                        userToRemove = connection
                                     }
                                 }
                             }
@@ -145,16 +149,22 @@ fun ConnectionsPanel(
             } else {
                 "Search connections…"
             },
-        items =
-            if (query.isBlank()) {
-                connections
-            } else {
-                searchResults
-            },
-        onSearch = onSearch,
+        items = when {
+            !hasSearched -> connections
+            mode == ProfileMode.VIEW -> connections.filter {
+                it.fullName.contains(query.trim(), ignoreCase = true)
+            }
+            else -> searchResults
+        },
+        onSearch = {
+            hasSearched = true
+            if (mode == ProfileMode.OWN) onSearch(it)
+        },
+        autoFocusSearch = true,
         onDismiss = {
             showSearchPopup = false
             query = ""
+            hasSearched = false
         },
         itemContent = { connection ->
 
@@ -197,9 +207,7 @@ fun ConnectionsPanel(
 
                                 ConnectionStatus.CONNECTED -> {
                                     if (mode == ProfileMode.OWN) {
-                                        onRemoveConnection(
-                                            connection.userId
-                                        )
+                                        userToRemove = connection
                                     }
                                 }
                             }
@@ -209,6 +217,16 @@ fun ConnectionsPanel(
             )
         }
     )
+
+    userToRemove?.let { connection ->
+        ProfileConfirmationDialog(
+            title = "Remove connection?",
+            message = "Remove ${connection.fullName} from your connections?",
+            confirmLabel = "Remove",
+            onConfirm = { userToRemove = null; onRemoveConnection(connection.userId) },
+            onDismiss = { userToRemove = null }
+        )
+    }
 }
 
 @Composable

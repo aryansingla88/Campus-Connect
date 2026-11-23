@@ -3,6 +3,7 @@ package com.example.campusconnect.feature.posts.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,7 +65,8 @@ fun PostDetailCard(
     onUpvoteClick: () -> Unit = {},
     onDownvoteClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
-    onEditClick: () -> Unit = {}
+    onEditClick: () -> Unit = {},
+    onAuthorClick: (Int) -> Unit = {}
 ) {
     var showMenu by remember(post.id) { mutableStateOf(false) }
     val isEventPost = post.postType.equals("EVENTS", ignoreCase = true)
@@ -97,7 +99,8 @@ fun PostDetailCard(
                     showMenu = showMenu,
                     onMenuExpandedChange = { showMenu = it },
                     onDeleteClick = onDeleteClick,
-                    onEditClick = onEditClick
+                    onEditClick = onEditClick,
+                    onAuthorClick = onAuthorClick
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -108,7 +111,10 @@ fun PostDetailCard(
                             ?.takeIf(String::isNotBlank)
                             ?: post.username,
                         imageUrl = post.authorAvatarUrl,
-                        size = 48.dp
+                        size = 48.dp,
+                        modifier = Modifier.clickable(enabled = post.authorId != null) {
+                            post.authorId?.let(onAuthorClick)
+                        }
                     )
 
                     Spacer(Modifier.width(12.dp))
@@ -337,7 +343,8 @@ private fun EventHeader(
     showMenu: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
     onDeleteClick: () -> Unit,
-    onEditClick: () -> Unit
+    onEditClick: () -> Unit,
+    onAuthorClick: (Int) -> Unit
 ) {
     Row(verticalAlignment = Alignment.Top) {
 
@@ -347,7 +354,10 @@ private fun EventHeader(
                 ?.takeIf(String::isNotBlank)
                 ?: post.eventOrganizerName.orEmpty(),
             imageUrl = post.eventOrganizerAvatarUrl,
-            size = 42.dp
+            size = 42.dp,
+            modifier = Modifier.clickable(enabled = post.eventOrganizerUserId != null) {
+                post.eventOrganizerUserId?.let(onAuthorClick)
+            }
         )
 
         Column(

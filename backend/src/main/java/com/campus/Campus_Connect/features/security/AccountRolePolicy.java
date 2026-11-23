@@ -27,12 +27,32 @@ public final class AccountRolePolicy {
     }
 
     public static boolean isPublic(String method, String path) {
-        if (!"POST".equals(method)) return "GET".equals(method) && path.startsWith("/metadata/courses/")
-                || "GET".equals(method) && "/metadata/courses".equals(path);
+        if ("GET".equals(method)) {
+            return path.equals("/metadata/courses")
+                    || path.startsWith("/metadata/courses/")
+                    || isProfileUpload(path);
+        }
+
+        if (!"POST".equals(method)) return false;
         return path.equals("/auth/login") || path.equals("/auth/register") ||
                 path.equals("/auth/password-reset/request") ||
                 path.equals("/auth/password-reset/verify") ||
                 path.equals("/auth/password-reset/reset");
+    }
+
+    private static boolean isProfileUpload(String path) {
+        String prefix = "/uploads/profiles/";
+        if (path == null || !path.startsWith(prefix)) return false;
+
+        String relativePath = path.substring(prefix.length());
+        if (relativePath.isBlank()) return false;
+
+        for (String segment : relativePath.split("/")) {
+            if (segment.isBlank() || ".".equals(segment) || "..".equals(segment)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static boolean canAccess(User.Role role, String method, String path) {

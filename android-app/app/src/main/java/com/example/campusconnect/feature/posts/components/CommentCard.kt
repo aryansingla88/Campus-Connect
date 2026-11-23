@@ -56,7 +56,8 @@ fun CommentCard(
     isSavingEdit: Boolean = false,
     editError: String? = null,
     onSaveEdit: () -> Unit = {},
-    onCancelEdit: () -> Unit = {}
+    onCancelEdit: () -> Unit = {},
+    onAuthorClick: (Int) -> Unit = {}
 ) {
     var menuExpanded by remember(comment.id) { mutableStateOf(false) }
     Row(
@@ -76,6 +77,9 @@ fun CommentCard(
             imageUrl = comment.authorAvatarUrl,
             size = 34.dp,
             fontSize = 13.sp,
+            modifier = Modifier.clickable(enabled = comment.authorId != null) {
+                comment.authorId?.let(onAuthorClick)
+            },
         )
 
         Spacer(modifier = Modifier.width(10.dp))

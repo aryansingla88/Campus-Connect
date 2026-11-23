@@ -75,6 +75,7 @@ fun EventPostCard(
     onDeleteClick: () -> Unit = {},
     onUpvoteClick: () -> Unit = {},
     onDownvoteClick: () -> Unit = {},
+    onOrganizerClick: (Int) -> Unit = {},
     isVoting: Boolean = false,
     searchHighlightQuery: String = ""
 ) {
@@ -119,6 +120,9 @@ fun EventPostCard(
                             ?: event.hostName.orEmpty(),
                         imageUrl = event.organizerAvatarUrl,
                         size = 42.dp,
+                        modifier = Modifier.clickable(enabled = event.organizerUserId != null) {
+                            event.organizerUserId?.let(onOrganizerClick)
+                        },
                     )
                     Column(
                         modifier = Modifier

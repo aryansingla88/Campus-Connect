@@ -10,15 +10,19 @@ import androidx.navigation.navArgument
 import com.example.campusconnect.feature.posts.screens.CreatePostScreen
 import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
 import com.example.campusconnect.feature.posts.screens.PostDetailScreen
+import com.example.campusconnect.feature.profile.navigateToUserProfile
 
 const val POSTS_FEED_ROUTE = "posts"
 const val EVENTS_FEED_ROUTE = "posts/events"
+const val USER_POSTS_ROUTE = "posts/user/{userId}"
 const val POST_DETAIL_ROUTE = "post_detail/{postId}"
 const val CREATE_POST_ROUTE = "create_post/{postType}"
 private const val EDIT_POST_ROUTE = "edit_post/{postId}"
 
 private const val CREATE_POST_ROUTE_BASE = "create_post"
 private const val POST_REFRESH_KEY = "post_refresh"
+
+fun userPostsRoute(userId: Int) = "posts/user/$userId"
 
 fun NavGraphBuilder.postNav(navController: NavController) {
     feedDestination(
@@ -31,6 +35,13 @@ fun NavGraphBuilder.postNav(navController: NavController) {
         route = EVENTS_FEED_ROUTE,
         initialTab = 1,
         navController = navController
+    )
+
+    feedDestination(
+        route = USER_POSTS_ROUTE,
+        initialTab = 0,
+        navController = navController,
+        profileUserIdArgument = "userId"
     )
 
     composable(
@@ -99,7 +110,8 @@ fun NavGraphBuilder.postNav(navController: NavController) {
                     }
                     navController.popBackStack()
                 },
-                onEditPost = { id -> navController.navigate("edit_post/$id") }
+                onEditPost = { id -> navController.navigate("edit_post/$id") },
+                onUserProfileClick = { userId -> navController.navigateToUserProfile(userId) }
             )
         }
     }
@@ -108,23 +120,35 @@ fun NavGraphBuilder.postNav(navController: NavController) {
 private fun NavGraphBuilder.feedDestination(
     route: String,
     initialTab: Int,
-    navController: NavController
+    navController: NavController,
+    profileUserIdArgument: String? = null
 ) {
-    composable(route) { backStackEntry ->
+    composable(
+        route = route,
+        arguments = profileUserIdArgument?.let { argumentName ->
+            listOf(navArgument(argumentName) { type = NavType.IntType })
+        } ?: emptyList()
+    ) { backStackEntry ->
+        val profileUserId = profileUserIdArgument?.let { argumentName ->
+            backStackEntry.arguments?.getInt(argumentName)
+        }
         val refreshTrigger by backStackEntry.savedStateHandle
             .getStateFlow(POST_REFRESH_KEY, 0)
             .collectAsState()
 
         GeneralFeedScreen(
             initialTab = initialTab,
+            profileUserId = profileUserId,
             refreshTrigger = refreshTrigger,
+            onBackClick = { navController.popBackStack() },
             onPostClick = { postId ->
                 navController.navigate("post_detail/$postId")
             },
             onCreatePostClick = { postType ->
                 navController.navigate("$CREATE_POST_ROUTE_BASE/$postType")
             },
-            onEditPostClick = { postId -> navController.navigate("edit_post/$postId") }
+            onEditPostClick = { postId -> navController.navigate("edit_post/$postId") },
+            onUserProfileClick = { userId -> navController.navigateToUserProfile(userId) }
         )
     }
 }

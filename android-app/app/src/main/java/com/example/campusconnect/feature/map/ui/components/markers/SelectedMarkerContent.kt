@@ -33,7 +33,8 @@ internal fun SelectedMarkerContent(
     selectedProfile: MapUserProfile?,
     selectedPoi: MapPoiInfo?,
     onDismiss: () -> Unit,
-    onAddFriendClick: (Int) -> Unit
+    onAddFriendClick: (Int) -> Unit,
+    onUserProfileClick: (Int) -> Unit = {}
 ) {
     AnimatedVisibility(
         visible = selectedMarker != null && selectedMarker.type != MarkerType.EVENT,
@@ -52,7 +53,8 @@ internal fun SelectedMarkerContent(
                                 },
                                 onAddFriendClick = {
                                     onAddFriendClick(profile.id)
-                                }
+                                },
+                                onProfileClick = onUserProfileClick
                             )
                         }
                     }

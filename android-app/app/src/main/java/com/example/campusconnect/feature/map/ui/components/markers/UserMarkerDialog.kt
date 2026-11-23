@@ -42,7 +42,8 @@ fun UserMarkerDialog(
     profile: MapUserProfile,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit = {},
-    onAddFriendClick: () -> Unit = {}
+    onAddFriendClick: () -> Unit = {},
+    onProfileClick: (Int) -> Unit = {}
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -97,6 +98,7 @@ fun UserMarkerDialog(
                             displayName = profile.fullName,
                             imageUrl = profile.avatarUrl,
                             size = 96.dp,
+                            modifier = Modifier.clickable { onProfileClick(profile.id) },
                         )
 
                         Spacer(modifier = Modifier.width(16.dp))

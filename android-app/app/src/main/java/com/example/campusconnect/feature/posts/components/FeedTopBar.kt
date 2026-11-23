@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.NotificationsNone
@@ -31,6 +32,7 @@ import com.example.campusconnect.core.ui.theme.*
 fun FeedTopBar(
     currentTitle: String,
     onSearchClick: () -> Unit = {},
+    onBackClick: (() -> Unit)? = null,
     showSearchButton: Boolean = true,
     onNotificationsClick: () -> Unit = {},
     showBrand: Boolean = true
@@ -43,6 +45,15 @@ fun FeedTopBar(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (onBackClick != null) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = LabelColor
+                        )
+                    }
+                }
                 Text(
                     text = buildAnnotatedString {
                         withStyle(SpanStyle(color = OrangePrimary)) { append("CC") }
