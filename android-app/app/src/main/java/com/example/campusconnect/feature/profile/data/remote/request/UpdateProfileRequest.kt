@@ -4,7 +4,9 @@ data class UpdateProfileRequest(
 
     val bio: String?,
 
-    val hostel: String?,
+    val hostelId: Int?,
+
+    val clearHostel: Boolean,
 
     val hometown: String?,
 

@@ -13,11 +13,17 @@ import com.example.campusconnect.feature.profile.model.PublicUserProfile
 import com.example.campusconnect.feature.profile.model.ProfileStats
 import com.example.campusconnect.feature.profile.model.StatPanel
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
+import com.example.campusconnect.feature.metadata.hostels.Hostel
+import com.example.campusconnect.feature.metadata.hostels.HostelRepositoryProvider
 
 class ViewProfileViewModel(
     application: Application,
     private val userId: Int
 ) : BaseProfileViewModel(application) {
+
+    private val hostelRepository = HostelRepositoryProvider.getRepository(application.applicationContext)
+
+    val hostels = mutableStateListOf<Hostel>()
 
     override var profile by mutableStateOf(PublicUserProfile())
 
@@ -40,6 +46,22 @@ class ViewProfileViewModel(
 
     init {
         loadViewedProfile()
+        loadHostelMetadata()
+    }
+
+    private fun loadHostelMetadata() {
+        viewModelScope.launch {
+            val cached = runCatching { hostelRepository.getAllHostels() }.getOrDefault(emptyList())
+            hostels.clear()
+            hostels.addAll(cached)
+
+            // Use the existing cache TTL; fetch only when its metadata is stale or incomplete.
+            hostelRepository.ensureHostelsCached()
+                .onSuccess {
+                    hostels.clear()
+                    hostels.addAll(hostelRepository.getAllHostels())
+                }
+        }
     }
 
     // ---------------------------------------------------------

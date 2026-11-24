@@ -56,7 +56,7 @@ object ProfileMapper {
             batch = batch,
 
             // Other profile details
-            hostel = response.hostel.orEmpty(),
+            hostelId = response.hostelId,
             hometown = response.hometown.orEmpty(),
 
             // Personal

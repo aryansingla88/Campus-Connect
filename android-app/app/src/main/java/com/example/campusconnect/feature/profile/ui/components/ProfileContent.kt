@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.campusconnect.feature.profile.model.ProfileMode
 import com.example.campusconnect.feature.profile.model.PublicUserProfile
+import com.example.campusconnect.feature.metadata.hostels.Hostel
+import com.example.campusconnect.feature.profile.data.mapper.withHostelSelection
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
@@ -36,7 +38,8 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 // -- Constants ----------------------------------------------------
-private val HOSTEL_OPTIONS = listOf("Hostel 1","Hostel 2","Hostel 3","Hostel 4","Hostel 5","Day Scholar")
+private const val NO_RESIDENCE_OPTION = "No residence"
+private const val RESIDENCE_UNAVAILABLE = "Residence unavailable"
 private const val DOB_ISO = "yyyy-MM-dd"
 private const val DOB_DISPLAY = "dd MMM yyyy"
 private fun dobToDisplay(dob: String): String {
@@ -60,7 +63,11 @@ fun ProfileContent(
     profile: PublicUserProfile,
     mode: ProfileMode,
     isEditMode: Boolean = false,
-    onValueChange: (PublicUserProfile) -> Unit = {}
+    onValueChange: (PublicUserProfile) -> Unit = {},
+    hostels: List<Hostel> = emptyList(),
+    hostelsLoading: Boolean = false,
+    hostelsError: String? = null,
+    onRetryHostels: () -> Unit = {}
 ) {
     val canShowPhone =
         mode == ProfileMode.OWN || profile.showPhone
@@ -160,13 +167,32 @@ fun ProfileContent(
                 InfoRow(
                     icon = Icons.Outlined.House,
                     label = "HOSTEL",
-                    value = profile.hostel,
+                    value = hostels.firstOrNull { it.id == profile.hostelId }?.displayLabel()
+                        ?: if (profile.hostelId == null) NO_RESIDENCE_OPTION else RESIDENCE_UNAVAILABLE,
                     isEditMode = true,
-                    inputType = InputType.Dropdown(HOSTEL_OPTIONS)
+                    inputType = InputType.Dropdown(hostels.map(Hostel::displayLabel) + NO_RESIDENCE_OPTION)
                 ) {
-                    onValueChange(
-                        profile.copy(hostel = it)
-                    )
+                    val selection = hostels.firstOrNull { hostel -> hostel.displayLabel() == it }
+                    when {
+                        selection != null -> onValueChange(profile.withHostelSelection(selection))
+                        it == NO_RESIDENCE_OPTION -> onValueChange(profile.withHostelSelection(null))
+                    }
+                }
+                if (isEditMode && hostelsLoading) {
+                    Text("Loading residence options…", style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 58.dp, bottom = 8.dp), color = TextMuted)
+                }
+                if (isEditMode && hostelsError != null) {
+                    Row(Modifier.fillMaxWidth().padding(start = 58.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(hostelsError, style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.error)
+                        TextButton(onClick = onRetryHostels) { Text("Retry") }
+                    }
+                }
+                if (isEditMode && !hostelsLoading && hostelsError == null && hostels.isEmpty()) {
+                    Text("Residence options are unavailable.", style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 58.dp, bottom = 8.dp), color = TextMuted)
                 }
 
                 SectionDivider()
@@ -313,11 +339,13 @@ fun ProfileContent(
                     SectionDivider()
                 }
 
-                if (profile.hostel.isNotBlank()) {
+                profile.hostelId?.let { hostelId ->
+                    val hostelLabel = hostels.firstOrNull { it.id == hostelId }?.displayLabel()
+                        ?: RESIDENCE_UNAVAILABLE
                     InfoRow(
                         Icons.Outlined.House,
                         "HOSTEL",
-                        profile.hostel
+                        hostelLabel
                     )
 
                     SectionDivider()

@@ -14,15 +14,18 @@ import com.example.campusconnect.feature.metadata.clubs.local.ClubDao
 import com.example.campusconnect.feature.metadata.clubs.local.ClubEntity
 import com.example.campusconnect.feature.metadata.eventcategories.local.EventCategoryDao
 import com.example.campusconnect.feature.metadata.eventcategories.local.EventCategoryEntity
+import com.example.campusconnect.feature.metadata.hostels.local.HostelDao
+import com.example.campusconnect.feature.metadata.hostels.local.HostelEntity
 
 @Database(
     entities = [
         CourseEntity::class,
         ClubEntity::class,
         EventCategoryEntity::class,
-        PoiEntity::class
+        PoiEntity::class,
+        HostelEntity::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -34,6 +37,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun eventCategoryDao(): EventCategoryDao
 
     abstract fun poiDao(): PoiDao
+
+    abstract fun hostelDao(): HostelDao
 
     companion object {
 
@@ -47,7 +52,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "campus_connect_database"
                 )
-                    .addMigrations(MIGRATION_4_6, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_4_6, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }
@@ -84,6 +89,25 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 db.execSQL("DROP TABLE `map_pois`")
                 db.execSQL("ALTER TABLE `map_pois_new` RENAME TO `map_pois`")
+            }
+        }
+
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `hostels` (
+                        `id` INTEGER NOT NULL,
+                        `name` TEXT NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )""".trimIndent()
+                )
+            }
+        }
+
+        internal val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `hostels` ADD COLUMN `hostel` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `hostels` ADD COLUMN `active` INTEGER NOT NULL DEFAULT 1")
             }
         }
 

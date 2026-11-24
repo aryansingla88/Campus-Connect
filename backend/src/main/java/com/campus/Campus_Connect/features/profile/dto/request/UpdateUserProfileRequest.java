@@ -13,7 +13,9 @@ public class UpdateUserProfileRequest {
 
     private String avatarUrl;
 
-    private String hostel;
+    private Integer hostelId;
+
+    private Boolean clearHostel;
 
     private String hometown;
 

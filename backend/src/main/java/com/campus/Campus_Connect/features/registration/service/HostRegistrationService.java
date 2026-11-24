@@ -689,7 +689,8 @@ public class HostRegistrationService {
                 "ROLL_NUMBER", profile.getRollNumber());
 
         addQuickField(result, mask, QuickFieldMask.HOSTEL,
-                "HOSTEL", profile.getHostel());
+                "HOSTEL", profile.getHostelMetadata() != null
+                        ? profile.getHostelMetadata().getName() : null);
 
         addQuickField(result, mask, QuickFieldMask.HOMETOWN,
                 "HOMETOWN", profile.getHometown());

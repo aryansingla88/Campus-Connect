@@ -5,6 +5,8 @@ import com.campus.Campus_Connect.features.connection.ConnectionService;
 import com.campus.Campus_Connect.features.connection.repository.ConnectionRepository;
 import com.campus.Campus_Connect.features.honor.repository.UserHonorRepository;
 import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
+import com.campus.Campus_Connect.features.metadata.hostels.HostelRepository;
+import com.campus.Campus_Connect.features.metadata.hostels.entity.Hostel;
 import com.campus.Campus_Connect.features.metadata.interest.repo.UserInterestRepository;
 import com.campus.Campus_Connect.features.profile.dto.response.UserProfileResponse;
 import com.campus.Campus_Connect.features.profile.dto.response.ProfileStatsResponse;
@@ -39,6 +41,7 @@ class UserProfilePrivacyTest {
 
     @Mock private UserProfileRepository userProfileRepository;
     @Mock private CourseRepository courseRepository;
+    @Mock private HostelRepository hostelRepository;
     @Mock private UserPreferenceRepository userPreferenceRepository;
     @Mock private ClubMemberRepository clubMemberRepository;
     @Mock private UserHonorRepository userHonorRepository;
@@ -65,13 +68,14 @@ class UserProfilePrivacyTest {
     @Test
     void ownerReceivesCompleteProfileRegardlessOfPreferences() {
         UserProfile profile = profile(2);
+        profile.setHostelMetadata(Hostel.builder().id(6).hostel("DS").name("Day Scholar").active(true).build());
         when(userProfileRepository.findByUserIdWithUser(2)).thenReturn(Optional.of(profile));
         when(userPreferenceRepository.findById(2)).thenReturn(Optional.of(preferences(false)));
 
         UserProfileResponse response = service.getMyProfile().getData();
 
         assertEquals("person@example.com", response.getEmail());
-        assertEquals("Hostel 1", response.getHostel());
+        assertEquals(6, response.getHostelId());
         assertEquals("12345", response.getPhone());
         assertEquals("home", response.getHometown());
         assertEquals("X", response.getGender());
@@ -89,7 +93,7 @@ class UserProfilePrivacyTest {
         UserProfileResponse response = service.getUserProfile(9).getData();
 
         assertEquals("person@example.com", response.getEmail());
-        assertEquals("Hostel 1", response.getHostel());
+        assertEquals(4, response.getHostelId());
         assertNull(response.getPhone());
         assertNull(response.getGithub());
         assertNull(response.getLinkedin());
@@ -136,6 +140,12 @@ class UserProfilePrivacyTest {
         assertFalse(fieldNames.contains("admissionYear"));
         assertFalse(fieldNames.contains("gender"));
         assertFalse(fieldNames.contains("dob"));
+        assertFalse(fieldNames.contains("hostel"));
+
+        var responseFieldNames = java.util.Arrays.stream(UserProfileResponse.class.getDeclaredFields())
+                .map(java.lang.reflect.Field::getName).toList();
+        assertFalse(responseFieldNames.contains("hostel"));
+        assertTrue(responseFieldNames.contains("hostelId"));
     }
 
     @Test
@@ -181,11 +191,60 @@ class UserProfilePrivacyTest {
         assertEquals("12345", visible.getPhone());
     }
 
+    @Test
+    void validHostelIdCanBeAssignedAndReturned() {
+        UserProfile profile = profile(2);
+        Hostel hostel = Hostel.builder().id(3).hostel("H3").name("Chakradhar Bhawan").active(true).build();
+        when(userProfileRepository.findById(2)).thenReturn(Optional.of(profile));
+        when(userPreferenceRepository.findById(2)).thenReturn(Optional.of(preferences(false)));
+        when(hostelRepository.findByIdAndActiveTrue(3)).thenReturn(Optional.of(hostel));
+        when(userProfileRepository.save(profile)).thenReturn(profile);
+
+        var response = service.updateMyProfile(
+                com.campus.Campus_Connect.features.profile.dto.request.UpdateUserProfileRequest.builder()
+                        .hostelId(3).build(), null
+        ).getData();
+
+        assertEquals(3, response.getHostelId());
+        assertSame(hostel, profile.getHostelMetadata());
+    }
+
+    @Test
+    void invalidHostelIdIsRejected() {
+        when(userProfileRepository.findById(2)).thenReturn(Optional.of(profile(2)));
+        when(hostelRepository.findByIdAndActiveTrue(999)).thenReturn(Optional.empty());
+
+        assertThrows(com.campus.Campus_Connect.common.exception.BadRequestException.class, () ->
+                service.updateMyProfile(
+                        com.campus.Campus_Connect.features.profile.dto.request.UpdateUserProfileRequest.builder()
+                                .hostelId(999).build(), null
+                )
+        );
+    }
+
+    @Test
+    void hostelAssignmentCanBeClearedExplicitly() {
+        UserProfile profile = profile(2);
+        profile.setHostelMetadata(Hostel.builder().id(3).hostel("H3").name("Chakradhar Bhawan").active(true).build());
+        when(userProfileRepository.findById(2)).thenReturn(Optional.of(profile));
+        when(userPreferenceRepository.findById(2)).thenReturn(Optional.of(preferences(false)));
+        when(userProfileRepository.save(profile)).thenReturn(profile);
+
+        var response = service.updateMyProfile(
+                com.campus.Campus_Connect.features.profile.dto.request.UpdateUserProfileRequest.builder()
+                        .clearHostel(true).build(), null
+        ).getData();
+
+        assertNull(profile.getHostelMetadata());
+        assertNull(response.getHostelId());
+    }
+
     private UserProfile profile(Integer id) {
         User user = User.builder().id(id).username("person").email("person@example.com").build();
         return UserProfile.builder()
                 .userId(id).user(user).fullName("Person").courseId(1).admissionYear(2020)
-                .hostel("Hostel 1").hometown("home").gender("X")
+                .hostelMetadata(Hostel.builder().id(4).hostel("H4").name("Dronacharya Bhawan").active(true).build())
+                .hometown("home").gender("X")
                 .dob(LocalDate.of(2000, 1, 2)).phone("12345").github("git")
                 .linkedin("linkedin").instagram("instagram").createdAt(LocalDateTime.now())
                 .build();

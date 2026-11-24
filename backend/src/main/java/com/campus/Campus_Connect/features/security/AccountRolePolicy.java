@@ -30,6 +30,7 @@ public final class AccountRolePolicy {
         if ("GET".equals(method)) {
             return path.equals("/metadata/courses")
                     || path.startsWith("/metadata/courses/")
+                    || path.equals("/metadata/hostels")
                     || isProfileUpload(path);
         }
 

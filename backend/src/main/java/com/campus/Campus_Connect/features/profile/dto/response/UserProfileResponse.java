@@ -29,7 +29,7 @@ public class UserProfileResponse {
     private Integer admissionYear;
 
     //User Profile --others
-    private String hostel;
+    private Integer hostelId;
     private String hometown;
     private String gender;
     private String dob;

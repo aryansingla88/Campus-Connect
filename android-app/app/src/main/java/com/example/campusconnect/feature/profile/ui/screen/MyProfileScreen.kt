@@ -471,7 +471,11 @@ fun MyProfileScreen(
                                 profile = currentProfile,
                                 mode = ProfileMode.OWN,
                                 isEditMode = vm.isEditMode,
-                                onValueChange = vm::updateEditableProfile
+                                onValueChange = vm::updateEditableProfile,
+                                hostels = vm.hostels,
+                                hostelsLoading = vm.hostelsLoading,
+                                hostelsError = vm.hostelsError,
+                                onRetryHostels = vm::loadHostelOptions
                             )
                         }
                     }

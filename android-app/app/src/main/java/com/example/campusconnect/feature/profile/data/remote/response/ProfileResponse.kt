@@ -25,7 +25,7 @@ data class ProfileResponse(
 
     // Other profile details ------------------------------------------
 
-    val hostel: String?,
+    val hostelId: Int? = null,
     val hometown: String?,
     val gender: String?,
     val dob: String?,

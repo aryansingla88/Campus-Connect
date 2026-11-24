@@ -9,10 +9,20 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
 import com.example.campusconnect.feature.profile.model.*
+import com.example.campusconnect.feature.metadata.hostels.Hostel
+import com.example.campusconnect.feature.metadata.hostels.HostelRepositoryProvider
 
 class MyProfileViewModel(
     application: Application
 ) : BaseProfileViewModel(application) {
+
+    private val hostelRepository = HostelRepositoryProvider.getRepository(application.applicationContext)
+
+    val hostels = mutableStateListOf<Hostel>()
+    var hostelsLoading by mutableStateOf(false)
+        private set
+    var hostelsError by mutableStateOf<String?>(null)
+        private set
 
     override var profile by mutableStateOf(PublicUserProfile())
 
@@ -45,6 +55,25 @@ class MyProfileViewModel(
 
     init {
         loadMyData()
+        loadHostelOptions()
+    }
+
+    fun loadHostelOptions() {
+        if (hostelsLoading) return
+        viewModelScope.launch {
+            hostelsLoading = true
+            hostelsError = null
+            val cached = runCatching { hostelRepository.getAllHostels() }.getOrDefault(emptyList())
+            hostels.clear()
+            hostels.addAll(cached)
+            hostelRepository.ensureHostelsCached()
+                .onSuccess {
+                    hostels.clear()
+                    hostels.addAll(hostelRepository.getAllHostels())
+                }
+                .onFailure { hostelsError = it.message ?: "Couldn't load residence options" }
+            hostelsLoading = false
+        }
     }
 
     fun updateAvatar(uri: Uri) {

@@ -14,7 +14,8 @@ data class PublicUserProfile(
     val programName: String = "",
     val academicYear: String = "",
     val batch: String = "",
-    val hostel: String = "",
+    val hostelId: Int? = null,
+    val clearHostel: Boolean = false,
     val hometown: String = "",
 
     // Personal

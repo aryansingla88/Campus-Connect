@@ -83,6 +83,57 @@ class PoiDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migratesVersion6ByAddingHostelsAndPreservingExistingMetadata() {
+        val dbName = "hostel-migration-v6-test.db"
+        context.deleteDatabase(dbName)
+        val oldHelper = openHelper(dbName, version = 6)
+        val oldDb = oldHelper.writableDatabase
+        oldDb.execSQL("INSERT INTO courses (courseId, degree, programName, courseCode, degreeLevel, durationYears) " +
+            "VALUES (31, 'BTech', 'Civil', NULL, 'UG', 4)")
+        oldDb.execSQL("INSERT INTO map_pois (id, name, category) VALUES (32, 'Gate', 'ENTRANCE')")
+        oldHelper.close()
+
+        val migratedHelper = openHelper(dbName, version = 7)
+        val migrated = migratedHelper.writableDatabase
+        try {
+            assertEquals(1, migrated.query("SELECT courseId FROM courses WHERE courseId = 31").use { it.count })
+            assertEquals(1, migrated.query("SELECT id FROM map_pois WHERE id = 32").use { it.count })
+            assertEquals(listOf("id", "name"), columnsFor(migrated, "hostels"))
+            assertEquals(0, migrated.query("SELECT * FROM hostels").use { it.count })
+        } finally {
+            migratedHelper.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun migratesVersion7HostelCacheByAddingCodeAndActiveWithoutDroppingRows() {
+        val dbName = "hostel-migration-v7-test.db"
+        context.deleteDatabase(dbName)
+        val oldHelper = openHelper(dbName, version = 7)
+        oldHelper.writableDatabase.execSQL(
+            "INSERT INTO hostels (id, name) VALUES (41, 'Day Scholar')"
+        )
+        oldHelper.close()
+
+        val migratedHelper = openHelper(dbName, version = 8)
+        val migrated = migratedHelper.writableDatabase
+        try {
+            assertEquals(listOf("id", "name", "hostel", "active"), columnsFor(migrated, "hostels"))
+            migrated.query("SELECT id, name, hostel, active FROM hostels WHERE id = 41").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(41, cursor.getInt(0))
+                assertEquals("Day Scholar", cursor.getString(1))
+                assertEquals("", cursor.getString(2))
+                assertEquals(1, cursor.getInt(3))
+            }
+        } finally {
+            migratedHelper.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
     private fun openHelper(name: String, version: Int): SupportSQLiteOpenHelper =
         FrameworkSQLiteOpenHelperFactory().create(
             SupportSQLiteOpenHelper.Configuration.builder(context)
@@ -91,6 +142,8 @@ class PoiDatabaseMigrationTest {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         createExistingTables(db)
                         if (version == 5) createVersion5PoiTable(db)
+                        if (version == 6) createVersion6PoiTable(db)
+                        if (version == 7) createVersion7HostelTable(db)
                     }
 
                     override fun onUpgrade(
@@ -101,6 +154,8 @@ class PoiDatabaseMigrationTest {
                         when (oldVersion) {
                             4 -> AppDatabase.MIGRATION_4_6.migrate(db)
                             5 -> AppDatabase.MIGRATION_5_6.migrate(db)
+                            6 -> AppDatabase.MIGRATION_6_7.migrate(db)
+                            7 -> AppDatabase.MIGRATION_7_8.migrate(db)
                             else -> error("Unexpected migration path: $oldVersion -> $newVersion")
                         }
                     }
@@ -136,8 +191,29 @@ class PoiDatabaseMigrationTest {
         )
     }
 
+    private fun createVersion6PoiTable(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE map_pois (
+                id INTEGER NOT NULL, name TEXT NOT NULL, category TEXT, description TEXT,
+                latitude REAL, longitude REAL, iconType TEXT, visibility TEXT, priority INTEGER,
+                PRIMARY KEY(id)
+            )""".trimIndent()
+        )
+    }
+
+    private fun createVersion7HostelTable(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE hostels (id INTEGER NOT NULL, name TEXT NOT NULL, PRIMARY KEY(id))"
+        )
+    }
+
     private fun columns(db: SupportSQLiteDatabase): List<String> =
         db.query("PRAGMA table_info(map_pois)").use { cursor ->
+            buildList { while (cursor.moveToNext()) add(cursor.getString(1)) }
+        }
+
+    private fun columnsFor(db: SupportSQLiteDatabase, table: String): List<String> =
+        db.query("PRAGMA table_info(`$table`)").use { cursor ->
             buildList { while (cursor.moveToNext()) add(cursor.getString(1)) }
         }
 

@@ -1,14 +1,32 @@
 package com.example.campusconnect.feature.profile
 
 import com.example.campusconnect.feature.profile.data.mapper.ProfileMapper
+import com.example.campusconnect.feature.profile.data.mapper.withHostelSelection
 import com.example.campusconnect.feature.profile.data.remote.response.HonorResponse
 import com.example.campusconnect.feature.profile.data.remote.response.ProfileResponse
+import com.example.campusconnect.feature.metadata.hostels.Hostel
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProfilePrivacyMapperTest {
+    @Test
+    fun hostelSelectorUsesMetadataIdsAndExplicitClearState() {
+        val original = com.example.campusconnect.feature.profile.model.PublicUserProfile(hostelId = 1)
+        val metadata = Hostel(6, "DS", "Day Scholar", true)
+
+        assertEquals("DS (Day Scholar)", metadata.displayLabel())
+
+        val selected = original.withHostelSelection(metadata)
+        val cleared = selected.withHostelSelection(null)
+
+        assertEquals(6, selected.hostelId)
+        assertTrue(!selected.clearHostel)
+        assertEquals(null, cleared.hostelId)
+        assertTrue(cleared.clearHostel)
+    }
+
     @Test
     fun mapsBackendFilteredFieldsAndHeaderHonors() = runTest {
         val response = ProfileResponse(
@@ -20,7 +38,7 @@ class ProfilePrivacyMapperTest {
             avatarUrl = null,
             courseId = null,
             admissionYear = null,
-            hostel = "Hostel 1",
+            hostelId = 1,
             hometown = null,
             gender = null,
             dob = null,
@@ -46,7 +64,7 @@ class ProfilePrivacyMapperTest {
         val model = ProfileMapper.toPublicUserProfile(response)
 
         assertEquals("viewer@campus.edu", model.email)
-        assertEquals("Hostel 1", model.hostel)
+        assertEquals(1, model.hostelId)
         assertEquals("", model.dob)
         assertEquals(21, model.age)
         assertTrue(model.phone.isBlank())
@@ -65,7 +83,6 @@ class ProfilePrivacyMapperTest {
             avatarUrl = null,
             courseId = null,
             admissionYear = null,
-            hostel = "Hostel 1",
             hometown = null,
             gender = null,
             dob = null,

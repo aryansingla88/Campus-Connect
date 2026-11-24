@@ -260,7 +260,8 @@ fun ViewProfileScreen(
                             ProfileContent(
                                 profile = vm.profile,
                                 mode = ProfileMode.VIEW,
-                                isEditMode = false
+                                isEditMode = false,
+                                hostels = vm.hostels
                             )
                         }
                     }

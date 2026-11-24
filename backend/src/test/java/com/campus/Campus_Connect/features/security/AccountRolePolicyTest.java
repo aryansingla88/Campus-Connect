@@ -7,12 +7,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AccountRolePolicyTest {
     @Test
-    void authAndCourseMetadataEndpointsArePublic() {
+    void authAndMetadataEndpointsArePublic() {
         assertTrue(AccountRolePolicy.isPublic("POST", "/auth/login"));
         assertTrue(AccountRolePolicy.isPublic("POST", "/auth/register"));
         assertTrue(AccountRolePolicy.isPublic("POST", "/auth/password-reset/request"));
         assertTrue(AccountRolePolicy.isPublic("GET", "/metadata/courses"));
         assertTrue(AccountRolePolicy.isPublic("GET", "/metadata/courses/details"));
+        assertTrue(AccountRolePolicy.isPublic("GET", "/metadata/hostels"));
+        assertFalse(AccountRolePolicy.isPublic("POST", "/metadata/hostels"));
         assertTrue(AccountRolePolicy.isPublic(
                 "GET", "/uploads/profiles/997012b1-61a0-4b8c-a1af-5cc15697c799.jpg"
         ));

@@ -1,6 +1,7 @@
 package com.campus.Campus_Connect.features.profile.service;
 
 import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
+import com.campus.Campus_Connect.common.exception.BadRequestException;
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
 import com.campus.Campus_Connect.features.auth.entity.User;
@@ -14,6 +15,8 @@ import com.campus.Campus_Connect.features.honor.dto.response.HonorResponse;
 import com.campus.Campus_Connect.features.honor.entity.UserHonor;
 import com.campus.Campus_Connect.features.honor.enums.HonorType;
 import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
+import com.campus.Campus_Connect.features.metadata.hostels.HostelRepository;
+import com.campus.Campus_Connect.features.metadata.hostels.entity.Hostel;
 import com.campus.Campus_Connect.features.profile.dto.request.UpdateUserProfileRequest;
 import com.campus.Campus_Connect.features.profile.dto.response.UserProfileResponse;
 import com.campus.Campus_Connect.features.profile.dto.response.ProfileStatsResponse;
@@ -43,6 +46,7 @@ public class UserProfileService {
 
     private final UserProfileRepository userProfileRepository;
     private final CourseRepository courseRepository;
+    private final HostelRepository hostelRepository;
     private final UserPreferenceRepository userPreferenceRepository;
 
     private final ClubMemberRepository clubMemberRepository;
@@ -224,7 +228,10 @@ public class UserProfileService {
                 .avatarUrl(profile.getAvatarUrl())
                 .courseId(profile.getCourseId())
                 .admissionYear(profile.getAdmissionYear())
-                .hostel(profile.getHostel())
+                // Hostel was always visible on profiles; expose its canonical ID so clients
+                // can resolve the display label from metadata without a legacy string.
+                .hostelId(profile.getHostelMetadata() != null
+                        ? profile.getHostelMetadata().getId() : null)
                 .hometown(showHometown ? profile.getHometown() : null)
                 .gender(showGender ? profile.getGender() : null)
                 .dob(isOwner && profile.getDob() != null ? profile.getDob().toString() : null)
@@ -286,9 +293,7 @@ private void applyUpdates(
             profile.setAvatarUrl(request.getAvatarUrl());
         }
 
-        if (request.getHostel() != null) {
-            profile.setHostel(request.getHostel());
-        }
+        applyHostelUpdate(profile, request);
 
         if (request.getHometown() != null) {
             profile.setHometown(request.getHometown());
@@ -308,6 +313,26 @@ private void applyUpdates(
 
         if (request.getInstagram() != null) {
             profile.setInstagram(request.getInstagram());
+        }
+    }
+
+    private void applyHostelUpdate(UserProfile profile, UpdateUserProfileRequest request) {
+        Integer hostelId = request.getHostelId();
+        boolean clearHostel = Boolean.TRUE.equals(request.getClearHostel());
+
+        if (clearHostel && hostelId != null) {
+            throw new BadRequestException("Specify a hostel ID or clear the hostel assignment, not both.");
+        }
+
+        if (clearHostel) {
+            profile.setHostelMetadata(null);
+            return;
+        }
+
+        if (hostelId != null) {
+            Hostel hostel = hostelRepository.findByIdAndActiveTrue(hostelId)
+                    .orElseThrow(() -> new BadRequestException("Invalid or inactive hostel ID."));
+            profile.setHostelMetadata(hostel);
         }
     }
 //------------------------------------------------------------------------------------

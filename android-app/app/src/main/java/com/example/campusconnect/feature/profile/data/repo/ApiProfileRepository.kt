@@ -92,7 +92,8 @@ class ApiProfileRepository(
         return try {
             val profileRequest = UpdateProfileRequest(
                 bio = profile.bio,
-                hostel = profile.hostel,
+                hostelId = profile.hostelId,
+                clearHostel = profile.clearHostel,
                 hometown = profile.hometown,
                 phone = profile.phone,
                 github = profile.github,

@@ -1,6 +1,7 @@
 package com.campus.Campus_Connect.features.profile.entity;
 
 import com.campus.Campus_Connect.features.auth.entity.User;
+import com.campus.Campus_Connect.features.metadata.hostels.entity.Hostel;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -45,7 +46,9 @@ public class UserProfile {
     @Column(name = "roll_number")
     private String rollNumber;
 
-    private String hostel;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hostel_id")
+    private Hostel hostelMetadata;
 
     private String hometown;
 
