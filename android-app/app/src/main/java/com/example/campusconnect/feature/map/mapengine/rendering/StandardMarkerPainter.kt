@@ -86,7 +86,12 @@ object StandardMarkerPainter : MarkerCanvasPainter<MapMarkerItem> {
     }
 
     internal fun DrawScope.drawEventVisual(
-        marker: MapMarkerItem, x: Float, y: Float, zoom: Float, priority: Int = 0
+        marker: MapMarkerItem,
+        x: Float,
+        y: Float,
+        zoom: Float,
+        priority: Int = 0,
+        showLabel: Boolean = true
     ) {
         val style = MarkerStyleResolver.resolve(marker, zoom, priority = priority)
         val markerRadius = style.radius * style.selectionScale
@@ -97,7 +102,8 @@ object StandardMarkerPainter : MarkerCanvasPainter<MapMarkerItem> {
             y = y,
             radius = markerRadius,
             color = MarkerStyleConfig.EVENT_LOW_PRIORITY,
-            isSelected = marker.isSelected
+            isSelected = marker.isSelected,
+            showLabel = showLabel
         )
     }
 
@@ -479,7 +485,8 @@ object StandardMarkerPainter : MarkerCanvasPainter<MapMarkerItem> {
         y: Float,
         radius: Float,
         color: Color,
-        isSelected: Boolean
+        isSelected: Boolean,
+        showLabel: Boolean
     ) {
         val pinRadius = radius * 1.4f
         val center = Offset(x, y - pinRadius * 0.15f)
@@ -506,7 +513,9 @@ object StandardMarkerPainter : MarkerCanvasPainter<MapMarkerItem> {
             )
         )
         drawCalendarGlyph(center, pinRadius * 0.95f, color)
-        drawEventCard(label, subLabel, x, tipY + 3f + 3.dp.toPx(), color, isSelected)
+        if (showLabel) {
+            drawEventCard(label, subLabel, x, tipY + 3f + 3.dp.toPx(), color, isSelected)
+        }
     }
 
     private fun DrawScope.drawCalendarGlyph(center: Offset, size: Float, accent: Color) {

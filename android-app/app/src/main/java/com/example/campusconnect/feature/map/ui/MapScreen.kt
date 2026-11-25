@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -50,6 +51,8 @@ import com.example.campusconnect.feature.map.model.MapMarker
 import com.example.campusconnect.feature.map.model.LocalUserMarkerData
 import com.example.campusconnect.feature.map.model.UserMarkerData
 import com.example.campusconnect.feature.map.model.PoiMarkerData
+import com.example.campusconnect.feature.map.model.MarkerClusterData
+import com.example.campusconnect.feature.map.model.clusterMapMarkers
 import com.example.campusconnect.feature.map.model.MapMode
 import com.example.campusconnect.feature.map.model.MapFilterOption
 import com.example.campusconnect.feature.map.model.MapFilterContext
@@ -63,6 +66,8 @@ import com.example.campusconnect.feature.map.ui.components.markers.PoiMarkerDial
 import com.example.campusconnect.feature.map.ui.components.markers.UserMarkerDialog
 import com.example.campusconnect.feature.map.ui.components.markers.SelectedMarkerContent
 import com.example.campusconnect.feature.map.mapengine.model.MarkerType
+import com.example.campusconnect.feature.map.mapengine.model.MapMarkerItem
+import com.example.campusconnect.feature.map.ui.components.markers.MarkerClusterDialog
 import androidx.compose.ui.geometry.Offset
 import com.example.campusconnect.core.location.TrackingMode
 import com.example.campusconnect.core.location.model.LocationStatus
@@ -73,6 +78,7 @@ internal val OrangePrimary = Color(0xFFFF6F00)
 internal val OrangeLight = Color(0xFFFFF3E0)
 internal val TextDark = Color(0xFF2A2A2A)
 internal val HintColor = Color(0xFFAAAAAA)
+private const val MARKER_OVERLAP_RADIUS_DP = 45f
 
 @Composable
 fun MapScreen(
@@ -228,12 +234,14 @@ fun MapScreen(
     var lastSelectedMarker by remember { mutableStateOf(uiState.selectedMarker) }
     var lastSelectedProfile by remember { mutableStateOf(uiState.selectedUserProfile) }
     var lastSelectedPoi by remember { mutableStateOf(uiState.selectedPoiInfo) }
+    var selectedMarkerCluster by remember { mutableStateOf<MarkerClusterData?>(null) }
 
     LaunchedEffect(uiState.mode) {
         showFilters = false
         expandedFilterSection = null
         expandedFilterRows = 0
         selectedSidePanel = SidePanel.NONE
+        selectedMarkerCluster = null
     }
 
     LaunchedEffect(
@@ -270,6 +278,20 @@ fun MapScreen(
             uiState.renderMarkers
         }
     }
+    val density = LocalDensity.current
+    val clusteredEngineMarkers: List<MapMarkerItem> = remember(
+        engineMarkers,
+        viewportState.scale,
+        viewportState.bounds,
+        density
+    ) {
+        clusterMapMarkers(
+            markers = engineMarkers,
+            bounds = viewportState.bounds,
+            scale = viewportState.scale,
+            overlapRadiusPx = with(density) { MARKER_OVERLAP_RADIUS_DP.dp.toPx() }
+        )
+    }
     LaunchedEffect(engineMarkers) {
         if (BuildConfig.DEBUG) {
             Log.d(
@@ -305,7 +327,7 @@ fun MapScreen(
                 MapView(
                     modifier = Modifier.fillMaxSize(),
                     viewportState = viewportState,
-                    markers = engineMarkers,
+                    markers = clusteredEngineMarkers,
                     isMarkerTappable = { marker ->
                         marker !is LocalUserMarkerData &&
                                 (!restrictedExperience || marker !is UserMarkerData)
@@ -314,6 +336,7 @@ fun MapScreen(
                     markerPriority = { marker ->
                         when (marker) {
                             is PoiMarkerData -> marker.priority
+                            is MarkerClusterData -> marker.priority
                             is EventMarkerData -> marker.priority
                             else -> 0
                         }
@@ -321,7 +344,16 @@ fun MapScreen(
                     markerPainter = HomeMarkerPainter,
                     onMarkerClick = { markerId ->
                         selectedSidePanel = SidePanel.NONE
-                        viewModel.selectMarker(markerId)
+                        val cluster = clusteredEngineMarkers
+                            .filterIsInstance<MarkerClusterData>()
+                            .firstOrNull { it.id == markerId }
+                        if (cluster != null) {
+                            viewModel.clearSelection()
+                            selectedMarkerCluster = cluster
+                        } else {
+                            selectedMarkerCluster = null
+                            viewModel.selectMarker(markerId)
+                        }
                         uiState.renderMarkers.firstOrNull { it.id == markerId }?.let { marker ->
                             viewportState.focusOn(
                                 position = Offset(marker.x, marker.y),
@@ -331,6 +363,10 @@ fun MapScreen(
                     },
                     onMapTap = { _, _ ->
                         selectedSidePanel = SidePanel.NONE
+                        selectedMarkerCluster = null
+                        showFilters = false
+                        expandedFilterSection = null
+                        expandedFilterRows = 0
                         if (uiState.selectedMarker?.type == MarkerType.POI) {
                             viewModel.clearSelection()
                         }
@@ -611,6 +647,16 @@ fun MapScreen(
             onDismiss = viewModel::clearSelection,
             onAddFriendClick = viewModel::sendConnectionRequest
         )
+        selectedMarkerCluster?.let { cluster ->
+            MarkerClusterDialog(
+                markers = cluster.markers,
+                onDismiss = { selectedMarkerCluster = null },
+                onMarkerClick = { marker ->
+                    selectedMarkerCluster = null
+                    viewModel.selectMarker(marker.id)
+                }
+            )
+        }
         val selectedEventMarker = uiState.selectedMarker as? EventMarkerData
         val selectedEventInfo = uiState.selectedEventInfo
         if (
@@ -625,6 +671,10 @@ fun MapScreen(
                 description = selectedEventInfo.description,
                 registrationsCount = selectedEventInfo.registrationCount,
                 onNavigateClick = {},
+                onDiscussionClick = {
+                    viewModel.clearSelection()
+                    selectedSidePanel = SidePanel.CHAT
+                },
                 onRegisterClick = {
                     when (selectedEventInfo.registrationType?.trim()?.uppercase()) {
                         "THROUGH_LINK" -> {
@@ -708,10 +758,12 @@ fun MapScreen(
         // in-screen overlays, dismiss from the visually topmost layer downward.
         BackHandler(
             enabled = !eventMarkerDialogVisible &&
-                    (searchSuggestionsVisible || hasSelectedMarkerPopup || showFilters)
+                    (searchSuggestionsVisible || hasSelectedMarkerPopup || showFilters ||
+                            selectedMarkerCluster != null)
         ) {
             when {
                 searchSuggestionsVisible -> searchSuggestionsDismissed = true
+                selectedMarkerCluster != null -> selectedMarkerCluster = null
                 hasSelectedMarkerPopup -> viewModel.clearSelection()
                 showFilters -> {
                     showFilters = false
