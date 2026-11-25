@@ -19,6 +19,8 @@ interface PostsRepository {
 
     suspend fun getPosts(query: String? = null): Result<List<Post>>
 
+    suspend fun getCustomPosts(query: String? = null): Result<List<Post>>
+
     suspend fun getTags(): Result<List<PostTag>>
 
     suspend fun getGeneralTagCounts(): Result<List<PostTagCount>>

@@ -33,6 +33,11 @@ interface PostsApi {
     ):
             Response<ApiResponse<List<Post>>>
 
+    @GET("posts/custom")
+    suspend fun getCustomPosts(
+        @Query("q") query: String? = null
+    ): Response<ApiResponse<List<Post>>>
+
     @GET("posts/tags")
     suspend fun getTags():
 

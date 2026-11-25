@@ -63,6 +63,7 @@ import com.example.campusconnect.feature.posts.components.TopicChipsRow
 import com.example.campusconnect.feature.posts.components.PostCardGhost
 import com.example.campusconnect.feature.posts.components.CustomPostVisibilityDialog
 import com.example.campusconnect.feature.posts.models.VoteType
+import com.example.campusconnect.feature.posts.data.remote.PostApiException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -84,6 +85,9 @@ fun GeneralFeedScreen(
     var posts by remember {
     mutableStateOf<List<Post>>(emptyList())
 }
+    var customPosts by remember { mutableStateOf<List<Post>>(emptyList()) }
+    var isLoadingCustomPosts by remember { mutableStateOf(true) }
+    var customPostsError by remember { mutableStateOf<String?>(null) }
     var eventPosts by remember { mutableStateOf<List<PostEvent>>(emptyList()) }
     var isLoadingEventPosts by remember { mutableStateOf(true) }
     var eventPostsError by remember { mutableStateOf<String?>(null) }
@@ -123,6 +127,7 @@ fun GeneralFeedScreen(
     var votingEventPostIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var showCustomVisibilityDialog by rememberSaveable { mutableStateOf(false) }
     var generalSearchResults by remember { mutableStateOf<List<Post>>(emptyList()) }
+    var customSearchResults by remember { mutableStateOf<List<Post>>(emptyList()) }
     var eventSearchResults by remember { mutableStateOf<List<PostEvent>>(emptyList()) }
 
     var postToDelete by remember { mutableStateOf<Post?>(null) }
@@ -143,6 +148,17 @@ fun GeneralFeedScreen(
             .onFailure {
                 errorMessage = it.message ?: "Failed to load posts"
             }
+
+        isLoadingCustomPosts = true
+        customPostsError = null
+        customPosts = emptyList()
+        viewModel.getCustomPosts()
+            .onSuccess { customPosts = it }
+            .onFailure {
+                customPosts = emptyList()
+                customPostsError = it.message ?: "Failed to load custom posts."
+            }
+        isLoadingCustomPosts = false
 
         tagsError = null
         isLoadingTags = true
@@ -243,8 +259,32 @@ fun GeneralFeedScreen(
             generalSearchResults = generalSearchResults.map { searchedPost ->
                 posts.firstOrNull { it.id == searchedPost.id } ?: searchedPost
             }
+            customPosts = customPosts.map { currentPost ->
+                if (currentPost.id != post.id) currentPost else when (post.userVote) {
+                    VoteType.UPVOTE -> currentPost.copy(
+                        upvotes = (currentPost.upvotes - 1).coerceAtLeast(0), userVote = null
+                    )
+                    VoteType.DOWNVOTE -> currentPost.copy(
+                        upvotes = currentPost.upvotes + 1,
+                        downvotes = (currentPost.downvotes - 1).coerceAtLeast(0),
+                        userVote = VoteType.UPVOTE
+                    )
+                    null -> currentPost.copy(upvotes = currentPost.upvotes + 1, userVote = VoteType.UPVOTE)
+                }
+            }
+            customSearchResults = customSearchResults.map { searchedPost ->
+                customPosts.firstOrNull { it.id == searchedPost.id } ?: searchedPost
+            }
         }
-        result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
+        result.onFailure { error ->
+            voteError = error.message ?: "Couldn't update your vote."
+            if (post.postType.equals("CUSTOM", ignoreCase = true)
+                && (error as? PostApiException)?.statusCode == 404
+            ) {
+                customPosts = customPosts.filterNot { it.id == post.id }
+                customSearchResults = customSearchResults.filterNot { it.id == post.id }
+            }
+        }
     }
 
 
@@ -313,8 +353,32 @@ fun GeneralFeedScreen(
             generalSearchResults = generalSearchResults.map { searchedPost ->
                 posts.firstOrNull { it.id == searchedPost.id } ?: searchedPost
             }
+            customPosts = customPosts.map { currentPost ->
+                if (currentPost.id != post.id) currentPost else when (post.userVote) {
+                    VoteType.DOWNVOTE -> currentPost.copy(
+                        downvotes = (currentPost.downvotes - 1).coerceAtLeast(0), userVote = null
+                    )
+                    VoteType.UPVOTE -> currentPost.copy(
+                        upvotes = (currentPost.upvotes - 1).coerceAtLeast(0),
+                        downvotes = currentPost.downvotes + 1,
+                        userVote = VoteType.DOWNVOTE
+                    )
+                    null -> currentPost.copy(downvotes = currentPost.downvotes + 1, userVote = VoteType.DOWNVOTE)
+                }
+            }
+            customSearchResults = customSearchResults.map { searchedPost ->
+                customPosts.firstOrNull { it.id == searchedPost.id } ?: searchedPost
+            }
         }
-        result.onFailure { voteError = it.message ?: "Couldn't update your vote." }
+        result.onFailure { error ->
+            voteError = error.message ?: "Couldn't update your vote."
+            if (post.postType.equals("CUSTOM", ignoreCase = true)
+                && (error as? PostApiException)?.statusCode == 404
+            ) {
+                customPosts = customPosts.filterNot { it.id == post.id }
+                customSearchResults = customSearchResults.filterNot { it.id == post.id }
+            }
+        }
     }
 
     fun updateEventVoteCounts(postId: Int, from: VoteType?, to: VoteType?) {
@@ -384,6 +448,7 @@ fun GeneralFeedScreen(
         showSearchPopup = false
         searchQuery = ""
         generalSearchResults = emptyList()
+        customSearchResults = emptyList()
         eventSearchResults = emptyList()
         isSearchLoading = false
         searchError = null
@@ -394,6 +459,7 @@ fun GeneralFeedScreen(
         searchGeneration++
         searchRequestJob?.cancel()
         generalSearchResults = emptyList()
+        customSearchResults = emptyList()
         eventSearchResults = emptyList()
         isSearchLoading = query.trim().length >= 2
         searchError = null
@@ -423,6 +489,13 @@ fun GeneralFeedScreen(
                 }
                 result.onSuccess { eventSearchResults = it }
                     .onFailure { searchError = it.message ?: "Couldn't search event posts." }
+            } else if (requestTab == 2) {
+                val result = viewModel.getCustomPosts(query)
+                if (requestGeneration != searchGeneration || requestTab != selectedTab || query != searchQuery.trim()) {
+                    return@launch
+                }
+                result.onSuccess { customSearchResults = it }
+                    .onFailure { searchError = it.message ?: "Couldn't search custom posts." }
             }
             isSearchLoading = false
         }
@@ -430,7 +503,7 @@ fun GeneralFeedScreen(
 
     LaunchedEffect(showSearchPopup, searchQuery, selectedTab) {
         val query = searchQuery.trim()
-        if (!showSearchPopup || query.length < 2 || selectedTab !in 0..1) return@LaunchedEffect
+        if (!showSearchPopup || query.length < 2 || selectedTab !in 0..2) return@LaunchedEffect
         kotlinx.coroutines.delay(300)
         submitPostSearch(query)
     }
@@ -472,6 +545,12 @@ fun GeneralFeedScreen(
                 (selectedTopicId == null || post.tags.any { it.id == selectedTopicId })
     }
     val filteredGeneralSearchResults = generalSearchResults.filter { post ->
+        profileUserId == null || post.authorId == profileUserId
+    }
+    val filteredCustomPosts = customPosts.filter { post ->
+        profileUserId == null || post.authorId == profileUserId
+    }
+    val filteredCustomSearchResults = customSearchResults.filter { post ->
         profileUserId == null || post.authorId == profileUserId
     }
     val filteredEventPosts = eventPosts.filter { event ->
@@ -866,13 +945,93 @@ fun GeneralFeedScreen(
                     }
                 }
 
-                2 -> Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
+                2 -> Column(
+                    modifier = Modifier.fillMaxSize().padding(padding)
                 ) {
-                    Text(text = "Custom Rooms Coming Soon")
+                    if (showSearchPopup) {
+                        FeedSearchBar(
+                            query = searchQuery,
+                            onQueryChange = ::updatePostSearchQuery,
+                            onBack = ::resetPostSearch
+                        )
+                        FeedTopBar(
+                            currentTitle = if (profileUserId == null) "Custom" else "Profile Custom Posts",
+                            showSearchButton = false,
+                            showBrand = false
+                        )
+                    } else {
+                        FeedTopBar(
+                            currentTitle = if (profileUserId == null) "Custom" else "Profile Custom Posts",
+                            onSearchClick = { showSearchPopup = true },
+                            onBackClick = onBackClick.takeIf { profileUserId != null }
+                        )
+                    }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        voteError?.let { message ->
+                            item(key = "custom-vote-error") { Text(message, color = ErrorRed) }
+                        }
+                        if (showSearchPopup) {
+                            item(key = "custom-search-summary") {
+                                val trimmedQuery = searchQuery.trim()
+                                when {
+                                    trimmedQuery.length < 2 -> Text("Enter at least 2 characters to search.", color = HintColor)
+                                    isSearchLoading -> Text("Searching…", color = HintColor)
+                                    searchError != null -> Text(searchError!!, color = ErrorRed)
+                                    else -> Text(
+                                        "${filteredCustomSearchResults.size} ${if (filteredCustomSearchResults.size == 1) "result" else "results"} for “$trimmedQuery”",
+                                        color = HintColor
+                                    )
+                                }
+                            }
+                            if (searchQuery.trim().length >= 2 && !isSearchLoading && searchError == null && filteredCustomSearchResults.isEmpty()) {
+                                item(key = "custom-search-empty") { Text("No matching custom posts found.", color = HintColor) }
+                            }
+                            items(filteredCustomSearchResults, key = { "custom-search-${it.id}" }) { post ->
+                                com.example.campusconnect.feature.posts.components.PostCard(
+                                    post = post,
+                                    commentCount = post.commentCount,
+                                    searchHighlightQuery = searchQuery,
+                                    onClick = { resetPostSearch(); onPostClick(post.id, "CUSTOM") },
+                                    onUpvoteClick = { coroutineScope.launch { handleUpvote(post) } },
+                                    onDownvoteClick = { coroutineScope.launch { handleDownvote(post) } },
+                                    onDeleteClick = { postToDelete = post; deleteError = null },
+                                    onEditClick = { onEditPostClick(post.id) },
+                                    onAuthorClick = onUserProfileClick
+                                )
+                            }
+                        } else if (isLoadingCustomPosts && filteredCustomPosts.isEmpty()) {
+                            items(3, key = { "custom-post-ghost-$it" }) { index ->
+                                PostCardGhost(showImage = index != 0)
+                            }
+                        } else if (customPostsError != null && filteredCustomPosts.isEmpty()) {
+                            item(key = "custom-post-error") { Text(customPostsError!!, color = ErrorRed) }
+                        } else if (filteredCustomPosts.isEmpty()) {
+                            item(key = "custom-post-empty") {
+                                Text(
+                                    if (profileUserId == null) "No custom posts are available to you yet."
+                                    else "No custom posts from this user are available to you.",
+                                    color = HintColor
+                                )
+                            }
+                        } else {
+                            items(filteredCustomPosts, key = { "custom-${it.id}" }) { post ->
+                                com.example.campusconnect.feature.posts.components.PostCard(
+                                    post = post,
+                                    commentCount = post.commentCount,
+                                    onClick = { onPostClick(post.id, "CUSTOM") },
+                                    onUpvoteClick = { coroutineScope.launch { handleUpvote(post) } },
+                                    onDownvoteClick = { coroutineScope.launch { handleDownvote(post) } },
+                                    onDeleteClick = { postToDelete = post; deleteError = null },
+                                    onEditClick = { onEditPostClick(post.id) },
+                                    onAuthorClick = onUserProfileClick
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -893,10 +1052,20 @@ fun GeneralFeedScreen(
                             deleteResult
                                 .onSuccess {
                                     posts = posts.filterNot { current -> current.id == post.id }
+                                    customPosts = customPosts.filterNot { current -> current.id == post.id }
                                     generalSearchResults = generalSearchResults.filterNot { current -> current.id == post.id }
+                                    customSearchResults = customSearchResults.filterNot { current -> current.id == post.id }
                                     postToDelete = null
                                 }
-                                .onFailure { deleteError = it.message ?: "Couldn't delete the post." }
+                                .onFailure { error ->
+                                    deleteError = error.message ?: "Couldn't delete the post."
+                                    if (post.postType.equals("CUSTOM", ignoreCase = true)
+                                        && (error as? PostApiException)?.statusCode == 404
+                                    ) {
+                                        customPosts = customPosts.filterNot { it.id == post.id }
+                                        customSearchResults = customSearchResults.filterNot { it.id == post.id }
+                                    }
+                                }
 
                             if (deleteResult.isSuccess) {
                                 countsLoading = true

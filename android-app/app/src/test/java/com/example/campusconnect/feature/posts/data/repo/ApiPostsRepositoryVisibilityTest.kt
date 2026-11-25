@@ -5,17 +5,65 @@ import com.example.campusconnect.core.network.ApiResponse
 import com.example.campusconnect.core.visibility.VisibilityApiConfiguration
 import com.example.campusconnect.core.visibility.VisibilityScope
 import com.example.campusconnect.feature.posts.data.remote.PostsApi
+import com.example.campusconnect.feature.posts.data.remote.PostApiErrorParser
+import com.example.campusconnect.feature.posts.data.remote.PostApiException
 import com.example.campusconnect.feature.posts.models.Post
 import kotlinx.coroutines.runBlocking
 import okhttp3.RequestBody
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okhttp3.MediaType.Companion.toMediaType
 import okio.Buffer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.Response
 import java.lang.reflect.Proxy
 
 class ApiPostsRepositoryVisibilityTest {
+
+    @Test
+    fun customFeedUsesDedicatedEndpointAndForwardsSearchQuery() = runBlocking {
+        var requestedQuery: String? = null
+        val api = Proxy.newProxyInstance(
+            PostsApi::class.java.classLoader,
+            arrayOf(PostsApi::class.java)
+        ) { _, method, args ->
+            if (method.name == "getCustomPosts") {
+                requestedQuery = args?.firstOrNull() as? String
+                Response.success(ApiResponse<List<Post>>(success = true, data = emptyList(), message = null))
+            } else {
+                throw UnsupportedOperationException("Unexpected PostsApi call: ${method.name}")
+            }
+        } as PostsApi
+
+        val result = ApiPostsRepository(context = ContextWrapper(null), api = api)
+            .getCustomPosts("custom search")
+
+        assertTrue(result.isSuccess)
+        assertEquals("custom search", requestedQuery)
+    }
+
+    @Test
+    fun inaccessiblePostResponsePreserves404ForTheUi() {
+        val rawResponse = okhttp3.Response.Builder()
+            .request(Request.Builder().url("https://campus.example/posts/42").build())
+            .protocol(Protocol.HTTP_1_1)
+            .code(404)
+            .message("Not Found")
+            .build()
+        val response = Response.error<ApiResponse<Post>>(
+            "{}".toResponseBody("application/json".toMediaType()),
+            rawResponse
+        )
+
+        val error = PostApiErrorParser.exception(response, "Failed to fetch post")
+
+        assertEquals(404, error.statusCode)
+        assertTrue(error.message.contains("no longer available"))
+    }
 
     @Test
     fun forwardsPublicAndEventsVisibilityPartsToPostsApi() = runBlocking {

@@ -18,6 +18,8 @@ public interface PostService {
 
     List<PostResponse> getAllPosts(String query);
 
+    List<PostResponse> getCustomPosts(String query);
+
     PostResponse getPostById(Integer postId);
 
     List<PostTagResponse> getAllTags();

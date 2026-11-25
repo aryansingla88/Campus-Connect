@@ -21,6 +21,9 @@ class FeedViewModel(
         return repository.getPosts(query)
     }
 
+    suspend fun getCustomPosts(query: String? = null): Result<List<Post>> =
+        repository.getCustomPosts(query)
+
     suspend fun getPost(
         postId: Int
     ): Result<Post> {

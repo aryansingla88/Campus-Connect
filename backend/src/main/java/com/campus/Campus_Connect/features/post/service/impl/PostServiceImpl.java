@@ -28,7 +28,10 @@ import com.campus.Campus_Connect.features.post.repository.PostRepository;
 import com.campus.Campus_Connect.features.post.repository.PostTagRepository;
 import com.campus.Campus_Connect.features.post.repository.PostVoteRepository;
 import com.campus.Campus_Connect.features.post.service.PostService;
+import com.campus.Campus_Connect.features.post.security.PostVisibilityAccessService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -63,6 +66,8 @@ public class PostServiceImpl implements PostService {
     private final ClubRepository clubRepository;
 
     private final PostMapper postMapper;
+
+    private final PostVisibilityAccessService postVisibilityAccessService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -102,12 +107,57 @@ public class PostServiceImpl implements PostService {
 
     @Transactional(readOnly = true)
     @Override
+    public List<PostResponse> getCustomPosts(String query) {
+        Specification<Post> specification = postVisibilityAccessService
+                .visibleCustomPostsForCurrentViewer();
+        String normalizedQuery = query == null ? "" : query.trim();
+        if (!normalizedQuery.isEmpty()) {
+            String searchPattern = "%" + normalizedQuery.toLowerCase(java.util.Locale.ROOT) + "%";
+            specification = specification.and((root, criteriaQuery, builder) -> builder.or(
+                    builder.like(builder.lower(root.get("title")), searchPattern),
+                    builder.like(builder.lower(root.get("contentRaw")), searchPattern),
+                    builder.like(builder.lower(root.get("creator").get("username")), searchPattern)
+            ));
+        }
+
+        List<Post> posts = postRepository.findAll(
+                specification,
+                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
+        );
+        if (posts.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> postIds = posts.stream().map(Post::getId).toList();
+        // PostMapper reads these lazy collections; initialize them in a fixed number of queries.
+        postRepository.fetchImagesForResponseByIdIn(postIds);
+        postRepository.fetchTagsForResponseByIdIn(postIds);
+        postRepository.fetchVotesForResponseByIdIn(postIds);
+        Map<Integer, Long> commentCounts = commentRepository.countByPostIds(postIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        CommentRepository.CommentCountProjection::getPostId,
+                        CommentRepository.CommentCountProjection::getCommentCount
+                ));
+        Integer currentUserId = SecurityUtils.getCurrentUserId();
+        return posts.stream()
+                .map(post -> postMapper.toPostResponse(
+                        post,
+                        currentUserId,
+                        commentCounts.getOrDefault(post.getId(), 0L)
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
     public PostResponse getPostById(Integer postId) {
 
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() ->
                         new PostNotFoundException("Post not found with id: " + postId)
                 );
+        postVisibilityAccessService.requireCustomPostAccess(post);
         PostResponse response = postMapper.toPostResponse(
                 post,
                 SecurityUtils.getCurrentUserId(),
@@ -549,6 +599,7 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() ->
                         new PostNotFoundException("Post not found with id: " + postId)
                 );
+        postVisibilityAccessService.requireCustomPostAccess(post);
 
         return commentRepository.findByPostOrderByCreatedAtAsc(post)
                 .stream()
@@ -563,6 +614,7 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() ->
                         new PostNotFoundException("Post not found with id: " + postId)
                 );
+        postVisibilityAccessService.requireCustomPostAccess(post);
 
         if (!post.getAllowComments()) {
             throw new IllegalArgumentException("Comments are disabled for this post.");
@@ -612,6 +664,7 @@ public class PostServiceImpl implements PostService {
         if (comment.getPost().getDeletedAt() != null) {
             throw new PostNotFoundException("Post not found with id: " + comment.getPost().getId());
         }
+        postVisibilityAccessService.requireCustomPostAccess(comment.getPost());
 
         if (comment.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Comment not found.");
@@ -663,6 +716,7 @@ public class PostServiceImpl implements PostService {
         if (comment.getPost().getDeletedAt() != null) {
             throw new PostNotFoundException("Post not found with id: " + comment.getPost().getId());
         }
+        postVisibilityAccessService.requireCustomPostAccess(comment.getPost());
 
         if (comment.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Comment not found.");
@@ -717,6 +771,7 @@ public class PostServiceImpl implements PostService {
         if (post.getDeletedAt() != null) {
             throw new BadRequestException("Deleted posts cannot be voted on.");
         }
+        postVisibilityAccessService.requireCustomPostAccess(post);
 
         Integer currentUserId = SecurityUtils.getCurrentUserId();
 
@@ -755,6 +810,7 @@ public class PostServiceImpl implements PostService {
         if (post.getDeletedAt() != null) {
             throw new BadRequestException("Deleted posts cannot be voted on.");
         }
+        postVisibilityAccessService.requireCustomPostAccess(post);
 
         Integer currentUserId = SecurityUtils.getCurrentUserId();
 
@@ -793,6 +849,7 @@ public class PostServiceImpl implements PostService {
         if (post.getDeletedAt() != null) {
             throw new BadRequestException("Votes cannot be changed on deleted posts.");
         }
+        postVisibilityAccessService.requireCustomPostAccess(post);
 
         postVoteRepository.deleteByPostAndIdUserId(
                 post,

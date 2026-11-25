@@ -133,7 +133,9 @@ fun CustomPostVisibilityDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                VisibilityScope.entries.filter { it != VisibilityScope.PUBLIC }.forEach { scope ->
+                VisibilityScope.entries.filter {
+                    it != VisibilityScope.PUBLIC && it != VisibilityScope.BATCH
+                }.forEach { scope ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

@@ -35,6 +35,7 @@ import com.example.campusconnect.feature.posts.components.PostDetailTopBar
 import com.example.campusconnect.feature.posts.models.Comment
 import com.example.campusconnect.feature.posts.models.Post
 import com.example.campusconnect.feature.posts.models.VoteType
+import com.example.campusconnect.feature.posts.data.remote.PostApiException
 import com.example.campusconnect.feature.posts.viewmodel.PostDetailViewModel
 import kotlinx.coroutines.launch
 
@@ -78,6 +79,7 @@ private fun PostDetailContent(
     var isLoadingPost by remember(postId) { mutableStateOf(true) }
     var postLoadError by remember(postId) { mutableStateOf<String?>(null) }
     var commentsForPost by remember(postId) { mutableStateOf<List<Comment>>(emptyList()) }
+    var commentsLoadError by remember(postId) { mutableStateOf<String?>(null) }
     var draft by remember(postId) { mutableStateOf("") }
     var replyTarget by remember(postId) { mutableStateOf<Comment?>(null) }
     var isSubmitting by remember(postId) { mutableStateOf(false) }
@@ -96,11 +98,23 @@ private fun PostDetailContent(
     var isSavingCommentEdit by remember(postId) { mutableStateOf(false) }
     var commentEditError by remember(postId) { mutableStateOf<String?>(null) }
 
+    fun markPostUnavailable(error: Throwable) {
+        val message = error.message.orEmpty()
+        val refersToPost = message.contains("post", ignoreCase = true)
+                && !message.contains("comment", ignoreCase = true)
+        if ((error as? PostApiException)?.statusCode == 404 && refersToPost) {
+            post = null
+            commentsForPost = emptyList()
+            postLoadError = message
+        }
+    }
+
     LaunchedEffect(postId, refreshTrigger) {
         post = null
         isLoadingPost = true
         postLoadError = null
         commentsForPost = emptyList()
+        commentsLoadError = null
         draft = ""
         replyTarget = null
         isSubmitting = false
@@ -119,7 +133,15 @@ private fun PostDetailContent(
             .onSuccess { post = it }
             .onFailure { postLoadError = it.message ?: "Post not found." }
         if (postResult.isSuccess) {
-            commentsForPost = viewModel.getComments(postId).getOrDefault(emptyList())
+            viewModel.getComments(postId)
+                .onSuccess { commentsForPost = it }
+                .onFailure { error ->
+                    if ((error as? PostApiException)?.statusCode == 404) {
+                        markPostUnavailable(error)
+                    } else {
+                        commentsLoadError = error.message ?: "Couldn't load comments."
+                    }
+                }
         }
         isLoadingPost = false
         isLoadingComments = false
@@ -172,6 +194,7 @@ private fun PostDetailContent(
                 }
             }.onFailure { error ->
                 voteError = error.message ?: "Couldn't update your vote."
+                markPostUnavailable(error)
             }
         } finally {
             isVoting = false
@@ -215,6 +238,7 @@ private fun PostDetailContent(
                     }
                     .onFailure { error ->
                         commentEditError = error.message ?: "Couldn't update this comment."
+                        markPostUnavailable(error)
                     }
             } finally {
                 isSavingCommentEdit = false
@@ -286,6 +310,14 @@ private fun PostDetailContent(
 
             if (isLoadingComments) {
                 items(2, key = { "comment-loading-$it" }) { CommentRowGhost() }
+            } else if (commentsLoadError != null) {
+                item(key = "comments-load-error") {
+                    Text(
+                        commentsLoadError ?: "Couldn't load comments.",
+                        color = HintColor,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
+                }
             } else if (commentsForPost.isEmpty()) {
                 item(key = "comments-empty") {
                     Text(
@@ -401,6 +433,7 @@ private fun PostDetailContent(
                                 .onFailure { error ->
                                     submissionError = error.message
                                         ?: "Couldn't send comment. Please try again."
+                                    markPostUnavailable(error)
                                 }
                         } finally {
                             isSubmitting = false
@@ -427,7 +460,10 @@ private fun PostDetailContent(
                                     showDeleteConfirmation = false
                                     onBackClick()
                                 }
-                                .onFailure { deleteError = it.message ?: "Couldn't delete the post." }
+                                .onFailure {
+                                    deleteError = it.message ?: "Couldn't delete the post."
+                                    markPostUnavailable(it)
+                                }
                             isDeleting = false
                         }
                     }
@@ -496,6 +532,7 @@ private fun PostDetailContent(
                                     .onFailure { error ->
                                         commentDeleteError = error.message ?: "Couldn't delete this comment."
                                         commentToDelete = null
+                                        markPostUnavailable(error)
                                     }
                             } finally {
                                 isDeletingComment = false

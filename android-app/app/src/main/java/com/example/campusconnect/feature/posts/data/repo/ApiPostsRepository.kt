@@ -102,6 +102,20 @@ class ApiPostsRepository(
         }
     }
 
+    override suspend fun getCustomPosts(query: String?): Result<List<Post>> = try {
+        val response = api.getCustomPosts(query?.takeIf { it.isNotBlank() })
+        val customPosts = response.body()?.data
+        if (response.isSuccessful && customPosts != null) {
+            Result.success(customPosts)
+        } else {
+            Result.failure(PostApiErrorParser.exception(response, "Failed to load custom posts."))
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     override suspend fun getGeneralTagCounts(): Result<List<PostTagCount>> {
         return try {
             val response = api.getGeneralTagCounts()
@@ -173,12 +187,7 @@ class ApiPostsRepository(
 
             } else {
 
-                Result.failure(
-                    Exception(
-                        response.body()?.message
-                            ?: "Failed to fetch post"
-                    )
-                )
+                Result.failure(PostApiErrorParser.exception(response, "Failed to fetch post"))
             }
 
         } catch (e: Exception) {
@@ -343,12 +352,7 @@ class ApiPostsRepository(
 
             } else {
 
-                Result.failure(
-                    Exception(
-                        response.body()?.message
-                            ?: "Failed to delete post"
-                    )
-                )
+                Result.failure(PostApiErrorParser.exception(response, "Failed to delete post"))
             }
 
         } catch (e: Exception) {
@@ -379,12 +383,7 @@ class ApiPostsRepository(
 
             } else {
 
-                Result.failure(
-                    Exception(
-                        response.body()?.message
-                            ?: "Failed to fetch comments"
-                    )
-                )
+                Result.failure(PostApiErrorParser.exception(response, "Failed to fetch comments"))
             }
 
         } catch (e: Exception) {
@@ -429,11 +428,7 @@ class ApiPostsRepository(
 
                 Result.failure(
 
-                    Exception(
-
-                        response.body()?.message
-                            ?: "Failed to create comment"
-                    )
+                    PostApiErrorParser.exception(response, "Failed to create comment")
                 )
             }
 
@@ -481,11 +476,7 @@ class ApiPostsRepository(
 
                 Result.failure(
 
-                    Exception(
-
-                        response.body()?.message
-                            ?: "Failed to create reply"
-                    )
+                    PostApiErrorParser.exception(response, "Failed to create reply")
                 )
             }
 
@@ -526,10 +517,7 @@ class ApiPostsRepository(
             } else {
 
                 Result.failure(
-                    Exception(
-                        response.body()?.message
-                            ?: "Failed to update comment"
-                    )
+                    PostApiErrorParser.exception(response, "Failed to update comment")
                 )
             }
 
@@ -554,10 +542,7 @@ class ApiPostsRepository(
             } else {
 
                 Result.failure(
-                    Exception(
-                        response.body()?.message
-                            ?: "Failed to delete comment"
-                    )
+                    PostApiErrorParser.exception(response, "Failed to delete comment")
                 )
             }
 
@@ -585,10 +570,7 @@ class ApiPostsRepository(
             } else {
 
                 Result.failure(
-                    Exception(
-                        response.body()?.message
-                            ?: "Failed to upvote post"
-                    )
+                    PostApiErrorParser.exception(response, "Failed to upvote post")
                 )
             }
 
@@ -613,10 +595,7 @@ class ApiPostsRepository(
             } else {
 
                 Result.failure(
-                    Exception(
-                        response.body()?.message
-                            ?: "Failed to downvote post"
-                    )
+                    PostApiErrorParser.exception(response, "Failed to downvote post")
                 )
             }
 
@@ -641,10 +620,7 @@ class ApiPostsRepository(
             } else {
 
                 Result.failure(
-                    Exception(
-                        response.body()?.message
-                            ?: "Failed to remove vote"
-                    )
+                    PostApiErrorParser.exception(response, "Failed to remove vote")
                 )
             }
 

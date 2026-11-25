@@ -84,6 +84,14 @@ public class PostController {
     ) {
         return ApiResponse.success(postService.getEventPosts(query), null);
     }
+
+    @GetMapping("/custom")
+    public ApiResponse<List<PostResponse>> getCustomPosts(
+            @RequestParam(value = "q", required = false) String query
+    ) {
+        return ApiResponse.success(postService.getCustomPosts(query), null);
+    }
+
     @DeleteMapping("/{postId}")
     public ApiResponse<Void> deletePost(
             @PathVariable Integer postId
