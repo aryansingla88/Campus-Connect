@@ -76,7 +76,7 @@ public class PostServiceImpl implements PostService {
 
         String normalizedQuery = query == null ? "" : query.trim();
         List<Post> posts = normalizedQuery.isEmpty()
-                ? postRepository.findAllByPostTypeAndDeletedAtIsNullOrderByCreatedAtDesc("GENERAL")
+                ? postRepository.findAllByEventIdIsNullAndVisibilityTypeIsNullAndDeletedAtIsNullOrderByCreatedAtDesc()
                 : postRepository.searchGeneralPosts(normalizedQuery);
         if (posts.isEmpty()) {
             return List.of();
@@ -113,7 +113,7 @@ public class PostServiceImpl implements PostService {
                 SecurityUtils.getCurrentUserId(),
                 commentRepository.countByPost(post)
         );
-        if ("EVENTS".equalsIgnoreCase(post.getPostType()) && post.getEventId() != null) {
+        if (post.getEventId() != null) {
             Event event = entityManager.find(Event.class, post.getEventId());
             if (event != null) populateEventDetails(response, event);
         }
@@ -144,7 +144,7 @@ public class PostServiceImpl implements PostService {
     public List<EventPostResponse> getEventPosts(String query) {
         String normalizedQuery = query == null ? "" : query.trim();
         List<Post> eventPosts = normalizedQuery.isEmpty()
-                ? postRepository.findAllByPostTypeAndEventIdIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc("EVENTS")
+                ? postRepository.findAllByEventIdIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc()
                 : postRepository.searchEventPosts(normalizedQuery);
         if (eventPosts.isEmpty()) return List.of();
 
@@ -247,11 +247,8 @@ public class PostServiceImpl implements PostService {
         Post post = new Post();
 
         Event selectedEvent = null;
-        boolean eventPost = "EVENTS".equalsIgnoreCase(request.getPostType());
+        boolean eventPost = request.getEventId() != null;
         if (eventPost) {
-            if (request.getEventId() == null) {
-                throw new BadRequestException("Select an event to publish.");
-            }
             selectedEvent = entityManager.find(Event.class, request.getEventId(), LockModeType.PESSIMISTIC_WRITE);
             if (selectedEvent == null) {
                 throw new ResourceNotFoundException("Event not found.");
@@ -259,7 +256,7 @@ public class PostServiceImpl implements PostService {
             if (!selectedEvent.getCreator().getId().equals(SecurityUtils.getCurrentUserId())) {
                 throw new ForbiddenException("You can only publish an event post for an event you created.");
             }
-            if (postRepository.existsByEventIdAndPostTypeAndDeletedAtIsNull(selectedEvent.getId(), "EVENTS")) {
+            if (postRepository.existsByEventIdAndDeletedAtIsNull(selectedEvent.getId())) {
                 throw new BadRequestException("This event already has a post.");
             }
             if (request.getBody() == null || request.getBody().isBlank()) {
@@ -272,8 +269,6 @@ public class PostServiceImpl implements PostService {
                     .orElseThrow(() -> new BadRequestException("The selected event category is invalid."));
             selectedEvent.getCategories().clear();
             selectedEvent.getCategories().add(category);
-        } else if (request.getEventId() != null) {
-            throw new BadRequestException("An event can only be attached to an EVENTS post.");
         } else if (request.getBody() == null || request.getBody().isBlank()) {
             throw new BadRequestException("Post body is required.");
         }
@@ -281,12 +276,15 @@ public class PostServiceImpl implements PostService {
         // Basic fields
         post.setTitle(eventPost ? selectedEvent.getTitle() : request.getTitle());
         post.setContentRaw(request.getBody().trim());
-        post.setPostType(eventPost ? "EVENTS" : request.getPostType());
         post.setEventId(eventPost ? selectedEvent.getId() : null);
 
-        // Defaults
-        post.setVisibilityType("PUBLIC");
-        post.setVisibilityValue(null);
+        PostVisibilityNormalizer.NormalizedVisibility visibility = PostVisibilityNormalizer.normalize(
+                eventPost,
+                request.getVisibilityType(),
+                request.getVisibilityValue()
+        );
+        post.setVisibilityType(visibility.type());
+        post.setVisibilityValue(visibility.value());
         post.setAllowComments(true);
 
         // Logged-in user
@@ -399,7 +397,7 @@ public class PostServiceImpl implements PostService {
             throw new BadRequestException("Post description is required.");
         }
 
-        boolean eventPost = "EVENTS".equalsIgnoreCase(post.getPostType());
+        boolean eventPost = post.getEventId() != null;
         Event linkedEvent = null;
         Integer currentUserId = SecurityUtils.getCurrentUserId();
         if (eventPost) {
@@ -516,8 +514,7 @@ public class PostServiceImpl implements PostService {
                 );
 
         Integer currentUserId = SecurityUtils.getCurrentUserId();
-        boolean isEventPost = "EVENTS".equalsIgnoreCase(post.getPostType())
-                && post.getEventId() != null;
+        boolean isEventPost = post.getEventId() != null;
         boolean isOwner;
         if (isEventPost) {
             Event event = entityManager.find(Event.class, post.getEventId());

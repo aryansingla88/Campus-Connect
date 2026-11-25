@@ -17,15 +17,16 @@ import java.util.Optional;
 public interface PostRepository extends JpaRepository<Post, Integer> {
 
     @EntityGraph(attributePaths = {"creator", "creator.profile"})
-    List<Post> findAllByPostTypeAndDeletedAtIsNullOrderByCreatedAtDesc(String postType);
+    List<Post> findAllByEventIdIsNullAndVisibilityTypeIsNullAndDeletedAtIsNullOrderByCreatedAtDesc();
 
-    List<Post> findAllByPostTypeAndEventIdIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc(String postType);
+    List<Post> findAllByEventIdIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc();
 
     @EntityGraph(attributePaths = {"creator", "creator.profile"})
     @Query("""
             select p from Post p
             join p.creator creator
-            where p.postType = 'GENERAL'
+            where p.eventId is null
+              and p.visibilityType is null
               and p.deletedAt is null
               and (
                     lower(p.title) like lower(concat('%', :query, '%'))
@@ -40,8 +41,7 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     @Query("""
             select p from Post p
             join p.creator creator, Event e
-            where p.postType = 'EVENTS'
-              and p.eventId is not null
+            where p.eventId is not null
               and p.deletedAt is null
               and e.id = p.eventId
               and (
@@ -53,7 +53,7 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             """)
     List<Post> searchEventPosts(@Param("query") String query);
 
-    boolean existsByEventIdAndPostTypeAndDeletedAtIsNull(Integer eventId, String postType);
+    boolean existsByEventIdAndDeletedAtIsNull(Integer eventId);
 
     @EntityGraph(attributePaths = {"creator", "creator.profile"})
     Optional<Post> findByIdAndDeletedAtIsNull(Integer postId);

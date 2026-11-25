@@ -10,6 +10,8 @@ import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
 import com.example.campusconnect.feature.posts.models.PostEventCategory
 import java.io.File
+import com.example.campusconnect.core.visibility.VisibilityApiConfiguration
+import com.example.campusconnect.core.visibility.VisibilityScope
 class FeedViewModel(
     private val repository: PostsRepository = ApiPostsRepository()
 ) : ViewModel() {
@@ -42,15 +44,15 @@ class FeedViewModel(
     suspend fun getEventPosts(query: String? = null) = repository.getEventPosts(query)
 
     suspend fun createPost(
-        postType: String,
         title: String,
         body: String,
         tags: List<PostTag>,
         image: Uri?,
         eventId: Int? = null,
-        eventCategoryId: Int? = null
+        eventCategoryId: Int? = null,
+        visibilityConfiguration: VisibilityApiConfiguration = VisibilityApiConfiguration(VisibilityScope.PUBLIC)
     ): Result<Post> {
-        return repository.createPost(postType, title, body, tags, image, eventId, eventCategoryId)
+        return repository.createPost(title, body, tags, image, eventId, eventCategoryId, visibilityConfiguration)
 
     }
 

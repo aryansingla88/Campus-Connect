@@ -25,17 +25,8 @@ public class Post {
     @JoinColumn(name = "creator_id", nullable = false)
     private User creator;
 
-    @Column(name = "post_type", nullable = false)
-    private String postType;
-
     @Column(name = "event_id")
     private Integer eventId;
-
-    @Column(name = "club_id")
-    private Integer clubId;
-
-    @Column(name = "poi_id")
-    private Integer poiId;
 
     @Column(nullable = false)
     private String title;

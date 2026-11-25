@@ -257,8 +257,8 @@ WHERE e.n=1 AND r.status='PENDING' AND r.team_id IS NULL
 ON CONFLICT(registration_id,field_id) DO NOTHING;
 
 -- Community posts with remote image URLs, comments and votes.
-INSERT INTO posts(creator_id,post_type,title,content_raw,content_rendered,visibility_type,allow_comments,created_at,updated_at)
-SELECT u.id,'GENERAL',p.title,p.body,p.body,'PUBLIC',TRUE,CURRENT_TIMESTAMP - (p.n || ' days')::interval,CURRENT_TIMESTAMP - (p.n || ' days')::interval
+INSERT INTO posts(creator_id,title,content_raw,content_rendered,visibility_type,allow_comments,created_at,updated_at)
+SELECT u.id,p.title,p.body,p.body,NULL,TRUE,CURRENT_TIMESTAMP - (p.n || ' days')::interval,CURRENT_TIMESTAMP - (p.n || ' days')::interval
 FROM (VALUES
  ('testuser01','Hackathon team looking for a designer','We are prototyping a campus discovery app and have room for one more teammate.',1),
  ('testuser11','Workshop notes: small prototypes win','Our group learned to test the core interaction before polishing the UI.',2),

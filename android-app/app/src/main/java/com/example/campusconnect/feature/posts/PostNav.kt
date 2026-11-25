@@ -1,5 +1,6 @@
 package com.example.campusconnect.feature.posts.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavController
@@ -12,12 +13,14 @@ import com.example.campusconnect.feature.posts.screens.CreatePostScreen
 import com.example.campusconnect.feature.posts.screens.GeneralFeedScreen
 import com.example.campusconnect.feature.posts.screens.PostDetailScreen
 import com.example.campusconnect.feature.profile.navigateToUserProfile
+import com.example.campusconnect.core.visibility.VisibilityApiConfiguration
+import com.example.campusconnect.core.visibility.VisibilityScope
 
 const val POSTS_FEED_ROUTE = "posts"
 const val EVENTS_FEED_ROUTE = "posts/events"
 const val USER_POSTS_ROUTE = "posts/user/{userId}"
 const val POST_DETAIL_ROUTE = "post_detail/{postId}/{postType}"
-const val CREATE_POST_ROUTE = "create_post/{postType}"
+const val CREATE_POST_ROUTE = "create_post/{postType}?visibilityScope={visibilityScope}&visibilityValue={visibilityValue}"
 private const val EDIT_POST_ROUTE = "edit_post/{postId}"
 
 private const val CREATE_POST_ROUTE_BASE = "create_post"
@@ -50,14 +53,32 @@ fun NavGraphBuilder.postNav(navController: NavController) {
         arguments = listOf(
             navArgument("postType") {
                 type = NavType.StringType
+            },
+            navArgument("visibilityScope") {
+                type = NavType.StringType
+                defaultValue = VisibilityScope.PUBLIC.name
+            },
+            navArgument("visibilityValue") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
             }
         )
     ) { backStackEntry ->
         val initialPostType =
             backStackEntry.arguments?.getString("postType") ?: "GENERAL"
+        val rawVisibilityScope = backStackEntry.arguments?.getString("visibilityScope")
+        val visibilityScope = when {
+            rawVisibilityScope == null -> VisibilityScope.PUBLIC
+            rawVisibilityScope.isBlank() -> null
+            else -> runCatching { VisibilityScope.valueOf(rawVisibilityScope) }
+                .getOrDefault(VisibilityScope.PUBLIC)
+        }
+        val visibilityValue = backStackEntry.arguments?.getString("visibilityValue")?.takeIf(String::isNotBlank)
 
         CreatePostScreen(
             initialPostType = initialPostType,
+            visibilityConfiguration = VisibilityApiConfiguration(visibilityScope, visibilityValue),
             onBackClick = { navController.popBackStack() },
             onPostCreated = {
                 navController.previousBackStackEntry
@@ -155,8 +176,11 @@ private fun NavGraphBuilder.feedDestination(
             onPostClick = { postId, postType ->
                 navController.navigate("post_detail/$postId/$postType")
             },
-            onCreatePostClick = { postType ->
-                navController.navigate("$CREATE_POST_ROUTE_BASE/$postType")
+            onCreatePostClick = { postType, visibility ->
+                val encodedValue = Uri.encode(visibility.value.orEmpty())
+                navController.navigate(
+                    "$CREATE_POST_ROUTE_BASE/$postType?visibilityScope=${visibility.scope?.name.orEmpty()}&visibilityValue=$encodedValue"
+                )
             },
             onEditPostClick = { postId -> navController.navigate("edit_post/$postId") },
             onUserProfileClick = { userId -> navController.navigateToUserProfile(userId) }

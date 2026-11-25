@@ -67,9 +67,6 @@ interface PostsApi {
     @POST("posts")
     suspend fun createPost(
 
-        @Part("postType")
-        postType: RequestBody,
-
         @Part("title")
         title: RequestBody,
 
@@ -84,7 +81,11 @@ interface PostsApi {
 
         @Part("eventId") eventId: RequestBody?,
 
-        @Part("eventCategoryId") eventCategoryId: RequestBody?
+        @Part("eventCategoryId") eventCategoryId: RequestBody?,
+
+        @Part("visibility_type") visibilityType: RequestBody?,
+
+        @Part("visibility_value") visibilityValue: RequestBody?
     ): Response<ApiResponse<Post>>
 
     @Multipart

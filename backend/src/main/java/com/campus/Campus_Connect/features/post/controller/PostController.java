@@ -36,9 +36,6 @@ public class PostController {
             @RequestParam("body")
             String body,
 
-            @RequestParam("postType")
-            String postType,
-
             @RequestParam(value = "tags", required = false)
             List<Integer> tags,
 
@@ -49,22 +46,28 @@ public class PostController {
             Integer eventId,
 
             @RequestParam(value = "eventCategoryId", required = false)
-            Integer eventCategoryId
+            Integer eventCategoryId,
+
+            @RequestParam(value = "visibility_type", required = false)
+            String visibilityType,
+
+            @RequestParam(value = "visibility_value", required = false)
+            String visibilityValue
     ) {
 
-        if ((postType == null || !postType.equalsIgnoreCase("EVENTS"))
-                && (tags == null || tags.isEmpty())) {
+        if (eventId == null && (tags == null || tags.isEmpty())) {
             throw new BadRequestException("At least one tag must be selected.");
         }
 
         CreatePostRequest request = CreatePostRequest.builder()
                 .title(title)
                 .body(body)
-                .postType(postType)
                 .tags(tags)
                 .image(image)
                 .eventId(eventId)
                 .eventCategoryId(eventCategoryId)
+                .visibilityType(visibilityType)
+                .visibilityValue(visibilityValue)
                 .build();
 
         PostResponse response = postService.createPost(request);

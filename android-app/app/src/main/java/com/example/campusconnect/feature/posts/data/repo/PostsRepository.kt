@@ -10,6 +10,8 @@ import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
 import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.models.PostEventCategory
+import com.example.campusconnect.core.visibility.VisibilityApiConfiguration
+import com.example.campusconnect.core.visibility.VisibilityScope
 
 interface PostsRepository {
 
@@ -35,13 +37,13 @@ interface PostsRepository {
     // Posts -------------------------------------------------------------
 
     suspend fun createPost(
-        postType: String,
         title: String,
         body: String,
         tags: List<PostTag>,
         image: Uri?,
         eventId: Int? = null,
-        eventCategoryId: Int? = null
+        eventCategoryId: Int? = null,
+        visibilityConfiguration: VisibilityApiConfiguration = VisibilityApiConfiguration(VisibilityScope.PUBLIC)
     ): Result<Post>
 
     suspend fun updatePost(

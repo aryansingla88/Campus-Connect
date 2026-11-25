@@ -16,9 +16,6 @@ import java.util.List;
 @Builder
 public class CreatePostRequest {
 
-    @NotBlank(message = "Post type is required")
-    private String postType;
-
     @NotBlank(message = "Title is required")
     private String title;
 
@@ -31,6 +28,10 @@ public class CreatePostRequest {
     private Integer eventId;
 
     private Integer eventCategoryId;
+
+    private String visibilityType;
+
+    private String visibilityValue;
 
     private MultipartFile image;
 }

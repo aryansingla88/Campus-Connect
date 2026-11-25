@@ -19,6 +19,7 @@ import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostTagCount
 import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.models.PostEventCategory
+import com.example.campusconnect.core.visibility.VisibilityApiConfiguration
 
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
@@ -190,13 +191,13 @@ class ApiPostsRepository(
     // Posts -------------------------------------------------------------
 
     override suspend fun createPost(
-        postType: String,
         title: String,
         body: String,
         tags: List<PostTag>,
         image: Uri?,
         eventId: Int?,
-        eventCategoryId: Int?
+        eventCategoryId: Int?,
+        visibilityConfiguration: VisibilityApiConfiguration
     ): Result<Post> {
 
         return try {
@@ -223,18 +224,17 @@ class ApiPostsRepository(
                 )
             }
 
-            val postTypeBody = postType.toRequestBody(
-                "text/plain".toMediaType()
-            )
-
             val response = api.createPost(
-                postType = postTypeBody,
                 title = titleBody,
                 body = bodyBody,
                 image = imagePart,
                 tags = tagBodies,
                 eventId = eventId?.toString()?.toRequestBody("text/plain".toMediaType()),
-                eventCategoryId = eventCategoryId?.toString()?.toRequestBody("text/plain".toMediaType())
+                eventCategoryId = eventCategoryId?.toString()?.toRequestBody("text/plain".toMediaType()),
+                visibilityType = visibilityConfiguration.scope?.name
+                    ?.toRequestBody("text/plain".toMediaType()),
+                visibilityValue = visibilityConfiguration.value
+                    ?.toRequestBody("text/plain".toMediaType())
             )
 
             if (

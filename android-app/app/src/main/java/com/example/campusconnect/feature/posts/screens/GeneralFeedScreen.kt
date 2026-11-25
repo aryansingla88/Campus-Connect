@@ -49,6 +49,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.campusconnect.core.ui.theme.*
+import com.example.campusconnect.core.visibility.VisibilityApiConfiguration
+import com.example.campusconnect.core.visibility.VisibilityScope
 import com.example.campusconnect.feature.posts.components.FeedTopBar
 import com.example.campusconnect.feature.posts.components.FeedSearchBar
 import com.example.campusconnect.feature.posts.components.EventPostCard
@@ -59,6 +61,7 @@ import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.viewmodel.FeedViewModel
 import com.example.campusconnect.feature.posts.components.TopicChipsRow
 import com.example.campusconnect.feature.posts.components.PostCardGhost
+import com.example.campusconnect.feature.posts.components.CustomPostVisibilityDialog
 import com.example.campusconnect.feature.posts.models.VoteType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -71,7 +74,7 @@ fun GeneralFeedScreen(
     initialTab: Int = 0,
     profileUserId: Int? = null,
     onPostClick: (Int, String) -> Unit,
-    onCreatePostClick: (postType: String) -> Unit,
+    onCreatePostClick: (postType: String, visibility: VisibilityApiConfiguration) -> Unit,
     onEditPostClick: (Int) -> Unit = {},
     onUserProfileClick: (Int) -> Unit = {},
     onBackClick: () -> Unit = {},
@@ -118,6 +121,7 @@ fun GeneralFeedScreen(
 
     var voteError by remember { mutableStateOf<String?>(null) }
     var votingEventPostIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    var showCustomVisibilityDialog by rememberSaveable { mutableStateOf(false) }
     var generalSearchResults by remember { mutableStateOf<List<Post>>(emptyList()) }
     var eventSearchResults by remember { mutableStateOf<List<PostEvent>>(emptyList()) }
 
@@ -479,10 +483,21 @@ fun GeneralFeedScreen(
 
     Scaffold(
         floatingActionButton = {
-            if (profileUserId == null && selectedTab != 2) {
+            if (profileUserId == null) {
                 FloatingActionButton(
                     onClick = {
-                        onCreatePostClick(if (selectedTab == 1) "EVENTS" else "GENERAL")
+                        if (selectedTab == 2) {
+                            showCustomVisibilityDialog = true
+                        } else {
+                            onCreatePostClick(
+                                if (selectedTab == 1) "EVENTS" else "GENERAL",
+                                if (selectedTab == 1) {
+                                    VisibilityApiConfiguration(scope = null, value = null)
+                                } else {
+                                    VisibilityApiConfiguration(VisibilityScope.PUBLIC)
+                                }
+                            )
+                        }
                     },
                     containerColor = OrangePrimary
                 ) {
@@ -968,6 +983,16 @@ fun GeneralFeedScreen(
                 TextButton(onClick = { eventPostDeleteError = null; eventPostToDelete = null }) {
                     Text("OK")
                 }
+            }
+        )
+    }
+
+    if (showCustomVisibilityDialog) {
+        CustomPostVisibilityDialog(
+            onDismiss = { showCustomVisibilityDialog = false },
+            onConfirm = { visibility ->
+                showCustomVisibilityDialog = false
+                onCreatePostClick("CUSTOM", visibility)
             }
         )
     }

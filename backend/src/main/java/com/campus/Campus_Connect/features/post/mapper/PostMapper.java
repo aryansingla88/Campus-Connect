@@ -9,6 +9,7 @@ import com.campus.Campus_Connect.features.post.entity.Post;
 import com.campus.Campus_Connect.features.post.entity.PostImage;
 import com.campus.Campus_Connect.features.post.entity.PostTag;
 import com.campus.Campus_Connect.features.post.entity.PostVote;
+import com.campus.Campus_Connect.features.post.PostClassification;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import org.springframework.stereotype.Component;
 
@@ -72,7 +73,7 @@ public class PostMapper {
 
         return PostResponse.builder()
                 .id(post.getId())
-                .postType(post.getPostType())
+                .postType(PostClassification.classify(post).name())
                 .username(post.getCreator().getUsername())
                 .authorId(post.getCreator().getId())
                 .authorDisplayName(profile != null && profile.getFullName() != null

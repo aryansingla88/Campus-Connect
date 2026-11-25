@@ -78,6 +78,8 @@ import com.example.campusconnect.core.ui.theme.OrangeBorder
 import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
 import com.example.campusconnect.core.ui.theme.White
+import com.example.campusconnect.core.visibility.VisibilityApiConfiguration
+import com.example.campusconnect.core.visibility.VisibilityScope
 import com.example.campusconnect.feature.posts.models.PostTag
 import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.models.PostEventCategory
@@ -92,6 +94,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CreatePostScreen(
     initialPostType: String = "GENERAL",
+    visibilityConfiguration: VisibilityApiConfiguration = VisibilityApiConfiguration(VisibilityScope.PUBLIC),
     editPostId: Int? = null,
     onBackClick: () -> Unit,
     onPostCreated: () -> Unit,
@@ -104,7 +107,13 @@ fun CreatePostScreen(
     var title by remember { mutableStateOf("") }
     var body by remember { mutableStateOf("") }
     var postType by remember(initialPostType) {
-        mutableStateOf(if (initialPostType.equals("EVENTS", ignoreCase = true)) "EVENTS" else "GENERAL")
+        mutableStateOf(
+            when {
+                initialPostType.equals("EVENTS", ignoreCase = true) -> "EVENTS"
+                initialPostType.equals("CUSTOM", ignoreCase = true) -> "CUSTOM"
+                else -> "GENERAL"
+            }
+        )
     }
     var tags by remember { mutableStateOf<List<PostTag>>(emptyList()) }
     var selectedTags by remember { mutableStateOf<Set<Int>>(emptySet()) }
@@ -657,21 +666,21 @@ fun CreatePostScreen(
                         } else if (eventPostMode) {
                             val event = selectedEvent!!
                             viewModel.createPost(
-                                postType = "EVENTS",
                                 title = event.title,
                                 body = body.trim(),
                                 tags = emptyList(),
                                 image = imageUri,
                                 eventId = event.id,
-                                eventCategoryId = selectedEventCategoryId
+                                eventCategoryId = selectedEventCategoryId,
+                                visibilityConfiguration = visibilityConfiguration
                             )
                         } else {
                             viewModel.createPost(
-                                postType = postType,
                                 title = title.trim(),
                                 body = body.trim(),
                                 tags = selected,
-                                image = imageUri
+                                image = imageUri,
+                                visibilityConfiguration = visibilityConfiguration
                             )
                         }
                         result.onSuccess {
