@@ -82,7 +82,8 @@ internal fun TopMapControls(
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
     showAccountActions: Boolean = true,
-    showSearchSuggestions: Boolean = true
+    showSearchSuggestions: Boolean = true,
+    onSearchSuggestionsDismiss: () -> Unit = {}
 ) {
     Row(
         modifier = modifier
@@ -135,14 +136,14 @@ internal fun TopMapControls(
                 )
             }
 
-            if (showSearchSuggestions && searchQuery.trim().length >= 2 && searchSuggestions.isNotEmpty()) {
+            if (showSearchSuggestions && searchQuery.trim().length >= 2) {
                 val popupOffset = with(androidx.compose.ui.platform.LocalDensity.current) {
                     IntOffset(0, 54.dp.roundToPx())
                 }
                 Popup(
                     alignment = Alignment.TopStart,
                     offset = popupOffset,
-                    onDismissRequest = { onSearchQueryChange("") },
+                    onDismissRequest = onSearchSuggestionsDismiss,
                     properties = PopupProperties(focusable = false)
                 ) {
                     Surface(
@@ -158,32 +159,43 @@ internal fun TopMapControls(
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(vertical = 4.dp)
                         ) {
-                            items(searchSuggestions, key = { it.id }) { marker ->
-                                val kind = when (marker) {
-                                    is PoiMarkerData -> "Place"
-                                    is UserMarkerData -> "User"
-                                    is EventMarkerData -> "Event"
-                                    else -> ""
-                                }
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(56.dp)
-                                        .clickable { onSearchSuggestionSelected(marker) }
-                                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                                ) {
+                            if (searchSuggestions.isEmpty()) {
+                                item(key = "no-search-matches") {
                                     Text(
-                                        text = highlightedSearchLabel(marker.label, searchQuery),
-                                        color = TextDark,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1
-                                    )
-                                    Text(
-                                        text = kind,
+                                        text = "No matches found",
                                         color = TextMuted,
-                                        fontSize = 11.sp
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 16.dp)
                                     )
+                                }
+                            } else {
+                                items(searchSuggestions, key = { it.id }) { marker ->
+                                    val kind = when (marker) {
+                                        is PoiMarkerData -> "Place"
+                                        is UserMarkerData -> "User"
+                                        is EventMarkerData -> "Event"
+                                        else -> ""
+                                    }
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(56.dp)
+                                            .clickable { onSearchSuggestionSelected(marker) }
+                                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                                    ) {
+                                        Text(
+                                            text = highlightedSearchLabel(marker.label, searchQuery),
+                                            color = TextDark,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = kind,
+                                            color = TextMuted,
+                                            fontSize = 11.sp
+                                        )
+                                    }
                                 }
                             }
                         }

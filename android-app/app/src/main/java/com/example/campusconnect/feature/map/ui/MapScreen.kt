@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -95,6 +97,8 @@ fun MapScreen(
     val cloudTransition = LocalCloudTransitionState.current
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var mapLoadComplete by remember(cloudTransition) {
         mutableStateOf(CompletableDeferred<Unit>())
@@ -343,6 +347,9 @@ fun MapScreen(
                     },
                     markerPainter = HomeMarkerPainter,
                     onMarkerClick = { markerId ->
+                        searchSuggestionsDismissed = true
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
                         selectedSidePanel = SidePanel.NONE
                         val cluster = clusteredEngineMarkers
                             .filterIsInstance<MarkerClusterData>()
@@ -362,6 +369,9 @@ fun MapScreen(
                         }
                     },
                     onMapTap = { _, _ ->
+                        searchSuggestionsDismissed = true
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
                         selectedSidePanel = SidePanel.NONE
                         selectedMarkerCluster = null
                         showFilters = false
@@ -388,6 +398,7 @@ fun MapScreen(
                     .padding(top = 20.dp),
                 searchQuery = searchQuery,
                 showSearchSuggestions = !searchSuggestionsDismissed,
+                onSearchSuggestionsDismiss = { searchSuggestionsDismissed = true },
                 onSearchQueryChange = { query ->
                     searchQuery = query
                     searchSuggestionsDismissed = false
