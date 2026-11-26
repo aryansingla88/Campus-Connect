@@ -12,9 +12,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -103,25 +104,16 @@ fun CreateEventButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .size(52.dp)
-            .shadow(
-                elevation = 5.dp,
-                shape = CircleShape,
-                ambientColor = Color.Black.copy(alpha = 0.16f),
-                spotColor = Color.Black.copy(alpha = 0.20f)
-            )
-            .clip(CircleShape)
-            .background(Color.White)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+    FloatingActionButton(
+        modifier = modifier.size(46.dp),
+        onClick = onClick,
+        containerColor = Color(0xFFFF6F00),
+        contentColor = Color.White
     ) {
         Icon(
-            imageVector = Icons.Default.Add,
+            imageVector = Icons.Outlined.Add,
             contentDescription = "Create event",
-            tint = Color(0xFFFF6F00),
-            modifier = Modifier.size(28.dp)
+            tint = Color.White
         )
     }
 }

@@ -43,6 +43,7 @@ public class EventServiceImpl implements EventService {
     private final NotificationService notificationService;
 
     @Override
+    @Transactional
     public ApiResponse<List<EventResponse>> getEventFeed() {
         // 1. DB se algorithm ke through pre-sorted events fetch karo (O(1) logic overhead)
         List<Event> sortedEvents = eventRepository.findActiveEventsForFeed();
@@ -50,6 +51,7 @@ public class EventServiceImpl implements EventService {
         // 2. Apne DTO (EventResponse) mein map karo.
         // (Assume kar raha hoon tumhare paas mapToResponse jaisa koi method hai)
         List<EventResponse> responseList = sortedEvents.stream()
+                .map(this::refreshEventState)
                 .map(eventMapper::toResponse) // Tumhara apna mapping logic use karna
                 .toList();
 
@@ -58,11 +60,13 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<List<EventResponse>> getEvents() {
 
         List<EventResponse> events =
                 eventRepository.findAll()
                         .stream()
+                        .map(this::refreshEventState)
                         .map(eventMapper::toResponse)
                         .toList();
 
@@ -73,6 +77,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<List<EventResponse>> getMyEvents() {
 
         User currentUser = SecurityUtils.getCurrentUser();
@@ -81,6 +86,7 @@ public class EventServiceImpl implements EventService {
                 eventMemberRepository
                         .findMyEvents(currentUser.getId())
                         .stream()
+                        .map(this::refreshEventState)
                         .map(eventMapper::toResponse)
                         .toList();
 
@@ -91,6 +97,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<List<EventResponse>> getSharedEvents() {
 
         User currentUser = SecurityUtils.getCurrentUser();
@@ -99,6 +106,7 @@ public class EventServiceImpl implements EventService {
                 eventMemberRepository
                         .findSharedEvents(currentUser.getId())
                         .stream()
+                        .map(this::refreshEventState)
                         .map(eventMapper::toResponse)
                         .toList();
 
@@ -109,6 +117,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<List<EventResponse>> getManagedEvents() {
 
         User currentUser = SecurityUtils.getCurrentUser();
@@ -117,6 +126,7 @@ public class EventServiceImpl implements EventService {
                 eventMemberRepository
                         .findManagedEvents(currentUser.getId())
                         .stream()
+                        .map(this::refreshEventState)
                         .map(eventMapper::toResponse)
                         .toList();
 
@@ -127,6 +137,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<EventResponse> getEvent(
             Integer eventId
     ) {
@@ -136,10 +147,20 @@ public class EventServiceImpl implements EventService {
                         .orElseThrow(() ->
                                 new ResourceNotFoundException("Event not found."));
 
+        refreshEventState(event);
+
         return ApiResponse.success(
                 eventMapper.toResponse(event),
                 "Event fetched successfully."
         );
+    }
+
+    private Event refreshEventState(Event event) {
+        if (event.getEndTime() == null) {
+            event.setEndTime(eventMapper.effectiveEndTime(event));
+        }
+        event.setEventState(eventMapper.resolveEventState(event));
+        return event;
     }
 
     @Override

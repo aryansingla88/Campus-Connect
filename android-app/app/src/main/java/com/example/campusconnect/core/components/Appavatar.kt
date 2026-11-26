@@ -3,6 +3,7 @@ package com.example.campusconnect.core.components
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -75,6 +76,7 @@ fun AppAvatar(
     borderWidth : Dp        = 2.dp,
     fontSize    : TextUnit  = (size.value * 0.35f).sp,
     imageModel  : Any?      = null,
+    onClick     : (() -> Unit)? = null,
 ) {
     val colors   = avatarColorsFor(entityId ?: displayName.hashCode())
     val initials = displayName.toInitials().ifBlank { "?" }
@@ -86,6 +88,7 @@ fun AppAvatar(
     val modifier = Modifier
         .size(size)
         .clip(clipShape)
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
         .then(
             if (showBorder)
                 Modifier.border(borderWidth, colors.foreground, clipShape)

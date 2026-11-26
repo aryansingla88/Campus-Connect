@@ -1,5 +1,8 @@
 package com.example.campusconnect.feature.profile
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -38,7 +41,19 @@ fun NavGraphBuilder.ProfileNav(
                     type = NavType.BoolType
                     defaultValue = false
                 }
-            )
+            ),
+            enterTransition = {
+                fadeIn(tween(240))
+            },
+            exitTransition = {
+                fadeOut(tween(200))
+            },
+            popEnterTransition = {
+                fadeIn(tween(200))
+            },
+            popExitTransition = {
+                fadeOut(tween(240))
+            }
         ) { backStackEntry ->
 
             val editMode =
@@ -59,7 +74,19 @@ fun NavGraphBuilder.ProfileNav(
             route     = ProfileRoutes.VIEW_PROFILE,
             arguments = listOf(navArgument("userId") {
                     type = NavType.IntType
-                })
+                }),
+            enterTransition = {
+                fadeIn(tween(240))
+            },
+            exitTransition = {
+                fadeOut(tween(200))
+            },
+            popEnterTransition = {
+                fadeIn(tween(200))
+            },
+            popExitTransition = {
+                fadeOut(tween(240))
+            }
         ) { backStackEntry ->
             val userId =
                 backStackEntry.arguments?.getInt("userId")

@@ -181,8 +181,11 @@ fun MapScreen(
                 mapLoadComplete = CompletableDeferred()
                 viewModel.selectMode(MapMode.HOME)
             }
-            cloudTransition.runEntry {
-                mapLoadComplete.await()
+            if (!cloudTransition.hasPlayedInitialMapEntry) {
+                cloudTransition.hasPlayedInitialMapEntry = true
+                cloudTransition.runEntry {
+                    mapLoadComplete.await()
+                }
             }
         }
     }

@@ -39,6 +39,8 @@ class CloudTransitionState {
     private val transitionMutex = Mutex()
     private var pendingTransitions = 0
 
+    var hasPlayedInitialMapEntry by mutableStateOf(false)
+
     var isRunning by mutableStateOf(false)
         private set
 

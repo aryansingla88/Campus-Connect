@@ -13,28 +13,47 @@ import com.campus.Campus_Connect.features.event.entity.enums.VisibilityType;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 
 @Component
 public class EventMapper {
 
-    private EventState resolveEventState(Event event) {
+    private static final ZoneId EVENT_ZONE = ZoneId.of("Asia/Kolkata");
+
+    public Instant effectiveEndTime(Event event) {
+        if (event.getEndTime() != null) {
+            return event.getEndTime();
+        }
+        LocalDate eventDate = event.getStartTime()
+                .atZone(EVENT_ZONE)
+                .toLocalDate();
+        return eventDate.plusDays(1)
+                .atStartOfDay(EVENT_ZONE)
+                .toInstant()
+                .minus(1, ChronoUnit.NANOS);
+    }
+
+    public EventState resolveEventState(Event event, Instant now) {
 
         if (event.getEventState() == EventState.CANCELLED) {
             return EventState.CANCELLED;
         }
 
-        Instant now = Instant.now();
-
         if (now.isBefore(event.getStartTime())) {
             return EventState.UPCOMING;
         }
 
-        if (event.getEndTime() != null &&
-                now.isAfter(event.getEndTime())) {
+        if (!now.isBefore(effectiveEndTime(event))) {
             return EventState.COMPLETED;
         }
 
         return EventState.ONGOING;
+    }
+
+    public EventState resolveEventState(Event event) {
+        return resolveEventState(event, Instant.now());
     }
 
     // ------------------------------------------------------------------------
@@ -158,7 +177,7 @@ public class EventMapper {
                 .longitude(event.getLongitude())
 
                 .startTime(event.getStartTime())
-                .endTime(event.getEndTime())
+                .endTime(effectiveEndTime(event))
 
                 .createdBy(event.getCreator().getId())
 
@@ -185,7 +204,7 @@ public class EventMapper {
                 )
 
                 .eventState(
-                        resolveEventState(event)
+                        resolveEventState(event, Instant.now())
                 )
 
                 .priority(event.getBasePriorityLevel())
