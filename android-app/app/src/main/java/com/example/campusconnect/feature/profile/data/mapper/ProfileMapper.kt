@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.profile.data.mapper
 
 import com.example.campusconnect.core.utils.AcademicUtils
+import com.example.campusconnect.core.academic.AcademicStatus
 import com.example.campusconnect.feature.metadata.courses.CourseRepository
 import com.example.campusconnect.feature.profile.data.remote.response.ProfileResponse
 import com.example.campusconnect.feature.profile.model.ConnectionStatus
@@ -19,14 +20,9 @@ object ProfileMapper {
 
         val programName = course?.programName.orEmpty()
 
-        val academicYear = course?.let { courseData ->
-            response.admissionYear?.let { admissionYear ->
-                AcademicUtils.getAcademicStatus(
-                    admissionYear = admissionYear,
-                    durationYears = courseData.durationYears
-                )
-            }
-        }.orEmpty()
+        val academicYear = (AcademicStatus.fromApiValue(response.academicStatus)?.displayLabel
+            ?: AcademicStatus.current(response.admissionYear, course?.durationYears, java.time.LocalDate.now())?.displayLabel)
+            .orEmpty()
 
         val batch = course?.let {
             response.admissionYear?.let { admissionYear ->

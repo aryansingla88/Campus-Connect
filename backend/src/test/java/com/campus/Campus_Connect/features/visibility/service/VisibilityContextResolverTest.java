@@ -8,6 +8,9 @@ import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.metadata.hostels.entity.Hostel;
 import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.profile.repository.UserProfileRepository;
+import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
+import com.campus.Campus_Connect.features.metadata.courses.entity.Course;
+import com.campus.Campus_Connect.common.academic.AcademicStatus;
 import com.campus.Campus_Connect.features.visibility.domain.VisibilityContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -50,16 +53,15 @@ class VisibilityContextResolverTest {
                         ClubMember.builder().id(new ClubMemberId(5, viewerId)).build()
                 ), membershipLookups, membershipArguments);
         VisibilityContextResolver resolver = new VisibilityContextResolver(
-                profileRepository, clubMemberRepository, CLOCK);
+                profileRepository, clubMemberRepository, courseRepository(), CLOCK);
 
         VisibilityContext context = resolver.resolve(viewerId);
 
         assertEquals(viewerId, context.viewerId());
         assertEquals(4, context.courseId());
         assertEquals(9, context.hostelId());
-        assertEquals(3, context.academicYear());
+        assertEquals("YEAR_3", context.academicStatus().apiValue());
         assertEquals(java.util.Set.of(2, 5), context.approvedClubIds());
-        assertNull(context.alumni());
         assertEquals(1, profileLookups.get());
         assertEquals(1, membershipLookups.get());
         assertEquals(viewerId, membershipArguments.get()[0]);
@@ -72,14 +74,14 @@ class VisibilityContextResolverTest {
         AtomicInteger membershipLookups = new AtomicInteger();
         VisibilityContextResolver resolver = new VisibilityContextResolver(
                 profileRepository(Optional.empty(), new AtomicInteger()),
-                clubMemberRepository(List.of(), membershipLookups, new AtomicReference<>()),
+                clubMemberRepository(List.of(), membershipLookups, new AtomicReference<>()), courseRepository(),
                 CLOCK);
 
         VisibilityContext context = resolver.resolve(viewerId);
 
         assertNull(context.courseId());
         assertNull(context.hostelId());
-        assertNull(context.academicYear());
+        assertNull(context.academicStatus());
         assertEquals(java.util.Set.of(), context.approvedClubIds());
         assertEquals(1, membershipLookups.get());
     }
@@ -90,15 +92,14 @@ class VisibilityContextResolverTest {
         UserProfile incompleteProfile = UserProfile.builder().userId(viewerId).build();
         VisibilityContextResolver resolver = new VisibilityContextResolver(
                 profileRepository(Optional.of(incompleteProfile), new AtomicInteger()),
-                clubMemberRepository(List.of(), new AtomicInteger(), new AtomicReference<>()),
+                clubMemberRepository(List.of(), new AtomicInteger(), new AtomicReference<>()), courseRepository(),
                 CLOCK);
 
         VisibilityContext context = resolver.resolve(viewerId);
 
         assertNull(context.courseId());
         assertNull(context.hostelId());
-        assertNull(context.academicYear());
-        assertNull(context.alumni());
+        assertNull(context.academicStatus());
     }
 
     @Test
@@ -109,7 +110,7 @@ class VisibilityContextResolverTest {
                         User.builder().id(viewerId).build(), null, List.of()));
         VisibilityContextResolver resolver = new VisibilityContextResolver(
                 profileRepository(Optional.empty(), new AtomicInteger()),
-                clubMemberRepository(List.of(), new AtomicInteger(), new AtomicReference<>()),
+                clubMemberRepository(List.of(), new AtomicInteger(), new AtomicReference<>()), courseRepository(),
                 CLOCK);
 
         try {
@@ -117,6 +118,15 @@ class VisibilityContextResolverTest {
         } finally {
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private static CourseRepository courseRepository() {
+        return proxy(CourseRepository.class, (methodName, args) -> {
+            if ("findById".equals(methodName)) {
+                return Optional.of(Course.builder().id(4).durationYears(4).build());
+            }
+            throw new UnsupportedOperationException(methodName);
+        });
     }
 
     private static UserProfileRepository profileRepository(

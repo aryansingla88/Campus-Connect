@@ -456,6 +456,7 @@ class ApiEventRepository(
                             name = it.name,
                             courseId = it.courseId,
                             admissionYear = it.admissionYear,
+                            academicStatus = it.academicStatus,
                             avatarUrl = it.avatarUrl,
                         )
                     } ?: emptyList()
@@ -490,6 +491,7 @@ class ApiEventRepository(
                             name = it.name,
                             courseId = it.courseId,
                             admissionYear = it.admissionYear,
+                            academicStatus = it.academicStatus,
                             avatarUrl = it.avatarUrl,
                         )
                     } ?: emptyList()

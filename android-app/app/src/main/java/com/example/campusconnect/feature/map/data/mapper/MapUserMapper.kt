@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.map.data.mapper
 
 import com.example.campusconnect.core.utils.AcademicUtils
+import com.example.campusconnect.core.academic.AcademicStatus
 import com.example.campusconnect.feature.map.data.remote.response.UserMapResponse
 import com.example.campusconnect.feature.map.data.remote.response.UserPreviewResponse
 import com.example.campusconnect.feature.map.model.MapUserProfile
@@ -24,6 +25,8 @@ object MapUserMapper {
         relationshipStatus: String? = null
     ): MapUserProfile {
         val courseName = course?.let(AcademicUtils::getCourseName) ?: "Unknown Course"
+        val status = AcademicStatus.fromApiValue(response.academicStatus)
+            ?: AcademicStatus.current(response.admissionYear, course?.durationYears, java.time.LocalDate.now())
         val batch = if (course != null && response.admissionYear != null) {
             AcademicUtils.getBatch(response.admissionYear, course.durationYears)
         } else "Unknown Batch"
@@ -31,7 +34,7 @@ object MapUserMapper {
             id = response.userId,
             fullName = response.fullName,
             course = courseName,
-            batch = batch,
+            batch = listOfNotNull(status?.displayLabel, batch).joinToString(" • "),
             description = response.bio.orEmpty(),
             badges = emptyList(),
             medals = emptyList(),

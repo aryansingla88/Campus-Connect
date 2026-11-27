@@ -18,6 +18,8 @@ public class UserAccessResponse {
 
     private Integer admissionYear;
 
+    private String academicStatus;
+
     private String avatarUrl;
 
     private EventMemberRole role;

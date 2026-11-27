@@ -5,6 +5,7 @@ data class UserAccess(
     val name: String,
     val courseId: Int?,
     val admissionYear: Int?,
+    val academicStatus: String? = null,
     val avatarUrl: String? = null,
     val initials: String = name
         .split(" ")

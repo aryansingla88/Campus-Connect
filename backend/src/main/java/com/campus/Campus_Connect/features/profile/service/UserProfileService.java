@@ -4,6 +4,7 @@ import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
 import com.campus.Campus_Connect.common.exception.BadRequestException;
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
+import com.campus.Campus_Connect.common.academic.AcademicStatusCalculator;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.club.entity.enums.ClubMemberStatus;
 import com.campus.Campus_Connect.features.connection.ConnectionService;
@@ -228,6 +229,11 @@ public class UserProfileService {
                 .avatarUrl(profile.getAvatarUrl())
                 .courseId(profile.getCourseId())
                 .admissionYear(profile.getAdmissionYear())
+                .academicStatus(courseRepository.findById(profile.getCourseId())
+                        .map(course -> AcademicStatusCalculator.currentStatus(
+                                profile.getAdmissionYear(), course.getDurationYears(), java.time.Clock.systemDefaultZone()))
+                        .map(com.campus.Campus_Connect.common.academic.AcademicStatus::apiValue)
+                        .orElse(null))
                 // Hostel was always visible on profiles; expose its canonical ID so clients
                 // can resolve the display label from metadata without a legacy string.
                 .hostelId(profile.getHostelMetadata() != null

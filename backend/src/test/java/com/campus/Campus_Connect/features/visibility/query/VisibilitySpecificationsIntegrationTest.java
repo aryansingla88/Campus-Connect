@@ -13,6 +13,7 @@ import com.campus.Campus_Connect.features.post.entity.PostTag;
 import com.campus.Campus_Connect.features.post.entity.PostVote;
 import com.campus.Campus_Connect.features.post.security.PostVisibilityQuerySpecifications;
 import com.campus.Campus_Connect.features.visibility.domain.VisibilityContext;
+import com.campus.Campus_Connect.common.academic.AcademicStatus;
 import com.campus.Campus_Connect.features.visibility.domain.VisibilityScope;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
@@ -157,6 +158,7 @@ class VisibilitySpecificationsIntegrationTest {
                 item(2, "COURSE", "101", "course-other", false),
                 item(2, "ACADEMIC_YEAR", "2", "year-match", false),
                 item(2, "ACADEMIC_YEAR", "3", "year-other", false),
+                item(2, "ACADEMIC_YEAR", "4", "year-four", false),
                 item(2, "ACADEMIC_YEAR", "ALUMNI", "alumni-unknown", false),
                 item(2, "HOSTEL", null, "malformed", false),
                 item(2, null, "bad-public", "malformed-public", false)
@@ -168,11 +170,21 @@ class VisibilitySpecificationsIntegrationTest {
 
         assertEquals(Set.of("club-member", "hostel-match", "course-match", "year-match"), result);
 
+        Set<String> unknownStatusResult = titles(repository.findAll(VisibilitySpecifications.visibleTo(
+                context(1, null, null, null, null, Set.of()), mapping()
+        )));
+        assertTrue(unknownStatusResult.isEmpty());
+
         persist(item(2, "ACADEMIC_YEAR", "ALUMNI", "alumni-confirmed", false));
         Set<String> alumniResult = titles(repository.findAll(VisibilitySpecifications.visibleTo(
                 context(1, null, null, null, true, Set.of()), mapping()
         )));
-        assertEquals(Set.of("alumni-confirmed"), alumniResult);
+        assertEquals(Set.of("alumni-unknown", "alumni-confirmed"), alumniResult);
+
+        Set<String> numericYearFourResult = titles(repository.findAll(VisibilitySpecifications.visibleTo(
+                context(1, null, null, 4, false, Set.of()), mapping()
+        )));
+        assertEquals(Set.of("year-four"), numericYearFourResult);
     }
 
     @Test
@@ -266,7 +278,10 @@ class VisibilitySpecificationsIntegrationTest {
 
     private static VisibilityContext context(Integer viewerId, Integer courseId, Integer hostelId,
                                              Integer year, Boolean alumni, Set<Integer> clubs) {
-        return new VisibilityContext(viewerId, courseId, hostelId, year, alumni, clubs);
+        AcademicStatus status = Boolean.TRUE.equals(alumni)
+                ? AcademicStatus.alumniStatus()
+                : year == null ? null : AcademicStatus.year(year);
+        return new VisibilityContext(viewerId, courseId, hostelId, status, clubs);
     }
 
     private static VisibilityQueryTestItem item(Integer ownerId, String type, String value,

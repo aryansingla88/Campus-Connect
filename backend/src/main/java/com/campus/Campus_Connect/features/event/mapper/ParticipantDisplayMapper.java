@@ -2,6 +2,8 @@ package com.campus.Campus_Connect.features.event.mapper;
 
 import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
 import com.campus.Campus_Connect.common.util.UserDisplayUtils;
+import com.campus.Campus_Connect.common.academic.AcademicStatusCalculator;
+import com.campus.Campus_Connect.common.academic.AcademicStatus;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.event.dto.response.ParticipantDisplayResponse;
 import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
@@ -31,14 +33,17 @@ public class ParticipantDisplayMapper {
                         )
                 );
 
+        AcademicStatus academicStatus = AcademicStatusCalculator.currentStatus(profile.getAdmissionYear(),
+                course.getDurationYears(), java.time.Clock.systemDefaultZone());
         return ParticipantDisplayResponse.builder()
                 .name(profile.getFullName())
                 .subtitle(
                         UserDisplayUtils.buildSubtitle(
-                                profile,
-                                course
+                                course,
+                                academicStatus
                         )
                 )
+                .academicStatus(academicStatus == null ? null : academicStatus.apiValue())
                 .avatarUrl(profile.getAvatarUrl())
                 .build();
     }

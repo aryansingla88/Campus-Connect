@@ -23,5 +23,7 @@ public class SoloParticipantResponse {
 
     private Integer admissionYear;
 
+    private String academicStatus;
+
     private String avatarUrl;
 }

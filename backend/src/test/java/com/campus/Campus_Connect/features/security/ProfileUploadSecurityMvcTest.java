@@ -28,7 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = ProfileUploadSecurityMvcTest.SecurityProbeController.class)
-@Import({SecurityConfig.class, WebConfig.class, JwtAuthenticationFilter.class})
+@Import({SecurityConfig.class, WebConfig.class, JwtAuthenticationFilter.class,
+        ProfileUploadSecurityMvcTest.SecurityProbeController.class})
 @TestPropertySource(properties = "app.storage.local.root=target/profile-upload-security-test")
 class ProfileUploadSecurityMvcTest {
 

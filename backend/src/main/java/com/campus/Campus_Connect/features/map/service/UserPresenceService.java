@@ -2,6 +2,8 @@ package com.campus.Campus_Connect.features.map.service;
 
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
+import com.campus.Campus_Connect.common.academic.AcademicStatusCalculator;
+import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.map.dto.request.UpdatePresenceRequest;
@@ -43,6 +45,7 @@ public class UserPresenceService {
     private final CampusBoundaryRepository campusBoundaryRepository;
     private final UserProfileRepository userProfileRepository;
     private final ClubMemberRepository clubMemberRepository;
+    private final CourseRepository courseRepository;
 
 
     // Movement threshold in meters (e.g., don't update DB if movement is < 2 meters)
@@ -241,6 +244,11 @@ public class UserPresenceService {
                 .fullName(fullName)
                 .courseId(courseId)
                 .admissionYear(admissionYear)
+                .academicStatus(courseId == null ? null : courseRepository.findById(courseId)
+                        .map(course -> AcademicStatusCalculator.currentStatus(
+                                admissionYear, course.getDurationYears(), java.time.Clock.systemDefaultZone()))
+                        .map(com.campus.Campus_Connect.common.academic.AcademicStatus::apiValue)
+                        .orElse(null))
                 .avatarUrl(avatarUrl)
                 .bio(bio)
                 .mutualConnectionsCount(mutualConnectionsCount)

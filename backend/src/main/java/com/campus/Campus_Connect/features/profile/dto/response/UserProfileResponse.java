@@ -27,6 +27,7 @@ public class UserProfileResponse {
     // User Profile --course
     private Integer courseId;
     private Integer admissionYear;
+    private String academicStatus;
 
     //User Profile --others
     private Integer hostelId;

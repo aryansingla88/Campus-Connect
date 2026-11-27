@@ -18,8 +18,6 @@ import java.util.List;
 /** Builds composable database-side predicates for centralized visibility policies. */
 public final class VisibilitySpecifications {
 
-    private static final int MIN_SUPPORTED_ACADEMIC_YEAR = 1;
-    private static final int MAX_SUPPORTED_ACADEMIC_YEAR = 4;
 
     private VisibilitySpecifications() {
     }
@@ -134,15 +132,12 @@ public final class VisibilitySpecifications {
             Expression<?> type,
             Expression<String> value
     ) {
-        List<String> eligibleYears = new ArrayList<>(2);
-        Integer academicYear = context.academicYear();
-        if (academicYear != null
-                && academicYear >= MIN_SUPPORTED_ACADEMIC_YEAR
-                && academicYear <= MAX_SUPPORTED_ACADEMIC_YEAR) {
-            eligibleYears.add(Integer.toString(academicYear));
-        }
-        if (Boolean.TRUE.equals(context.alumni())) {
-            eligibleYears.add("ALUMNI");
+        List<String> eligibleYears = new ArrayList<>(1);
+        if (context.academicStatus() != null) {
+            String audienceValue = context.academicStatus().visibilityAudienceValue();
+            if (context.academicStatus().alumni() || context.academicStatus().academicYear() <= 4) {
+                eligibleYears.add(audienceValue);
+            }
         }
         addValuePolicy(policies, builder, mapping, type, value,
                 VisibilityScope.ACADEMIC_YEAR, eligibleYears);

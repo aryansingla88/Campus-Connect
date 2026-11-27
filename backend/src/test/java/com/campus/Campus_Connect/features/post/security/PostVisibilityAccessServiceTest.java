@@ -103,11 +103,11 @@ class PostVisibilityAccessServiceTest {
                     return defaultValue(method.getReturnType());
                 }
         );
-        VisibilityContextResolver resolver = new VisibilityContextResolver(null, null) {
+        VisibilityContextResolver resolver = new VisibilityContextResolver(null, null, null, java.time.Clock.systemUTC()) {
             @Override
             public VisibilityContext resolveCurrentViewer() {
                 contextCalls.incrementAndGet();
-                return new VisibilityContext(7, 12, 3, 2, null, Set.of(9));
+                return new VisibilityContext(7, 12, 3, com.campus.Campus_Connect.common.academic.AcademicStatus.year(2), Set.of(9));
             }
         };
         return new PostVisibilityAccessService(repository, resolver);

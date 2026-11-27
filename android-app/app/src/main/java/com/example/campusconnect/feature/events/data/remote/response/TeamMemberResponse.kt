@@ -19,6 +19,9 @@ data class TeamMemberResponse(
     @SerializedName("admissionYear")
     val admissionYear: Int?,
 
+    @SerializedName("academicStatus")
+    val academicStatus: String? = null,
+
     @SerializedName("avatarUrl")
     val avatarUrl: String?,
 

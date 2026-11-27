@@ -21,5 +21,7 @@ public class ConnectionResponse {
 
     private Integer admissionYear;
 
+    private String academicStatus;
+
     private ConnectionRelationshipStatus status;
 }

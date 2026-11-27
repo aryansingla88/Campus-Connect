@@ -1,9 +1,8 @@
 package com.campus.Campus_Connect.common.util;
 
-import com.campus.Campus_Connect.features.profile.entity.UserProfile;
 import com.campus.Campus_Connect.features.metadata.courses.entity.Course;
+import com.campus.Campus_Connect.common.academic.AcademicStatus;
 
-import java.time.LocalDate;
 
 public final class UserDisplayUtils {
 
@@ -11,22 +10,14 @@ public final class UserDisplayUtils {
     }
 
     public static String buildSubtitle(
-            UserProfile profile,
-            Course course
+            Course course,
+            AcademicStatus academicStatus
     ) {
-
-        int studyYear = Math.max(
-                1,
-                getCurrentAcademicYear() - profile.getAdmissionYear()
-        );
-
         String courseName = buildCourseName(course);
 
         return courseName
                 + " • "
-                + studyYear
-                + getOrdinal(studyYear)
-                + " Year";
+                + (academicStatus == null ? "Academic status unavailable" : academicStatus.displayLabel());
     }
 
     private static String buildCourseName(Course course) {
@@ -43,27 +34,4 @@ public final class UserDisplayUtils {
         return courseCode;
     }
 
-    private static int getCurrentAcademicYear() {
-
-        LocalDate today = LocalDate.now();
-
-        int academicYear = today.getYear();
-
-        // Academic session starts in July
-        if (today.getMonthValue() >= 7) {
-            academicYear++;
-        }
-
-        return academicYear;
-    }
-
-    private static String getOrdinal(int year) {
-
-        return switch (year) {
-            case 1 -> "st";
-            case 2 -> "nd";
-            case 3 -> "rd";
-            default -> "th";
-        };
-    }
 }

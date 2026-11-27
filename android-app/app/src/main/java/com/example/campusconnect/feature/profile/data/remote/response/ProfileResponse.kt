@@ -21,6 +21,7 @@ data class ProfileResponse(
 
     val courseId: Int?,
     val admissionYear: Int?,
+    val academicStatus: String? = null,
 
 
     // Other profile details ------------------------------------------

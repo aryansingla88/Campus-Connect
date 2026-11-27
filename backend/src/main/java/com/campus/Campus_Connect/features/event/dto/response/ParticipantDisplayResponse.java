@@ -13,6 +13,8 @@ public class ParticipantDisplayResponse {
 
     private String subtitle;
 
+    private String academicStatus;
+
     private String avatarUrl;
 
 }

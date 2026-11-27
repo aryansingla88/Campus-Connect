@@ -3,6 +3,8 @@ package com.campus.Campus_Connect.features.connection;
 import com.campus.Campus_Connect.common.exception.ResourceNotFoundException;
 import com.campus.Campus_Connect.common.response.ApiResponse;
 import com.campus.Campus_Connect.common.security.SecurityUtils;
+import com.campus.Campus_Connect.common.academic.AcademicStatusCalculator;
+import com.campus.Campus_Connect.features.metadata.courses.CourseRepository;
 import com.campus.Campus_Connect.features.auth.entity.User;
 import com.campus.Campus_Connect.features.auth.repository.UserRepository;
 import com.campus.Campus_Connect.features.connection.dto.ConnectionRelationshipStatus;
@@ -16,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,7 @@ public class ConnectionService {
 
     private final ConnectionRepository connectionRepository;
     private final UserRepository userRepository;
+    private final CourseRepository courseRepository;
 
     public ApiResponse<List<ConnectionResponse>> getMyConnections() {
 
@@ -279,6 +281,7 @@ public class ConnectionService {
                     .avatarUrl(user.getAvatarUrl())
                     .courseId(user.getCourseId())
                     .admissionYear(user.getAdmissionYear())
+                    .academicStatus(academicStatus(user.getCourseId(), user.getAdmissionYear()))
                     .status(ConnectionRelationshipStatus.valueOf(user.getRelationshipStatus()))
                     .build());
         }
@@ -320,21 +323,18 @@ private ConnectionResponse buildConnectionResponse(
             .avatarUrl(profile.getAvatarUrl())
             .courseId(profile.getCourseId())
             .admissionYear(profile.getAdmissionYear())
+            .academicStatus(academicStatus(profile.getCourseId(), profile.getAdmissionYear()))
             .status(status)
             .build();
     }
 //---------------------
-    private Integer getAcademicYear(Integer admissionYear) {
-
-        LocalDate today = LocalDate.now();
-
-        int academicYear = today.getYear() - admissionYear;
-
-        if (today.getMonthValue() >= 7) {
-            academicYear++;
-        }
-
-        return academicYear;
+    private String academicStatus(Integer courseId, Integer admissionYear) {
+        if (courseId == null) return null;
+        return courseRepository.findById(courseId)
+                .map(course -> AcademicStatusCalculator.currentStatus(
+                        admissionYear, course.getDurationYears(), java.time.Clock.systemDefaultZone()))
+                .map(com.campus.Campus_Connect.common.academic.AcademicStatus::apiValue)
+                .orElse(null);
     }
 
 //---------------------

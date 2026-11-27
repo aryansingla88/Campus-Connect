@@ -1,6 +1,7 @@
 package com.example.campusconnect.feature.profile.data.mapper
 
 import com.example.campusconnect.core.utils.AcademicUtils
+import com.example.campusconnect.core.academic.AcademicStatus
 import com.example.campusconnect.feature.metadata.courses.CourseRepository
 import com.example.campusconnect.feature.profile.data.remote.response.ConnectionResponse
 import com.example.campusconnect.feature.profile.model.Connection
@@ -23,14 +24,9 @@ object ConnectionMapper {
             AcademicUtils.getCourseName(it)
         }.orEmpty()
 
-        val academicYear = course?.let {
-            response.admissionYear?.let { admissionYear ->
-                AcademicUtils.getAcademicStatus(
-                    admissionYear = admissionYear,
-                    durationYears = it.durationYears
-                )
-            }
-        }.orEmpty()
+        val academicYear = (AcademicStatus.fromApiValue(response.academicStatus)?.displayLabel
+            ?: AcademicStatus.current(response.admissionYear, course?.durationYears, java.time.LocalDate.now())?.displayLabel)
+            .orEmpty()
 
         return Connection(
             userId = response.userId,
@@ -58,14 +54,9 @@ object ConnectionMapper {
             AcademicUtils.getCourseName(it)
         }.orEmpty()
 
-        val academicYear = course?.let {
-            response.admissionYear?.let { admissionYear ->
-                AcademicUtils.getAcademicStatus(
-                    admissionYear = admissionYear,
-                    durationYears = it.durationYears
-                )
-            }
-        }.orEmpty()
+        val academicYear = (AcademicStatus.fromApiValue(response.academicStatus)?.displayLabel
+            ?: AcademicStatus.current(response.admissionYear, course?.durationYears, java.time.LocalDate.now())?.displayLabel)
+            .orEmpty()
 
         return ConnectionRequest(
             userId = response.userId,

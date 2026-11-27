@@ -27,6 +27,7 @@ public class ParticipantMapper {
                 .name(display.getName())
                 .courseId(registration.getUser().getProfile().getCourseId())
                 .admissionYear(registration.getUser().getProfile().getAdmissionYear())
+                .academicStatus(display.getAcademicStatus())
                 .avatarUrl(display.getAvatarUrl())
                 .build();
     }
@@ -47,6 +48,7 @@ public class ParticipantMapper {
                 .name(display.getName())
                 .courseId(registration.getUser().getProfile().getCourseId())
                 .admissionYear(registration.getUser().getProfile().getAdmissionYear())
+                .academicStatus(display.getAcademicStatus())
                 .avatarUrl(display.getAvatarUrl())
                 .leader(leader)
                 .build();

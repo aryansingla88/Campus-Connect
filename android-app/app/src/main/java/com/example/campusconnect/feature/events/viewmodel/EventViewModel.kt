@@ -229,7 +229,8 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                                     ?.let { course ->
                                         AcademicUtils.buildSubtitle(
                                             course = course,
-                                            admissionYear = participant.admissionYear
+                                            admissionYear = participant.admissionYear,
+                                            academicStatus = participant.academicStatus
                                         )
                                     } ?: ""
                             } else {
@@ -262,7 +263,8 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                                             ?.let { course ->
                                                 AcademicUtils.buildSubtitle(
                                                     course = course,
-                                                    admissionYear = member.admissionYear
+                                                    admissionYear = member.admissionYear,
+                                                    academicStatus = member.academicStatus
                                                 )
                                             } ?: ""
                                     } else {

@@ -5,6 +5,7 @@ data class UserPreviewResponse(
     val fullName: String,
     val courseId: Int?,
     val admissionYear: Int?,
+    val academicStatus: String? = null,
     val avatarUrl: String?,
     val bio: String?,
     val mutualConnectionsCount: Int?

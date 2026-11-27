@@ -17,6 +17,8 @@ public class UserPreviewResponse {
 
     private Integer admissionYear;
 
+    private String academicStatus;
+
     private String avatarUrl;
 
     private String bio;

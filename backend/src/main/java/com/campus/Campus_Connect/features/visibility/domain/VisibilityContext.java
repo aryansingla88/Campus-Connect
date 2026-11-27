@@ -1,5 +1,6 @@
 package com.campus.Campus_Connect.features.visibility.domain;
 
+import com.campus.Campus_Connect.common.academic.AcademicStatus;
 import java.util.Set;
 
 /** Compact, database-independent attributes of the viewer used by future visibility evaluation. */
@@ -7,8 +8,7 @@ public record VisibilityContext(
         Integer viewerId,
         Integer courseId,
         Integer hostelId,
-        Integer academicYear,
-        Boolean alumni,
+        AcademicStatus academicStatus,
         Set<Integer> approvedClubIds
 ) {
     public VisibilityContext {

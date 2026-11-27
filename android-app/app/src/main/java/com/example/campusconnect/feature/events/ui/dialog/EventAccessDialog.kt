@@ -267,7 +267,8 @@ fun EventAccessDialog(
                                         ) {
                                             AcademicUtils.buildSubtitle(
                                                 course = courseMap[user.courseId]!!,
-                                                admissionYear = user.admissionYear
+                                                admissionYear = user.admissionYear,
+                                                academicStatus = user.academicStatus
                                             )
                                         } else {
                                             ""
@@ -324,7 +325,8 @@ fun EventAccessDialog(
                                             courseMap[user.courseId]?.let { course ->
                                                 AcademicUtils.buildSubtitle(
                                                     course = course,
-                                                    admissionYear = user.admissionYear
+                                                    admissionYear = user.admissionYear,
+                                                    academicStatus = user.academicStatus
                                                 )
                                             } ?: ""
                                         } else {

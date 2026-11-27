@@ -9,5 +9,6 @@ data class ConnectionResponse(
     val avatarUrl: String?,
     val courseId: Int?,
     val admissionYear: Int?,
+    val academicStatus: String? = null,
     val status: String
 )

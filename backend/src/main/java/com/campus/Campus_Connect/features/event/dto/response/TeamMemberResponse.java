@@ -23,6 +23,8 @@ public class TeamMemberResponse {
 
     private Integer admissionYear;
 
+    private String academicStatus;
+
     private String avatarUrl;
 
     private Boolean leader;
