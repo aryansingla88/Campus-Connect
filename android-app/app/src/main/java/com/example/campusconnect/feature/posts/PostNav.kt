@@ -158,6 +158,9 @@ private fun NavGraphBuilder.feedDestination(
             onCreatePostClick = { postType ->
                 navController.navigate("$CREATE_POST_ROUTE_BASE/$postType")
             },
+            onRegisterEventClick = { eventId ->
+                navController.navigate("user_registration/$eventId")
+            },
             onEditPostClick = { postId -> navController.navigate("edit_post/$postId") },
             onUserProfileClick = { userId -> navController.navigateToUserProfile(userId) }
         )
