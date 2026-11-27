@@ -106,12 +106,13 @@ internal fun HostsSection(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
             )
+
             Text(
                 text = "View all",
                 color = OrangePrimary,
                 fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable(onClick = onViewAllClick),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable(onClick = onViewAllClick)
             )
         }
 

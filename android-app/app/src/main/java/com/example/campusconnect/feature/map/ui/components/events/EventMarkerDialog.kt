@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.LocationOn
@@ -94,6 +95,7 @@ fun EventMarkerDialog(
     event: MapEventInfo,
     onDismiss: () -> Unit,
     onNavigateClick: () -> Unit = {},
+    onDiscussionClick: () -> Unit = {},
     onRegisterClick: () -> Unit = {},
     onNotifyClick: () -> Unit = {},
     endTime: String? = null,
@@ -149,6 +151,7 @@ fun EventMarkerDialog(
             isExpanded = isExpanded,
             onDismiss = onDismiss,
             onNavigateClick = onNavigateClick,
+            onDiscussionClick = onDiscussionClick,
             onRegisterClick = onRegisterClick,
             onNotifyClick = onNotifyClick,
             onNearbyEventClick = onNearbyEventClick
@@ -233,6 +236,7 @@ private fun EventQuickPreviewContent(
     isExpanded: Boolean,
     onDismiss: () -> Unit,
     onNavigateClick: () -> Unit,
+    onDiscussionClick: () -> Unit,
     onRegisterClick: () -> Unit,
     onNotifyClick: () -> Unit,
     onNearbyEventClick: (MapEventInfo) -> Unit
@@ -384,14 +388,21 @@ private fun EventQuickPreviewContent(
                     modifier = Modifier.weight(1f)
                 )
 
-                RegisterActionButton(
-                    registrationStatus = event.registrationStatus,
-                    label = registrationLabel,
-                    enabled = registrationEnabled,
-                    onClick = onRegisterClick,
+                DiscussionButton(
+                    onClick = onDiscussionClick,
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            RegisterActionButton(
+                registrationStatus = event.registrationStatus,
+                label = registrationLabel,
+                enabled = registrationEnabled,
+                onClick = onRegisterClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+            )
 
 
             // ================================================================
@@ -494,6 +505,7 @@ private fun EventQuickPreviewContent(
                 .align(Alignment.TopEnd)
                 .padding(end = 10.dp)
         )
+
     }
 }
 
@@ -526,6 +538,37 @@ private fun NavigateIconButton(
             contentDescription = "Navigate",
             tint = Color.White,
             modifier = Modifier.size(19.dp)
+        )
+    }
+}
+
+@Composable
+private fun DiscussionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, BorderOrange, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.ChatBubbleOutline,
+            contentDescription = null,
+            tint = OrangePrimary,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "Discussion",
+            color = OrangePrimary,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }
