@@ -72,7 +72,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -107,7 +109,7 @@ import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
-private val Orange       = Color(0xFFFF4D00)
+private val Orange       = Color(0xFFFF6F00)
 private val OrangeLight  = Color(0xFFFFF3E0)
 private val TextDark     = Color(0xFF1A1A1A)
 private val TextMuted    = Color(0xFF888888)
@@ -142,12 +144,15 @@ fun PosterModeScreen(
     onRegister: (Event) -> Unit = {},
     onNotify: (Event) -> Unit = {},
     onOpenDetail: (Event) -> Unit = {},
-    onUserProfileClick: (Int) -> Unit = {},
     showActionButtons: Boolean = true,
     categories: List<EventCategory> = emptyList(),
     clubs: List<Club> = emptyList(),
     eventPreviews: Map<Int, MapEventInfo> = emptyMap(),
     onLoadEventPreview: (Int) -> Unit = {},
+    onHostClick: (Int) -> Unit = {},
+    initialSelectedEventId: Int? = null,
+    onSelectedEventIdChange: (Int?) -> Unit = {},
+    stateKey: String = "poster_mode",
 ) {
     if (events.isEmpty()) {
         EmptyPosterMode(onBack)
@@ -158,7 +163,9 @@ fun PosterModeScreen(
     var showFilter  by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedClub by remember { mutableStateOf<String?>(null) }
-    var detailsEventId by remember { mutableStateOf<Int?>(null) }
+    var detailsEventId by rememberSaveable(stateKey) {
+        mutableStateOf<Int?>(initialSelectedEventId)
+    }
 
     // Notification state remains local until its backend flow is connected.
     var notifiedIds   by remember { mutableStateOf(setOf<Int>()) }
@@ -201,15 +208,15 @@ fun PosterModeScreen(
         pageCount = { virtualCount }
     )
 
-    LaunchedEffect(filtered) {
-        if (filtered.isNotEmpty()) {
-            pagerState.scrollToPage(startPage)
-            detailsEventId = null
-        }
+    var lastObservedPagerPage by rememberSaveable(stateKey) {
+        mutableIntStateOf(pagerState.currentPage)
     }
-
     LaunchedEffect(pagerState.currentPage) {
-        detailsEventId = null
+        if (pagerState.currentPage != lastObservedPagerPage) {
+            detailsEventId = null
+            onSelectedEventIdChange(null)
+            lastObservedPagerPage = pagerState.currentPage
+        }
     }
 
     val currentEvent = filtered.getOrNull(
@@ -421,6 +428,7 @@ fun PosterModeScreen(
                                         if (isSelectedPage) {
                                             Modifier.clickable {
                                                 detailsEventId = if (showingDetails) null else cardEvent.id
+                                                onSelectedEventIdChange(detailsEventId)
                                             }
                                         } else Modifier
                                     )
@@ -438,7 +446,7 @@ fun PosterModeScreen(
                                             preview = eventPreviews[cardEvent.id],
                                             clubName = clubs.firstOrNull { it.clubId == cardEvent.clubId }?.name
                                                 ?: cardEvent.clubName,
-                                            onUserProfileClick = onUserProfileClick
+                                            onHostClick = onHostClick
                                         )
                                     }
                                 }
@@ -471,6 +479,7 @@ fun PosterModeScreen(
 
                     onExpand = {
                         detailsEventId = if (detailsEventId == event.id) null else event.id
+                        onSelectedEventIdChange(detailsEventId)
                     }
                 )
             }
@@ -680,7 +689,7 @@ private fun EventDetailsCard(
     event: Event,
     preview: MapEventInfo?,
     clubName: String,
-    onUserProfileClick: (Int) -> Unit
+    onHostClick: (Int) -> Unit
 ) {
     val aboutScrollState = rememberScrollState()
     val hostsListState = rememberLazyListState()
@@ -699,8 +708,10 @@ private fun EventDetailsCard(
             .background(Color.White)
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Spacer(Modifier.weight(1f))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -736,10 +747,11 @@ private fun EventDetailsCard(
                 Text(
                     event.title,
                     fontSize = 21.sp,
-                    lineHeight = 25.sp,
+                    lineHeight = 23.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextDark,
-                    maxLines = 3,
+                    maxLines = 2,
+                    modifier = Modifier.heightIn(min = 46.dp),
                     overflow = TextOverflow.Ellipsis
                 )
                 hostByline?.let { subtitle -> Text(
@@ -854,7 +866,7 @@ private fun EventDetailsCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(hosts.distinctBy { it.id }, key = { it.id }) { host ->
-                        EventHostAvatar(host, onUserProfileClick)
+                        EventHostAvatar(host, onClick = { onHostClick(host.id) })
                     }
                 }
                 if (hostsListState.canScrollBackward || hostsListState.canScrollForward) {
@@ -863,7 +875,6 @@ private fun EventDetailsCard(
             }
         }
         }
-        Spacer(Modifier.weight(1f))
     }
 }
 
@@ -922,10 +933,11 @@ private fun EventDetailsSectionTitle(title: String) {
 }
 
 @Composable
-private fun EventHostAvatar(host: HostInfo, onUserProfileClick: (Int) -> Unit) {
+private fun EventHostAvatar(host: HostInfo, onClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .width(58.dp),
+            .width(58.dp)
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -935,7 +947,6 @@ private fun EventHostAvatar(host: HostInfo, onUserProfileClick: (Int) -> Unit) {
             imageUrl = host.avatarUrl,
             size = 42.dp,
             fontSize = 13.sp,
-            modifier = Modifier.clickable { onUserProfileClick(host.id) },
         )
         Text(
             host.name,

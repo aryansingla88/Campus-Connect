@@ -53,7 +53,6 @@ import com.example.campusconnect.feature.events.ui.drawer.EventHistoryDrawer
 import com.example.campusconnect.feature.events.ui.drawer.EventParticipantsDrawer
 import com.example.campusconnect.feature.events.ui.preview.EventPreviewSheet
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
-import com.example.campusconnect.feature.profile.ProfileRoutes
 import com.example.campusconnect.feature.map.mapengine.MapCalibration
 import com.example.campusconnect.feature.map.mapengine.MapView
 import com.example.campusconnect.feature.map.mapengine.model.MapMarkerItem
@@ -81,7 +80,12 @@ private data class EventMapMarker(
 fun EventScreen(
     onBack: () -> Unit,
     onRegistration: (Event) -> Unit = {},
-    onUserProfile: (Int) -> Unit = {},
+    onNavigateToProfile: (Int) -> Unit = {},
+    restoreAccessDialogEventId: Int? = null,
+    onAccessDialogEventIdChange: (Int?) -> Unit = {},
+    posterModeOpen: Boolean = false,
+    onPosterModeOpenChange: (Boolean) -> Unit = {},
+    isScreenVisible: Boolean = true,
 ) {
 
 
@@ -107,11 +111,21 @@ fun EventScreen(
     var showAccessDialog    by remember { mutableStateOf(false) }
     var accessEvent         by remember { mutableStateOf<Event?>(null) }
 
+    LaunchedEffect(restoreAccessDialogEventId, events, isScreenVisible) {
+        if (!isScreenVisible) return@LaunchedEffect
+        val eventId = restoreAccessDialogEventId ?: return@LaunchedEffect
+        val restoredEvent = events.firstOrNull { it.id == eventId } ?: return@LaunchedEffect
+        accessEvent = restoredEvent
+        showAccessDialog = true
+        // Promote a restored dialog ID back to the active state. Otherwise a
+        // second profile visit has no active ID to save before navigating.
+        onAccessDialogEventIdChange(eventId)
+        viewModel.prefetchAccessUsers(eventId)
+    }
+
     var showParticipants    by remember { mutableStateOf(false) }
     var showHistoryDrawer   by remember { mutableStateOf(false) }
     var previewBackRequest  by remember { mutableStateOf(0) }
-
-    var showPosterMode by remember { mutableStateOf(false) }
 
     var toastMessage        by remember { mutableStateOf<String?>(null) }
 
@@ -335,7 +349,7 @@ fun EventScreen(
                     .align(Alignment.BottomStart)
                     .padding(start = 16.dp, bottom = 16.dp),
                 onClick = {
-                    showPosterMode = true
+                    onPosterModeOpenChange(true)
                 }
             )
         }
@@ -388,7 +402,12 @@ fun EventScreen(
                         onRegistration(event)
                     },
                     onChat         = { },
-                    onAccess       = { event -> accessEvent = event; viewModel.prefetchAccessUsers(event.id); showAccessDialog = true },
+                    onAccess       = { event ->
+                        accessEvent = event
+                        onAccessDialogEventIdChange(event.id)
+                        viewModel.prefetchAccessUsers(event.id)
+                        showAccessDialog = true
+                    },
                     onDelete       = { event -> viewModel.requestDelete(event) },
                     participantsOpen = showParticipants,
                     onParticipants = {
@@ -415,7 +434,7 @@ fun EventScreen(
                         total    = participantsCount,
                         isOpen   = showPreview && showParticipants,
                         onToggle = { showParticipants = false },
-                        onUserClick = onUserProfile
+                        onUserClick = onNavigateToProfile
                     )
                 }
             }
@@ -466,7 +485,7 @@ fun EventScreen(
                     },
                     onUserProfileClick = { userId ->
                         showHistoryDrawer = false
-                        onUserProfile(userId)
+                        onNavigateToProfile(userId)
                     },
                 )
             }
@@ -495,18 +514,17 @@ fun EventScreen(
             )
         }
 
-        // Modal Dialogs (including medal confirmation) handle their own back
-        // request. This single screen handler orders the remaining in-window
-        // overlays; with none open it stays disabled so NavHost handles navigation.
+        // Keep one back path for in-window overlays and the Events destination.
+        // Modal dialogs still handle Back in their own platform window.
         BackHandler(
-            enabled = showPosterMode || showHistoryDrawer ||
-                (showPreview && showParticipants) || showPreview
+            enabled = isScreenVisible
         ) {
             when {
-                showPosterMode -> showPosterMode = false
+                posterModeOpen -> onPosterModeOpenChange(false)
                 showHistoryDrawer -> showHistoryDrawer = false
                 showPreview && showParticipants -> showParticipants = false
                 showPreview -> previewBackRequest++
+                else -> onBack()
             }
         }
 
@@ -514,6 +532,8 @@ fun EventScreen(
         if (showAccessDialog && accessEvent != null) {
             EventAccessDialog(
                 event = accessEvent!!,
+                currentUserId = viewModel.currentUserId.collectAsState().value,
+                onNavigateToProfile = onNavigateToProfile,
 
                 users = accessEvent?.let { accessUsersByEvent[it.id] }.orEmpty(),
 
@@ -540,15 +560,10 @@ fun EventScreen(
                     )
                 },
 
-                onUserClick = { userId ->
-                    showAccessDialog = false
-                    accessEvent = null
-                    onUserProfile(userId)
-                },
-
                 onDismiss = {
                     showAccessDialog = false
                     accessEvent = null
+                    onAccessDialogEventIdChange(null)
                 }
             )
         }
@@ -588,7 +603,7 @@ fun EventScreen(
         }
 
         // ── VIEW MODE OVERLAY ─────────────────────────────────────────────────  ← ADD HERE
-        if (showPosterMode) {
+        if (posterModeOpen) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -596,15 +611,17 @@ fun EventScreen(
             ) {
                 PosterModeScreen(
                     events       = filteredEvents,
-                    onBack       = { showPosterMode = false },
+                    onBack       = { onPosterModeOpenChange(false) },
                     onRegister   = { },
                     onNotify     = { },
-                    onOpenDetail = { showPosterMode = false },
+                    onOpenDetail = { onPosterModeOpenChange(false) },
                     showActionButtons = false,
                     categories = categories,
                     clubs = clubs,
                     eventPreviews = eventPreviews,
-                    onLoadEventPreview = viewModel::loadEventPreview
+                    onLoadEventPreview = viewModel::loadEventPreview,
+                    onHostClick = onNavigateToProfile,
+                    stateKey = "manage_poster_mode"
                 )
             }
         }

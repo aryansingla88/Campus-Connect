@@ -79,6 +79,8 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
 
+    private val _sharedEvents = MutableStateFlow<List<Event>>(emptyList())
+
     private val _currentUserId =
         MutableStateFlow<Int?>(null)
 
@@ -136,13 +138,19 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
     val displayedEvents: StateFlow<List<Event>> =
         combine(
             _events,
+            _sharedEvents,
             _currentUserId,
             _eventFilter
-        ) { events, currentUserId, filter ->
+        ) { events, sharedEvents, currentUserId, filter ->
             when (filter) {
 
-                EventFilter.ALL ->
-                    events
+                EventFilter.ALL -> {
+                    val ownedEvents = currentUserId?.let { userId ->
+                        events.filter { it.createdBy == userId }
+                    }.orEmpty()
+
+                    (ownedEvents + sharedEvents).distinctBy { it.id }
+                }
 
                 EventFilter.SELF ->
                     currentUserId?.let { userId ->
@@ -152,11 +160,7 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
                     } ?: emptyList()
 
                 EventFilter.SHARED ->
-                    currentUserId?.let { userId ->
-                        events.filter {
-                            it.createdBy != userId
-                        }
-                    } ?: emptyList()
+                    sharedEvents
             }
 
         }.stateIn(
@@ -166,12 +170,20 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
         )
 
     fun setEventFilter(filter: EventFilter) {
-        _eventFilter.value =
-            if (_eventFilter.value == filter) {
-                EventFilter.ALL
-            } else {
-                filter
-            }
+        val nextFilter = if (_eventFilter.value == filter) EventFilter.ALL else filter
+        _eventFilter.value = nextFilter
+        if (nextFilter == EventFilter.SHARED) loadSharedEvents()
+    }
+
+    private fun loadSharedEvents() {
+        viewModelScope.launch {
+            repository.getSharedEvents()
+                .onSuccess { sharedEvents -> _sharedEvents.value = sharedEvents }
+                .onFailure { error ->
+                    println("SHARED EVENTS API ERROR: ${error.message}")
+                    _sharedEvents.value = emptyList()
+                }
+        }
     }
 
     private fun loadCurrentUser() {
@@ -580,6 +592,7 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
 
             loadCurrentUser()
             loadEvents()
+            loadSharedEvents()
 
             try {
                 _clubs.value = clubRepository.getAllClubs()

@@ -1,7 +1,9 @@
 package com.example.campusconnect.feature.events.ui.dialog
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,17 +51,17 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
+import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.core.utils.AcademicUtils
 import com.example.campusconnect.feature.events.model.Event
 import com.example.campusconnect.feature.events.model.UserAccess
-import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.metadata.courses.Course
 import com.example.campusconnect.feature.metadata.courses.CourseRepositoryProvider
 
@@ -78,19 +81,25 @@ private val RemoveRedLight = Color(0xFFFFEBEE)
 fun EventAccessDialog(
     event: Event,
     users: List<UserAccess>,
+    currentUserId: Int?,
+    onNavigateToProfile: (Int) -> Unit,
     searchResults: List<UserAccess>,
     onSearch: (String) -> Unit,
     onGrantAccess: (Int) -> Unit,
     onRevokeAccess: (Int) -> Unit,
-    onUserClick: (Int) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    val canManageAccess = currentUserId == event.createdBy
 
     LaunchedEffect(searchQuery) {
         if (searchQuery.isNotBlank()) {
             onSearch(searchQuery)
         }
+    }
+
+    LaunchedEffect(canManageAccess) {
+        if (!canManageAccess) searchQuery = ""
     }
 
     val addedUsers = remember(users) {
@@ -127,30 +136,30 @@ fun EventAccessDialog(
     pendingRemove?.let { user ->
         AlertDialog(
             onDismissRequest = { pendingRemove = null },
-            shape            = RoundedCornerShape(20.dp),
-            containerColor   = Color.White,
+            shape = RoundedCornerShape(20.dp),
+            containerColor = Color.White,
             title = {
                 Text(
                     "Remove Access?",
                     fontWeight = FontWeight.Bold,
-                    fontSize   = 17.sp,
-                    color      = TextPrimary
+                    fontSize = 17.sp,
+                    color = TextPrimary
                 )
             },
             text = {
                 Text(
                     "Remove ${user.name} from \"${event.title}\"?",
-                    fontSize   = 14.sp,
-                    color      = TextMuted,
+                    fontSize = 14.sp,
+                    color = TextMuted,
                     lineHeight = 20.sp
                 )
             },
             dismissButton = {
                 OutlinedButton(
                     onClick = { pendingRemove = null },
-                    shape   = RoundedCornerShape(12.dp),
-                    border  = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp),
-                    colors  = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary)
+                    shape = RoundedCornerShape(12.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = OrangePrimary)
                 ) {
                     Text("Cancel", fontWeight = FontWeight.SemiBold)
                 }
@@ -162,7 +171,7 @@ fun EventAccessDialog(
                         onRevokeAccess(user.id)
                         pendingRemove = null
                     },
-                    shape  = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = RemoveRed)
                 ) {
                     Text("Remove", color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -171,220 +180,273 @@ fun EventAccessDialog(
         )
     }
 
-    // ── Main dialog ───────────────────────────────────────────────────────────
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties       = DialogProperties(usePlatformDefaultWidth = false)
+    // Render in the Events destination's Compose layer so a Profile destination
+    // can appear above this overlay during navigation.
+    BackHandler(onBack = onDismiss)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(10f)
+            .background(Color(0x99000000))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier         = Modifier
-                .fillMaxSize()
-                .background(Color(0x99000000)),
-            contentAlignment = Alignment.Center
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.88f)
+                .fillMaxHeight(0.72f)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {}
+                ),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(8.dp)
         ) {
-            Card(
-                modifier  = Modifier
-                    .fillMaxWidth(0.88f)
-                    .fillMaxHeight(0.72f),
-                shape     = RoundedCornerShape(20.dp),
-                colors    = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(8.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
 
-                    // ── Header ────────────────────────────────────────────────
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Access & Permissions",
-                                fontSize   = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color      = TextPrimary
-                            )
-                            Text(
-                                text       = event.title,
-                                fontSize   = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color      = OrangePrimary,
-                                maxLines   = 1,
-                                overflow   = TextOverflow.Ellipsis,
-                                modifier   = Modifier.padding(top = 2.dp)
-                            )
-                        }
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
-                        }
-                    }
-
-                    HorizontalDivider(color = DividerColor)
-
-                    // ── Search bar ────────────────────────────────────────────
-                    Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                        AccessSearchBar(
-                            value         = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder   = "Search people to connect..."
+                // ── Header ────────────────────────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Access & Permissions",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = event.title,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OrangePrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
+                    }
+                }
 
-                    // ── List ──────────────────────────────────────────────────
-                    LazyColumn(
-                        modifier            = Modifier.weight(1f),
-                        contentPadding      = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (searchQuery.isNotBlank()) {
-                            if (searchResults.isEmpty()) {
-                                item {
-                                    Box(
-                                        modifier         = Modifier.fillMaxWidth().padding(vertical = 28.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("No users found for \"$searchQuery\"", fontSize = 13.sp, color = TextMuted)
-                                    }
-                                }
-                            } else {
-                                items(
-                                    searchResults.filter { result ->
-                                        result.id != event.createdBy &&
-                                            addedUsers.none { it.id == result.id }
-                                    },
-                                    key = { it.id }
-                                ) { user ->
-                                    AccessUserCard(
-                                        user = user,
-                                        onUserClick = onUserClick,
-                                        subtitle = if (
-                                            user.courseId != null &&
-                                            user.admissionYear != null &&
-                                            courseMap[user.courseId] != null
-                                        ) {
-                                            AcademicUtils.buildSubtitle(
-                                                course = courseMap[user.courseId]!!,
-                                                admissionYear = user.admissionYear,
-                                                academicStatus = user.academicStatus
-                                            )
-                                        } else {
-                                            ""
-                                        }
-                                    ) {
-                                        Button(
-                                            onClick = {
-                                                addedUsers.add(user)
-                                                searchQuery = ""
-                                            },
-                                            shape          = RoundedCornerShape(10.dp),
-                                            colors         = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                                            modifier       = Modifier.height(34.dp)
-                                        ) {
-                                            Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                            Spacer(Modifier.width(4.dp))
-                                            Text("Add", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                                        }
-                                    }
+                HorizontalDivider(color = DividerColor)
+
+                // ── Search bar ────────────────────────────────────────────
+                if (canManageAccess) {
+                    Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        AccessSearchBar(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = "Search people to connect..."
+                        )
+                    }
+                }
+
+                // ── List ──────────────────────────────────────────────────
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (canManageAccess && searchQuery.isNotBlank()) {
+                        if (searchResults.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "No users found for \"$searchQuery\"",
+                                        fontSize = 13.sp,
+                                        color = TextMuted
+                                    )
                                 }
                             }
                         } else {
-                            if (addedUsers.isEmpty()) {
-                                item {
-                                    Box(
-                                        modifier         = Modifier.fillMaxWidth().padding(vertical = 28.dp),
-                                        contentAlignment = Alignment.Center
+                            items(
+                                searchResults.filter { result ->
+                                    result.id != event.createdBy &&
+                                            addedUsers.none { it.id == result.id }
+                                },
+                                key = { it.id }
+                            ) { user ->
+                                AccessUserCard(
+                                    user = user,
+                                    subtitle = if (
+                                        user.courseId != null &&
+                                        user.admissionYear != null &&
+                                        courseMap[user.courseId] != null
                                     ) {
+                                        AcademicUtils.buildSubtitle(
+                                            course = courseMap[user.courseId]!!,
+                                            admissionYear = user.admissionYear
+                                        )
+                                    } else {
+                                        ""
+                                    },
+                                    onProfileClick = onNavigateToProfile
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            addedUsers.add(user)
+                                            searchQuery = ""
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                                        contentPadding = PaddingValues(
+                                            horizontal = 14.dp,
+                                            vertical = 0.dp
+                                        ),
+                                        modifier = Modifier.height(34.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
                                         Text(
-                                            "No one has access yet.\nSearch above to add people.",
-                                            fontSize = 13.sp, color = TextMuted, lineHeight = 20.sp
+                                            "Add",
+                                            color = Color.White,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold
                                         )
                                     }
                                 }
-                            } else {
-                                item {
+                            }
+                        }
+                    } else {
+                        if (addedUsers.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Text(
-                                        "People with access  ·  ${addedUsers.size}",
-                                        fontSize   = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color      = TextMuted,
-                                        modifier   = Modifier.padding(bottom = 2.dp)
+                                        "No one has access yet.\nSearch above to add people.",
+                                        fontSize = 13.sp, color = TextMuted, lineHeight = 20.sp
                                     )
                                 }
-                                items(addedUsers, key = { it.id }) { user ->
-                                    AccessUserCard(
-                                        user = user,
-                                        onUserClick = onUserClick,
-                                        subtitle = if (
-                                            user.courseId != null &&
-                                            user.admissionYear != null
-                                        ) {
-                                            courseMap[user.courseId]?.let { course ->
-                                                AcademicUtils.buildSubtitle(
-                                                    course = course,
-                                                    admissionYear = user.admissionYear,
-                                                    academicStatus = user.academicStatus
-                                                )
-                                            } ?: ""
-                                        } else {
-                                            ""
-                                        }
+                            }
+                        } else {
+                            item {
+                                Text(
+                                    "People with access  ·  ${addedUsers.size}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextMuted,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                            }
+                            items(addedUsers, key = { it.id }) { user ->
+                                AccessUserCard(
+                                    user = user,
+                                    subtitle = if (
+                                        user.courseId != null &&
+                                        user.admissionYear != null
                                     ) {
-                                        if (user.id == event.createdBy) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(OrangeLight, RoundedCornerShape(10.dp))
-                                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                                            ) {
-                                                Text(
-                                                    "Creator",
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = OrangePrimary
-                                                )
-                                            }
-                                        } else {
-                                            Button(
-                                                onClick        = { pendingRemove = user },
-                                                shape          = RoundedCornerShape(10.dp),
-                                                colors         = ButtonDefaults.buttonColors(
-                                                    containerColor = RemoveRedLight,
-                                                    contentColor   = RemoveRed
-                                                ),
-                                                contentPadding = PaddingValues(0.dp),
-                                                elevation      = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-                                                modifier       = Modifier.width(70.dp).height(34.dp)
-                                            ) {
-                                                Text("Remove", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RemoveRed)
-                                            }
+                                        courseMap[user.courseId]?.let { course ->
+                                            AcademicUtils.buildSubtitle(
+                                                course = course,
+                                                admissionYear = user.admissionYear
+                                            )
+                                        } ?: ""
+                                    } else {
+                                        ""
+                                    },
+                                    onProfileClick = onNavigateToProfile
+                                ) {
+                                    if (user.id == event.createdBy) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(OrangeLight, RoundedCornerShape(10.dp))
+                                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                        ) {
+                                            Text(
+                                                "Creator",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = OrangePrimary
+                                            )
+                                        }
+                                    } else if (user.id == currentUserId) {
+                                        TextButton(
+                                            onClick = {},
+                                            enabled = false,
+                                            modifier = Modifier.width(70.dp).height(34.dp),
+                                            contentPadding = PaddingValues(0.dp)
+                                        ) {
+                                            Text(
+                                                "You",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    } else if (canManageAccess) {
+                                        Button(
+                                            onClick = { pendingRemove = user },
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = RemoveRedLight,
+                                                contentColor = RemoveRed
+                                            ),
+                                            contentPadding = PaddingValues(0.dp),
+                                            elevation = ButtonDefaults.buttonElevation(
+                                                defaultElevation = 0.dp
+                                            ),
+                                            modifier = Modifier.width(70.dp).height(34.dp)
+                                        ) {
+                                            Text(
+                                                "Remove",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = RemoveRed
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                }
 
-                    // ── Footer Done button ────────────────────────────────────
-                    HorizontalDivider(color = DividerColor)
-                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp)) {
-                        Button(
-                            onClick = {
-                                addedUsers.forEach { user ->
-                                    if (!users.any { it.id == user.id }) {
-                                        onGrantAccess(user.id)
-                                    }
+                // ── Footer Done button ────────────────────────────────────
+                HorizontalDivider(color = DividerColor)
+                if (canManageAccess) Box(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            addedUsers.forEach { user ->
+                                if (!users.any { it.id == user.id }) {
+                                    onGrantAccess(user.id)
                                 }
-                                onDismiss()
-                            },
-                            modifier = Modifier.fillMaxWidth().height(46.dp),
-                            shape    = RoundedCornerShape(12.dp),
-                            colors   = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
-                        ) {
-                            Text("Done", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                        }
+                            }
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                    ) {
+                        Text(
+                            "Done",
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp
+                        )
                     }
                 }
             }
@@ -394,107 +456,122 @@ fun EventAccessDialog(
 
 // ─── AccessSearchBar ──────────────────────────────────────────────────────────
 
-@Composable
-private fun AccessSearchBar(
-    value         : String,
-    onValueChange : (String) -> Unit,
-    placeholder   : String
-) {
-    val focusRequester = remember { FocusRequester() }
-
-    Card(
-        shape     = RoundedCornerShape(12.dp),
-        colors    = CardDefaults.cardColors(containerColor = CardBg),
-        elevation = CardDefaults.cardElevation(1.dp)
+    @Composable
+    private fun AccessSearchBar(
+        value: String,
+        onValueChange: (String) -> Unit,
+        placeholder: String
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { focusRequester.requestFocus() }
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        val focusRequester = remember { FocusRequester() }
+        val focusManager = LocalFocusManager.current
+
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBg),
+            elevation = CardDefaults.cardElevation(1.dp)
         ) {
-            Icon(Icons.Default.Search, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { focusRequester.requestFocus() }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.Search, null, tint = TextMuted, modifier = Modifier.size(18.dp))
 
-            Box(modifier = Modifier.weight(1f)) {
-                BasicTextField(
-                    value         = value,
-                    onValueChange = onValueChange,
-                    modifier      = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                    singleLine    = true,
-                    textStyle     = TextStyle(fontSize = 13.sp, color = TextPrimary),
-                    decorationBox = { inner ->
-                        if (value.isEmpty()) Text(placeholder, fontSize = 13.sp, color = TextMuted)
-                        inner()
+                Box(modifier = Modifier.weight(1f)) {
+                    BasicTextField(
+                        value = value,
+                        onValueChange = onValueChange,
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 13.sp, color = TextPrimary),
+                        decorationBox = { inner ->
+                            if (value.isEmpty()) Text(
+                                placeholder,
+                                fontSize = 13.sp,
+                                color = TextMuted
+                            )
+                            inner()
+                        }
+                    )
+                }
+
+                if (value.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF0F0F0))
+                            .clickable {
+                                onValueChange("")
+                                focusManager.clearFocus()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = TextMuted,
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
-                )
-            }
-
-            if (value.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .size(26.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF0F0F0))
-                        .clickable { onValueChange("") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Clear", tint = TextMuted, modifier = Modifier.size(14.dp))
                 }
             }
         }
     }
-}
 
 // ─── AccessUserCard ───────────────────────────────────────────────────────────
 
-@Composable
-private fun AccessUserCard(
-    user            : UserAccess,
-    onUserClick     : (Int) -> Unit,
-    subtitle        : String,
-    trailingContent : @Composable () -> Unit
-) {
-    Card(
-        shape     = RoundedCornerShape(14.dp),
-        colors    = CardDefaults.cardColors(containerColor = CardBg),
-        elevation = CardDefaults.cardElevation(1.dp)
+    @Composable
+    private fun AccessUserCard(
+        user: UserAccess,
+        subtitle: String,
+        onProfileClick: (Int) -> Unit,
+        trailingContent: @Composable () -> Unit
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBg),
+            elevation = CardDefaults.cardElevation(1.dp)
         ) {
-            AppAvatar(
-                entityId = user.id,
-                displayName = user.name,
-                imageUrl = user.avatarUrl,
-                size = 38.dp,
-                fontSize = 13.sp,
-                modifier = Modifier.clickable { onUserClick(user.id) },
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text       = user.name,
-                    fontSize   = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = TextPrimary,
-                    maxLines   = 1,
-                    overflow   = TextOverflow.Ellipsis
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                AppAvatar(
+                    entityId = user.id,
+                    displayName = user.name,
+                    imageUrl = user.avatarUrl,
+                    size = 38.dp,
+                    fontSize = 13.sp,
+                    onClick = { onProfileClick(user.id) },
                 )
 
-                Text(
-                    text     = subtitle,
-                    fontSize = 11.sp,
-                    color   = TextMuted
-                )
+                Column(
+                    modifier = Modifier.weight(1f).clickable { onProfileClick(user.id) }
+                ) {
+                    Text(
+                        text = user.name,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Text(
+                        text = subtitle,
+                        fontSize = 11.sp,
+                        color = TextMuted
+                    )
+                }
+
+                trailingContent()
             }
-
-            trailingContent()
         }
     }
-}
