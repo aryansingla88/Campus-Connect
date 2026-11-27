@@ -182,6 +182,9 @@ private fun NavGraphBuilder.feedDestination(
                     "$CREATE_POST_ROUTE_BASE/$postType?visibilityScope=${visibility.scope?.name.orEmpty()}&visibilityValue=$encodedValue"
                 )
             },
+            onRegisterEventClick = { eventId ->
+                navController.navigate("user_registration/$eventId")
+            },
             onEditPostClick = { postId -> navController.navigate("edit_post/$postId") },
             onUserProfileClick = { userId -> navController.navigateToUserProfile(userId) }
         )

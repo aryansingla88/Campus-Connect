@@ -18,15 +18,19 @@ import androidx.compose.foundation.text.BasicTextField
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.example.campusconnect.core.ui.theme.*
+import com.example.campusconnect.core.components.AppAvatar
 
 @Composable
 fun FeedTopBar(
@@ -35,14 +39,18 @@ fun FeedTopBar(
     onBackClick: (() -> Unit)? = null,
     showSearchButton: Boolean = true,
     onNotificationsClick: () -> Unit = {},
-    showBrand: Boolean = true
+    showBrand: Boolean = true,
+    currentUserId: Int? = null,
+    currentUserDisplayName: String = "Current user",
+    currentUserAvatarUrl: String? = null,
+    onCurrentUserClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         if (showBrand) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (onBackClick != null) {
@@ -54,15 +62,31 @@ fun FeedTopBar(
                         )
                     }
                 }
+                if (currentUserId != null) {
+                    IconButton(
+                        onClick = onCurrentUserClick,
+                        modifier = Modifier.semantics { contentDescription = "Open your profile" }
+                    ) {
+                        AppAvatar(
+                            entityId = currentUserId,
+                            displayName = currentUserDisplayName,
+                            imageUrl = currentUserAvatarUrl,
+                            size = 32.dp
+                        )
+                    }
+                    Spacer(Modifier.width(4.dp))
+                }
                 Text(
+                    modifier = Modifier.weight(1f),
                     text = buildAnnotatedString {
                         withStyle(SpanStyle(color = OrangePrimary)) { append("CC") }
                         withStyle(SpanStyle(color = LabelColor)) { append(" Discussions") }
                     },
                     fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.weight(1f))
                 Surface(
                     color = Color.White,
                     shape = RoundedCornerShape(16.dp),

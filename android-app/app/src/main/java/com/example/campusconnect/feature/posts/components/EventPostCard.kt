@@ -22,6 +22,8 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,13 +52,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.core.ui.theme.HintColor
 import com.example.campusconnect.core.ui.theme.OrangeBg
 import com.example.campusconnect.core.ui.theme.OrangeLight
 import com.example.campusconnect.core.ui.theme.OrangePrimary
-import com.example.campusconnect.core.components.AppAvatar
 import com.example.campusconnect.feature.posts.models.PostEvent
 import com.example.campusconnect.feature.posts.utils.formatEventClockTime
 import com.example.campusconnect.feature.posts.utils.formatEventDateWithoutYear
@@ -69,6 +74,7 @@ import kotlin.math.roundToInt
 fun EventPostCard(
     event: PostEvent,
     onClick: () -> Unit,
+    onRegisterClick: () -> Unit,
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
     onUpvoteClick: () -> Unit = {},
@@ -81,6 +87,7 @@ fun EventPostCard(
     var isVisible by remember(event.id) { mutableStateOf(false) }
     var marqueeEnabled by remember(event.id) { mutableStateOf(false) }
     val view = LocalView.current
+    val posterImageUrl = resolvePostImageUrl(event.posterUrl)
 
     LaunchedEffect(isVisible) {
         if (isVisible) {
@@ -109,77 +116,128 @@ fun EventPostCard(
         )
     ) {
         Column(Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 4.dp)) {
-            Column {
-                Row(verticalAlignment = Alignment.Top) {
-                    AppAvatar(
-                        entityId = event.organizerUserId,
-                        displayName = event.organizerDisplayName?.takeIf(String::isNotBlank)
-                            ?: event.organizerName?.takeIf(String::isNotBlank)
-                            ?: event.hostName.orEmpty(),
-                        imageUrl = event.organizerAvatarUrl,
-                        size = 42.dp,
-                        modifier = Modifier.clickable(enabled = event.organizerUserId != null) {
-                            event.organizerUserId?.let(onOrganizerClick)
-                        },
-                    )
-                    Column(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                posterImageUrl?.let { imageUrl ->
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = "${event.title} poster",
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 10.dp, end = 4.dp)
+                            .weight(0.38f)
+                            .height(184.dp)
+                            .clip(RoundedCornerShape(14.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(184.dp)
+                            .background(Color(0xFFE6E7EA))
+                    )
+                }
+
+                Column(
+                    modifier = if (posterImageUrl != null) Modifier.weight(0.62f) else Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        MarqueeValue(
-                            value = event.title,
-                            enabled = marqueeEnabled,
-                            style = MaterialTheme.typography.titleMedium,
-                            searchHighlightQuery = searchHighlightQuery
-                        )
-                        val organizerName = event.organizerDisplayName?.takeIf(String::isNotBlank)
-                            ?: event.organizerName?.takeIf(String::isNotBlank)
-                            ?: event.hostName.orEmpty()
                         Text(
-                            text = highlightPostSearchMatches(organizerName, searchHighlightQuery),
-                            modifier = Modifier.padding(top = 2.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = HintColor,
-                            maxLines = 1,
+                            text = highlightPostSearchMatches(event.title, searchHighlightQuery),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
-                        if (event.isEdited) {
+
+                        if (event.canDelete) {
+                            Box {
+                                IconButton(onClick = { showMenu = true }) {
+                                    Icon(
+                                        Icons.Outlined.MoreVert,
+                                        contentDescription = "Event post options",
+                                        tint = HintColor
+                                    )
+                                }
+                                if (showMenu) {
+                                    PostActionsMenu(
+                                        expanded = showMenu,
+                                        onDismiss = { showMenu = false },
+                                        onEdit = onEditClick,
+                                        onDelete = onDeleteClick
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    val organizerName = event.organizerDisplayName?.takeIf(String::isNotBlank)
+                        ?: event.organizerName?.takeIf(String::isNotBlank)
+                        ?: event.hostName.orEmpty()
+                    if (organizerName.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            event.organizerUserId?.let { organizerId ->
+                                AppAvatar(
+                                    entityId = organizerId,
+                                    displayName = organizerName,
+                                    imageUrl = event.organizerAvatarUrl,
+                                    size = 24.dp,
+                                    onClick = { onOrganizerClick(organizerId) }
+                                )
+                            }
                             Text(
-                                text = "Edited",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = HintColor
+                                text = buildAnnotatedString {
+                                    append("By ")
+                                    append(highlightPostSearchMatches(organizerName, searchHighlightQuery))
+                                },
+                                modifier = Modifier.clickable(enabled = event.organizerUserId != null) {
+                                    event.organizerUserId?.let(onOrganizerClick)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = HintColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
-                    if (event.canDelete) {
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(
-                                    Icons.Outlined.MoreVert,
-                                    contentDescription = "Event post options",
-                                    tint = HintColor
-                                )
-                            }
-                            if (showMenu) {
-                                PostActionsMenu(
-                                    expanded = showMenu,
-                                    onDismiss = { showMenu = false },
-                                    onEdit = onEditClick,
-                                    onDelete = onDeleteClick
-                                )
-                            }
-                        }
-                    }
-                }
 
-                event.categoryName?.takeIf(String::isNotBlank)?.let { category ->
-                    Row(
+                    event.description
+                        ?.lineSequence()
+                        ?.firstOrNull()
+                        ?.trim()
+                        ?.takeIf(String::isNotBlank)
+                        ?.let { descriptionPreview ->
+                            Text(
+                                text = highlightPostSearchMatches(descriptionPreview, searchHighlightQuery),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF424242),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                    if (event.isEdited) {
+                        Text(
+                            text = "Edited",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = HintColor
+                        )
+                    }
+
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
+                            .width(42.dp)
+                            .height(3.dp)
+                            .background(OrangePrimary, RoundedCornerShape(2.dp))
+                    )
+
+                    event.categoryName?.takeIf(String::isNotBlank)?.let { category ->
                         Surface(color = OrangeLight, shape = RoundedCornerShape(18.dp)) {
                             Text(
                                 text = category,
@@ -193,24 +251,11 @@ fun EventPostCard(
                             )
                         }
                     }
+
                 }
             }
 
-            event.description
-                ?.lineSequence()
-                ?.firstOrNull()
-                ?.trim()
-                ?.takeIf(String::isNotBlank)
-                ?.let { descriptionPreview ->
-                    Text(
-                        text = highlightPostSearchMatches(descriptionPreview, searchHighlightQuery),
-                        modifier = Modifier.padding(top = 10.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2
-                    )
-                }
-
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -239,13 +284,20 @@ fun EventPostCard(
                 )
             }
 
-            resolvePostImageUrl(event.posterUrl)?.let { imageUrl ->
-                Spacer(Modifier.height(12.dp))
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = "${event.title} poster",
-                    modifier = Modifier.fillMaxWidth().height(176.dp).clip(RoundedCornerShape(14.dp)),
-                    contentScale = ContentScale.Crop
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = onRegisterClick,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = OrangePrimary,
+                    contentColor = Color.White
+                )
+            ) {
+                Text(
+                    text = "Register",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
 
