@@ -70,7 +70,9 @@ fun RegistrationResponseDetailScreen(
     val state = detailStates[registrationId].takeIf { belongsToCurrentEvent }
 
     // No-op when the list already loaded this registration.
-    LaunchedEffect(eventId, registrationId) { viewModel.loadDetails(eventId, registrationId) }
+    LaunchedEffect(eventId, registrationId, belongsToCurrentEvent) {
+        if (belongsToCurrentEvent) viewModel.loadDetails(eventId, registrationId)
+    }
 
     Scaffold(
         containerColor = CardBg,

@@ -80,6 +80,7 @@ private data class EventMapMarker(
 fun EventScreen(
     onBack: () -> Unit,
     onRegistration: (Event) -> Unit = {},
+    onParticipantResponseClick: (Int, Int) -> Unit = { _, _ -> },
     onNavigateToProfile: (Int) -> Unit = {},
     restoreAccessDialogEventId: Int? = null,
     onAccessDialogEventIdChange: (Int?) -> Unit = {},
@@ -434,7 +435,10 @@ fun EventScreen(
                         total    = participantsCount,
                         isOpen   = showPreview && showParticipants,
                         onToggle = { showParticipants = false },
-                        onUserClick = onNavigateToProfile
+                        onUserClick = onNavigateToProfile,
+                        onResponseClick = { registrationId ->
+                            onParticipantResponseClick(currentEvent.id, registrationId)
+                        }
                     )
                 }
             }

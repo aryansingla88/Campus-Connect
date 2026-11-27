@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -97,7 +98,8 @@ fun EventParticipantsDrawer(
     total: Int,
     isOpen: Boolean,
     onToggle: () -> Unit,
-    onUserClick: (Int) -> Unit = {}
+    onUserClick: (Int) -> Unit = {},
+    onResponseClick: (Int) -> Unit = {}
 ) {
 
     val expanded = remember(event.id) {
@@ -185,6 +187,7 @@ fun EventParticipantsDrawer(
                                         team       = team,
                                         isExpanded = expanded[team.id] ?: false,
                                         onUserClick = onUserClick,
+                                        onResponseClick = onResponseClick,
                                         onToggle   = {
                                             expanded[team.id] = !(expanded[team.id] ?: false)
                                         }
@@ -201,7 +204,7 @@ fun EventParticipantsDrawer(
                                     )
                                 }
                                 items(solo, key = { "solo_${it.id}" }) { participant ->
-                                    SoloCard(participant, onUserClick)
+                                    SoloCard(participant, onUserClick, onResponseClick)
                                 }
                             }
                             item(key = "bottom_spacer") { Spacer(Modifier.height(16.dp)) }
@@ -373,6 +376,7 @@ private fun TeamCard(
     team       : ParticipantTeam,
     isExpanded : Boolean,
     onUserClick: (Int) -> Unit,
+    onResponseClick: (Int) -> Unit,
     onToggle   : () -> Unit
 ) {
     val chevronAngle by animateFloatAsState(
@@ -442,7 +446,9 @@ private fun TeamCard(
                 imageVector        = Icons.Default.ExpandMore,
                 contentDescription = null,
                 tint               = TextMuted,
-                modifier           = Modifier.size(18.dp).rotate(chevronAngle)
+                modifier           = Modifier
+                    .size(18.dp)
+                    .rotate(chevronAngle)
             )
         }
 
@@ -459,7 +465,7 @@ private fun TeamCard(
             ) {
                 HorizontalDivider(color = DividerColor)
                 team.members.forEachIndexed { index, member ->
-                    MemberRow(member, onUserClick)
+                    MemberRow(member, onUserClick, onResponseClick)
                     if (index < team.members.lastIndex) {
                         HorizontalDivider(
                             color    = DividerColor,
@@ -475,11 +481,14 @@ private fun TeamCard(
 // ─── MemberRow — same layout as SoloCard, leader gets a small badge ──────────
 
 @Composable
-private fun MemberRow(member: TeamMember, onUserClick: (Int) -> Unit) {
+private fun MemberRow(
+    member: TeamMember,
+    onUserClick: (Int) -> Unit,
+    onResponseClick: (Int) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onUserClick(member.id) }
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -488,23 +497,32 @@ private fun MemberRow(member: TeamMember, onUserClick: (Int) -> Unit) {
             entityId = member.id,
             displayName = member.name,
             imageUrl = member.avatarUrl,
-            size = 36.dp
+            size = 36.dp,
+            onClick = { onUserClick(member.id) }
         )
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text       = member.name,
-                fontSize   = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color      = TextPrimary,
-                maxLines   = 1,
-                overflow   = TextOverflow.Ellipsis
-            )
-            Text(
-                text     = member.subtitle,   // "MCA 2nd Year" etc — no role
-                fontSize = 11.sp,
-                color    = TextMuted
-            )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onResponseClick(member.registrationId) }
+        ) {
+            Column(modifier = Modifier.align(Alignment.CenterStart)) {
+                Text(
+                    text       = member.name,
+                    fontSize   = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = TextPrimary,
+                    maxLines   = 1,
+                    overflow   = TextOverflow.Ellipsis
+                )
+                Text(
+                    text     = member.subtitle,   // "MCA 2nd Year" etc — no role
+                    fontSize = 11.sp,
+                    color    = TextMuted
+                )
+            }
         }
 
         // Leader badge — only shown for team leader
@@ -528,7 +546,11 @@ private fun MemberRow(member: TeamMember, onUserClick: (Int) -> Unit) {
 // ─── SoloCard ─────────────────────────────────────────────────────────────────
 
 @Composable
-private fun SoloCard(participant: SoloParticipant, onUserClick: (Int) -> Unit) {
+private fun SoloCard(
+    participant: SoloParticipant,
+    onUserClick: (Int) -> Unit,
+    onResponseClick: (Int) -> Unit
+) {
     Card(
         shape     = RoundedCornerShape(12.dp),
         colors    = CardDefaults.cardColors(containerColor = CardBg),
@@ -538,7 +560,6 @@ private fun SoloCard(participant: SoloParticipant, onUserClick: (Int) -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onUserClick(participant.id) }
                 .padding(10.dp),
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -547,10 +568,16 @@ private fun SoloCard(participant: SoloParticipant, onUserClick: (Int) -> Unit) {
                 entityId = participant.id,
                 displayName = participant.name,
                 imageUrl = participant.avatarUrl,
-                size = 36.dp
+                size = 36.dp,
+                onClick = { onUserClick(participant.id) }
             )
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onResponseClick(participant.registrationId) }
+                    .padding(vertical = 2.dp)
+            ) {
                 Text(
                     text       = participant.name,
                     fontSize   = 13.sp,
@@ -566,12 +593,14 @@ private fun SoloCard(participant: SoloParticipant, onUserClick: (Int) -> Unit) {
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .background(Color(0xFFF0F0F0), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
-            ) {
-                Text("Solo", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = TextMuted)
+            Box(modifier = Modifier.padding(start = 8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFF0F0F0), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text("Solo", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = TextMuted)
+                }
             }
         }
     }

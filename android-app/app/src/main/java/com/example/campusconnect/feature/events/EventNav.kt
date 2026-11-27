@@ -15,6 +15,7 @@ import com.example.campusconnect.feature.events.ui.screen.EventScreen
 import com.example.campusconnect.feature.events.ui.screen.PosterModeScreen
 import com.example.campusconnect.feature.events.viewmodel.EventViewModel
 import com.example.campusconnect.feature.profile.navigateToUserProfile
+import com.example.campusconnect.feature.registrations.navigateToRegistrationResponseDetail
 import com.example.campusconnect.feature.map.ui.components.controls.LocalCloudTransitionState
 import kotlinx.coroutines.launch
 
@@ -63,6 +64,9 @@ fun NavGraphBuilder.eventNav(
                 },
                 onRegistration = { event ->
                     onRegistrationSetup(event)
+                },
+                onParticipantResponseClick = { eventId, registrationId ->
+                    navController.navigateToRegistrationResponseDetail(eventId, registrationId)
                 },
                 restoreAccessDialogEventId = if (isEventsScreenVisible) {
                     returnAccessDialogEventId ?: accessDialogEventId

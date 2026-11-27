@@ -193,7 +193,6 @@ fun NavGraphBuilder.RegistrationNav(
             viewModelStoreOwner = backStackEntry,
             factory = RegistrationDependencies.registrationResponsesViewModelFactory,
         )
-
         RegistrationResponsesScreen(
             eventId = eventId,
             eventName = header.eventName,
@@ -218,20 +217,31 @@ fun NavGraphBuilder.RegistrationNav(
         val registrationId =
             backStackEntry.arguments?.getInt("registrationId")
                 ?: return@composable
+        val eventId = backStackEntry.arguments?.getInt("eventId")
+            ?: return@composable
 
-        // Share the list's ViewModel so loaded responses are reused, not refetched.
-        val listEntry = remember(backStackEntry) {
-            navController.getBackStackEntry("registration_responses/{eventId}")
+        // Reuse list state when opened from the responses list. Participants can
+        // also open this destination directly, in which case the detail owns its
+        // ViewModel and loads the same response data without inserting the list.
+        val listEntry = remember(backStackEntry, eventId) {
+            runCatching {
+                navController.getBackStackEntry("registration_responses/{eventId}")
+            }.getOrNull()?.takeIf { entry ->
+                entry.arguments?.getInt("eventId") == eventId
+            }
         }
         val viewModel: RegistrationResponsesViewModel = viewModel(
-            viewModelStoreOwner = listEntry,
+            viewModelStoreOwner = listEntry ?: backStackEntry,
             factory = RegistrationDependencies.registrationResponsesViewModelFactory,
         )
+        LaunchedEffect(eventId, listEntry) {
+            if (listEntry == null) viewModel.loadRegistrations(eventId)
+        }
         val listState by viewModel.listState.collectAsState()
         val response = listState.registrations.firstOrNull { it.id == registrationId }
 
         RegistrationResponseDetailScreen(
-            eventId = backStackEntry.arguments?.getInt("eventId") ?: return@composable,
+            eventId = eventId,
             registrationId = registrationId,
             response = response,
             viewModel = viewModel,
